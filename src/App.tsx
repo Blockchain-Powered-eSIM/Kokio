@@ -25,6 +25,9 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import Button from './components/ui/Button';
+import PrimaryButton from './components/ui/PrimaryButton';
+// import PrimaryButton from './components/ui/PrimaryButton';
 
 // ! used to verify that nativewind doesn't have errors
 // import {verifyInstallation} from 'nativewind';
@@ -73,17 +76,17 @@ function App(): React.JSX.Element {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" style={backgroundStyle}>
         <Header />
+        {/* <Button>Test 1</Button> */}
+        <PrimaryButton>Test 2</PrimaryButton>
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
           <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
+            Edit <Text style={styles.highlight}>App.tsx</Text> to change this screen and then come
+            back to see your edits.
           </Section>
           <Section title="See Your Changes">
             <ReloadInstructions />
@@ -91,9 +94,7 @@ function App(): React.JSX.Element {
           <Section title="Debug">
             <DebugInstructions />
           </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
+          <Section title="Learn More">Read the docs to discover what to do next:</Section>
           <LearnMoreLinks />
         </View>
       </ScrollView>

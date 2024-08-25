@@ -1,50 +1,46 @@
 import React from 'react';
-import {Text, Pressable, PressableProps} from 'react-native';
-import {cva, type VariantProps} from 'class-variance-authority';
-import {cn} from '@/utils/cn';
+import {View, Text, Pressable, StyleSheet} from 'react-native';
 
-const buttonStyles = cva(
-  [
-    'flex',
-    'h-[44px]',
-    'px-10',
-    'py-[11px]',
-    'justify-center',
-    'items-end',
-    'self-stretch',
-  ],
-  {
-    variants: {
-      intent: {
-        primary: ['bg-[#FFD60A]', 'text-black'],
-        secondary: ['bg-[#FF9F0A]', 'text-black'],
-        outline: ['border', 'border-[#FF9F0A]', 'text-[#FF9F0A]'],
-      },
-    },
-    defaultVariants: {
-      intent: 'primary',
-    },
-  },
-);
-
-type ButtonVariants = VariantProps<typeof buttonStyles>;
-
-interface ButtonProps extends PressableProps, ButtonVariants {
+type PrimaryButtonProps = {
   children: React.ReactNode;
-  className?: string;
-}
-
-const Button: React.FC<ButtonProps> = ({
-  children,
-  intent,
-  className,
-  ...props
-}) => {
-  return (
-    <Pressable className={cn(buttonStyles({intent}), className)} {...props}>
-      <Text className={buttonStyles({intent})}>{children}</Text>
-    </Pressable>
-  );
 };
 
-export default Button;
+function PrimaryButton({children}: PrimaryButtonProps) {
+  function pressHandler() {
+    console.log('Button pressed');
+  }
+  return (
+    <View style={styles.buttonOuterContainer}>
+      <Pressable
+        style={styles.buttonInnerContainer}
+        onPress={pressHandler}
+        android_ripple={{color: '#41454a'}}>
+        <Text style={styles.buttonText}>{children}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  // ! Dedicated pressed style for iOS not applied
+  buttonOuterContainer: {
+    borderRadius: 40,
+    margin: 4,
+    overflow: 'hidden',
+  },
+  buttonInnerContainer: {
+    backgroundColor: '#373A3E',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4,
+  },
+  buttonText: {
+    color: 'white',
+    textAlign: 'center',
+  },
+});
+
+export default PrimaryButton;

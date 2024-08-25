@@ -6,5 +6,6 @@
       "@/android/*": ["./src/android/*"],
       "@/ios/*": ["./src/ios/*"]
     }
-  }
+  },
+  "include": ["nativewind-env.d.ts", "src/**/*.ts", "src/**/*.tsx"]
 }
