@@ -25,7 +25,8 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
-import Button from './components/ui/Button';
+// import Button from './components/ui/Button';
+import {Button} from './components/common/Button';
 import PrimaryButton from './components/ui/PrimaryButton';
 // import PrimaryButton from './components/ui/PrimaryButton';
 
@@ -80,6 +81,7 @@ function App(): React.JSX.Element {
         <Header />
         {/* <Button>Test 1</Button> */}
         <PrimaryButton>Test 2</PrimaryButton>
+        <Button title="Test" onPress={() => console.log('Test')} />
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,

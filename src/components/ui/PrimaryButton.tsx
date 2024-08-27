@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   buttonInnerContainer: {
-    backgroundColor: '#373A3E',
+    backgroundColor: '#FFD60A',
     paddingVertical: 16,
     paddingHorizontal: 24,
     flexDirection: 'row',
@@ -38,8 +38,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   buttonText: {
-    color: 'white',
+    color: 'black',
     textAlign: 'center',
+    fontWeight: '700',
   },
 });
 
