@@ -12,6 +12,7 @@ import { Theme } from "@/constants/Colors";
 const Header = ({
   title,
   style = {},
+  titleStyle = {},
   containerStyle = {},
   hasBack,
   goBackFallBack,
@@ -41,7 +42,7 @@ const Header = ({
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: Theme.spacing.sm,
+        margin: Theme.spacing.sm,
         position: "relative",
         ...containerStyle,
       }}
@@ -51,7 +52,7 @@ const Header = ({
           name="chevron-back-outline"
           size={24}
           color={useThemeColor({}, "icon")}
-          style={{ marginRight: Theme.spacing.sm }}
+          style={{ marginRight: Theme.spacing.sm, position: "absolute", zIndex: 1 }}
           onPress={handleBack}
         />
       )}
@@ -65,7 +66,11 @@ const Header = ({
           ...style,
         }}
       >
-        <ThemedText type="subtitle">{title || ""}</ThemedText>
+        <ThemedText
+          style={{ color: useThemeColor({}, "headerText"), ...titleStyle }}
+        >
+          {title || ""}
+        </ThemedText>
       </ThemedView>
     </ThemedView>
   );

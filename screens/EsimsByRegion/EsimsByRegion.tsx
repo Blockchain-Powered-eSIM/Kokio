@@ -3,17 +3,17 @@ import { StyleSheet } from "react-native";
 
 import _get from "lodash/get";
 
-import {  Theme } from "@/constants/Colors";
-import { COUNTRY_CONFIG } from "@/constants/general.constants";
-import { useEsimsByCountry } from "@/queries/e-sims";
+import { Theme } from "@/constants/Colors";
+import { REGION_CONFIG } from "@/constants/general.constants";
+import { useEsimsByRegion } from "@/queries/e-sims";
 
 import DataPackTabGroup from "@/components/DataPackTabGroup";
 
-export default function EsimsByCountry() {
+export default function EsimsByRegion() {
   const params = useLocalSearchParams();
-  const countryCode = _get(COUNTRY_CONFIG, [params?.id, "isoCode"]);
-  const { data: esims, ...rest } = useEsimsByCountry(countryCode, {
-    enabled: !!countryCode,
+  const region = _get(REGION_CONFIG, [params?.id, "region"]);
+  const { data: esims, ...rest } = useEsimsByRegion(region, {
+    enabled: !!region,
   });
 
   return (

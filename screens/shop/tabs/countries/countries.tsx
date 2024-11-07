@@ -15,24 +15,25 @@ import { ThemedText } from "@/components/ThemedText";
 import CountryFlag from "@/components/ui/CountryFlag";
 import useHideTabBar from "@/hooks/useHideTabBar";
 import { Colors, Theme } from "@/constants/Colors";
+import { COUNTRY, COUNTRY_CONFIG } from "@/constants/general.constants";
 
 const MOCK_COUNTRIES_LIST = [
-  { isoCode: "IN", label: "India", name: "INDIA" },
-  { isoCode: "SG", label: "Singapore", name: "SINGAPORE" },
-  { isoCode: "GB", label: "United Kingdom", name: "UNITED KINGDOM" },
-  { isoCode: "YE", label: "Yemen", name: "YEMEN" },
-  { isoCode: "CR", label: "Costa Rica", name: "COSTA RICA" },
-  { isoCode: "US", label: "United States", name: "UNITED STATES" },
-  { isoCode: "AU", label: "Australia", name: "AUSTRALIA" },
-  { isoCode: "JP", label: "Japan", name: "JAPAN" },
-  { isoCode: "FR", label: "France", name: "FRANCE" },
-  { isoCode: "BR", label: "Brazil", name: "BRAZIL" },
-  { isoCode: "CA", label: "Canada", name: "CANADA" },
-  { isoCode: "ZA", label: "South Africa", name: "SOUTH AFRICA" },
-  { isoCode: "CN", label: "China", name: "CHINA" },
-  { isoCode: "DE", label: "Germany", name: "GERMANY" },
-  { isoCode: "RU", label: "Russia", name: "RUSSIA" },
-  { isoCode: "MX", label: "Mexico", name: "MEXICO" },
+  COUNTRY_CONFIG[COUNTRY.INDIA],
+  COUNTRY_CONFIG[COUNTRY.SINGAPORE],
+  COUNTRY_CONFIG[COUNTRY.UNITED_KINGDOM],
+  COUNTRY_CONFIG[COUNTRY.YEMEN],
+  COUNTRY_CONFIG[COUNTRY.COSTA_RICA],
+  COUNTRY_CONFIG[COUNTRY.UNITED_STATES],
+  COUNTRY_CONFIG[COUNTRY.AUSTRALIA],
+  COUNTRY_CONFIG[COUNTRY.JAPAN],
+  COUNTRY_CONFIG[COUNTRY.FRANCE],
+  COUNTRY_CONFIG[COUNTRY.BRAZIL],
+  COUNTRY_CONFIG[COUNTRY.CANADA],
+  COUNTRY_CONFIG[COUNTRY.SOUTH_AFRICA],
+  COUNTRY_CONFIG[COUNTRY.CHINA],
+  COUNTRY_CONFIG[COUNTRY.GERMANY],
+  COUNTRY_CONFIG[COUNTRY.RUSSIA],
+  COUNTRY_CONFIG[COUNTRY.MEXICO],
 ];
 
 export default function Countries({ list = MOCK_COUNTRIES_LIST }) {
@@ -41,7 +42,7 @@ export default function Countries({ list = MOCK_COUNTRIES_LIST }) {
   };
 
   const renderItem = ({ item, index }: any) => (
-    <TouchableOpacity onPress={navigateToESIMsByCountry(item?.label)}>
+    <TouchableOpacity onPress={navigateToESIMsByCountry(item?.name)}>
       <View key={item?.isoCode || index} style={styles.country}>
         <CountryFlag style={styles.flag} isoCode={item?.isoCode} size={60} />
         <ThemedText style={styles.countryLabel}>{item?.label || ""}</ThemedText>
@@ -50,7 +51,6 @@ export default function Countries({ list = MOCK_COUNTRIES_LIST }) {
   );
 
   return (
-    <ScrollView>
       <View style={styles.tabWrapper}>
         <ThemedText style={styles.tabTitle}>{"Popular Countries"}</ThemedText>
         <View style={styles.countriesWrapper}>
@@ -62,7 +62,6 @@ export default function Countries({ list = MOCK_COUNTRIES_LIST }) {
           />
         </View>
       </View>
-    </ScrollView>
   );
 }
 
@@ -89,6 +88,7 @@ const styles = StyleSheet.create({
   },
   countryLabel: {
     color: Colors.dark.text,
+    paddingTop: Theme.spacing.sm,
   },
   flag: {
     borderRadius: Theme.borderRadius.medium,

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet } from "react-native";
 import { TabView, SceneMap, TabBar } from "react-native-tab-view";
+
 import _get from "lodash/get";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -23,13 +24,13 @@ const TabBarLabel = ({ route: tabRoute, focused }: any) => (
   </ThemedText>
 );
 
-export default function TabTwoScreen() {
-  const renderScene = SceneMap({
-    Countries: Countries,
-    Regions: Regions,
-    Global: Global,
-  });
+const renderScene = SceneMap({
+  Countries: Countries,
+  Regions: Regions,
+  Global: Global,
+});
 
+export default function Shop() {
   const [index, setIndex] = useState<number>(0);
 
   return (

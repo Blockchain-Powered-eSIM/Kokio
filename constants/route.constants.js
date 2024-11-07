@@ -6,6 +6,7 @@ export const ROUTE_NAMES = {
   PHONE: "phone",
   SETTINGS: "settings",
   BY_COUNTRY: "country/[id]",
+  BY_REGION: "region/[id]",
 };
 
 export const TAB_BAR_ENABLED_ROUTES = [

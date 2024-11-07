@@ -18,7 +18,6 @@ export default function TabLayout() {
           const navigationState = navigation.getState();
           const routeName = getRouteName(navigationState);
           const tabBarVisible = getIsTabBarVisible(routeName);
-          console.log({ tabBarVisible, navigationState, routeName, route });
 
           return {
             tabBarActiveTintColor: Theme.colors.highlight,
