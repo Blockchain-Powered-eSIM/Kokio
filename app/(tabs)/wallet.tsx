@@ -1,16 +1,15 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Link } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import Typography from '@/components/Typography/Typography';
+import Wallet from '@/components/home/wallet';
 
-// Mock data (replace with real data in your implementation)
-const walletData = {
-  balance: '1000.00',
-  address: '0x1234...5678',
-};
+
+
 
 const tokens = [
   { id: '1', name: 'Bitcoin', symbol: 'BTC', balance: '0.5', icon: '🟠' },
@@ -34,194 +33,59 @@ const contacts = [
 
 const WalletPage = () => {
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView>
-        {/* Section 1: eSIM Wallet Card */}
-        <View style={styles.card}>
-          <View style={styles.cardRow}>
-            <ThemedText style={styles.cardTitle}>eSIM Wallet</ThemedText>
-            <Ionicons name="wallet-outline" size={24} color={Colors.light.icon} />
-          </View>
-          <View style={styles.cardRow}>
-            <ThemedText style={styles.balance}>{walletData.balance} USDC</ThemedText>
-            <ThemedText style={styles.address}>{walletData.address}</ThemedText>
-          </View>
+    <View className='flex-1 h-full justify-center items-center w-full bg-black' >
+      <ScrollView className='flex-1'>
+
+        <Typography class='text-[#AEAEB2] text-[16px] text-center font-Lexend mt-3'>eSim Wallet</Typography>
+        <View className='flex-1 mt-4 mb-2'>
+          <Wallet />
         </View>
 
-        {/* Section 2: Tokens List */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Your Tokens</ThemedText>
-            <Link href="/wallet/tokens" asChild>
-              <TouchableOpacity>
-                <ThemedText style={styles.seeAllButton}>Show All</ThemedText>
-              </TouchableOpacity>
-            </Link>
-          </View>
-          {tokens.map((token) => (
-            <View key={token.id} style={styles.tokenItem}>
-              <ThemedText style={styles.tokenIcon}>{token.icon}</ThemedText>
-              <ThemedText style={styles.tokenName}>{token.name}</ThemedText>
-              <ThemedText style={styles.tokenBalance}>{token.balance} {token.symbol}</ThemedText>
+        <View className='flex-1 gap-x-2 flex-row  mx-2 '>
+          <View className='flex-1 rounded-3xl py-5  bg-[#1c1c1e] justify-center items-center'>
+            <View className='p-[12] rounded-full bg-[#FF9500]'>
+              <Image source={require("../../assets/images/wallet/arrow_up.png")} className='h-[32] w-[32]' />
             </View>
-          ))}
-        </View>
-
-        {/* Section 3: Transactions List */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Transactions</ThemedText>
-            <Link href="/wallet/transactions" asChild>
-              <TouchableOpacity>
-                <ThemedText style={styles.seeAllButton}>Show All</ThemedText>
-              </TouchableOpacity>
-            </Link>
+            <Typography variant='sm' class='text-white mt-2' bold>Send</Typography>
           </View>
-          {transactions.map((tx) => (
-            <View key={tx.id} style={styles.transactionItem}>
-              <ThemedText style={styles.transactionIcon}>{tx.icon}</ThemedText>
-              <View style={styles.transactionDetails}>
-                <ThemedText style={styles.transactionName}>{tx.name}</ThemedText>
-                <ThemedText style={styles.transactionDate}>{tx.date}</ThemedText>
-              </View>
-              <ThemedText style={styles.transactionAmount}>{tx.amount}</ThemedText>
+          <View className='flex-1 rounded-3xl py-5 bg-[#1c1c1e] justify-center items-center'>
+            <View className='p-[12] rounded-full bg-[#34C759]'>
+              <Image source={require("../../assets/images/wallet/arrow_down.png")} className='h-[32] w-[32]' />
             </View>
-          ))}
+            <Typography variant='sm' class='text-white mt-2' bold>Request</Typography>
+          </View>
+          <View className='flex-1 rounded-3xl py-5 bg-[#1c1c1e] justify-center items-center'>
+            <View className='p-[12] rounded-full bg-[#007AFF]'>
+              <Image source={require("../../assets/images/wallet/square_arrow.png")} className='h-[32] w-[32]' />
+            </View>
+            <Typography variant='sm' class='text-white mt-2' bold>Deposit</Typography>
+          </View>
+        </View>
+        <View className='flex-1 mx-2  py-3 rounded-3xl mt-5 bg-[#1c1c1e]'>
+          <Typography class='text-[#AEAEB2] ml-6'>Your Tokens</Typography>
+          <Typography class='text-[#AEAEB2] mt-5 ml-6 mb-2' >You don't hold any tokens yet.</Typography>
+
+        </View>
+        <View className='flex-1 mx-2  py-3 rounded-3xl mt-5 bg-[#1c1c1e]'>
+          <Typography class='text-[#AEAEB2] ml-6'>Transactions</Typography>
+          <Typography class='text-[#AEAEB2] mt-5 ml-6 mb-2' >No Transactions to show</Typography>
+
+        </View>
+        <View className='flex-1 mx-2  py-3 rounded-3xl mt-5 bg-[#1c1c1e]'>
+          <Typography class='text-[#AEAEB2] ml-6'>Contacts</Typography>
+          <View className=' justify-center '>
+            <View className=' ml-8 mt-4 h-16 items-center justify-center  w-16 rounded-full bg-[#FF9500]'>
+              <Image source={require("../../assets/images/wallet/add_contact.png")} className='h-[32] w-[38]' />
+            </View>
+            <Typography class='text-[#AEAEB2] ml-8 mt-2'>Add new</Typography>
+          </View>
         </View>
 
-        {/* Section 4: Contacts List */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Contacts</ThemedText>
-            <Link href="/wallet/contacts" asChild>
-              <TouchableOpacity>
-                <ThemedText style={styles.seeAllButton}>Show All</ThemedText>
-              </TouchableOpacity>
-            </Link>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.contactsList}>
-            {contacts.map((contact) => (
-              <TouchableOpacity key={contact.id} style={styles.contactItem}>
-                <ThemedText style={styles.contactIcon}>{contact.icon}</ThemedText>
-                <ThemedText style={styles.contactName}>{contact.name}</ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-    padding: 16,
-  },
-  card: {
-    backgroundColor: Colors.light.secondaryBackground,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-  },
-  cardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-  },
-  balance: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-  },
-  address: {
-    fontSize: 14,
-    color: Colors.light.inactive,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-  },
-  seeAllButton: {
-    color: Colors.light.highlight,
-    fontSize: 14,
-  },
-  tokenItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  tokenIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  tokenName: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.light.text,
-  },
-  tokenBalance: {
-    fontSize: 16,
-    color: Colors.light.text,
-    fontWeight: 'bold',
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  transactionIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  transactionDetails: {
-    flex: 1,
-  },
-  transactionName: {
-    fontSize: 16,
-    color: Colors.light.text,
-  },
-  transactionDate: {
-    fontSize: 12,
-    color: Colors.light.inactive,
-  },
-  transactionAmount: {
-    fontSize: 16,
-    color: Colors.light.text,
-    fontWeight: 'bold',
-  },
-  contactsList: {
-    flexDirection: 'row',
-  },
-  contactItem: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  contactIcon: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  contactName: {
-    fontSize: 12,
-    color: Colors.light.text,
-  },
-});
+
 
 export default WalletPage;

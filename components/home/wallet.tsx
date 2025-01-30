@@ -11,11 +11,12 @@ import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/Colors";
+import Typography from "../Typography/Typography";
 
 const Wallet = () => {
   return (
     <View style={{ marginVertical: 12 }}>
-      <Text style={styles.headingText}>eSIM Wallet</Text>
+     
       <View style={styles.shadowContainer}>
         <LinearGradient
           colors={["#404040", "#000000"]}
@@ -29,26 +30,26 @@ const Wallet = () => {
             resizeMode="cover"
           />
           <ThemedView style={styles.headerWithLogo}>
-            <ThemedText style={styles.title}>eSIM Wallet</ThemedText>
+            <Typography variant="xl" class="text-white font-Lexend ml-4">eSIM Wallet</Typography>
             <Image
               source={require("@/assets/images/logo.png")}
               style={styles.logo}
             />
           </ThemedView>
           <ThemedView style={styles.balanceContainer}>
-            <ThemedText style={styles.balanceLabel}>Total balance</ThemedText>
+            <Typography variant="sm" class="text-white mb-1">Total balance</Typography>
             <View style={styles.balanceAmountContainer}>
-              <ThemedText
-                style={styles.balanceAmount}
-                numberOfLines={1}
-                adjustsFontSizeToFit
+              <Typography
+               class="text-white text-[40px] mr-1"
+               
+              
               >
                 678
-              </ThemedText>
-              <ThemedText style={styles.balanceCurrency}>USD</ThemedText>
+              </Typography>
+              <Typography class="text-white mb-2 ml-1">USD</Typography>
             </View>
           </ThemedView>
-          <ThemedText style={styles.address}>0xJdk..123</ThemedText>
+          <Typography variant="sm" class="text-white ml-[260]">0xJdk..123</Typography>
         </LinearGradient>
       </View>
     </View>
