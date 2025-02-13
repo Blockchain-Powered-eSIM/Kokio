@@ -2,11 +2,13 @@ export const ROUTE_NAMES = {
   HOME: "index",
   SHOP: "(shop)",
   CHECKOUT: "checkout/[id]",
-  WALLET: "wallet",
+  WALLET: "(wallet)",
   PHONE: "phone",
   SETTINGS: "settings",
   BY_COUNTRY: "country/[id]",
   BY_REGION: "region/[id]",
+  TOKENS:"Tokens",
+  TRANSACTIONS:"Transactions"
 };
 
 export const TAB_BAR_ENABLED_ROUTES = [

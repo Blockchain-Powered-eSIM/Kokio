@@ -50,7 +50,7 @@ const Header = ({
       {hasBack && (
         <Ionicons
           name="chevron-back-outline"
-          size={24}
+          size={25}
           color={useThemeColor({}, "icon")}
           style={{ marginRight: Theme.spacing.sm, position: "absolute", zIndex: 1 }}
           onPress={handleBack}
@@ -68,6 +68,7 @@ const Header = ({
       >
         <ThemedText
           style={{ color: useThemeColor({}, "headerText"), ...titleStyle }}
+          className="text-[#AEAEB2] text-[16px] text-center font-Lexend "
         >
           {title || ""}
         </ThemedText>
