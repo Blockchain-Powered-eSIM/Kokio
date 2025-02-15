@@ -8,6 +8,7 @@ export type ThemedTextProps = TextProps & {
   className?: string;
   style?: TextStyle;
   bold?: boolean;
+  light?:boolean
   lightColor?: string;
   darkColor?: string;
 };
@@ -18,6 +19,7 @@ export function ThemedText({
   className,
   style,
   bold,
+  light,
   lightColor,
   darkColor,
   ...rest
@@ -39,6 +41,7 @@ export function ThemedText({
         variant === "xl" && "text-xl font-LexendSemiBold",
         variant === "xxl" && "text-2xl font-LexendSemiBold",
         bold && "font-LexendSemiBold",
+        light && "font-LexendLight",
         className
       )}
       style={[{ color }, style]} 

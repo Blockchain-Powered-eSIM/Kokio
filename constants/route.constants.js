@@ -8,7 +8,8 @@ export const ROUTE_NAMES = {
   BY_COUNTRY: "country/[id]",
   BY_REGION: "region/[id]",
   TOKENS:"Tokens",
-  TRANSACTIONS:"Transactions"
+  TRANSACTIONS:"Transactions",
+  TRANSACTIONDETAILS:"TransactionDetails"
 };
 
 

@@ -52,6 +52,23 @@ export default function WalletStack() {
           };
         }}
       />
+      <Stack.Screen
+        name={ROUTE_NAMES.TRANSACTIONDETAILS}
+        options={({ route, navigation }: any) => {
+          
+          
+          return {
+            header: () => (
+              <Header
+                title="Transaction Details"
+                hasBack
+                style={{ justifyContent: "center" }}
+              />
+            ),
+          };
+        }}
+      />
+      
       </Stack>
   );
 }

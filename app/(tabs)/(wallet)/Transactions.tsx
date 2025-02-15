@@ -1,20 +1,32 @@
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, Pressable } from 'react-native';
 import React from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { useRouter } from 'expo-router';
 
 const Transactions = () => {
+  const router = useRouter();
+
+  const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
+    if (!address) return "";
+    return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
+  };
   const transactions = [
     {
-      id: '1',
+
       name: 'Alice',
       amount: '$150.00',
       status: 'pending',
       type: 'sending',
+      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef5',
+      dateTime: "2024-03-05 14:30:00 UTC",
+      ethAmount: "0.000461 ETH",
       icon: require('../../../assets/images/wallet/contact1.png')
     },
     {
-      id: '2',
+      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef6',
+      dateTime: "2024-03-05 14:30:00 UTC",
+      ethAmount: "0.000461 ETH",
       name: 'Ethan',
       amount: '$150.00',
       status: 'completed',
@@ -22,12 +34,25 @@ const Transactions = () => {
       icon: require('../../../assets/images/wallet/contact2.png')
     },
     {
-      id: '3',
+      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef7',
+      dateTime: "2024-03-05 14:30:00 UTC",
+      ethAmount: "0.000461 ETH",
       name: 'Alice',
       amount: '$150.00',
       status: 'completed',
       type: 'received',
       icon: require('../../../assets/images/wallet/contact3.png')
+    },
+    {
+      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef8',
+      walletId: '0x3A57aD2f5F118Ee412F2bB6B76BcF9b3E4890714',
+      dateTime: "2024-03-05 14:30:00 UTC",
+      ethAmount: "0.000461 ETH",
+
+      amount: '$150.00',
+      status: 'completed',
+      type: 'received',
+      icon: require('../../../assets/images/wallet/wallet.png')
     },
   ];
 
@@ -39,14 +64,25 @@ const Transactions = () => {
           <View className='gap-y-6 mt-5 mb-3'>
             {transactions.map((tr, index) => (
               tr.status === 'pending' && (
-                <View key={tr.id} className='flex-row items-center justify-between mx-5'>
+                <Pressable
+                  onPress={() => router.push({
+                    pathname: "(wallet)/TransactionDetails",
+                    params: { transaction: JSON.stringify(transactions[index]) } // Convert object to string
+                  })}
+                  key={tr.id}
+                  className="flex-row items-center justify-between mx-5"
+                >
                   <View className='flex-row items-center'>
                     <Image source={tr.icon} className='h-[48px] w-[48px]' />
                     <View className='flex-col items-start ml-3'>
-                      <ThemedText variant='xl'>{tr.name}</ThemedText>
+                      {tr.name ? <ThemedText variant='xl'>{tr.name}</ThemedText>:
+                      <ThemedText variant='xl'>{tr.walletId}</ThemedText>}
+
+
                       <ThemedText
                         darkColor={tr.type === 'received' ? '#AEAEB2' : '#FF9F0A'}
                         variant='sm'
+
                       >
                         {tr.type}
                       </ThemedText>
@@ -61,7 +97,7 @@ const Transactions = () => {
                       {tr.status}
                     </ThemedText>
                   </View>
-                </View>
+                </Pressable>
               )
             ))}
           </View>
@@ -78,11 +114,19 @@ const Transactions = () => {
           <View className='gap-y-6 mt-5 mb-3'>
             {transactions.map((tr, index) => (
               tr.status === 'completed' && (
-                <View key={tr.id} className='flex-row items-center justify-between mx-5'>
+                <Pressable
+                  onPress={() => router.push({
+                    pathname: "(wallet)/TransactionDetails",
+                    params: { transaction: JSON.stringify(transactions[index]) } // Convert object to string
+                  })}
+                  key={tr.id}
+                  className="flex-row items-center justify-between mx-5"
+                >
                   <View className='flex-row items-center'>
                     <Image source={tr.icon} className='h-[48px] w-[48px]' />
                     <View className='flex-col items-start ml-3'>
-                      <ThemedText variant='xl'>{tr.name}</ThemedText>
+                    {tr.name ? <ThemedText variant='xl'>{tr.name}</ThemedText>:
+                      <ThemedText variant='xl'>{shortenId(tr.walletId)}</ThemedText>}
                       <ThemedText
                         darkColor={tr.type === 'received' ? '#AEAEB2' : '#FF9F0A'}
                         variant='sm'
@@ -100,7 +144,7 @@ const Transactions = () => {
                       {tr.status}
                     </ThemedText>
                   </View>
-                </View>
+                </Pressable>
               )
             ))}
           </View>
