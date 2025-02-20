@@ -68,7 +68,7 @@ const Header = ({
       >
         <ThemedText
           style={{ color: useThemeColor({}, "headerText"), ...titleStyle }}
-          className="text-[#AEAEB2] text-[16px] text-center font-Lexend "
+          className="text-[#AEAEB2] absolute z-40  text-[16px] text-center font-Lexend "
         >
           {title || ""}
         </ThemedText>

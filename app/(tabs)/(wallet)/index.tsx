@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
@@ -7,6 +7,7 @@ import { Link, useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 
 import Wallet from '@/components/home/wallet';
+import ToastNotification from '@/components/ui/ToastNotification/ToastNotification';
 
 
 
@@ -33,8 +34,14 @@ const contacts = [
 
 const WalletPage = () => {
   const router = useRouter();
+  const [showToast,setShowToast] = useState(false);
+  const handleToastVisible = (visible:boolean) => {
+    setShowToast(visible);
+  };
+  
   return (
     <ThemedView className='flex-1 h-full justify-center items-center w-full bg-black' >
+       {showToast && <ToastNotification handleToastVisible={handleToastVisible} />}
       <ScrollView className='flex-1'>
 
 
@@ -174,6 +181,9 @@ const WalletPage = () => {
           }
 
         </ThemedView>
+        <TouchableOpacity className='flex-1 items-center py-5'  onPress={() => handleToastVisible(true)}>
+          <ThemedText >Toggle Toast Notification</ThemedText>
+        </TouchableOpacity>
 
       </ScrollView>
     </ThemedView>
