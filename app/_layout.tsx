@@ -12,6 +12,7 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import "../global.css";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ToastProvider } from "@/contexts/ToastContext";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -50,10 +51,12 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <QueryClientProvider client={queryClient}>
+        <ToastProvider>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
+        </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>
     </GestureHandlerRootView>

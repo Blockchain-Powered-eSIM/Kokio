@@ -57,10 +57,10 @@ const ToastNotification = ({ handleToastVisible }) => {
     },
     onEnd: (event) => {
       const swipeThreshold = 50;
-      
+
       if (Math.abs(event.translationX) > swipeThreshold || event.translationY < -swipeThreshold) {
         isAnimating.value = true;
-        
+
         const targetX = event.translationX > 0 ? 500 : -500;
         const targetY = event.translationY < -swipeThreshold ? -500 : 0;
 
@@ -82,7 +82,8 @@ const ToastNotification = ({ handleToastVisible }) => {
     <Animated.View
       entering={FadeInUp}
       exiting={FadeOutUp}
-      className="w-[100%] z-50 absolute items-center top-[-30]"
+      className="w-[100%] absolute items-center top-[35]"
+      
     >
       <PanGestureHandler onGestureEvent={gestureHandler}>
         <Animated.View style={animatedStyle} className="w-full items-center">

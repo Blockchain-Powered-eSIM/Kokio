@@ -16,7 +16,7 @@ export default function WalletStack() {
         name={ROUTE_NAMES.HOME}
         options={{
             header: () => (
-              <Header title="eSim Wallet" style={{ justifyContent: "center",zIndex:-0.1, }} />
+              <Header title="eSim Wallet" style={{ justifyContent: "center" }} />
             ),
           }}
         
