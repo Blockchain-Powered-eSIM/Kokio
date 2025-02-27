@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "Kokio.app"
-               BlueprintName = "Kokio"
-               ReferencedContainer = "container:Kokio.xcodeproj">
+               BuildableName = "kokio.app"
+               BlueprintName = "kokio"
+               ReferencedContainer = "container:kokio.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "KokioTests.xctest"
-               BlueprintName = "KokioTests"
-               ReferencedContainer = "container:Kokio.xcodeproj">
+               BuildableName = "kokioTests.xctest"
+               BlueprintName = "kokioTests"
+               ReferencedContainer = "container:kokio.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "Kokio.app"
-            BlueprintName = "Kokio"
-            ReferencedContainer = "container:Kokio.xcodeproj">
+            BuildableName = "kokio.app"
+            BlueprintName = "kokio"
+            ReferencedContainer = "container:kokio.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "Kokio.app"
-            BlueprintName = "Kokio"
-            ReferencedContainer = "container:Kokio.xcodeproj">
+            BuildableName = "kokio.app"
+            BlueprintName = "kokio"
+            ReferencedContainer = "container:kokio.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

@@ -11,6 +11,23 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
+// - Polyfill TextEncoder
+import "fast-text-encoding";
+
+import { Platform } from "react-native";
+import { atob, btoa } from 'react-native-quick-base64'
+
+// - Polyfill Buffer
+if (typeof Buffer === "undefined") {
+  global.Buffer = require("buffer").Buffer;
+}
+
+// - Polyfill atob and btoa
+if (Platform.OS !== 'web') {
+	global.atob = atob
+	global.btoa = btoa
+}
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
