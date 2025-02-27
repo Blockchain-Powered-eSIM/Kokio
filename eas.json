@@ -1,6 +1,6 @@
 {
   "cli": {
-    "requireCommit": false
+    "requireCommit": true
   },
   "build": {
     "development-simulator": {
