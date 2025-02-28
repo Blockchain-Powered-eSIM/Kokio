@@ -11,11 +11,14 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
+import "node-libs-react-native/globals.js";
+import "react-native-get-random-values";
 // - Polyfill TextEncoder
 import "fast-text-encoding";
 
 import { Platform } from "react-native";
-import { atob, btoa } from 'react-native-quick-base64'
+import { atob, btoa } from "react-native-quick-base64";
+import { AlchemyAuthSessionProvider } from "@/context/AlchemyAuthSessionProvider";
 
 // - Polyfill Buffer
 if (typeof Buffer === "undefined") {
@@ -23,9 +26,9 @@ if (typeof Buffer === "undefined") {
 }
 
 // - Polyfill atob and btoa
-if (Platform.OS !== 'web') {
-	global.atob = atob
-	global.btoa = btoa
+if (Platform.OS !== "web") {
+  global.atob = atob;
+  global.btoa = btoa;
 }
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -59,10 +62,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <QueryClientProvider client={queryClient}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
+        <AlchemyAuthSessionProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </AlchemyAuthSessionProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

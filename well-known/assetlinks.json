@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.kokio",
+      "sha256_cert_fingerprints": [
+        "20:49:C4:D0:B5:9F:FD:56:09:96:00:0C:60:22:DE:F2:88:82:8F:E9:3F:DB:04:2E:14:C6:55:14:D3:F9:B7:4C"
+      ]
+    }
+  }
+]

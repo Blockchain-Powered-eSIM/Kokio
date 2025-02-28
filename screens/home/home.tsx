@@ -1,3 +1,5 @@
+/* eslint-disable import/extensions */
+
 // import { ScrollView } from "react-native";
 
 // import ActiveESIMsScroll from "@/components/home/active-esim-scroll";
@@ -67,6 +69,14 @@ import {
   Base64URLString,
   PublicKeyCredentialUserEntityJSON,
 } from "@simplewebauthn/typescript-types";
+// import crypto from "crypto";
+import { Hex, toHex } from "viem";
+import { decode, encode } from "cbor2";
+
+import {
+  parseAuthenticatorData,
+  ParsedAuthenticatorData,
+} from "@/helpers/parseAuthenticatorData";
 
 // ! taken from https://github.com/MasterKale/SimpleWebAuthn/blob/e02dce6f2f83d8923f3a549f84e0b7b3d44fa3da/packages/browser/src/helpers/bufferToBase64URLString.ts
 /**
@@ -107,16 +117,16 @@ export function base64UrlToString(base64urlString: Base64URLString): string {
 
 const bundleId = Application.applicationId?.split(".").reverse().join(".");
 const rp = {
-  id: Platform.select({
-    web: undefined,
-    ios: bundleId,
-    android: bundleId?.replaceAll("_", "-"),
-  }),
+  id: bundleId!.replaceAll("_", "-"),
   name: "ReactNativePasskeys",
 } satisfies PublicKeyCredentialRpEntity;
+console.log(rp);
 
 // Don't do this in production!
-const challenge = bufferToBase64URLString(utf8StringToBuffer("fizz"));
+// Uint8Array.from("random-challenge", (c) => c.charCodeAt(0))
+const challenge = bufferToBase64URLString(
+  utf8StringToBuffer("random-challenge")
+);
 
 const user = {
   id: bufferToBase64URLString(utf8StringToBuffer("290283490")),
@@ -130,6 +140,18 @@ const authenticatorSelection = {
 } satisfies AuthenticatorSelectionCriteria;
 
 export default function App() {
+  const buf = encode(
+    new Map<number, any>([
+      [1, 2],
+      [3, false],
+      [4, { a: "b" }],
+      [1.25, 0x1ffffffffffffffffn],
+      [Date.now(), new Int16Array([-1, 0, 1])],
+    ])
+  );
+  console.log(buf);
+  console.log(decode(buf));
+
   const insets = useSafeAreaInsets();
 
   const [result, setResult] = React.useState<any>();
@@ -143,19 +165,39 @@ export default function App() {
       const json = await passkey.create({
         challenge,
         pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-        // @ts-ignore
         rp,
         user,
         authenticatorSelection,
-        ...(Platform.OS !== "android" && {
-          extensions: { largeBlob: { support: "required" } },
-        }),
       });
 
       console.log("creation json -", json);
 
       if (json?.rawId) setCredentialId(json.rawId);
       if (json?.response) setCreationResponse(json.response);
+
+      // // https://github.com/passkeys-4337/smart-wallet/blob/main/front/src/libs/web-authn/service/web-authn.ts#L97
+      let cred = json as unknown as {
+        rawId: ArrayBuffer;
+        response: {
+          clientDataJSON: ArrayBuffer;
+          attestationObject: string;
+        };
+      };
+      // // decode attestation object and get public key
+      const decodedAttestationObj: { authData: Uint8Array } = decode(
+        cred.response.attestationObject
+      );
+
+      const authData: ParsedAuthenticatorData = parseAuthenticatorData(
+        decodedAttestationObj.authData
+      );
+      const publicKey: { [-2]: string; [-3]: string } = decode(
+        authData.credentialPublicKey!
+      );
+      const x = toHex(publicKey[-2]);
+      const y = toHex(publicKey[-3]);
+      const rawId = toHex(new Uint8Array(cred.rawId));
+      console.log(x, y, rawId);
 
       setResult(json);
     } catch (e) {
@@ -189,13 +231,6 @@ export default function App() {
     const json = await passkey.get({
       rpId: rp.id as string,
       challenge,
-      // extensions: {
-      //   largeBlob: {
-      //     write: bufferToBase64URLString(
-      //       utf8StringToBuffer("Hey its a private key!")
-      //     ),
-      //   },
-      // },
       ...(credentialId && {
         allowCredentials: [{ id: credentialId, type: "public-key" }],
       }),
@@ -274,27 +309,6 @@ export default function App() {
           </Text>
         )}
       </ScrollView>
-      <Text
-        style={{
-          textAlign: "center",
-          position: "absolute",
-          bottom: insets.bottom + 16,
-          left: 0,
-          right: 0,
-        }}
-      >
-        Source available on{" "}
-        <Text
-          onPress={() =>
-            Linking.openURL(
-              "https://github.com/peterferguson/react-native-passkeys"
-            )
-          }
-          style={{ textDecorationLine: "underline" }}
-        >
-          GitHub
-        </Text>
-      </Text>
     </View>
   );
 }
@@ -332,3 +346,200 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+// import type { User } from "@account-kit/signer";
+// import { useEffect, useState } from "react";
+// import {
+//   View,
+//   Text,
+//   TextInput,
+//   StyleSheet,
+//   TouchableOpacity,
+// } from "react-native";
+// import * as Linking from "expo-linking";
+// import {
+//   createLightAccountAlchemyClient,
+//   LightAccount,
+// } from "@account-kit/smart-contracts";
+// import { sepolia, alchemy } from "@account-kit/infra";
+// import { useSafeAreaInsets } from "react-native-safe-area-context";
+// import { RNAlchemySigner } from "@account-kit/react-native-signer";
+
+// export default function HomeScreen() {
+
+//   const signer = RNAlchemySigner({
+//     client: { connection: { apiKey: process.env.API_KEY! } },
+//   });
+
+//   console.log(process.env.API_KEY)
+
+//   const url = Linking.useURL();
+
+//   if (url) {
+//     const { hostname, path, queryParams } = Linking.parse(url);
+
+//     console.log(
+//       `Linked to app with hostname: ${hostname}, path: ${path} and data: ${JSON.stringify(
+//         queryParams
+//       )}`
+//     );
+//   }
+
+//   const insets = useSafeAreaInsets();
+//   const [email, setEmail] = useState<string>("");
+//   const [user, setUser] = useState<User | null>(null);
+//   const [account, setAccount] = useState<LightAccount | null>(null);
+//   const [signerAddress, setSignerAddress] = useState<string | null>(null);
+
+//   const [awaitingOtp, setAwaitingOtp] = useState<boolean>(false);
+
+//   const [otpCode, setOtpCode] = useState<string>("");
+
+//   const handleUserAuth = ({ code }: { code: string }) => {
+//     setAwaitingOtp(false);
+//     signer
+//       .authenticate({
+//         otpCode: code,
+//         type: "otp",
+//       })
+//       .then(setUser)
+//       .catch(console.error);
+//   };
+
+//   useEffect(() => {
+//     // get the user if already logged in
+//     signer.getAuthDetails().then(setUser);
+//   }, []);
+
+//   useEffect(() => {
+//     if (user) {
+//       createLightAccountAlchemyClient({
+//         signer,
+//         chain: sepolia,
+//         transport: alchemy({ apiKey: process.env.API_KEY! }),
+//       }).then((client) => {
+//         setAccount(client.account);
+//       });
+
+//       signer.getAddress().then((address: string) => {
+//         setSignerAddress(address);
+//       });
+//     }
+//   }, [user]);
+
+//   return (
+//     <View
+//       style={{
+//         paddingTop: insets.top,
+//         paddingBottom: insets.bottom,
+//         ...styles.container,
+//       }}
+//     >
+//       {awaitingOtp ? (
+//         <>
+//           <TextInput
+//             style={styles.textInput}
+//             placeholderTextColor="gray"
+//             placeholder="enter your OTP code"
+//             onChangeText={setOtpCode}
+//             value={otpCode}
+//           />
+//           <TouchableOpacity
+//             style={styles.button}
+//             onPress={() => handleUserAuth({ code: otpCode })}
+//           >
+//             <Text style={styles.buttonText}>Sign in</Text>
+//           </TouchableOpacity>
+//         </>
+//       ) : !user ? (
+//         <>
+//           <TextInput
+//             style={styles.textInput}
+//             placeholderTextColor="gray"
+//             placeholder="enter your email"
+//             onChangeText={setEmail}
+//             value={email}
+//           />
+//           <TouchableOpacity
+//             style={styles.button}
+//             onPress={() => {
+//               signer
+//                 .authenticate({
+//                   email,
+//                   type: "email",
+//                   emailMode: "otp",
+//                 })
+//                 .catch(console.error);
+//               setAwaitingOtp(true);
+//             }}
+//           >
+//             <Text style={styles.buttonText}>Sign in</Text>
+//           </TouchableOpacity>
+//         </>
+//       ) : (
+//         <>
+//           <Text style={styles.userText}>
+//             Currently logged in as: {user.email}
+//           </Text>
+//           <Text style={styles.userText}>OrgId: {user.orgId}</Text>
+//           <Text style={styles.userText}>Address: {user.address}</Text>
+//           <Text style={styles.userText}>
+//             Light Account Address: {account?.address}
+//           </Text>
+//           <Text style={styles.userText}>Signer Address: {signerAddress}</Text>
+
+//           <TouchableOpacity
+//             style={styles.button}
+//             onPress={() => signer.disconnect().then(() => setUser(null))}
+//           >
+//             <Text style={styles.buttonText}>Sign out</Text>
+//           </TouchableOpacity>
+//         </>
+//       )}
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#FFFFF",
+//     paddingHorizontal: 20,
+//   },
+//   textInput: {
+//     width: "100%",
+//     height: 40,
+//     borderColor: "gray",
+//     borderWidth: 1,
+//     paddingHorizontal: 10,
+//     backgroundColor: "rgba(0,0,0,0.05)",
+//     marginTop: 20,
+//     marginBottom: 10,
+//   },
+//   box: {
+//     width: 60,
+//     height: 60,
+//     marginVertical: 20,
+//   },
+//   button: {
+//     width: 200,
+//     padding: 10,
+//     height: 50,
+//     backgroundColor: "rgb(147, 197, 253)",
+//     borderRadius: 5,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     marginTop: 20,
+//   },
+//   buttonText: {
+//     color: "white",
+//     fontWeight: "bold",
+//     textAlign: "center",
+//   },
+//   userText: {
+//     marginBottom: 10,
+//     fontSize: 18,
+//   },
+// });
