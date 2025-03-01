@@ -1,27 +1,52 @@
 // src/context/ToastContext.tsx
 import React, { createContext, useContext, useState } from 'react';
-import { Modal, View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastNotification from '../components/ui/ToastNotification/ToastNotification';
 
 type ToastContextType = {
-  showToast: () => void;
+  showToast: (amount: string, ethAmount: string, type: string) => void;
   hideToast: () => void;
+  amount: string;
+  ethAmount: string;
+  type: string;
 };
 
 const ToastContext = createContext<ToastContextType>({
   showToast: () => {},
   hideToast: () => {},
+  amount: '',
+  ethAmount: '',
+  type: ''
 });
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
+  const [toastData, setToastData] = useState({
+    amount: '',
+    ethAmount: '',
+    type: ''
+  });
 
-  const showToast = () => setVisible(true);
-  const hideToast = () => setVisible(false);
+  const showToast = (amount: string, ethAmount: string, type: string) => {
+    setToastData({ amount, ethAmount, type });
+    setVisible(true);
+  };
+
+  const hideToast = () => {
+    setVisible(false);
+  };
 
   return (
-    <ToastContext.Provider value={{ showToast, hideToast }}>
+    <ToastContext.Provider 
+      value={{ 
+        showToast, 
+        hideToast,
+        amount: toastData.amount,
+        ethAmount: toastData.ethAmount,
+        type: toastData.type
+      }}
+    >
       {children}
       {visible && (
         <View 
@@ -35,7 +60,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           }}
         >
           <GestureHandlerRootView>
-            <ToastNotification handleToastVisible={hideToast} />
+            <ToastNotification 
+              handleToastVisible={hideToast}
+              amount={toastData.amount}
+              ethAmount={toastData.ethAmount}
+              type={toastData.type}
+            />
           </GestureHandlerRootView>
         </View>
       )}

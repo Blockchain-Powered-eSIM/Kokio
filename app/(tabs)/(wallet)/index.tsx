@@ -45,22 +45,26 @@ const WalletPage = () => {
 
 
         <View className='flex-1  mb-2'>
-          <Wallet />
+          <Wallet walletId='0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef7' balance='500'/>
         </View>
 
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
+          <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent")} className='flex-1'>
           <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full bg-[#FF9500]'>
               <Image source={require("../../../assets/images/wallet/arrow_up.png")} className='h-[32] w-[32]' />
             </View>
             <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
+          </Pressable>
+          <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved")} className='flex-1'>
           <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full bg-[#34C759]'>
               <Image source={require("../../../assets/images/wallet/arrow_down.png")} className='h-[32] w-[32]' />
             </View>
             <ThemedText variant='sm' className='text-white mt-2' bold>Recieve</ThemedText>
           </ThemedView>
+          </Pressable>
           <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full bg-[#007AFF]'>
               <Image source={require("../../../assets/images/wallet/square_arrow.png")} className='h-[32] w-[32]' />
@@ -69,7 +73,7 @@ const WalletPage = () => {
           </ThemedView>
         </View>
 
-        <Pressable className='flex-1' onPress={() => router.navigate("/Tokens")}>
+        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/tokens")}>
           <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
             <View className='flex-row justify-between'>
               <ThemedText darkColor='#AEAEB2' className=' ml-6'>Your Tokens</ThemedText>
@@ -105,7 +109,7 @@ const WalletPage = () => {
 
           </ThemedView>
         </Pressable>
-        <Pressable className='flex-1' onPress={()=>router.navigate('/(tabs)/(wallet)/Transactions')}>
+        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/transactions')}>
         <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
             <ThemedText darkColor='#AEAEB2' className=' ml-6'>Transactions</ThemedText>
@@ -142,7 +146,7 @@ const WalletPage = () => {
 
         </ThemedView>
         </Pressable>
-        <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
+        <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
             <ThemedText darkColor='#AEAEB2' className=' ml-6'>Contacts</ThemedText>
 
@@ -180,9 +184,9 @@ const WalletPage = () => {
           }
 
         </ThemedView>
-        <TouchableOpacity className='flex-1 items-center py-5'  onPress={() => showToast()}>
+        {/* <TouchableOpacity className='flex-1 items-center py-5'  onPress={() => showToast("$50","0.0001 ETH","sent")}>
           <ThemedText >Toggle Toast Notification</ThemedText>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
       </ScrollView>
     </ThemedView>

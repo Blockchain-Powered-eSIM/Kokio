@@ -23,9 +23,9 @@ export default function WalletStack() {
       />
       <Stack.Screen
         name={ROUTE_NAMES.TOKENS}
-        options={({ route, navigation }: any) => {
+        options={ {
           
-          return {
+          
             header: () => (
               <Header
                 title="Tokens"
@@ -33,15 +33,15 @@ export default function WalletStack() {
                 style={{ justifyContent: "center" }}
               />
             ),
-          };
+          
         }}
       />
       <Stack.Screen
         name={ROUTE_NAMES.TRANSACTIONS}
-        options={({ route, navigation }: any) => {
+        options={ {
           
           
-          return {
+          
             header: () => (
               <Header
                 title="Transactions"
@@ -49,15 +49,15 @@ export default function WalletStack() {
                 style={{ justifyContent: "center" }}
               />
             ),
-          };
+          
         }}
       />
       <Stack.Screen
         name={ROUTE_NAMES.TRANSACTIONDETAILS}
-        options={({ route, navigation }: any) => {
+        options={ {
           
           
-          return {
+          
             header: () => (
               <Header
                 title="Transaction Details"
@@ -65,7 +65,7 @@ export default function WalletStack() {
                 style={{ justifyContent: "center" }}
               />
             ),
-          };
+          
         }}
       />
       

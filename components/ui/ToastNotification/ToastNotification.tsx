@@ -14,7 +14,7 @@ import Animated, {
 import { ThemedText } from '@/components/ThemedText';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 
-const ToastNotification = ({ handleToastVisible }) => {
+const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const isAnimating = useSharedValue(false);
@@ -103,11 +103,11 @@ const ToastNotification = ({ handleToastVisible }) => {
               <ThemedText light className='mt-1'>Sandra</ThemedText>
             </View>
             <View className='ml-[20]'>
-              <ThemedText>$56.43</ThemedText>
-              <ThemedText darkColor='#AEAEB2' variant='sm'>$0.000461 ETH3</ThemedText>
+              <ThemedText>{amount}</ThemedText>
+              <ThemedText darkColor='#AEAEB2' variant='sm'>{ethAmount}</ThemedText>
             </View>
             <View className='ml-[70]'>
-              <ThemedText>Sent</ThemedText>
+              <ThemedText>{type}</ThemedText>
               <ThemedText darkColor='#AEAEB2' variant='sm'>Completed</ThemedText>
             </View>
           </ThemedView>

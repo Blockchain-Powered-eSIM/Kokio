@@ -43,7 +43,7 @@ const Header = ({
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        margin: Theme.spacing.sm,
+        margin: Theme.spacing.md_l,
         position: "relative",
         zIndex: 1, 
         backgroundColor:"white",

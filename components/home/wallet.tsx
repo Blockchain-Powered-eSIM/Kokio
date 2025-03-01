@@ -12,8 +12,16 @@ import { ThemedText } from "../ThemedText";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/Colors";
 
+interface WalletProps{
+  balance:string,
+  walletId:string
+}
+const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
+  if (!address) return "";
+  return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
+};
 
-const Wallet = () => {
+const Wallet = ({balance,walletId}:WalletProps) => {
   return (
     <View style={{ marginVertical: 12 }}>
      
@@ -44,12 +52,12 @@ const Wallet = () => {
                
               
               >
-                678
+                {balance}
               </ThemedText>
               <ThemedText className="text-white mb-2 ml-1">USD</ThemedText>
             </View>
           </ThemedView>
-          <ThemedText variant="sm" className="text-white ml-[260]">0xJdk..123</ThemedText>
+          <ThemedText variant="sm" className="text-white ml-[250]">{shortenId(walletId)}</ThemedText>
         </LinearGradient>
       </View>
     </View>
