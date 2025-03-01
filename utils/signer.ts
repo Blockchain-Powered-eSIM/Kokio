@@ -1,7 +1,7 @@
 import { RNAlchemySigner } from "@account-kit/react-native-signer";
 
 export const signer = RNAlchemySigner({
-  client: { connection: { apiKey: process.env.API_KEY ?? "" } },
+  client: { connection: { apiKey: process.env.EXPO_PUBLIC_ALCHEMY_API_KEY ?? "" } },
   // optional param to override session settings
   sessionConfig: {
     // sets the expiration to 60 minutes

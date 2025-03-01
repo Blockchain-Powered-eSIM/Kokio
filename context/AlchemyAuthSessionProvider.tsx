@@ -19,7 +19,7 @@ const AlchemyAuthSessionContext = createContext<AlchemyAuthSessionContextType>(
   null!
 );
 
-const API_KEY = process.env.API_KEY;
+const EXPO_PUBLIC_ALCHEMY_API_KEY = process.env.EXPO_PUBLIC_ALCHEMY_API_KEY;
 
 export const AlchemyAuthSessionProvider = ({
   children,
@@ -54,7 +54,7 @@ export const AlchemyAuthSessionProvider = ({
         signer,
         chain: sepolia,
         transport: alchemy({
-          apiKey: API_KEY ?? "",
+          apiKey: EXPO_PUBLIC_ALCHEMY_API_KEY ?? "",
         }),
       }).then((client) => {
         setLightAccountClient(client);
