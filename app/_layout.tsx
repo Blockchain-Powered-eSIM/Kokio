@@ -1,3 +1,10 @@
+// Add global shims
+import "node-libs-expo/globals";
+import "@ethersproject/shims";
+import "react-native-get-random-values";
+import "cbor-rn-prereqs";
+
+import "react-native-reanimated";
 import {
   DarkTheme,
   DefaultTheme,
@@ -8,28 +15,10 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-import "node-libs-react-native/globals.js";
-import "react-native-get-random-values";
-// - Polyfill TextEncoder
-import "fast-text-encoding";
-
 import { Platform } from "react-native";
-import { atob, btoa } from "react-native-quick-base64";
 import { AlchemyAuthSessionProvider } from "@/context/AlchemyAuthSessionProvider";
-
-// - Polyfill Buffer
-if (typeof Buffer === "undefined") {
-  global.Buffer = require("buffer").Buffer;
-}
-
-// - Polyfill atob and btoa
-if (Platform.OS !== "web") {
-  global.atob = atob;
-  global.btoa = btoa;
-}
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

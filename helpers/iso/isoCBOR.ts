@@ -2,7 +2,7 @@
  * A runtime-agnostic collection of methods for working with CBOR encoding
  * @module
  */
-import * as cbor from "cbor2";
+import * as cbor from "cbor";
 
 /**
  * Whatever CBOR encoder is used should keep CBOR data the same length when data is re-encoded
