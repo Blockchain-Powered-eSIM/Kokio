@@ -12,10 +12,19 @@ import { ThemedText } from "../ThemedText";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/Colors";
 
-const Wallet = () => {
+interface WalletProps{
+  balance:string,
+  walletId:string
+}
+const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
+  if (!address) return "";
+  return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
+};
+
+const Wallet = ({balance,walletId}:WalletProps) => {
   return (
     <View style={{ marginVertical: 12 }}>
-      <Text style={styles.headingText}>eSIM Wallet</Text>
+     
       <View style={styles.shadowContainer}>
         <LinearGradient
           colors={["#404040", "#000000"]}
@@ -29,26 +38,26 @@ const Wallet = () => {
             resizeMode="cover"
           />
           <ThemedView style={styles.headerWithLogo}>
-            <ThemedText style={styles.title}>eSIM Wallet</ThemedText>
+            <ThemedText variant="xl" className=" font-Lexend ml-4">eSIM Wallet</ThemedText>
             <Image
               source={require("@/assets/images/logo.png")}
               style={styles.logo}
             />
           </ThemedView>
           <ThemedView style={styles.balanceContainer}>
-            <ThemedText style={styles.balanceLabel}>Total balance</ThemedText>
+            <ThemedText variant="sm" className="text-white mb-1">Total balance</ThemedText>
             <View style={styles.balanceAmountContainer}>
               <ThemedText
-                style={styles.balanceAmount}
-                numberOfLines={1}
-                adjustsFontSizeToFit
+               className="text-white text-[40px] mr-1"
+               
+              
               >
-                678
+                {balance}
               </ThemedText>
-              <ThemedText style={styles.balanceCurrency}>USD</ThemedText>
+              <ThemedText className="text-white mb-2 ml-1">USD</ThemedText>
             </View>
           </ThemedView>
-          <ThemedText style={styles.address}>0xJdk..123</ThemedText>
+          <ThemedText variant="sm" className="text-white ml-[250]">{shortenId(walletId)}</ThemedText>
         </LinearGradient>
       </View>
     </View>

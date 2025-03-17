@@ -57,6 +57,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name={ROUTE_NAMES.WALLET}
           options={{
+            headerShown:false,
             title: "eSIM Wallet",
             tabBarIcon: ({ color, focused }) => (
               <TabBarIcon
