@@ -9,7 +9,13 @@ export const ROUTE_NAMES = {
   BY_REGION: "region/[id]",
   TOKENS:"tokens",
   TRANSACTIONS:"transactions",
-  TRANSACTIONDETAILS:"transactionDetails"
+  CONTACTS:"(contacts)",
+  TRANSACTIONDETAILS:"transactionDetails",
+  CONTACTS_SCREEN: "contactsScreen",
+  ADD_CONTACTS_SCREEN:"addContactScreen",
+  QR_CODE_SCREEN:"qrCodeScreen",
+  CONTACT_DETAILS: "contactDetails",
+  EDIT_CONTACT:"editContact"
 };
 
 

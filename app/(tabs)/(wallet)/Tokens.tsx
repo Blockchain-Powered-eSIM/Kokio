@@ -25,7 +25,7 @@ const Tokens = () => {
             You don't hold any tokens yet.
           </ThemedText>
         ) : (
-          <View className='gap-y-3 mt-5 mb-3'>
+          <ThemedView className='gap-y-3 mt-5 mb-3'>
             {_.map(tokens, (token, index) => (
               <View key={index} className='flex-row items-center justify-between mx-3'>
                 <View className='flex-row items-center'>
@@ -38,7 +38,7 @@ const Tokens = () => {
                 </View>
               </View>
             ))}
-          </View>
+          </ThemedView>
         )}
       </View>
     </ThemedView>
