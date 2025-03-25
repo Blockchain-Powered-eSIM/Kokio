@@ -60,7 +60,7 @@ const addContactScreen = () => {
         // if (!isPermissionGranted) {
         //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
         // } else {
-        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName } });
+        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName,isEdit:"false" } });
         // }
     };
 
@@ -105,17 +105,18 @@ const addContactScreen = () => {
 
             // Optional: Show success message
             Alert.alert("Success", "Contact added successfully");
-            router.push({pathname:'/(tabs)/(wallet)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
+            router.replace({pathname:'/(tabs)/(wallet)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
             console.log(contactObj);
-            setFirstName("");
-            setLastName("");
-            setWalletAddress("");
+            
 
         } catch (error) {
             console.log("Error saving contact:", error);
             Alert.alert("Error", "Failed to add contact");
         } finally {
             setIsLoading(false);
+            setFirstName("");
+            setLastName("");
+            setWalletAddress("");
         }
     }
     return (

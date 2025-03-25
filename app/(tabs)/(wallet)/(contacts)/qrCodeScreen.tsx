@@ -11,7 +11,7 @@ export default function QrCodeScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [scanned, setScanned] = useState(false);
-  const {firstName,lastName} = useLocalSearchParams();
+  const {firstName,lastName,isEdit,monogramUrl,id} = useLocalSearchParams();
   const navigation = useNavigation();
 
   const handleBarCodeScanned = ({ data }:{data:string}) => {
@@ -19,11 +19,20 @@ export default function QrCodeScreen() {
     
     setScanned(true);
     console.log('Scanned wallet address:', data);
+
+    if(isEdit === "true"){
+      router.replace({
+        pathname: '/(contacts)/editContact',
+        params: { walletAddress: data,firstName:firstName,lastName:lastName,id:id,monogramUrl:monogramUrl }
+      });
+    }else{
+      router.replace({
+        pathname: '/(contacts)/addContactScreen',
+        params: { walletAddress: data,firstName:firstName,lastName:lastName }
+      });
+    }
     
-    router.replace({
-      pathname: '/(tabs)/(wallet)/addContactScreen',
-      params: { walletAddress: data,firstName:firstName,lastName:lastName }
-    });
+    
   };
 
   // Function to handle permission request

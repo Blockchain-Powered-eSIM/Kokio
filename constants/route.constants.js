@@ -15,7 +15,9 @@ export const ROUTE_NAMES = {
   ADD_CONTACTS_SCREEN:"addContactScreen",
   QR_CODE_SCREEN:"qrCodeScreen",
   CONTACT_DETAILS: "contactDetails",
-  EDIT_CONTACT:"editContact"
+  EDIT_CONTACT:"editContact",
+  SEND_TO_CONTACT:"sendToContact",
+  CONTACT_TRANSACTIONS:"contactTransactions"
 };
 
 

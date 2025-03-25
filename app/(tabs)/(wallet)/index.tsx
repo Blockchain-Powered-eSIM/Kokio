@@ -84,7 +84,7 @@ useFocusEffect(
         </View>
 
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
-          <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent")} className='flex-1'>
+          <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent","Sandra",null)} className='flex-1'>
           <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full bg-[#FF9500]'>
               <Image source={require("../../../assets/images/wallet/arrow_up.png")} className='h-[32] w-[32]' />
@@ -92,7 +92,7 @@ useFocusEffect(
             <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
           </Pressable>
-          <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved")} className='flex-1'>
+          <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved","Sandra",null)} className='flex-1'>
           <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full bg-[#34C759]'>
               <Image source={require("../../../assets/images/wallet/arrow_down.png")} className='h-[32] w-[32]' />
@@ -108,7 +108,7 @@ useFocusEffect(
           </ThemedView>
         </View>
 
-        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/(contacts)/editContact")}>
+        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/(contacts)/sendToContact")}>
           <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
             <View className='flex-row justify-between'>
               <ThemedText darkColor='#AEAEB2' className=' ml-6'>Your Tokens</ThemedText>

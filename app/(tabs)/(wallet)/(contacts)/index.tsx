@@ -56,7 +56,7 @@ const contactsScreen = () => {
         );
     return (
         <ThemedView darkColor='#1c1c1e' className='mx-2 py-3   rounded-3xl mt-5 w-auto'>
-            <ThemedView darkColor='#1c1c1e' className='gap-y-4 justify-start items-center gap-x-2 flex-wrap bg-slate-50 flex-row mt-7 mb-3'>
+            <ThemedView darkColor='#1c1c1e' className='gap-y-4 justify-start items-center gap-x-1 flex-wrap bg-slate-50 flex-row mt-7 mb-3'>
                 {/* add contact btn  */}
                 <Pressable onPress={() => router.push("/(tabs)/(wallet)/(contacts)/addContactScreen")} className='ml-[-10] justify-center mt-[-19] mr-4 '>
                     <View className=' ml-8  h-16 items-center justify-center  w-16 rounded-full bg-[#FF9500]'>

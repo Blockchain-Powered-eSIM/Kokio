@@ -76,7 +76,8 @@ const editContact = () => {
         // if (!isPermissionGranted) {
         //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
         // } else {
-        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName } });
+
+        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName, isEdit:"true",monogramUrl:params.monogramUrl,id:params.id } });
         // }
     };
 
@@ -129,22 +130,24 @@ const editContact = () => {
               firstName: editedContactObj.firstName,
               lastName: editedContactObj.lastName,
               monogramUrl: editedContactObj.monogramUrl,
-              transactions: editedContactObj.transactions, // Stringify array for params
+              walletAddress:walletAddress, // Stringify array for params
+              id:params.id
             },
           });
       
           console.log("Updated contact:", editedContactObj);
       
           // Reset form fields
-          setFirstName("");
-          setLastName("");
-          setWalletAddress("");
+          
       
         } catch (error) {
           console.log("Error updating contact:", error);
           Alert.alert("Error", "Failed to update contact");
         } finally {
           setIsLoading(false);
+          setFirstName("");
+          setLastName("");
+          setWalletAddress("");
         }
       };
     return (

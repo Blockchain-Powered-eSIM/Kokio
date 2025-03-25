@@ -29,6 +29,18 @@ export default function ContactsStack() {
                     header: () => <Header title="Edit Contact" hasBack style={{ justifyContent: "center" }} />,
                 }}
             />
+           <Stack.Screen
+                name={ROUTE_NAMES.SEND_TO_CONTACT}
+                options={{
+                    header: () => <Header title="Send to Contact" hasBack style={{ justifyContent: "center" }} />,
+                }}
+            />
+            <Stack.Screen
+                name={ROUTE_NAMES.CONTACT_TRANSACTIONS}
+                options={{
+                    header: () => <Header title="Contact Transactions" hasBack style={{ justifyContent: "center" }} />,
+                }}
+            />
             <Stack.Screen
                 name={ROUTE_NAMES.QR_CODE_SCREEN}
                 options={{

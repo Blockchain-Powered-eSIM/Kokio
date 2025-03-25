@@ -14,7 +14,7 @@ import Animated, {
 import { ThemedText } from '@/components/ThemedText';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 
-const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
+const ToastNotification = ({ handleToastVisible,amount,ethAmount,type,image,name }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const isAnimating = useSharedValue(false);
@@ -97,10 +97,10 @@ const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
             />
             <View className='ml-6 justify-center items-center'>
               <Image
-                source={require('../../../assets/images/wallet/contact1.png')}
+                source={image?{uri:image}:require('../../../assets/images/wallet/contact1.png')}
                 className='h-[60px] w-[60px]'
               />
-              <ThemedText light className='mt-1'>Sandra</ThemedText>
+              <ThemedText light className='mt-1'>{name}</ThemedText>
             </View>
             <View className='ml-[20]'>
               <ThemedText>{amount}</ThemedText>
