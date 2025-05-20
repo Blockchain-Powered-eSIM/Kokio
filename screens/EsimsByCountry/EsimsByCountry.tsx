@@ -12,11 +12,9 @@ import DataPackTabGroup from "@/components/DataPackTabGroup";
 export default function EsimsByCountry() {
   const params = useLocalSearchParams();
   const countryCode = _get(COUNTRY_CONFIG, [params?.id, "isoCode"]);
-  const { data: esims, ...rest } = useEsimsByCountry(countryCode, {
+  const { data: esims } = useEsimsByCountry(countryCode, {
     enabled: !!countryCode,
   });
-
-  console.log({ esims });
 
   return (
     <DataPackTabGroup esims={esims} containerStyle={styles.containerStyle} />

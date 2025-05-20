@@ -20,7 +20,7 @@ const ActiveESIMsScroll = ({ esims }: { esims: Esim[] }) => {
             <ESIMItem item={item} showBuyButton={false} />
           </View>
         )}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.catalogueId}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}

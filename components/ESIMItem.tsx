@@ -9,14 +9,16 @@ import { Colors, Theme } from "@/constants/Colors";
 import DetailItem from "./ui/DetailItem";
 
 export interface Esim {
-  id: string;
-  country: string;
-  isoCode: string;
-  duration: number;
+  catalogueId: string;
+  actualSellingPrice: number;
+  isUnlimited: boolean;
+  serviceRegionCode: string;
+  serviceRegionFlag: string;
+  serviceRegionName: string;
   data: number;
-  minutes: number;
-  sms: number;
-  flagColor: string;
+  sms: number | null;
+  validity: number;
+  voice: number | null;
 }
 
 const ESIMItem = ({
@@ -29,8 +31,14 @@ const ESIMItem = ({
   containerStyle?: Object;
 }) => {
   const handleBuyCTAClick = useCallback(
-    (id: String) => () => {
-      router.navigate(`/checkout/${id}`);
+    (id: string) => () => {
+      router.navigate({
+        pathname: `/checkout/[id]`,
+        params: {
+          id,
+          item: JSON.stringify(item),
+        },
+      });
     },
     []
   );
@@ -39,14 +47,21 @@ const ESIMItem = ({
     <View style={[styles.esimItemContainer, containerStyle]}>
       <View style={styles.flagContainer}>
         {/* <View style={[styles.flag, { backgroundColor: item.flagColor }]} /> */}
-        <CountryFlag style={styles.flag} isoCode={item.isoCode} size={25} />
+        {/* TODO: Use flag from API response and fallback to this if not present */}
+        {item.serviceRegionCode && (
+          <CountryFlag
+            style={styles.flag}
+            isoCode={item.serviceRegionCode}
+            size={25}
+          />
+        )}
       </View>
       <View style={styles.esimItem}>
-        <Text style={styles.country}>{item.country}</Text>
+        <Text style={styles.country}>{item.serviceRegionName}</Text>
         <View style={styles.detailsContainer}>
           <DetailItem
             iconName="calendar-outline"
-            value={item.duration}
+            value={item.validity}
             suffix="Days"
           />
           <DetailItem
@@ -56,7 +71,7 @@ const ESIMItem = ({
           />
           <DetailItem
             iconName="call-outline"
-            value={item.minutes}
+            value={item.voice}
             suffix="Mins"
           />
           <DetailItem
@@ -68,9 +83,12 @@ const ESIMItem = ({
         {showBuyButton && (
           <TouchableOpacity
             style={styles.buyButton}
-            onPress={handleBuyCTAClick(item.id)}
+            onPress={handleBuyCTAClick(item.catalogueId)}
           >
-            <DetailItem prefix="$" value={_get(item, "price", 0).toFixed(2)} />
+            <DetailItem
+              prefix="$"
+              value={(item.actualSellingPrice || 0).toFixed(2)}
+            />
             <View style={styles.buyButtonText}>
               <Ionicons name="cart-outline" size={20} />
               <Text style={styles.details}>Buy</Text>

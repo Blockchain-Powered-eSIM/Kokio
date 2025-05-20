@@ -30,7 +30,7 @@ const ESIMsFlatList = ({ esims }: { esims: Esim[] }) => {
           containerStyle={styles.eSimItemContainer}
         />
       )}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.catalogueId}
       contentContainerStyle={styles.flatListContainer}
     />
   );
@@ -75,6 +75,7 @@ export default function DataPackTabGroup({
             renderLabel={TabBarLabel}
             indicatorStyle={styles.indicatorStyle}
             tabStyle={styles.tabStyle}
+            contentContainerStyle={styles.tabBarContentContainer}
           />
         )}
       />
@@ -83,6 +84,9 @@ export default function DataPackTabGroup({
 }
 
 const styles = StyleSheet.create({
+  tabBarContentContainer: {
+    justifyContent: "space-around",
+  },
   tabBarStyle: {
     backgroundColor: Colors.dark.secondaryBackground,
     borderRadius: Theme.borderRadius.medium,

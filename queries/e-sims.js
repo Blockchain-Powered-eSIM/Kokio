@@ -5,7 +5,7 @@ import _find from "lodash/find";
 import _map from "lodash/map";
 import _get from "lodash/get";
 
-import { fetchEsimsByCountry } from "@/services/esims";
+import { fetchEsimsCatalogue } from "@/services/esims";
 
 const defaultOptions = {
   retry: false,
@@ -18,13 +18,13 @@ export const emisQueryKeys = {
   esimsByRegion: (country) => [...emisQueryKeys.all, "byRegion", country],
 };
 
-function useEsimsByCountry(country, options = defaultOptions) {
+function useEsimsByCountry(serviceRegionCode, options = defaultOptions) {
   try {
     const result = useQuery({
-      queryKey: emisQueryKeys.esimsByCountry(country),
+      queryKey: emisQueryKeys.esimsByCountry(serviceRegionCode),
       queryFn: async () => {
-        const payload = { country };
-        const response = await fetchEsimsByCountry(payload);
+        const payload = { serviceRegionCode };
+        const response = await fetchEsimsCatalogue(payload);
         console.log({ response, d: response?.data });
         return _get(response, "data.plans") || [];
       },
@@ -40,13 +40,12 @@ function useEsimsByCountry(country, options = defaultOptions) {
 function useEsimsByRegion(region, options = defaultOptions) {
   try {
     const result = useQuery({
-      queryKey: emisQueryKeys.esimsByCountry(region),
+      queryKey: emisQueryKeys.esimsByRegion(region),
       queryFn: async () => {
         const payload = { region };
-        const response = await fetchEsimsByCountry(payload);
+        const response = await fetchEsimsCatalogue(payload);
         return _get(response, "data.plans") || [];
       },
-
       ..._defaults(options, { ...defaultOptions }),
     });
 

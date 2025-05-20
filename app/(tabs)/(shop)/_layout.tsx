@@ -22,7 +22,8 @@ export default function ShopStack() {
       <Stack.Screen
         name={ROUTE_NAMES.BY_COUNTRY}
         options={({ route, navigation }: any) => {
-          const countryLabel = _get(COUNTRY_CONFIG , [route?.params?.id, 'label']) ||'';
+          const countryLabel =
+            _get(COUNTRY_CONFIG, [route?.params?.id, "label"]) || "";
           return {
             header: () => (
               <Header
@@ -37,8 +38,9 @@ export default function ShopStack() {
       <Stack.Screen
         name={ROUTE_NAMES.BY_REGION}
         options={({ route, navigation }: any) => {
-          const regionLabel = _get(REGION_CONFIG , [route?.params?.id, 'label']) ||'';
-          
+          const regionLabel =
+            _get(REGION_CONFIG, [route?.params?.id, "label"]) || "";
+
           return {
             header: () => (
               <Header
@@ -53,6 +55,8 @@ export default function ShopStack() {
       <Stack.Screen
         name={ROUTE_NAMES.CHECKOUT}
         options={({ route }: any) => {
+          // TODO: Check Params
+          console.log("Checkout Header", { route, p: route.params });
           const id = route?.params?.id;
           return {
             header: () => <CheckoutHeader id={id} />,

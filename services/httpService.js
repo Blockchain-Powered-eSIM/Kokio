@@ -3,6 +3,8 @@ import qs from "qs";
 
 import _get from "lodash/get";
 
+import { uuid } from "@/utils/general";
+
 const REQUEST_TIMEOUT_MS_SHORT = 30000;
 
 const EMPTY_OBJECT = {};
@@ -31,6 +33,12 @@ const successHandler = (response) => {
   return responseData;
 };
 
+const getDefaultHeaders = () => {
+  return {
+    "x-correlation-id": uuid(),
+  };
+};
+
 // export `axios` instance with config as `api` object
 const api = ((args) => {
   const instance = axios.create();
@@ -41,12 +49,10 @@ const api = ((args) => {
   // returning abstract methods of axios
   return {
     getHeaders() {
-      // TODO: uuid
-      return { "x-correlation-id": "" };
+      return getDefaultHeaders();
     },
     getBaseURL() {
-      // TODO: Env &  Config based
-      return "";
+      return process.env.EXPO_PUBLIC_API_BASE_URL;
     },
     getConfig() {
       const baseURL = this.getBaseURL();

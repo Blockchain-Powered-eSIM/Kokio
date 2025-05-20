@@ -46,6 +46,7 @@ export default function Shop() {
             renderLabel={TabBarLabel}
             indicatorStyle={styles.indicatorStyle}
             tabStyle={styles.tabStyle}
+            contentContainerStyle={styles.tabBarContentContainer}
           />
         )}
       />
@@ -61,6 +62,9 @@ const styles = StyleSheet.create({
   tabStyle: {
     padding: 0,
     minHeight: 30,
+  },
+  tabBarContentContainer: {
+    justifyContent: "space-around",
   },
   inactiveTab: {
     color: Colors.dark.inactive,
