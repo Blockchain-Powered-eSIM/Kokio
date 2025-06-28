@@ -19,7 +19,7 @@ const TransactionDetails = () => {
         <View className='flex-row justify-between mt-5 '>
           {parsedTransaction?.name?
           <View className='items-center'>
-          <Image source={parsedTransaction?.icon} className='h-[64px] w-[64px]  ' />
+          <Image source={parsedTransaction?.icon?{uri:parsedTransaction?.icon}:require('../../../assets/images/wallet/sampleProfileImg.png')} className='h-[64px] w-[64px]  ' />
           <View className='flex-col items-start mt-2 '>
             <ThemedText light >{parsedTransaction?.name}</ThemedText>
           </View>
@@ -32,7 +32,7 @@ const TransactionDetails = () => {
         }
           
           <View className='items-end '>
-            {parsedTransaction?.type === 'received' ? <Image source={require("../../../assets/images/wallet/complete.png")} className='w-[34] h-[26] z-10 absolute top-[-30] ' /> :
+            {parsedTransaction?.status === 'completed' ? <Image source={require("../../../assets/images/wallet/complete.png")} className='w-[34] h-[26] z-10 absolute top-[-30] ' /> :
               <Image source={require("../../../assets/images/wallet/incomplete.png")} className='w-[34] h-[26] z-10 absolute top-[-30]' />
 
             }
@@ -53,7 +53,7 @@ const TransactionDetails = () => {
           <ThemedText darkColor='#FFFFFF'>Amount</ThemedText>
           <View className='items-end'>
             <ThemedText variant='xl' bold darkColor='#FFFFFF'>{parsedTransaction?.amount}</ThemedText>
-            <ThemedText light darkColor='#AEAEB2'>{parsedTransaction?.ethAmount}</ThemedText>
+            <ThemedText light darkColor='#AEAEB2'>{parsedTransaction?.tokenAmount}</ThemedText>
             
           </View>
         </View>

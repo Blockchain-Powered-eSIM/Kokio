@@ -15,7 +15,10 @@ module.exports = {
           LexendBold: ["Lexend-Bold", "sans"],
           LexendBlack: ["Lexend-Black", "sans"],
       },
-      },
+      colors: {
+        primaryOrange:"#FF9F0A"
+      }
+    }
   },
   plugins: [],
 };

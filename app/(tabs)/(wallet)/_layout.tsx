@@ -69,6 +69,12 @@ export default function WalletStack() {
         }}
       />
       
+     
+      <Stack.Screen
+        name={ROUTE_NAMES.CONTACTS}
+        options={{headerShown:false}}
+      />
+      
       </Stack>
   );
 }

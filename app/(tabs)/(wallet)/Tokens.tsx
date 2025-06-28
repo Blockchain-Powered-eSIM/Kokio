@@ -4,7 +4,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import _ from "lodash";
 
-const Tokens = () => {
+const tokens = () => {
   const tokens = [
     { id: '1', name: 'USDC', symbol: 'USDC', balance: '0.5', value: '$85.23 USD', icon: require("../../../assets/images/wallet/usdc.png") },
     { id: '2', name: 'Ethereum', symbol: 'ETH', balance: '2.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/eth.png") },
@@ -25,7 +25,7 @@ const Tokens = () => {
             You don't hold any tokens yet.
           </ThemedText>
         ) : (
-          <View className='gap-y-3 mt-5 mb-3'>
+          <ThemedView className='gap-y-3 mt-5 mb-3'>
             {_.map(tokens, (token, index) => (
               <View key={index} className='flex-row items-center justify-between mx-3'>
                 <View className='flex-row items-center'>
@@ -38,7 +38,7 @@ const Tokens = () => {
                 </View>
               </View>
             ))}
-          </View>
+          </ThemedView>
         )}
       </View>
     </ThemedView>
@@ -47,4 +47,4 @@ const Tokens = () => {
   )
 }
 
-export default Tokens;
+export default tokens;

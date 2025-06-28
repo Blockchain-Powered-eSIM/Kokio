@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
@@ -9,6 +9,10 @@ import { Colors } from '@/constants/Colors';
 import Wallet from '@/components/home/wallet';
 import ToastNotification from '@/components/ui/ToastNotification/ToastNotification';
 import { useToast } from '@/contexts/ToastContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react'; // Import useCallback for memoization
+
 
 
 
@@ -26,17 +30,48 @@ const transactions = [
   { id: '3', name: 'Alice', amount: '$150.00', status: "completed", type: "recieved", icon: require('../../../assets/images/wallet/contact3.png') },
 ];
 
-const contacts = [
-  { id: '1', name: 'Alice', icon: require("../../../assets/images/wallet/contact1.png") },
-  { id: '2', name: 'Bob', icon: require("../../../assets/images/wallet/contact2.png") },
-  { id: '3', name: 'Charlie', icon: require("../../../assets/images/wallet/contact3.png") },
+// const contacts = [
+//   { id: '1', name: 'Alice', icon: require("../../../assets/images/wallet/contact1.png") },
+//   { id: '2', name: 'Bob', icon: require("../../../assets/images/wallet/contact2.png") },
+//   { id: '3', name: 'Charlie', icon: require("../../../assets/images/wallet/contact3.png") },
+ 
 
-];
+// ];
 
 const WalletPage = () => {
   const router = useRouter();
  
   const {showToast} = useToast();
+  const [contacts, setContacts] = useState([]);
+
+const getAllContacts = async () => {
+  try {
+    // Get the array of contact IDs
+    const contactIdsJson = await AsyncStorage.getItem('contactIds');
+    const contactIds = contactIdsJson ? JSON.parse(contactIdsJson) : [];
+    
+    // Fetch all contacts using the IDs
+    const contactsArray = await Promise.all(
+      contactIds.map(async (contactId:string) => {
+        const contactJson = await AsyncStorage.getItem(`contact_${contactId}`);
+        return contactJson ? JSON.parse(contactJson) : null;
+      })
+    );
+
+    // Filter out any null values and update state
+    const validContacts = contactsArray?.filter(contact => contact !== null);
+    setContacts(validContacts);
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    setContacts([]); // Set empty array in case of error
+  }
+};
+
+useFocusEffect(
+  useCallback(() => {
+    getAllContacts();
+  }, []) 
+);
   
   return (
     <ThemedView className='flex-1 h-full justify-center items-center w-full bg-black' >
@@ -49,7 +84,7 @@ const WalletPage = () => {
         </View>
 
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
-          <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent")} className='flex-1'>
+          <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent","Sandra",null)} className='flex-1'>
           <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full bg-[#FF9500]'>
               <Image source={require("../../../assets/images/wallet/arrow_up.png")} className='h-[32] w-[32]' />
@@ -57,7 +92,7 @@ const WalletPage = () => {
             <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
           </Pressable>
-          <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved")} className='flex-1'>
+          <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved","Sandra",null)} className='flex-1'>
           <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full bg-[#34C759]'>
               <Image source={require("../../../assets/images/wallet/arrow_down.png")} className='h-[32] w-[32]' />
@@ -73,7 +108,7 @@ const WalletPage = () => {
           </ThemedView>
         </View>
 
-        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/tokens")}>
+        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/(contacts)/sendToContact")}>
           <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
             <View className='flex-row justify-between'>
               <ThemedText darkColor='#AEAEB2' className=' ml-6'>Your Tokens</ThemedText>
@@ -146,6 +181,7 @@ const WalletPage = () => {
 
         </ThemedView>
         </Pressable>
+        <Pressable className='flex-1' onPress={()=>router.push({pathname:'/(contacts)',params:{contacts:JSON.stringify(contacts)}})}>
         <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
             <ThemedText darkColor='#AEAEB2' className=' ml-6'>Contacts</ThemedText>
@@ -156,13 +192,13 @@ const WalletPage = () => {
           </View>
 
           {contacts.length > 0 ? <View className='flex-row ml-3 gap-y-6 mt-5 mb-3'>
-            {contacts.map((person, index) => {
+            {contacts.slice(0,4).map((person, index) => {
               return (
                 <View key={index} className=' items-center justify-between  mx-5 '>
                   <View className='flex-col items-center'>
-                    <Image source={person.icon} className='h-[53px] w-[53px]  ' />
+                    <Image  source={person.monogramUrl ? { uri: person.monogramUrl } : require('../../../assets/images/wallet/sampleProfileImg.png')} className='h-[53px] w-[53px]  ' />
                     <View className='flex-col items-start mt-3 '>
-                      <ThemedText >{person.name}</ThemedText>
+                      <ThemedText >{person?.firstName}</ThemedText>
 
                     </View>
                   </View>
@@ -184,6 +220,7 @@ const WalletPage = () => {
           }
 
         </ThemedView>
+        </Pressable>
         {/* <TouchableOpacity className='flex-1 items-center py-5'  onPress={() => showToast("$50","0.0001 ETH","sent")}>
           <ThemedText >Toggle Toast Notification</ThemedText>
         </TouchableOpacity> */}
