@@ -119,7 +119,7 @@ const RegionItemRender = ({
 const SearchResult = ({ searchText }: { searchText: string }) => {
   const countryConfig = appBootstrap.getCountryConfig;
   const regionConfig = appBootstrap.getRegionConfig;
-
+  console.log("regionConfig", countryConfig);
   const sanitizedSearchText = _lowerCase(_trim(searchText));
 
   const countries = useMemo(
