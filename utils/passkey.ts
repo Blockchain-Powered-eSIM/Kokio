@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 import {
   base64UrlToBuffer,
   parseDEREncodedSignature,
-} from "@/helpers/converter";
+} from "@/helpers/converters";
 // Simple implementation of decodeClientDataJSON for React Native
 const decodeClientDataJSON = (clientDataJson: string) => {
   try {
@@ -34,7 +34,7 @@ import { optimismSepolia } from "viem/chains";
 import { createAccount } from "@turnkey/viem";
 import { User } from "@turnkey/sdk-react-native";
 import { checkIfEmailInUse, createSubOrganization } from "./api";
-import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constant";
+import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
 
 /**
  * Decodes the attestation object and extracts public key data

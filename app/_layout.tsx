@@ -3,20 +3,12 @@ import "react-native-get-random-values";
 import { Buffer } from "@craftzdog/react-native-buffer";
 (global as any).Buffer = Buffer;
 
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import "react-native-reanimated";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import "../global.css";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ToastProvider } from "@/contexts/ToastContext";
 import useBootstrap from "@/hooks/useBootstrap";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
@@ -28,40 +20,34 @@ import {
 import { useTurnkey } from "@turnkey/sdk-react-native";
 import { useKokio } from "@/hooks/useKokio";
 import { isSupported } from "@turnkey/react-native-passkey-stamper";
+import { Providers } from "@/providers";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+// Separate component for authentication logic that can use Turnkey hooks
+function AuthenticatedLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, session } = useTurnkey();
   const { kokio } = useKokio();
 
-  const [isConnected, setIsConnected] = useState(true);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [loaded] = useFonts({
-    "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
-    Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
-    "Lexend-Medium": require("../assets/fonts/Lexend-Medium.ttf"),
-    "Lexend-SemiBold": require("../assets/fonts/Lexend-SemiBold.ttf"),
-    "Lexend-Bold": require("../assets/fonts/Lexend-Bold.ttf"),
-    "Lexend-Black": require("../assets/fonts/Lexend-Black.ttf"),
-  });
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
 
-  const { isLoading } = useBootstrap();
+  // Wait for navigation to be ready
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsNavigationReady(true);
+    }, 100); // Small delay to ensure navigation is ready
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Check authentication status
   useEffect(() => {
+    if (!isNavigationReady) return;
+
     const checkAuth = async () => {
       try {
         // Check if passkeys are supported
@@ -90,16 +76,35 @@ export default function RootLayout() {
         }
       } catch (error) {
         console.error("Auth check error:", error);
-        router.replace("/auth");
+        // Only navigate if navigation is ready and we're not already on auth page
+        if (isNavigationReady && pathname !== "/auth") {
+          router.replace("/auth");
+        }
       } finally {
         setIsAuthChecking(false);
       }
     };
 
-    if (!isLoading) {
-      checkAuth();
-    }
-  }, [user, session, kokio.userData, isLoading, pathname]);
+    checkAuth();
+  }, [user, session, kokio.userData, pathname, isNavigationReady]);
+
+  return null; // This component only handles auth logic, no UI
+}
+
+export default function RootLayout() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isConnected, setIsConnected] = useState(true);
+  const [loaded] = useFonts({
+    "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
+    Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
+    "Lexend-Medium": require("../assets/fonts/Lexend-Medium.ttf"),
+    "Lexend-SemiBold": require("../assets/fonts/Lexend-SemiBold.ttf"),
+    "Lexend-Bold": require("../assets/fonts/Lexend-Bold.ttf"),
+    "Lexend-Black": require("../assets/fonts/Lexend-Black.ttf"),
+  });
+
+  const { isLoading } = useBootstrap();
 
   // Initial connectivity check
   useEffect(() => {
@@ -129,30 +134,27 @@ export default function RootLayout() {
 
   // Hide splash screen after fonts and bootstrap complete
   useEffect(() => {
-    if (loaded && !isLoading && !isAuthChecking) {
+    if (loaded && !isLoading) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, isLoading, isAuthChecking]);
+  }, [loaded, isLoading]);
 
   // Wait until ready
-  if (!loaded || isLoading || isAuthChecking) {
+  if (!loaded || isLoading) {
     return <FullScreenLoader />;
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>
-            <Stack>
-              <Stack.Screen name="auth" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-              <Stack.Screen name="Offline" options={{ headerShown: false }} />
-            </Stack>
-          </ToastProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <Providers>
+      <AuthenticatedLayout />
+      <ToastProvider>
+        <Stack>
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+          <Stack.Screen name="Offline" options={{ headerShown: false }} />
+        </Stack>
+      </ToastProvider>
+    </Providers>
   );
 }

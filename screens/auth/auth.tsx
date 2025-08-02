@@ -8,7 +8,7 @@ import { stampGetWhoami } from "@/utils/passkey";
 import { checkIfEmailInUse } from "@/utils/api";
 import { toHex } from "viem";
 import { uncompressRawPublicKey } from "@turnkey/crypto";
-import { hexToArrayBuffer } from "@/helpers/converter";
+import { hexToArrayBuffer } from "@/helpers/converters";
 import { useKokio } from "@/hooks/useKokio";
 import { P256Key } from "kokio-sdk/types";
 

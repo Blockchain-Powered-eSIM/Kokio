@@ -14,7 +14,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   TURNKEY_API_URL,
   TURNKEY_PARENT_ORG_ID,
-} from "@/constants/passkey.constant";
+} from "@/constants/passkey.constants";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 const queryClient = new QueryClient({

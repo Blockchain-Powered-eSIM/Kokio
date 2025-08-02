@@ -7,7 +7,7 @@ import { TurnkeyClient } from "@turnkey/http";
 
 import { PasskeyStamper } from "@turnkey/react-native-passkey-stamper";
 import * as SecureStore from "expo-secure-store";
-import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constant";
+import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
 
 type AuthActionType =
   | { type: "ERROR"; payload: string }

@@ -9,15 +9,15 @@ import {
   PASSKEY_CONFIG,
   TURNKEY_API_URL,
   TURNKEY_PARENT_ORG_ID,
-} from "@/constants/passkey.constant";
+} from "@/constants/passkey.constants";
 import { useTurnkey, User } from "@turnkey/sdk-react-native";
+import { decodeAttestationObj, onPasskeyCreate } from "@/utils/passkey";
 import { decodeAttestationObject } from "@simplewebauthn/server/helpers";
 
 import { useRouter } from "expo-router";
 import { handleInitOtpAuth, handleOtpAuth } from "@/utils/api";
-import { base64UrlToBuffer } from "@/helpers/converter";
+import { base64UrlToBuffer } from "@/helpers/converters";
 import { toHex } from "@/helpers/iso/isoUint8Array";
-import { decodeAttestationObj, onPasskeyCreate } from "@/utils/passkey";
 
 type AuthActionType =
   | { type: "PASSKEY"; payload: User | undefined }

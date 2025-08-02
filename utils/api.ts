@@ -2,7 +2,7 @@ import {
     DEFAULT_ETHEREUM_ACCOUNTS,
     TURNKEY_API_URL,
     TURNKEY_PARENT_ORG_ID,
-  } from "@/constants/passkey.constant";
+  } from "@/constants/passkey.constants";
   // run on vercel server on production on kokio.app domain
   // see turnkey+api.ts in react-native-demo-wallet
   import { Turnkey } from "@turnkey/sdk-server";
