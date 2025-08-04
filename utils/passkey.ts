@@ -152,9 +152,8 @@ export const returnViemWalletClient = async (
   client: TurnkeyClient
 ): Promise<WalletClient> => {
   console.log("user wallet address", user.wallets[0].accounts[0].address);
-
   const viemAccount = await createAccount({
-    client,
+    client: client as any,
     organizationId: user.organizationId,
     signWith: user.wallets[0].accounts[0].address,
     ethereumAddress: user.wallets[0].accounts[0].address,
