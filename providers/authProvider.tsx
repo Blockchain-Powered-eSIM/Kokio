@@ -215,6 +215,8 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     username: string;
     email?: string;
   }) => {
+    console.log("Starting signUpWithPasskey with user:", user);
+
     if (!isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
@@ -222,9 +224,12 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
+      console.log("Calling onPasskeyCreate...");
       const data = await onPasskeyCreate(user);
+      console.log("onPasskeyCreate result:", data);
 
       if (!data) {
+        console.error("onPasskeyCreate returned null/undefined");
         throw new Error("Failed to create passkey");
       }
 

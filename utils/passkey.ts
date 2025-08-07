@@ -4,6 +4,16 @@ import {
   PasskeyStamper,
   TurnkeyAuthenticatorParams,
 } from "@turnkey/react-native-passkey-stamper";
+
+// Fallback for when native module is not available
+let isNativeModuleAvailable = true;
+try {
+  // Test if the native module is available
+  require("@turnkey/react-native-passkey-stamper");
+} catch (error) {
+  console.warn("Native passkey module not available, using fallback");
+  isNativeModuleAvailable = false;
+}
 import { TurnkeyClient } from "@turnkey/http";
 import { v4 as uuid } from "uuid";
 import {
@@ -101,12 +111,25 @@ export async function onPasskeyCreate(user: {
     }
   | undefined
 > {
+  console.log("Starting onPasskeyCreate with user:", user);
+
+  if (!isNativeModuleAvailable) {
+    console.error("Native passkey module not available");
+    alert(
+      "Passkey functionality is not available. Please rebuild the app with native modules."
+    );
+    return;
+  }
+
   if (!isSupported()) {
+    console.error("Passkeys are not supported on this device");
     alert("Passkeys are not supported on this device");
+    return;
   }
 
   // Check if user already exists with the same email only if email was provided by the user
   if (user.email) {
+    console.log("Checking if email is in use:", user.email);
     const inUse = await checkIfEmailInUse({ email: user.email });
     if (inUse) {
       console.log("User with this email already exists", user.email);
@@ -117,6 +140,20 @@ export async function onPasskeyCreate(user: {
   try {
     // ID isn't visible by users, but needs to be random enough and valid base64 (for Android)
     const userId = uuid();
+    console.log("Generated userId:", PASSKEY_CONFIG);
+
+    console.log("Creating passkey with config:", {
+      authenticatorName: "KOKIO_PASSKEY",
+      rp: {
+        id: PASSKEY_CONFIG.RP_ID,
+        name: PASSKEY_CONFIG.RP_NAME,
+      },
+      user: {
+        id: userId,
+        name: user.username,
+        displayName: user.email ?? user.username,
+      },
+    });
 
     const authenticatorParams = await createPasskey({
       // Use hardcoded passkey name as specified in requirements
@@ -138,12 +175,22 @@ export async function onPasskeyCreate(user: {
       },
     });
 
+    console.log("Passkey created successfully:", authenticatorParams);
+
+    console.log("Creating sub-organization...");
     const response = await createSubOrganization(authenticatorParams, user);
-    if (!response) return;
+    console.log("createSubOrganization response:", response);
+
+    if (!response) {
+      console.error("createSubOrganization returned null/undefined");
+      return;
+    }
+
     console.log("created sub-org", response);
     return { authenticatorParams, subOrgCreationResponse: response };
   } catch (e) {
     console.error("error during passkey creation", e);
+    throw e; // Re-throw to see the error in the calling function
   }
 }
 
