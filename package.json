@@ -37,6 +37,7 @@
     "crypto-browserify": "^3.12.1",
     "expo": "~51.0.39",
     "expo-blur": "~13.0.3",
+    "expo-build-properties": "~0.12.5",
     "expo-clipboard": "~6.0.3",
     "expo-constants": "~16.0.2",
     "expo-dev-client": "~4.0.29",
