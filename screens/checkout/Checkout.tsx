@@ -34,9 +34,23 @@ import CreditCardModal from "@/components/CreditCardModal";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
+import { getWalletKit } from "../../lib/reownWallet";
+import { openBrowserAsync } from "expo-web-browser";
+
+const BASE_CHAIN = "eip155:84532"; //base sepolia
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
+
+function buildCheckoutMessage(params: { esimId: string; amount: number }) {
+  return `
+    KOKI'O External Wallet Checkout
+    eSIM ID: ${params.esimId}
+    Amount: ${params.amount} USD
+    Timestamp: ${Date.now()}
+    This signature authorizes this checkout.
+    `;
+}
 
 const Checkout = ({ currentBalance = 25 }: any) => {
   const { item: eSimDetails } = useLocalSearchParams();
@@ -68,6 +82,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [orderResponse, setOrderResponse] = useState<any>(null);
   const [discountError, setDiscountError] = useState<string>("");
+  const [payViaExternalWallet, setPayViaExternalWallet] = useState(false);
 
   const radioButtons: RadioButtonProps[] = useMemo(
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
@@ -160,15 +175,107 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     savePurchasedESIM,
   ]);
 
+  const handleExternalWalletCheckout = useCallback(async () => {
+    try {
+      console.log("External wallet checkout started");
+      setIsCheckoutLoading(true);
+
+      // Use the global WalletKit instance
+      const walletKit = await getWalletKit();
+
+      // Pair with the wallet (opens wallet URI in browser)
+      await walletKit.pair({
+        requiredNamespaces: {
+          eip155: { methods: ["personal_sign"], chains: [BASE_CHAIN] },
+        },
+        onDisplayUri: async (uri: string) => {
+          console.log("Pairing URI:", uri);
+          // open the wallet in the browser or app
+          await openBrowserAsync(uri);
+        },
+      });
+
+      // Get the active session
+      const sessions = walletKit.getActiveSessions();
+      const session = Object.values(sessions)[0];
+      if (!session) throw new Error("No active wallet session");
+
+      const account = session.namespaces.eip155.accounts[0];
+      const externalWalletAddress = account.split(":")[2];
+
+      // Create the message to sign
+      const message = buildCheckoutMessage({
+        esimId: "test",
+        amount: totalAmount,
+      });
+      console.log("Message to sign:", message);
+
+      // Request signature from wallet
+      const signature = await walletKit.request({
+        topic: session.topic,
+        chainId: BASE_CHAIN,
+        request: {
+          method: "personal_sign",
+          params: [message, externalWalletAddress],
+        },
+      });
+      console.log("Signature received:", signature);
+
+      // Call your checkout API
+      const payload = getEsimOrderPayload({
+        eSimItem,
+        deviceWalletId: "", // Not used for external wallet
+        discountCode: "",
+      });
+
+      const response = await eSimOderCheckout({
+        ...payload,
+        paymentMethod: "external_wallet",
+        externalWalletAddress,
+        signature,
+      });
+
+      if (!response?.success) throw new Error("Checkout failed");
+
+      setOrderResponse(response.data);
+      setShowSuccessModal(true);
+      console.log("External wallet checkout successful");
+    } catch (err) {
+      console.error("External wallet checkout failed:", err);
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  }, [eSimItem, totalAmount]);
+
+  // const handleCheckout = useCallback(async () => {
+  //   // If credit card is selected, open the credit card modal instead of proceeding with checkout
+  //   if (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD) {
+  //     setShowCreditCardModal(true);
+  //     return;
+  //   }
+
+  //   handleEsimCheckout();
+  // }, [selectedPaymentMethod, handleEsimCheckout]);
+  //
+
   const handleCheckout = useCallback(async () => {
+    console.log("handleCheckout triggered");
+
     // If credit card is selected, open the credit card modal instead of proceeding with checkout
     if (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD) {
       setShowCreditCardModal(true);
       return;
     }
 
+    if (payViaExternalWallet) {
+      console.log("Pay via external wallet selected");
+      await handleExternalWalletCheckout();
+      return;
+    }
+
+    console.log("Standard eSIM checkout");
     handleEsimCheckout();
-  }, [selectedPaymentMethod, handleEsimCheckout]);
+  }, [payViaExternalWallet, handleExternalWalletCheckout, handleEsimCheckout]);
 
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);
@@ -282,14 +389,30 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     return eSimItem.actualSellingPrice;
   }, [eSimItem.actualSellingPrice, isDiscountApplied, discountAmount]);
 
-  const canCheckout = useMemo(
-    () =>
-      isESimEnabled &&
-      selectedPaymentMethod &&
-      totalAmount === 0 &&
-      !isCheckoutLoading,
-    [isESimEnabled, selectedPaymentMethod, totalAmount, isCheckoutLoading]
-  );
+  // const canCheckout = useMemo(
+  //   () =>
+  //     isESimEnabled &&
+  //     selectedPaymentMethod &&
+  //     totalAmount === 0 &&
+  //     !isCheckoutLoading,
+  //   [isESimEnabled, selectedPaymentMethod, totalAmount, isCheckoutLoading]
+  // );
+
+  const canCheckout = useMemo(() => {
+    if (!isESimEnabled || isCheckoutLoading) return false;
+
+    const hasDeviceWallet = !!kokio.userWallet;
+    const hasDiscountOrExternal = isDiscountApplied || payViaExternalWallet;
+
+    // Require device wallet and either a discount applied or external wallet toggle
+    return hasDeviceWallet && hasDiscountOrExternal;
+  }, [
+    isESimEnabled,
+    isCheckoutLoading,
+    kokio.userWallet,
+    isDiscountApplied,
+    payViaExternalWallet,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -368,6 +491,32 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                 {discountError}
               </ThemedText>
             </View>
+          )}
+        </View>
+
+        {/* External Wallet Toggle */}
+        <View style={{ marginTop: 16 }}>
+          <ThemedText>Pay directly via external wallet</ThemedText>
+          <Text style={{ color: Theme.colors.foreground, marginTop: 12 }}>
+            In alpha, use it to pay directly via external wallet.
+          </Text>
+          <View style={{ flexDirection: "row", marginVertical: 12 }}>
+            <ToggleSwitch
+              isOn={payViaExternalWallet}
+              onToggle={setPayViaExternalWallet}
+              onColor="#30D158"
+              offColor={Theme.colors.muted}
+              size="small"
+            />
+            <ThemedText style={{ marginLeft: 8 }}>
+              Pay via external wallet
+            </ThemedText>
+          </View>
+          {payViaExternalWallet && (
+            <Text style={{ color: Theme.colors.foreground, marginTop: 8 }}>
+              On placing order, you will be prompted to pay via your external
+              wallet.
+            </Text>
           )}
         </View>
 
