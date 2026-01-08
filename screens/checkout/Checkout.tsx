@@ -34,7 +34,7 @@ import CreditCardModal from "@/components/CreditCardModal";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { getWalletKit } from "../../lib/reownWallet";
+import { getSignClient } from "@/lib/reownWallet";
 import { openBrowserAsync } from "expo-web-browser";
 
 const BASE_CHAIN = "eip155:84532"; //base sepolia
@@ -177,41 +177,35 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
   const handleExternalWalletCheckout = useCallback(async () => {
     try {
-      console.log("External wallet checkout started");
       setIsCheckoutLoading(true);
 
-      // Use the global WalletKit instance
-      const walletKit = await getWalletKit();
+      const signClient = await getSignClient();
 
-      // Pair with the wallet (opens wallet URI in browser)
-      await walletKit.pair({
+      const { uri, approval } = await signClient.connect({
         requiredNamespaces: {
-          eip155: { methods: ["personal_sign"], chains: [BASE_CHAIN] },
-        },
-        onDisplayUri: async (uri: string) => {
-          console.log("Pairing URI:", uri);
-          // open the wallet in the browser or app
-          await openBrowserAsync(uri);
+          eip155: {
+            chains: [BASE_CHAIN],
+            methods: ["personal_sign"],
+            events: [],
+          },
         },
       });
+      if (uri) {
+        console.log("URI", uri);
+        await openBrowserAsync(uri);
+      }
 
-      // Get the active session
-      const sessions = walletKit.getActiveSessions();
-      const session = Object.values(sessions)[0];
-      if (!session) throw new Error("No active wallet session");
+      const session = await approval();
 
       const account = session.namespaces.eip155.accounts[0];
       const externalWalletAddress = account.split(":")[2];
 
-      // Create the message to sign
       const message = buildCheckoutMessage({
         esimId: "test",
         amount: totalAmount,
       });
-      console.log("Message to sign:", message);
 
-      // Request signature from wallet
-      const signature = await walletKit.request({
+      const signature = await signClient.request({
         topic: session.topic,
         chainId: BASE_CHAIN,
         request: {
@@ -219,12 +213,10 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           params: [message, externalWalletAddress],
         },
       });
-      console.log("Signature received:", signature);
 
-      // Call your checkout API
       const payload = getEsimOrderPayload({
         eSimItem,
-        deviceWalletId: "", // Not used for external wallet
+        deviceWalletId: "",
         discountCode: "",
       });
 
@@ -235,28 +227,18 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         signature,
       });
 
-      if (!response?.success) throw new Error("Checkout failed");
+      if (!response?.success) {
+        throw new Error("External wallet checkout failed");
+      }
 
       setOrderResponse(response.data);
       setShowSuccessModal(true);
-      console.log("External wallet checkout successful");
     } catch (err) {
       console.error("External wallet checkout failed:", err);
     } finally {
       setIsCheckoutLoading(false);
     }
   }, [eSimItem, totalAmount]);
-
-  // const handleCheckout = useCallback(async () => {
-  //   // If credit card is selected, open the credit card modal instead of proceeding with checkout
-  //   if (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD) {
-  //     setShowCreditCardModal(true);
-  //     return;
-  //   }
-
-  //   handleEsimCheckout();
-  // }, [selectedPaymentMethod, handleEsimCheckout]);
-  //
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");

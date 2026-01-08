@@ -1,25 +1,21 @@
-// lib/reownWallet.ts
-import { WalletKit } from "@reown/walletkit";
-import { Core } from "@walletconnect/core";
+import "@walletconnect/react-native-compat";
+import SignClient from "@walletconnect/sign-client";
 
-let walletKitInstance: WalletKit | null = null;
+let client: SignClient | null = null;
 
-export async function getWalletKit(): Promise<WalletKit> {
-  if (walletKitInstance) return walletKitInstance;
+export const reown_project_id = process.env.REOWN_PROJECT_ID ?? "";
+export async function getSignClient() {
+  if (client) return client;
 
-  const core = new Core({
-    projectId: process.env.PROJECT_ID || "cdb9a04ee1f6e52d27f799995d9361e2",
-  });
-
-  walletKitInstance = await WalletKit.init({
-    core,
+  client = await SignClient.init({
+    projectId: reown_project_id,
     metadata: {
-      name: "test",
-      description: "WalletKit Integration",
-      url: "'https://reown.com/walletkit'",
+      name: "KOKI'O",
+      description: "External wallet checkout",
+      url: "https://kokio.app",
       icons: [],
     },
   });
 
-  return walletKitInstance;
+  return client;
 }
