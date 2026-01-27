@@ -10,6 +10,7 @@ export interface AppExtraConfig {
     turnkeyApiPrivateKey?: string;
     apiBaseUrl?: string;
     serverBaseUrl?:string;
+    reownProjectId?:string;
 }
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
@@ -33,6 +34,9 @@ export const Config = {
     EXPO_PUBLIC_PASSKEY_RP_NAME: process.env.EXPO_PUBLIC_PASSKEY_RP_NAME,
     EXPO_PUBLIC_RP_ID: process.env.EXPO_PUBLIC_RP_ID,
     EXPO_PUBLIC_TURNKEY_API_URL: process.env.EXPO_PUBLIC_TURNKEY_API_URL,
+
+    //wallet connect
+    REOWN_PROJECT_ID: process.env.REOWN_PROJECT_ID,
 
     // Utility function for validation
     validateSecrets: () => {

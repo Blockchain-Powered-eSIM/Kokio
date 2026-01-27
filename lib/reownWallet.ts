@@ -1,14 +1,17 @@
 import "@walletconnect/react-native-compat";
 import SignClient from "@walletconnect/sign-client";
+import { AppExtraConfig, Config } from "@/appKeys";
+import Constants from "expo-constants";
+
+const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
 let client: SignClient | null = null;
 
-export const reown_project_id = process.env.REOWN_PROJECT_ID ?? "";
 export async function getSignClient() {
   if (client) return client;
 
   client = await SignClient.init({
-    projectId: reown_project_id,
+    projectId: extra.reownProjectId as string || "",
     metadata: {
       name: "KOKI'O",
       description: "External wallet checkout",
