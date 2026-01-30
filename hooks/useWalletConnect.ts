@@ -1,0 +1,91 @@
+import { useState, useCallback, useEffect } from "react";
+import { openBrowserAsync } from "expo-web-browser";
+import { getSignClient } from "@/lib/reownWallet";
+import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
+
+export const useWalletConnect = () => {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [externalSession, setExternalSession] = useState<any>(null);
+  const [externalAddress, setExternalAddress] = useState<string>("");
+  const [payViaExternalWallet, setPayViaExternalWallet] = useState(false);
+
+  // Sync session on mount
+  useEffect(() => {
+    const syncSession = async () => {
+      try {
+        const signClient = await getSignClient();
+        const sessions = signClient.session.getAll();
+        if (sessions.length > 0) {
+          const lastSession = sessions[sessions.length - 1];
+          setExternalSession(lastSession);
+          setExternalAddress(lastSession.namespaces.eip155.accounts[0].split(":")[2]);
+          setPayViaExternalWallet(true);
+        }
+      } catch (error) {
+        console.error("Failed to sync session:", error);
+      }
+    };
+    syncSession();
+  }, []);
+
+  const disconnectExternalWallet = useCallback(async () => {
+    try {
+      const signClient = await getSignClient();
+      const sessions = signClient.session.getAll();
+      
+      // Clear all sessions to ensure clean state
+      for (const session of sessions) {
+        await signClient.disconnect({
+          topic: session.topic,
+          reason: { code: 6000, message: "User opted out" },
+        }).catch(() => {});
+      }
+    } finally {
+      setExternalSession(null);
+      setExternalAddress("");
+      setPayViaExternalWallet(false);
+    }
+  }, []);
+
+  const connectExternalWallet = useCallback(async () => {
+    try {
+      setIsConnecting(true);
+      const signClient = await getSignClient();
+
+      const { uri, approval } = await signClient.connect({
+        requiredNamespaces: {
+          eip155: {
+            chains: [WC_BASE_SEPOLIA],
+            methods: ["personal_sign", "eth_sendTransaction"],
+            events: ["accountsChanged", "chainChanged"],
+          },
+        },
+      });
+
+      if (uri) {
+        await openBrowserAsync(uri);
+      }
+
+      const session = await approval();
+      setExternalSession(session);
+      setExternalAddress(session.namespaces.eip155.accounts[0].split(":")[2]);
+      setPayViaExternalWallet(true);
+      
+    } catch (err) {
+      console.error("Connection failed:", err);
+      setPayViaExternalWallet(false);
+    } finally {
+      setIsConnecting(false);
+    }
+  }, []);
+
+  return {
+    isConnecting,
+    externalSession,
+    externalAddress,
+    payViaExternalWallet,
+    setPayViaExternalWallet,
+    connectExternalWallet,
+    disconnectExternalWallet
+  };
+};

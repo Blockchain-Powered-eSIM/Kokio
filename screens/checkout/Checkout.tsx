@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -13,6 +13,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { RadioButtonProps, RadioGroup } from "react-native-radio-buttons-group";
 import ToggleSwitch from "toggle-switch-react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { WalletConnectModal } from "@walletconnect/modal-react-native";
 import _sum from "lodash/sum";
 import _trim from "lodash/trim";
 import _subtract from "lodash/subtract";
@@ -31,29 +32,26 @@ import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import CreditCardModal from "@/components/CreditCardModal";
 
+import { openBrowserAsync } from "expo-web-browser";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { getSignClient } from "@/lib/reownWallet";
-import { openBrowserAsync } from "expo-web-browser";
-
-const BASE_CHAIN = "eip155:84532"; //base sepolia
+import { useWalletConnect } from "@/hooks/useWalletConnect";
+import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
 
-function buildCheckoutMessage(params: { esimId: string; amount: number }) {
-  return `
-    KOKI'O External Wallet Checkout
-    eSIM ID: ${params.esimId}
-    Amount: ${params.amount} USD
-    Timestamp: ${Date.now()}
-    This signature authorizes this checkout.
-    `;
-}
-
 const Checkout = ({ currentBalance = 25 }: any) => {
   const { item: eSimDetails } = useLocalSearchParams();
+  const {
+    isConnecting,
+    externalAddress,
+    payViaExternalWallet,
+    connectExternalWallet,
+    disconnectExternalWallet
+  } = useWalletConnect();
 
   const eSimItem: Esim = React.useMemo(() => {
     if (typeof eSimDetails === "string") {
@@ -82,7 +80,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [orderResponse, setOrderResponse] = useState<any>(null);
   const [discountError, setDiscountError] = useState<string>("");
-  const [payViaExternalWallet, setPayViaExternalWallet] = useState(false);
 
   const radioButtons: RadioButtonProps[] = useMemo(
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
@@ -180,65 +177,80 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       setIsCheckoutLoading(true);
 
       const signClient = await getSignClient();
-
-      const { uri, approval } = await signClient.connect({
-        requiredNamespaces: {
-          eip155: {
-            chains: [BASE_CHAIN],
-            methods: ["personal_sign"],
-            events: [],
-          },
-        },
-      });
-      if (uri) {
-        console.log("URI", uri);
-        await openBrowserAsync(uri);
+      const sessions = signClient.session.getAll();
+      if (sessions.length === 0 || !externalAddress) {
+        // TODO: remove alert
+        alert("No active wallet session. Please reconnect your wallet.");
+        return;
       }
 
-      const session = await approval();
+      // TODO: remove ETH payment
+      // Assuming totalAmount is in USD. Note: You should ideally fetch real-time 
+      // conversion rates or handle this on the backend to avoid price slippage.
+      const ethPrice = 2800; 
+      // TODO: Finalise payment method: ETH, USDC, USDT, etc..
+      // TODO: Make calculations depending on the above decision
+      const ethAmount = 1 / ethPrice;
+      const weiAmount = BigInt(Math.floor(ethAmount * 1e18));
+      const valueInHex = `0x${weiAmount.toString(16)}`;
 
-      const account = session.namespaces.eip155.accounts[0];
-      const externalWalletAddress = account.split(":")[2];
+      console.log("--- Initiating External Transaction ---");
+      console.log("Wallet Address:", externalAddress);
+      console.log("Value (Wei):", valueInHex);
 
-      const message = buildCheckoutMessage({
-        esimId: "test",
-        amount: totalAmount,
-      });
+      const activeSession = sessions[0];
+      // Trigger deeplink to the wallet app
+      const redirect = activeSession.peer.metadata.redirect?.native;
+      if (redirect) {
+        await openBrowserAsync(redirect);
+      }
 
-      const signature = await signClient.request({
-        topic: session.topic,
-        chainId: BASE_CHAIN,
+      const txParams = {
+        from: externalAddress,
+        // TODO: replace with Kokio alpha vault address
+        to: "0xaf6a2d8ee006d532d83fee87de2e1ace0d1a138c",
+        value: valueInHex, 
+      };
+
+      const transactionHash = await signClient.request({
+        topic: activeSession.topic,
+        chainId: WC_BASE_SEPOLIA,
         request: {
-          method: "personal_sign",
-          params: [message, externalWalletAddress],
+          method: "eth_sendTransaction",
+          params: [txParams],
         },
       });
+
+      console.log("--- Transaction Successful ---");
+      console.log("Transaction Hash:", transactionHash);
 
       const payload = getEsimOrderPayload({
         eSimItem,
-        deviceWalletId: "",
-        discountCode: "",
+        deviceWalletId: kokio.userWallet?.address,
+        discountCode: ""
       });
-
       const response = await eSimOderCheckout({
         ...payload,
         paymentMethod: "external_wallet",
-        externalWalletAddress,
-        signature,
+        externalWalletAddress: externalAddress,
+        transactionHash: transactionHash, // Pass hash to backend
+        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly
       });
 
-      if (!response?.success) {
-        throw new Error("External wallet checkout failed");
+      if (response?.success) {
+        setOrderResponse(response.data);
+        setShowSuccessModal(true);
+      } else {
+        console.error("Backend validation failed:", response?.message);
       }
 
-      setOrderResponse(response.data);
-      setShowSuccessModal(true);
-    } catch (err) {
-      console.error("External wallet checkout failed:", err);
+    } catch (err: any) {
+      // TODO: add error handling, maybe error pop-up
+      console.log("Full Error Object:", JSON.stringify(err, null, 2));
     } finally {
       setIsCheckoutLoading(false);
     }
-  }, [eSimItem, totalAmount]);
+  }, [totalAmount, , externalAddress, kokio.userWallet, discountCode]);
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");
@@ -381,7 +393,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   // );
 
   const canCheckout = useMemo(() => {
-    if (!isESimEnabled || isCheckoutLoading) return false;
+    if (!isESimEnabled || isCheckoutLoading || isConnecting) return false;
 
     const hasDeviceWallet = !!kokio.userWallet;
     const hasDiscountOrExternal = isDiscountApplied || payViaExternalWallet;
@@ -391,6 +403,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   }, [
     isESimEnabled,
     isCheckoutLoading,
+    isConnecting,
     kokio.userWallet,
     isDiscountApplied,
     payViaExternalWallet,
@@ -479,25 +492,45 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         {/* External Wallet Toggle */}
         <View style={{ marginTop: 16 }}>
           <ThemedText>Pay directly via external wallet</ThemedText>
-          <Text style={{ color: Theme.colors.foreground, marginTop: 12 }}>
+          <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
             In alpha, use it to pay directly via external wallet.
           </Text>
-          <View style={{ flexDirection: "row", marginVertical: 12 }}>
-            <ToggleSwitch
-              isOn={payViaExternalWallet}
-              onToggle={setPayViaExternalWallet}
-              onColor="#30D158"
-              offColor={Theme.colors.muted}
-              size="small"
-            />
-            <ThemedText style={{ marginLeft: 8 }}>
-              Pay via external wallet
-            </ThemedText>
+          
+          <View style={styles.walletStatusRow}>
+            {/* This container ensures the toggle and label stay left-aligned */}
+            <View style={styles.toggleLeftSide}>
+              <ToggleSwitch
+                isOn={payViaExternalWallet}
+                onToggle={async (isOn) => {
+                  if (isOn) {
+                    await connectExternalWallet();
+                  } else {
+                    await disconnectExternalWallet();
+                  }
+                }}
+                onColor="#30D158"
+                offColor={Theme.colors.muted}
+                size="small"
+              />
+              <ThemedText style={{ marginLeft: 8 }}>
+                Pay via external wallet
+              </ThemedText>
+            </View>
+
+            {/* The Badge remains on the far right */}
+            {payViaExternalWallet && externalAddress ? (
+              <View style={styles.addressBadge}>
+                <View style={styles.greenDot} />
+                <ThemedText style={styles.addressText}>
+                  {`${externalAddress.slice(0, 6)}...${externalAddress.slice(-4)}`}
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
+          
           {payViaExternalWallet && (
-            <Text style={{ color: Theme.colors.foreground, marginTop: 8 }}>
-              On placing order, you will be prompted to pay via your external
-              wallet.
+            <Text style={{ color: Theme.colors.muted, marginTop: 8, fontSize: 12 }}>
+              On placing order, you will be prompted to pay via your external wallet.
             </Text>
           )}
         </View>
@@ -730,5 +763,46 @@ const styles = StyleSheet.create({
   discountErrorText: {
     color: "#FF453A",
     fontSize: 14,
+  },
+  walletStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  toggleLeftSide: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  toggleWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addressBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2C2C2E",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#3A3A3C",
+  },
+  greenDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#30D158",
+    marginRight: 6,
+    shadowColor: "#30D158",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+  },
+  addressText: {
+    fontSize: 12,
+    color: "#AEAEB2",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });
