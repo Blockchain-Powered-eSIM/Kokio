@@ -35,6 +35,7 @@
     "@turnkey/react-native-passkey-stamper": "^1.2.3",
     "@turnkey/sdk-react-native": "^1.5.8",
     "@turnkey/viem": "^0.13.1",
+    "@walletconnect/react-native-compat": "^2.23.1",
     "abitype": "^1.1.0",
     "axios": "^1.11.0",
     "cbor": "^10.0.11",
