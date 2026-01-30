@@ -2,6 +2,7 @@ import "@walletconnect/react-native-compat";
 import SignClient from "@walletconnect/sign-client";
 import { AppExtraConfig, Config } from "@/appKeys";
 import Constants from "expo-constants";
+import { storage } from "@/config/storage";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
@@ -17,7 +18,11 @@ export async function getSignClient() {
       description: "External wallet checkout",
       url: "https://kokio.app",
       icons: [],
+      redirect: {
+        native: "kokio://"
+      },
     },
+    storage: storage,
   });
 
   return client;
