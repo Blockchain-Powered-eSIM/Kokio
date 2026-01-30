@@ -11,11 +11,11 @@ export interface AppExtraConfig {
     apiBaseUrl?: string;
     serverBaseUrl?:string;
     reownProjectId?:string;
+    kokioVaultAddress?:string;
 }
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
 
-// Export keys for use throughout your application
 export const Config = {
     // --- Private Secrets (from EAS) ---
     ALCHEMY_API_KEY: extra?.alchemyApiKey,
@@ -35,8 +35,10 @@ export const Config = {
     EXPO_PUBLIC_RP_ID: process.env.EXPO_PUBLIC_RP_ID,
     EXPO_PUBLIC_TURNKEY_API_URL: process.env.EXPO_PUBLIC_TURNKEY_API_URL,
 
-    //wallet connect
+    // Wallet Connect
     REOWN_PROJECT_ID: process.env.REOWN_PROJECT_ID,
+    // Kokio vault address
+    KOKIO_VAULT: process.env.KOKIO_VAULT,
 
     // Utility function for validation
     validateSecrets: () => {
@@ -60,6 +62,9 @@ export const Config = {
         }
         if (!extra?.apiBaseUrl) {
             console.error("Critical Error: API_BASE_URL is missing. Check your EAS Secrets configuration.");
+        }
+        if (!extra?.kokioVaultAddress) {
+            console.error("Critical Error: KOKIO_VAULT is missing. Check your EAS Secrets configuration.");
         }
     }
 };

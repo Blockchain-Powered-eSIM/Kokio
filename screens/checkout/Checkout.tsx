@@ -39,7 +39,10 @@ import { useKokio } from "@/hooks/useKokio";
 import { getSignClient } from "@/lib/reownWallet";
 import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
+import { AppExtraConfig } from "@/appKeys";
+import Constants from "expo-constants";
 
+const extra = Constants.expoConfig?.extra as AppExtraConfig;
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
 
@@ -196,6 +199,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
       console.log("--- Initiating External Transaction ---");
       console.log("Wallet Address:", externalAddress);
+      console.log("To (Kokio vault): ", extra.kokioVaultAddress);
       console.log("Value (Wei):", valueInHex);
 
       const activeSession = sessions[0];
@@ -207,8 +211,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
       const txParams = {
         from: externalAddress,
-        // TODO: replace with Kokio alpha vault address
-        to: "0xaf6a2d8ee006d532d83fee87de2e1ace0d1a138c",
+        to: extra.kokioVaultAddress || "",
         value: valueInHex, 
       };
 

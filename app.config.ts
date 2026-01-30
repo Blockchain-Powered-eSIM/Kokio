@@ -19,8 +19,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     apiBaseUrl: process.env.API_BASE_URL,
     serverBaseUrl: process.env.SERVER_BASE_URL,
 
-    //wallet connect
+    // Wallet Connect
     reownProjectId: process.env.REOWN_PROJECT_ID,
+
+    // Kokio vault address
+    kokioVaultAddress: process.env.KOKIO_VAULT,
   };
 
   return {
