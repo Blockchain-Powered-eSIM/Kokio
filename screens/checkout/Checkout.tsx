@@ -41,6 +41,7 @@ import { useWalletConnect } from "@/hooks/useWalletConnect";
 import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
 import { AppExtraConfig } from "@/appKeys";
 import Constants from "expo-constants";
+import { keccak256 } from "viem";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -175,6 +176,52 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     savePurchasedESIM,
   ]);
 
+  const payWithUSDC = async (params: {
+    amountInUsd: number;
+    fromAddress: string;
+    topic: string;
+  }) => {
+    // TODO: Update to mainnet during production
+    const BASE_SEPOLIA_USDC_ADDRESS = "0x6Ac3aB54Dc5019A2e57eCcb214337FF5bbD52897";
+    const toAddress = extra.kokioVaultAddress || "0x";
+    const chainId = WC_BASE_SEPOLIA;
+    const { amountInUsd, fromAddress, topic } = params;
+    const signClient = await getSignClient();
+
+    // Converting to USDC Units (6 decimals)
+    // Eg: 10.50 USD -> 10,500,000 units
+    const usdcAmount = BigInt(Math.floor(amountInUsd * 1e6));
+
+    // Encode ERC-20 Data
+    // Padding address to 64 chars and amount to 64 chars
+    const formattedAddress = toAddress.replace("0x", "").toLowerCase().padStart(64, "0");
+    const cleanAmount = usdcAmount.toString(16).padStart(64, "0");
+    const transferFunc = "transfer(address,uint256)";
+    const functionHash = (keccak256(Buffer.from(transferFunc))).slice(0, 10);
+    
+    const transactionData = `${functionHash}${formattedAddress}${cleanAmount}`;
+
+    console.log("--- Initiating External Transaction ---");
+    console.log("Wallet Address:", fromAddress);
+    console.log("To (Kokio vault): ", extra.kokioVaultAddress);
+    console.log(`${amountInUsd}USD ==>${cleanAmount}`);
+
+    // 3. Request Transaction
+    return await signClient.request({
+      topic,
+      chainId,
+      request: {
+        method: "eth_sendTransaction",
+        params: [{
+          from: fromAddress,
+          to: BASE_SEPOLIA_USDC_ADDRESS, 
+          data: transactionData,
+          value: "0x0", 
+        }],
+      },
+    });
+  };
+
   const handleExternalWalletCheckout = useCallback(async () => {
     try {
       setIsCheckoutLoading(true);
@@ -187,21 +234,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         return;
       }
 
-      // TODO: remove ETH payment
-      // Assuming totalAmount is in USD. Note: You should ideally fetch real-time 
-      // conversion rates or handle this on the backend to avoid price slippage.
-      const ethPrice = 2800; 
-      // TODO: Finalise payment method: ETH, USDC, USDT, etc..
-      // TODO: Make calculations depending on the above decision
-      const ethAmount = 1 / ethPrice;
-      const weiAmount = BigInt(Math.floor(ethAmount * 1e18));
-      const valueInHex = `0x${weiAmount.toString(16)}`;
-
-      console.log("--- Initiating External Transaction ---");
-      console.log("Wallet Address:", externalAddress);
-      console.log("To (Kokio vault): ", extra.kokioVaultAddress);
-      console.log("Value (Wei):", valueInHex);
-
       const activeSession = sessions[0];
       // Trigger deeplink to the wallet app
       const redirect = activeSession.peer.metadata.redirect?.native;
@@ -209,19 +241,10 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         await openBrowserAsync(redirect);
       }
 
-      const txParams = {
-        from: externalAddress,
-        to: extra.kokioVaultAddress || "",
-        value: valueInHex, 
-      };
-
-      const transactionHash = await signClient.request({
-        topic: activeSession.topic,
-        chainId: WC_BASE_SEPOLIA,
-        request: {
-          method: "eth_sendTransaction",
-          params: [txParams],
-        },
+      const transactionHash = await payWithUSDC({
+        amountInUsd: totalAmount as number,
+        fromAddress: externalAddress,
+        topic: activeSession.topic
       });
 
       console.log("--- Transaction Successful ---");
