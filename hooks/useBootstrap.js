@@ -1,10 +1,29 @@
 import { useState, useEffect } from "react";
-import { fetchBootstrapDataAPI } from "@/services/general";
+import { fetchBootstrapDataAPI, healthCheck } from "@/services/general";
 import AppBootstrap from "@/utils/appBootstrap";
 
 export default function useBootstrap() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const fetchHealthData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await healthCheck();
+      console.log("Health status", response);
+      if (response.success != true) {
+        console.error("Non 200 status");
+      }
+    }
+    catch (err) {
+    console.error("Failed to query BFF", err);
+    setError(err);
+    }
+    finally {
+      setIsLoading(false)
+    }
+  }
 
   const fetchBootstrapData = async () => {
     setIsLoading(true);
@@ -24,6 +43,7 @@ export default function useBootstrap() {
 
   // Fetch bootstrap data on mount
   useEffect(() => {
+    fetchHealthData(); // TODO : add UI component to display errors to user
     fetchBootstrapData();
   }, []);
 

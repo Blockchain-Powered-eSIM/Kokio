@@ -18,6 +18,7 @@ export const emisQueryKeys = {
   esimsByCountry: (item) => [...emisQueryKeys.all, "byCountry", item],
   esimsByRegion: (item) => [...emisQueryKeys.all, "byRegion", item],
   esimsByGlobal: (item) => [...emisQueryKeys.all, "byGlobal", item],
+  esimsByCustom: (item) => [...emisQueryKeys.all, "byCustom", item],
 };
 
 // NOTE: Currently only showing ESIM Plan and not showing Topup
@@ -97,4 +98,29 @@ function useGloabalEsims(options = defaultOptions) {
   }
 }
 
-export { useEsimsByCountry, useEsimsByRegion, useGloabalEsims };
+function useCustomEsims(options = defaultOptions) {
+  try {
+    const result = useQuery({
+      queryKey: emisQueryKeys.esimsByCustom("CUSTOM_REGIONAL"),
+      queryFn: async () => {
+        try {
+          const payload = { serviceRegionCode: "CUSTOM_REGIONAL" };
+          const response = await fetchEsimsCatalogue(payload);
+          const allPlans = _get(response, "data.plans") || [];
+          return getSimPlans(allPlans);
+        } catch (err) {
+          return [];
+        }
+      },
+      ..._defaults(options, { ...defaultOptions }),
+    });
+
+    return result;
+  } catch (err) {
+    console.log({ err });
+  }
+}
+
+export { useEsimsByCountry, useEsimsByRegion, useGloabalEsims, useCustomEsims};
+
+//todo : remove esim filter query by 'SIM' or "SIM_OR_TOPUP"
