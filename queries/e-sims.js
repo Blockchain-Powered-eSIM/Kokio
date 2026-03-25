@@ -21,14 +21,6 @@ export const emisQueryKeys = {
   esimsByCustom: (item) => [...emisQueryKeys.all, "byCustom", item],
 };
 
-// NOTE: Currently only showing ESIM Plan and not showing Topup
-const getSimPlans = (allPlans) =>
-  _filter(
-    allPlans,
-    (plan) =>
-      plan?.purchaseType === "SIM" || plan?.purchaseType === "SIM_OR_TOPUP"
-  );
-
 function useEsimsByCountry(serviceRegionCode, options = defaultOptions) {
   try {
     const result = useQuery({
@@ -38,7 +30,7 @@ function useEsimsByCountry(serviceRegionCode, options = defaultOptions) {
           const payload = { serviceRegionCode };
           const response = await fetchEsimsCatalogue(payload);
           const allPlans = _get(response, "data.plans") || [];
-          return getSimPlans(allPlans);
+          return allPlans;
         } catch (err) {
           return [];
         }
@@ -61,7 +53,7 @@ function useEsimsByRegion(region, options = defaultOptions) {
           const payload = { serviceRegionCode: region };
           const response = await fetchEsimsCatalogue(payload);
           const allPlans = _get(response, "data.plans") || [];
-          return getSimPlans(allPlans);
+          return allPlans;
         } catch (err) {
           return [];
         }
@@ -84,7 +76,7 @@ function useGloabalEsims(options = defaultOptions) {
           const payload = { serviceRegionCode: "GLOBAL" };
           const response = await fetchEsimsCatalogue(payload);
           const allPlans = _get(response, "data.plans") || [];
-          return getSimPlans(allPlans);
+          return allPlans;
         } catch (err) {
           return [];
         }
@@ -107,7 +99,7 @@ function useCustomEsims(options = defaultOptions) {
           const payload = { serviceRegionCode: "CUSTOM_REGIONAL" };
           const response = await fetchEsimsCatalogue(payload);
           const allPlans = _get(response, "data.plans") || [];
-          return getSimPlans(allPlans);
+          return allPlans;
         } catch (err) {
           return [];
         }
@@ -122,5 +114,3 @@ function useCustomEsims(options = defaultOptions) {
 }
 
 export { useEsimsByCountry, useEsimsByRegion, useGloabalEsims, useCustomEsims};
-
-//todo : remove esim filter query by 'SIM' or "SIM_OR_TOPUP"
