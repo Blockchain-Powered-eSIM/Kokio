@@ -1,4 +1,4 @@
-import { StyleSheet, View, TouchableOpacity, FlatList } from "react-native";
+import { StyleSheet, View, TouchableOpacity, FlatList, Dimensions } from "react-native";
 import { router } from "expo-router";
 
 import _map from "lodash/map";
@@ -9,15 +9,20 @@ import { Colors, Theme } from "@/constants/Colors";
 import appBootstrap from "@/utils/appBootstrap";
 import { navigateToESIMsByCountry } from "@/utils/general";
 
+const COLUMN_COUNT = 2;
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const ITEM_WIDTH = (SCREEN_WIDTH * 0.9) / COLUMN_COUNT;
+
 export default function Countries() {
   const list = appBootstrap.getCountries;
 
   const renderItem = ({ item, index }: any) => (
     <TouchableOpacity
-      onPress={navigateToESIMsByCountry(item?.code)}
-      style={{
-        flex: 1,
-      }}
+      onPress={() => navigateToESIMsByCountry(item?.code)}
+      // style={{
+      //   flex: 1,
+      // }}
+      style={{ width: ITEM_WIDTH, alignItems: "center" }}
     >
       <View key={item?.code || index} style={styles.country}>
         <CountryFlag
@@ -41,6 +46,7 @@ export default function Countries() {
           renderItem={renderItem}
           columnWrapperStyle={styles.columnWrapperStyle}
           keyExtractor={(item, index) => item?.code || index}
+          contentContainerStyle={{ paddingBottom: 100 }}
         />
       </View>
     </View>
@@ -54,16 +60,18 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
   },
   tabWrapper: {
-    display: "flex",
+    flex: 1,
+    // display: "flex",
     flexDirection: "column",
     alignItems: "center",
     paddingTop: 12,
   },
   countriesWrapper: {
     width: "90%",
+    flex: 1,
   },
   country: {
-    display: "flex",
+    // display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
@@ -72,14 +80,17 @@ const styles = StyleSheet.create({
   countryLabel: {
     color: Colors.dark.text,
     paddingTop: Theme.spacing.sm,
+    textAlign: "center", 
+    width: ITEM_WIDTH,
   },
   flag: {
-    borderRadius: Theme.borderRadius.medium + Theme.borderRadius.medium,
+    borderRadius: Theme.borderRadius.medium * 2,
   },
   columnWrapperStyle: {
-    display: "flex",
+    // display: "flex",
     flexDirection: "row",
-    justifyContent: "space-evenly",
-    alignItems: "center",
+    // justifyContent: "space-evenly",
+    // alignItems: "center",
+    marginBottom: Theme.spacing.md,
   },
 });
