@@ -18,7 +18,7 @@ export default function Countries() {
 
   const renderItem = ({ item, index }: any) => (
     <TouchableOpacity
-      onPress={() => navigateToESIMsByCountry(item?.code)}
+      onPress={navigateToESIMsByCountry(item?.code)}
       // style={{
       //   flex: 1,
       // }}
