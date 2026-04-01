@@ -16,15 +16,13 @@ export default function HomeScreen() {
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView>
         <Hero />
+        <ActiveESIMsScroll purchasedESIMs={purchasedESIMs} />
         {kokio.userWallet ? (
-          <>
-            <ActiveESIMsScroll purchasedESIMs={purchasedESIMs} />
             <Wallet
               walletId={kokio.userWallet?.address}
               balance="0"
               isWalletAdded
             />
-          </>
         ) : (
           <Wallet isWalletAdded={false} />
         )}
