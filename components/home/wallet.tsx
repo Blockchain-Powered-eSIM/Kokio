@@ -21,6 +21,7 @@ interface WalletProps {
   balance?: string;
   walletId?: string;
   isWalletAdded?: boolean;
+  onSetupWallet?: () => void;
 }
 const shortenId = (
   address: string | undefined,
@@ -31,7 +32,7 @@ const shortenId = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
-const Wallet = ({ balance, walletId, isWalletAdded }: WalletProps) => {
+const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps) => {
   const handleAddressPress = async () => {
     if (walletId) {
       const url = `${BASE_SEPOLIA_TESTNET}/${walletId}`;
@@ -116,12 +117,19 @@ const Wallet = ({ balance, walletId, isWalletAdded }: WalletProps) => {
                 </View>
               </View>
             </>
+          // ) : (
+          //   <>
+          //     <ThemedText className="mt-8 mb-20 ml-4">
+          //       Proceed to shop and continue.
+          //     </ThemedText>
+          //   </>
+          // )}
           ) : (
-            <>
+            <TouchableOpacity onPress={onSetupWallet} >
               <ThemedText className="mt-8 mb-20 ml-4">
-                Proceed to shop and continue.
+                Tap to create your device wallet
               </ThemedText>
-            </>
+            </TouchableOpacity>
           )}
         </LinearGradient>
       </View>

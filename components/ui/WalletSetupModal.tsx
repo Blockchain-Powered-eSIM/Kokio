@@ -112,7 +112,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       );
       return { wallet: undefined, shouldRetry: false };
     }
-  }, [kokio]);
+  }, [kokio, user]);
 
   const { updateUser } = useTurnkey();
 
@@ -155,7 +155,8 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     }
 
     setIsLoading(false);
-  }, []);
+  // }, []);
+  }, [session, kokio, returnSmartAccountAddress, setupKokioUserWallet]);
 
   const handleClose = useCallback(() => {
     setIsLoading(false);
