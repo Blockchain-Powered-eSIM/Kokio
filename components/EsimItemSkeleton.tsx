@@ -42,7 +42,8 @@ const EsimItemSkeleton = ({
           style={[
             styles.skeletonText,
             animatedStyle,
-            { width: "60%", height: 24 },
+            // { width: "60%", height: 24 },
+            { width: "55%", height: 24, marginRight: 90 }
           ]}
         />
         <View style={styles.detailsContainer}>

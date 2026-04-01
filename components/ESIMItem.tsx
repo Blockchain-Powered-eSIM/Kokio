@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 5,
     color: "#000000",
+    paddingRight: 90,
   },
   detailsContainer: {
     flexDirection: "row",

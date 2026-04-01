@@ -121,7 +121,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
             style={{ marginRight: Theme.spacing.sm }}
             onPress={handleBack}
           />
-          <Text style={styles.countryText}>
+          <Text style={styles.countryText} numberOfLines={2} adjustsFontSizeToFit>
             {_get(eSimItem, "serviceRegionName")}
           </Text>
         </View>
@@ -244,11 +244,14 @@ const styles = StyleSheet.create({
   mainContent: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    marginRight: 8,
   },
   countryText: {
     fontSize: 32,
     fontWeight: "700",
     color: "#000000",
+    flex: 1,
   },
   flag: {
     borderRadius: 6,
