@@ -248,10 +248,9 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   countryText: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "700",
     color: "#000000",
-    flex: 1,
   },
   flag: {
     borderRadius: 6,
