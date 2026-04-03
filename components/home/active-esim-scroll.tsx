@@ -40,11 +40,11 @@ const ActiveESIMsScroll = ({
     };
   }, []);
 
-  if (_isEmpty(purchasedESIMs)) {
-    return null;
-  }
+  // if (_isEmpty(purchasedESIMs)) {
+  //   return null;
+  // }
 
-  //mpty eSIM card
+  //empty eSIM card
   if (_isEmpty(purchasedESIMs)) {
     return (
       <View style={styles.container}>
