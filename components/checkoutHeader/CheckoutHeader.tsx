@@ -22,7 +22,6 @@ import DetailItem from "../ui/DetailItem";
 const HEADER_MIN_HEIGHT = Platform.OS === "android" ? 150 : 200;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
-
 const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
 
 const ExpandableContent = ({ eSimItem = {} }: any) => (
@@ -73,7 +72,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const navigation = useNavigation();
 
   const headerMaxHeight = Math.min(
-    contentHeight + computedHeaderHeight + 16,
+    contentHeight + computedHeaderHeight + 40, // 40 for pill + margins
     MAX_ALLOWED_HEIGHT
   );
 
@@ -106,7 +105,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const handleBack = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
-      return;
     }
   };
 
@@ -121,7 +119,11 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
             style={{ marginRight: Theme.spacing.sm }}
             onPress={handleBack}
           />
-          <Text style={styles.countryText} numberOfLines={2} adjustsFontSizeToFit>
+          <Text
+            style={styles.countryText}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+          >
             {_get(eSimItem, "serviceRegionName")}
           </Text>
         </View>
@@ -170,20 +172,32 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     height: animatedHeight.value,
   }));
 
-  const animatedIndicatorStyle = useAnimatedStyle(() => ({
-    height: interpolate(
-      animatedHeight.value,
-      [computedHeaderHeight, headerMaxHeight],
-      [4, 1]
-    ),
+  // Only animate width — height is fixed on the pill
+  const animatedPillWidth = useAnimatedStyle(() => ({
     width: interpolate(
       animatedHeight.value,
       [computedHeaderHeight, headerMaxHeight],
-      [40, DIVIDER_WIDTH]
+      [48, DIVIDER_WIDTH]
     ),
   }));
 
   const animatedContentStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      animatedHeight.value,
+      [computedHeaderHeight, headerMaxHeight],
+      [0, 1]
+    ),
+  }));
+
+  const animatedArrowDownStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      animatedHeight.value,
+      [computedHeaderHeight, headerMaxHeight],
+      [1, 0]
+    ),
+  }));
+
+  const animatedArrowUpStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       animatedHeight.value,
       [computedHeaderHeight, headerMaxHeight],
@@ -196,12 +210,11 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
       <Animated.View
         style={[
           styles.header,
-          {
-            paddingTop: insets.top + 16,
-          },
+          { paddingTop: insets.top + 16 },
           animatedHeaderStyle,
         ]}
       >
+        {/* Country + flag + back */}
         <View
           style={{
             marginBottom:
@@ -214,11 +227,22 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
           {detailItems}
         </View>
 
-        <Animated.View
-          style={[styles.expandIndicator, animatedIndicatorStyle]}
-        />
+        {/* Pill drag handle */}
+        <View style={styles.expandIndicatorRow}>
+          <Animated.View style={[styles.pillHandle, animatedPillWidth]}>
+            <Animated.View style={animatedArrowDownStyle}>
+              <Ionicons name="chevron-down" size={12} color="#3C3C43CC" />
+            </Animated.View>
+            <Animated.View
+              style={[StyleSheet.absoluteFillObject, styles.arrowCenter, animatedArrowUpStyle]}
+            >
+              <Ionicons name="chevron-up" size={12} color="#3C3C43CC" />
+            </Animated.View>
+          </Animated.View>
+        </View>
 
-        <Animated.View style={animatedContentStyle} pointerEvents="none">
+        {/* Expandable details */}
+        <Animated.View style={animatedContentStyle}>
           <View onLayout={onContentLayout}>
             <ExpandableContent eSimItem={eSimItem} />
           </View>
@@ -235,6 +259,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
     paddingHorizontal: 16,
     paddingBottom: 8,
+    overflow: "hidden",
   },
   countryFlagContainer: {
     flexDirection: "row",
@@ -243,7 +268,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     flex: 1,
     marginRight: 8,
   },
@@ -251,6 +276,8 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "700",
     color: "#000000",
+    flex: 1,
+    flexShrink: 1,
   },
   flag: {
     borderRadius: 6,
@@ -265,16 +292,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  expandIndicator: {
-    backgroundColor: "#3C3C43",
-    opacity: 0.2,
-    borderRadius: 2,
-    alignSelf: "center",
+  extraContentLabel: {
+    marginRight: 8,
+  },
+  expandIndicatorRow: {
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: Platform.OS === "android" ? 8 : 10,
     marginBottom: Platform.OS === "android" ? 4 : 6,
   },
-  extraContentLabel: {
-    marginRight: 8,
+  pillHandle: {
+    backgroundColor: "#3C3C4333",
+    borderRadius: 10,
+    height: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  arrowCenter: {
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

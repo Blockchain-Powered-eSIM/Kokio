@@ -9,9 +9,11 @@ import { Colors, Theme } from "@/constants/Colors";
 import appBootstrap from "@/utils/appBootstrap";
 import { navigateToESIMsByCountry } from "@/utils/general";
 
+
 const COLUMN_COUNT = 2;
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const ITEM_WIDTH = (SCREEN_WIDTH * 0.9) / COLUMN_COUNT;
+const COLUMN_GAP = 16;
+const ITEM_WIDTH = (SCREEN_WIDTH * 0.9 - COLUMN_GAP) / COLUMN_COUNT;
 
 export default function Countries() {
   const list = appBootstrap.getCountries;
@@ -19,9 +21,6 @@ export default function Countries() {
   const renderItem = ({ item, index }: any) => (
     <TouchableOpacity
       onPress={navigateToESIMsByCountry(item?.code)}
-      // style={{
-      //   flex: 1,
-      // }}
       style={{ width: ITEM_WIDTH, alignItems: "center" }}
     >
       <View key={item?.code || index} style={styles.country}>
@@ -61,7 +60,6 @@ const styles = StyleSheet.create({
   },
   tabWrapper: {
     flex: 1,
-    // display: "flex",
     flexDirection: "column",
     alignItems: "center",
     paddingTop: 12,
@@ -71,7 +69,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   country: {
-    // display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
@@ -80,17 +77,16 @@ const styles = StyleSheet.create({
   countryLabel: {
     color: Colors.dark.text,
     paddingTop: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.sm,
     textAlign: "center", 
-    width: ITEM_WIDTH,
+    width: ITEM_WIDTH - 8,
   },
   flag: {
     borderRadius: Theme.borderRadius.medium * 2,
   },
   columnWrapperStyle: {
-    // display: "flex",
     flexDirection: "row",
-    // justifyContent: "space-evenly",
-    // alignItems: "center",
     marginBottom: Theme.spacing.md,
+    gap: COLUMN_GAP,
   },
 });
