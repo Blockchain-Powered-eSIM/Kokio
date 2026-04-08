@@ -40,8 +40,24 @@ const ActiveESIMsScroll = ({
     };
   }, []);
 
+  // if (_isEmpty(purchasedESIMs)) {
+  //   return null;
+  // }
+
+  //empty eSIM card
   if (_isEmpty(purchasedESIMs)) {
-    return null;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>eSIMs</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyIcon}>📶</Text>
+          <Text style={styles.emptyTitle}>No active eSIMs</Text>
+          <Text style={styles.emptySubtitle}>
+            Your purchased eSIMs will appear here
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -71,6 +87,31 @@ const ActiveESIMsScroll = ({
 };
 
 const styles = StyleSheet.create({
+  //empty eSIM card
+  emptyCard: {
+    marginHorizontal: SPACING,
+    marginTop: 8,
+    backgroundColor: Colors.dark.card,        // or "#FFD700" as per yellow card style
+    borderRadius: 18,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyIcon: {
+    fontSize: 24,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Colors.dark.popover,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: Colors.dark.popover,
+    textAlign: "center",
+  },
   container: {
     marginVertical: 12,
   },

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -164,22 +164,36 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
     [regionConfig, sanitizedSearchText]
   );
 
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const chunkedCountries = _chunk(countries, 2);
+  const SNAP_INTERVAL = 160 + SPACING;
+  const maxOffset = (chunkedCountries.length - 1) * SNAP_INTERVAL;
+
+  const isAtStart = scrollOffset <= 0;
+  const isAtEnd = scrollOffset >= maxOffset - SNAP_INTERVAL;
+
   const {} = useMemo;
   return (
     <ThemedView style={styles.container}>
       {_size(countries) ? (
         <ThemedView style={styles.countrySectionWrapper}>
-          <FlatList
-            data={_chunk(countries, 2)}
-            renderItem={CountryItemRender}
-            keyExtractor={(item, index) => item?.code || index}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.countryListContainer}
-            snapToInterval={160 + SPACING}
-            decelerationRate="fast"
-            ItemSeparatorComponent={() => <View style={{ width: SPACING }} />}
-          />
+          <View style={styles.carouselRow}>
+            <Ionicons name="chevron-back" size={15} color={Colors.dark.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+              <FlatList
+                data={_chunk(countries, 2)}
+                renderItem={CountryItemRender}
+                keyExtractor={(item, index) => item?.code || index}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.countryListContainer}
+                snapToInterval={160 + SPACING}
+                decelerationRate="fast"
+                ItemSeparatorComponent={() => <View style={{ width: SPACING }} />}
+                onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.x)}
+                scrollEventThrottle={16}
+              />
+            <Ionicons name="chevron-forward" size={15} color={Colors.dark.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+          </View>
         </ThemedView>
       ) : null}
       <ThemedView style={styles.regionSectionWrapper}>
@@ -248,6 +262,10 @@ const styles = StyleSheet.create({
   flagWrapper: {
     alignItems: "center",
     gap: 8,
+  },
+  carouselRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
 

@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   bottomButtonContainer: {
-    backgroundColor: "#191919",
+    backgroundColor: "transparent",
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 8 : 16,
