@@ -38,7 +38,7 @@ const TabsNavigator = () => {
       <Tab.Screen
         name="Custom"
         component={Custom}
-        options={{ tabBarLabel: "Custom" }}
+        options={{ tabBarLabel: "Special" }}
       />
     </Tab.Navigator>
   );

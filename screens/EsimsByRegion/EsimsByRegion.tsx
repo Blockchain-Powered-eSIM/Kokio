@@ -12,7 +12,7 @@ import DataPackTabGroup from "@/components/DataPackTabGroup";
 export default function EsimsByRegion() {
   const params = useLocalSearchParams();
   const regionConfig = appBootstrap.getRegionConfig;
-  const region = _get(regionConfig, [params?.id, "code"]);
+  const region = _get(regionConfig, [params?.id, "code"]) || params?.id;
   const { data: esims, isFetching } = useEsimsByRegion(region, {
     enabled: !!region,
   });
