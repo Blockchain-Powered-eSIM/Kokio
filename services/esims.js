@@ -4,6 +4,7 @@ const API_PATHS = {
   FETCH_ESIMS: "/v1/catalogue",
   ORDER: "/v1/order",
   VALIDATE_COUPON: (couponCode) => `/v1/coupon/${couponCode}`,
+  ESIM_COMPATIBILITY: "/v1/esim/compatibility",
 };
 
 export const fetchEsimsCatalogue = (payload) =>
@@ -13,3 +14,8 @@ export const eSimOderCheckout = (payload) => api.post(API_PATHS.ORDER, payload);
 
 export const validateCoupon = (couponCode) =>
   api.get(API_PATHS.VALIDATE_COUPON(couponCode));
+
+export const checkEsimTopUpCompatibility = ({ deviceId, planId, esimId }) => {
+  const params = { deviceId, planId, ...(esimId && { esimId }) };
+  return api.get(API_PATHS.ESIM_COMPATIBILITY, params);
+};
