@@ -13,6 +13,7 @@ import Countries from "./tabs/countries";
 import Global from "./tabs/global";
 import Regions from "./tabs/regions";
 import SearchResult from "./searchResult";
+import Custom from "./tabs/custom";
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -33,6 +34,11 @@ const TabsNavigator = () => {
         name="Global"
         component={Global}
         options={{ tabBarLabel: "Global" }}
+      />
+      <Tab.Screen
+        name="Custom"
+        component={Custom}
+        options={{ tabBarLabel: "Special" }}
       />
     </Tab.Navigator>
   );

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   View,
   Platform,
@@ -42,6 +43,7 @@ import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
 import { AppExtraConfig } from "@/appKeys";
 import Constants from "expo-constants";
 import { keccak256 } from "viem";
+import { checkEsimTopUpCompatibility } from "@/services/esims";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -89,6 +91,11 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
     [selectedPaymentMethod]
   );
+
+  const [isCheckingTopup, setIsCheckingTopup] = useState(false);
+  const [isTopupCompatible, setIsTopupCompatible] = useState(false);
+  const [applyAsTopup, setApplyAsTopup] = useState(false);
+  const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
 
   const addAmountSection = useMemo(() => {
     return (
@@ -142,7 +149,13 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       console.log({ eSimItem });
       console.log("Order Api Payload", payload);
 
-      const response = await eSimOderCheckout(payload);
+      // const response = await eSimOderCheckout(payload); //Without Top-Up esponse
+      // Attach top-up fields if applicable
+      const finalPayload = applyAsTopup && compatibleTopUpEsimId
+        ? { ...payload, isTopup: true, isNewESim: false, esimId: compatibleTopUpEsimId }
+        : payload;
+
+      const response = await eSimOderCheckout(finalPayload);
 
       console.log("Order Api Response", response);
 
@@ -174,6 +187,8 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     kokio?.userWallet,
     kokio?.deviceUID,
     savePurchasedESIM,
+    applyAsTopup,
+    compatibleTopUpEsimId,
   ]);
 
   const payWithUSDC = async (params: {
@@ -276,7 +291,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     } finally {
       setIsCheckoutLoading(false);
     }
-  }, [totalAmount, , externalAddress, kokio.userWallet, discountCode]);
+  }, [totalAmount, externalAddress, kokio.userWallet, discountCode]);
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");
@@ -409,6 +424,42 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     return eSimItem.actualSellingPrice;
   }, [eSimItem.actualSellingPrice, isDiscountApplied, discountAmount]);
 
+  // Check compatibility on mount
+  useEffect(() => {
+    const checkCompatibility = async () => {
+      const deviceId = kokio.userWallet?.address;
+      const planId = eSimItem?.catalogueId;
+
+      if (!deviceId || !planId) return;
+
+      setIsCheckingTopup(true);
+      try {
+        const response = await checkEsimTopUpCompatibility({
+          deviceId,
+          planId,
+        });
+
+        const data = response?.data;
+        const compatibleResult = data?.results?.find(
+          (r: any) => r.compatible && !r.checkError
+        );
+        const isCompatible = !!data?.topupPlanResolved && !!compatibleResult;
+
+        setIsTopupCompatible(isCompatible);
+        if (compatibleResult) {
+          setCompatibleTopUpEsimId(compatibleResult.esimId);
+        }
+     } catch (err) {
+        console.error("Compatibility check failed:", JSON.stringify(err, null, 2));
+        setIsTopupCompatible(false);
+      } finally {
+        setIsCheckingTopup(false);
+      }
+    };
+
+    checkCompatibility();
+  }, [kokio.userWallet?.address, eSimItem]);
+
   // const canCheckout = useMemo(
   //   () =>
   //     isESimEnabled &&
@@ -515,6 +566,45 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           )}
         </View>
 
+        {/* Top-up compatibility */}
+        {isCheckingTopup && (
+          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center" }}>
+            <ActivityIndicator size="small" color={Theme.colors.foreground} />
+            <ThemedText style={{ marginLeft: 8, color: Theme.colors.muted }}>
+              Checking top-up compatibility…
+            </ThemedText>
+          </View>
+        )}
+        {!isCheckingTopup && isTopupCompatible && (
+          <View style={{ marginTop: 16 }}>
+            <ThemedText>Apply as Top-up</ThemedText>
+            <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
+              Existing eSIM compatible. Apply it as a top-up instead of a new purchase.
+            </Text>
+            <View style={styles.walletStatusRow}>
+              <View style={styles.toggleLeftSide}>
+                <ToggleSwitch
+                  isOn={applyAsTopup}
+                  onToggle={setApplyAsTopup}
+                  onColor="#30D158"
+                  offColor={Theme.colors.muted}
+                  size="small"
+                />
+                <ThemedText style={{ marginLeft: 8 }}>
+                  Apply this plan as a top-up
+                </ThemedText>
+              </View>
+            </View>
+            {applyAsTopup && compatibleTopUpEsimId && (
+              <View style={styles.discountAppliedContainer}>
+                <ThemedText style={styles.discountAppliedText}>
+                  Will top-up eSIM: {`${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* External Wallet Toggle */}
         <View style={{ marginTop: 16 }}>
           <ThemedText>Pay directly via external wallet</ThemedText>
@@ -537,10 +627,19 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                 onColor="#30D158"
                 offColor={Theme.colors.muted}
                 size="small"
+                disabled={isConnecting}
               />
+              {isConnecting ? (
+                <ActivityIndicator
+                size="small"
+                color={Theme.colors.secondary}
+                style={{ marginLeft: 8 }}
+                />
+              ) : (
               <ThemedText style={{ marginLeft: 8 }}>
                 Pay via external wallet
               </ThemedText>
+              )}
             </View>
 
             {/* The Badge remains on the far right */}
@@ -561,7 +660,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           )}
         </View>
 
-        <View style={{ marginTop: 16 }}>
+        {/* <View style={{ marginTop: 16 }}>
           <ThemedText>Fund Device Wallet</ThemedText>
           <Text style={{ color: Theme.colors.foreground, marginTop: 12 }}>
             Speed up and secure your next eSIM purchase or top-up by funding
@@ -580,7 +679,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             </ThemedText>
           </View>
           {fundOnDeviceWallet && addAmountSection}
-        </View>
+        </View> */}
       </KeyboardAwareScrollView>
 
       <TouchableOpacity

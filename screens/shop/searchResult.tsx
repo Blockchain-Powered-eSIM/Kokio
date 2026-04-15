@@ -28,6 +28,9 @@ import {
   navigateToESIMsByCountry,
   navigateToESIMsByRegion,
 } from "@/utils/general";
+import { COUNTRY_TO_REGIONS } from "@/constants/general.constants";
+
+const GLOBAL_ITEM = { code: "GLOBAL", name: "Global" };
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH * 0.8;
@@ -143,9 +146,10 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
     [countryConfig, sanitizedSearchText]
   );
 
-  const regions = useMemo(
-    () =>
-      _reduce(
+  const regions = useMemo(() => {
+    if (!countries.length) {
+      // No country matches — fall back to filtering regions by name
+      return _reduce(
         regionConfig,
         (acc, item) => {
           if (
@@ -159,10 +163,31 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
           }
           return acc;
         },
-        []
-      ),
-    [regionConfig, sanitizedSearchText]
-  );
+        [] as any[]
+      );
+    }
+
+    // Collect the region codes that contain any of the matched countries
+    const regionCodesSet = new Set<string>();
+    countries.forEach((country) => {
+      (COUNTRY_TO_REGIONS[country.code] || []).forEach((r) =>
+        regionCodesSet.add(r)
+      );
+    });
+
+    const matched = _reduce(
+      regionConfig,
+      (acc, item) => {
+        if (regionCodesSet.has(item.code)) acc.push(item);
+        return acc;
+      },
+      [] as any[]
+    );
+
+    // Always append the Global option when countries are found
+    matched.push(GLOBAL_ITEM);
+    return matched;
+  }, [regionConfig, sanitizedSearchText, countries]);
 
   const [scrollOffset, setScrollOffset] = useState(0);
   const chunkedCountries = _chunk(countries, 2);

@@ -18,15 +18,8 @@ export const emisQueryKeys = {
   esimsByCountry: (item) => [...emisQueryKeys.all, "byCountry", item],
   esimsByRegion: (item) => [...emisQueryKeys.all, "byRegion", item],
   esimsByGlobal: (item) => [...emisQueryKeys.all, "byGlobal", item],
+  esimsByCustom: (item) => [...emisQueryKeys.all, "byCustom", item],
 };
-
-// NOTE: Currently only showing ESIM Plan and not showing Topup
-const getSimPlans = (allPlans) =>
-  _filter(
-    allPlans,
-    (plan) =>
-      plan?.purchaseType === "SIM" || plan?.purchaseType === "SIM_OR_TOPUP"
-  );
 
 function useEsimsByCountry(serviceRegionCode, options = defaultOptions) {
   try {
@@ -37,7 +30,7 @@ function useEsimsByCountry(serviceRegionCode, options = defaultOptions) {
           const payload = { serviceRegionCode };
           const response = await fetchEsimsCatalogue(payload);
           const allPlans = _get(response, "data.plans") || [];
-          return getSimPlans(allPlans);
+          return allPlans;
         } catch (err) {
           return [];
         }
@@ -60,7 +53,7 @@ function useEsimsByRegion(region, options = defaultOptions) {
           const payload = { serviceRegionCode: region };
           const response = await fetchEsimsCatalogue(payload);
           const allPlans = _get(response, "data.plans") || [];
-          return getSimPlans(allPlans);
+          return allPlans;
         } catch (err) {
           return [];
         }
@@ -83,7 +76,7 @@ function useGloabalEsims(options = defaultOptions) {
           const payload = { serviceRegionCode: "GLOBAL" };
           const response = await fetchEsimsCatalogue(payload);
           const allPlans = _get(response, "data.plans") || [];
-          return getSimPlans(allPlans);
+          return allPlans;
         } catch (err) {
           return [];
         }
@@ -97,4 +90,27 @@ function useGloabalEsims(options = defaultOptions) {
   }
 }
 
-export { useEsimsByCountry, useEsimsByRegion, useGloabalEsims };
+function useCustomEsims(options = defaultOptions) {
+  try {
+    const result = useQuery({
+      queryKey: emisQueryKeys.esimsByCustom("CUSTOM_REGIONAL"),
+      queryFn: async () => {
+        try {
+          const payload = { serviceRegionCode: "CUSTOM_REGIONAL" };
+          const response = await fetchEsimsCatalogue(payload);
+          const allPlans = _get(response, "data.plans") || [];
+          return allPlans;
+        } catch (err) {
+          return [];
+        }
+      },
+      ..._defaults(options, { ...defaultOptions }),
+    });
+
+    return result;
+  } catch (err) {
+    console.log({ err });
+  }
+}
+
+export { useEsimsByCountry, useEsimsByRegion, useGloabalEsims, useCustomEsims};
