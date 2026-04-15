@@ -627,10 +627,19 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                 onColor="#30D158"
                 offColor={Theme.colors.muted}
                 size="small"
+                disabled={isConnecting}
               />
+              {isConnecting ? (
+                <ActivityIndicator
+                size="small"
+                color={Theme.colors.secondary}
+                style={{ marginLeft: 8 }}
+                />
+              ) : (
               <ThemedText style={{ marginLeft: 8 }}>
                 Pay via external wallet
               </ThemedText>
+              )}
             </View>
 
             {/* The Badge remains on the far right */}
