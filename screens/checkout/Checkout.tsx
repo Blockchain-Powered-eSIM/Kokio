@@ -145,17 +145,16 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         eSimItem,
         deviceWalletId,
         discountCode,
+        applyAsTopup,
+        compatibleTopUpEsimId
       });
       console.log({ eSimItem });
-      console.log("Order Api Payload", payload);
+      console.log("Order Api Payload", { ...payload, payeeAddress: deviceWalletId });
 
-      // const response = await eSimOderCheckout(payload); //Without Top-Up esponse
-      // Attach top-up fields if applicable
-      const finalPayload = applyAsTopup && compatibleTopUpEsimId
-        ? { ...payload, isTopup: true, isNewESim: false, esimId: compatibleTopUpEsimId }
-        : payload;
-
-      const response = await eSimOderCheckout(finalPayload);
+      const response = await eSimOderCheckout({
+        ...payload,
+        payeeAddress: deviceWalletId,
+      });
 
       console.log("Order Api Response", response);
 
@@ -268,14 +267,26 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       const payload = getEsimOrderPayload({
         eSimItem,
         deviceWalletId: kokio.userWallet?.address,
-        discountCode: ""
-      });
+        discountCode: "",
+        applyAsTopup,
+        compatibleTopUpEsimId
+      });                
+      
+      
+      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{ 
+        ...payload,
+        paymentMethod: "external_wallet", 
+        payeeAddress: externalAddress,
+        txnHash: transactionHash, 
+        paymentVia: "USDC", 
+      })
+
       const response = await eSimOderCheckout({
         ...payload,
-        paymentMethod: "external_wallet",
-        externalWalletAddress: externalAddress,
-        transactionHash: transactionHash, // Pass hash to backend
-        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly
+        paymentMethod: "external_wallet", // NEEDED ?
+        payeeAddress: externalAddress,
+        txnHash: transactionHash, // Pass hash to backend
+        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
       });
 
       if (response?.success) {
@@ -291,7 +302,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     } finally {
       setIsCheckoutLoading(false);
     }
-  }, [totalAmount, externalAddress, kokio.userWallet, discountCode]);
+  }, [totalAmount, externalAddress, kokio.userWallet, discountCode, applyAsTopup, compatibleTopUpEsimId]);
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");
