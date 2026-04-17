@@ -33,7 +33,7 @@ import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import CreditCardModal from "@/components/CreditCardModal";
 
-import { openBrowserAsync } from "expo-web-browser";
+import * as Linking from "expo-linking";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
@@ -252,7 +252,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       // Trigger deeplink to the wallet app
       const redirect = activeSession.peer.metadata.redirect?.native;
       if (redirect) {
-        await openBrowserAsync(redirect);
+        await Linking.openURL(redirect);
       }
 
       const transactionHash = await payWithUSDC({
@@ -263,6 +263,8 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
       console.log("--- Transaction Successful ---");
       console.log("Transaction Hash:", transactionHash);
+
+      setShowSuccessModal(true);
 
       const payload = getEsimOrderPayload({
         eSimItem,
@@ -287,11 +289,17 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         payeeAddress: externalAddress,
         txnHash: transactionHash, // Pass hash to backend
         paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
+        tokenName: "USDC",
+        network: "BASE"
       });
 
-      if (response?.success) {
+      if (response?.success && response?.data) {
         setOrderResponse(response.data);
-        setShowSuccessModal(true);
+
+        // Store purchased eSIM so it appears on the Home screen
+        if (kokio.deviceUID) {
+          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
+        }
       } else {
         console.error("Backend validation failed:", response?.message);
       }
