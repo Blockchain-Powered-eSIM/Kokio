@@ -469,7 +469,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           setCompatibleTopUpEsimId(compatibleResult.esimId);
         }
      } catch (err) {
-        console.error("Compatibility check failed:", JSON.stringify(err, null, 2));
+        console.log("Compatibility check failed:", JSON.stringify(err, null, 2));
         setIsTopupCompatible(false);
       } finally {
         setIsCheckingTopup(false);

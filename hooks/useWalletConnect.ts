@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { openBrowserAsync } from "expo-web-browser";
+import * as Linking from "expo-linking";
 import { getSignClient } from "@/lib/reownWallet";
 import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
 
@@ -63,7 +63,7 @@ export const useWalletConnect = () => {
       });
 
       if (uri) {
-        await openBrowserAsync(uri);
+        await Linking.openURL(uri);
       }
 
       const session = await approval();
