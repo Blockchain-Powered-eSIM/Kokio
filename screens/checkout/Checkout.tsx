@@ -708,7 +708,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         disabled={!canCheckout}
       >
         <DetailItem
-          prefix="Total "
+          prefix="Pay "
           value={totalAmount}
           suffix="USD"
           containerStyles={styles.checkoutButton}
