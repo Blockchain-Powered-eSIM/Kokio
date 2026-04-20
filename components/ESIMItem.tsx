@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import _get from "lodash/get";
 
-import { Colors, Theme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
@@ -61,8 +61,8 @@ const ESIMItem = ({
             />
           )}
         </View>
-        <View style={styles.esimItem}>
-          <Text style={styles.country}>{item.serviceRegionName}</Text>
+        <View style={[styles.esimItem, { backgroundColor: Theme.colors.card }]}>
+          <Text style={[styles.country, { color: Theme.colors.cardForeground }]}>{item.serviceRegionName}</Text>
           <View style={styles.detailsContainer}>
             <DetailItem
               iconName="calendar-outline"
@@ -87,7 +87,7 @@ const ESIMItem = ({
           </View>
           {showBuyButton && (
             <TouchableOpacity
-              style={styles.buyButton}
+              style={[styles.buyButton, { backgroundColor: Theme.colors.goldenYellow }]}
               onPress={handleBuyCTAClick(item.catalogueId)}
             >
               <DetailItem
@@ -95,9 +95,9 @@ const ESIMItem = ({
                 value={(item.actualSellingPrice || 0).toFixed(2)}
               />
               <View style={styles.buyButtonText}>
-                <Ionicons name="cart-outline" size={20} color="black" />
+                <Ionicons name="cart-outline" size={20} color={Theme.colors.cardForeground} />
                 {/* replaced "Buy" with "View" */}
-                <Text style={styles.details}>View</Text>
+                <Text style={[styles.details, { color: Theme.colors.cardForeground }]}>View</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   esimItem: {
-    backgroundColor: "#FFD700",
     borderRadius: 21,
     padding: 16,
     gap: 8,
@@ -153,7 +152,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     marginBottom: 5,
-    color: "#000000",
     paddingRight: 90,
   },
   detailsContainer: {
@@ -164,7 +162,6 @@ const styles = StyleSheet.create({
   details: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#000000",
   },
   detailItem: {
     flexDirection: "row",
@@ -172,7 +169,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   buyButton: {
-    backgroundColor: Colors.dark.goldenYellow,
     display: "flex",
     flexDirection: "row",
     justifyContent: "center",

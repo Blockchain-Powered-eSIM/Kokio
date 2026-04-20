@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import _isNull from "lodash/isNull";
 import NetInfo from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/ThemedText";
-import { Colors } from "@/constants/Colors";
+import { Colors, Theme } from "@/constants/Colors";
 import { useToast } from "@/contexts/ToastContext";
 import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 
@@ -79,7 +79,7 @@ const OfflineScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: Theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -91,14 +91,14 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   heading: {
-    color: "#fff",
+    color: Theme.colors.text,
     fontSize: 35,
     textAlign: "center",
     marginBottom: 12,
     lineHeight: 36,
   },
   description: {
-    color: "#fff",
+    color: Theme.colors.text,
     fontSize: 14,
     textAlign: "center",
     paddingHorizontal: 56,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   retryButtonText: {
-    color: "#000",
+    color: Theme.colors.cardForeground,
     fontSize: 16,
     fontFamily: "Lexend",
   },

@@ -1,10 +1,10 @@
+import { View } from "react-native";
 import { useNavigation } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import _isFunction from "lodash/isFunction";
 
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { Theme } from "@/constants/Colors";
@@ -36,55 +36,48 @@ const Header = ({
     }
   };
 
+  const iconColor = useThemeColor({}, "icon");
+  const headerTextColor = useThemeColor({}, "headerText");
+  const backgroundColor = useThemeColor({}, "background");
+
+  const SIDE_WIDTH = 40;
+
   return (
-    <ThemedView
+    <View
       style={{
-        display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: Theme.spacing.md_l,
-        position: "relative",
-        zIndex: 1,
-        backgroundColor: "white",
+        paddingHorizontal: Theme.spacing.md,
+        paddingVertical: Theme.spacing.sm,
+        backgroundColor,
         ...containerStyle,
       }}
     >
-      {hasBack && (
-        <Ionicons
-          name="chevron-back-outline"
-          size={25}
-          color={useThemeColor({}, "icon")}
-          style={{
-            marginRight: Theme.spacing.sm,
-            position: "absolute",
-            zIndex: 1,
-          }}
-          onPress={handleBack}
-        />
-      )}
-      <ThemedView
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          flex: 1,
-          ...(hasBack && { paddingLeft: -Theme.spacing.xl }),
-          ...style,
-        }}
-      >
+      {/* left — back button or empty spacer */}
+      <View style={{ width: SIDE_WIDTH }}>
+        {hasBack && (
+          <Ionicons
+            name="chevron-back-outline"
+            size={25}
+            color={iconColor}
+            onPress={handleBack}
+          />
+        )}
+      </View>
+
+      {/* centre — title */}
+      <View style={{ flex: 1, alignItems: "center", ...style }}>
         <ThemedText
-          style={{
-            color: useThemeColor({}, "headerText"),
-            position: "relative",
-            zIndex: 1,
-            ...titleStyle,
-          }}
-          className="text-[#AEAEB2]    text-[16px] text-center font-Lexend "
+          style={{ color: headerTextColor, ...titleStyle }}
+          className="text-[16px] font-Lexend"
         >
           {title || ""}
         </ThemedText>
-      </ThemedView>
-    </ThemedView>
+      </View>
+
+      {/* right spacer keeps title centred */}
+      <View style={{ width: SIDE_WIDTH }} />
+    </View>
   );
 };
 

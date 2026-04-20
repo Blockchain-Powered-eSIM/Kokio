@@ -9,6 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { ThemedText } from "../ThemedText";
+import { Theme } from "@/constants/Colors";
 
 interface CheckoutInputProps extends TextInputProps {
   label: string;
@@ -29,7 +30,7 @@ const CheckoutInput: React.FC<CheckoutInputProps> = ({
         value={value}
         style={styles.input}
         placeholder=""
-        placeholderTextColor="#BDBDBD"
+        placeholderTextColor={Theme.colors.foreground}
       />
     </View>
   );
@@ -42,7 +43,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   inner: {
-    backgroundColor: "rgba(58, 53, 31, 0.70)",
+    backgroundColor: Theme.colors.inputBackground,
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 14,
@@ -51,12 +52,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   label: {
-    color: "rgba(142, 142, 147, 1)",
+    color: Theme.colors.accentForeground,
     fontSize: 12,
     marginBottom: 6,
   },
   input: {
-    color: "rgba(142, 142, 147, 1)",
+    color: Theme.colors.accentForeground,
     fontSize: 20,
     padding: 0,
     margin: 0,

@@ -1,5 +1,5 @@
 import CountryFlag from "react-native-country-flag";
-import { Image } from "react-native";
+import { Image, View } from "react-native";
 
 import _get from "lodash/get";
 const CODE_VS_RESIZE_MODE = {
@@ -16,13 +16,15 @@ const CountryFlagWrapper = ({
     _get(CODE_VS_RESIZE_MODE, isoCode) || CODE_VS_RESIZE_MODE.DEFAULT;
 
   return flagUrl ? (
-    <Image
-      source={{ uri: flagUrl }}
-      style={[{ height: size, width: 1.7 * size }, style]}
-      resizeMode={resizeMode}
-    />
+    <View style={[{ height: size, width: 1.7 * size, overflow: "hidden" }, style]}>
+      <Image
+        source={{ uri: flagUrl }}
+        style={{ height: size, width: 1.7 * size }}
+        resizeMode={resizeMode}
+      />
+    </View>
   ) : (
-    <CountryFlag style={style} isoCode={isoCode} size={size} />
+    <CountryFlag style={[{ backgroundColor: "transparent" }, style]} isoCode={isoCode} size={size} />
   );
 };
 

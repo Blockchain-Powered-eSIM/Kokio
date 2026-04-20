@@ -1,4 +1,5 @@
 import React from "react";
+import { Theme } from "@/constants/Colors";
 import { StyleSheet } from "react-native";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   esimItem: {
-    backgroundColor: "#FFD700",
+    backgroundColor: Theme.colors.secondary,
     borderRadius: 10,
     padding: 15,
     marginHorizontal: 5,

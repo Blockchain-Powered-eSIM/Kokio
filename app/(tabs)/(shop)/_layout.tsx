@@ -21,7 +21,7 @@ export default function ShopStack() {
         options={{
           header: () => (
             <SafeAreaView edges={["top"]}>
-              <Header title="Shop" style={{ justifyContent: "center" }} />
+              <Header title="Shop" hasBack />
             </SafeAreaView>
           ),
         }}

@@ -19,7 +19,7 @@ import { useRouter } from "expo-router";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
-import { Theme } from "@/constants/Colors";
+import { Theme, isDarkTheme } from "@/constants/Colors";
 
 export function AuthenticationModal() {
   const [loading, setLoading] = useState<boolean>(false);
@@ -46,7 +46,7 @@ export function AuthenticationModal() {
       >
         <BlurView
           intensity={100}
-          tint="systemChromeMaterialDark"
+          tint={isDarkTheme ? "systemChromeMaterialDark" : "systemChromeMaterial"}
           experimentalBlurMethod="none"
           style={{
             flex: 1,
@@ -139,7 +139,7 @@ export function AuthenticationModal() {
           style={styles.contentImage}
           color={Theme.colors.highlight}
         />
-        <ThemedText style={styles.loadingText}>Authenticating...</ThemedText>
+        <ThemedText style={[styles.loadingText, { color: Theme.colors.foreground }]}>Authenticating...</ThemedText>
       </View>
     ),
     []
@@ -154,17 +154,17 @@ export function AuthenticationModal() {
       enablePanDownToClose={false}
       animateOnMount={true}
       style={{ borderRadius: 25, flex: 1 }}
-      backgroundStyle={{ backgroundColor: "rgba(24, 24, 27, 0.97)" }}
+      backgroundStyle={{ backgroundColor: Theme.colors.modalBackground }}
     >
       <BottomSheetView style={{ alignItems: "center", flex: 1, padding: 20 }}>
         <Image
           source={require("@/assets/images/kokio-text.png")}
           style={styles.kokioImage}
         />
-        <ThemedText style={styles.authRequiredText}>
+        <ThemedText style={[styles.authRequiredText, { color: Theme.colors.text }]}>
           Authentication Required
         </ThemedText>
-        <ThemedText style={styles.authSubtext}>
+        <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
           Secure your account using your fingerprint
         </ThemedText>
         {loading ? (
@@ -175,7 +175,7 @@ export function AuthenticationModal() {
               source={require("@/assets/images/fingerprint.png")}
               style={styles.contentImage}
             />
-            <ThemedText style={styles.authTouchText}>
+            <ThemedText style={[styles.authTouchText, { color: Theme.colors.foreground }]}>
               Touch the fingerprint sensor
             </ThemedText>
           </Pressable>
@@ -190,7 +190,7 @@ export function AuthenticationModal() {
           }
           style={{ alignSelf: "flex-start", marginTop: 64, marginBottom: 32 }}
         >
-          <ThemedText style={styles.cancelText}>Cancel</ThemedText>
+          <ThemedText style={[styles.cancelText, { color: Theme.colors.link }]}>Cancel</ThemedText>
         </Pressable>
       </BottomSheetView>
     </BottomSheet>
@@ -206,7 +206,6 @@ const styles = StyleSheet.create({
   authRequiredText: {
     fontSize: 24,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
     marginTop: 32,
   },
@@ -214,13 +213,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 12,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
   },
   authTouchText: {
     fontSize: 13,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
   },
   loadingContainer: {
@@ -230,7 +227,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 13,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
   },
   contentImage: {
@@ -243,6 +239,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "300",
     fontFamily: "Lexend-Light",
-    color: "#64D2FF",
   },
 });

@@ -12,7 +12,7 @@ import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { Colors } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
@@ -56,10 +56,10 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
 
   return (
     <View style={{ marginVertical: 12 }}>
-      <Text style={styles.headingText}>Device Wallet</Text>
+      <Text style={[styles.headingText, { color: Theme.colors.text }]}>Device Wallet</Text>
       <View style={styles.shadowContainer}>
         <LinearGradient
-          colors={["#404040", "#000000"]}
+          colors={[Theme.colors.gradientDark, Theme.colors.background]}
           start={{ x: 0.2, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.gradient}
@@ -104,7 +104,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
                     <MaterialIcons
                       name="open-in-new"
                       size={16}
-                      color="#AEAEB2"
+                      color={Theme.colors.foreground}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -112,7 +112,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
                     disabled={!walletId}
                     style={styles.iconButton}
                   >
-                    <Ionicons name="copy-outline" size={16} color="#AEAEB2" />
+                    <Ionicons name="copy-outline" size={16} color={Theme.colors.foreground} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -142,17 +142,16 @@ export default Wallet;
 const styles = StyleSheet.create({
   headingText: {
     fontSize: 16,
-    color: Colors.dark.accentForeground,
     paddingLeft: 20,
     marginBottom: 8,
   },
   shadowContainer: {
     marginHorizontal: 8,
     borderRadius: 21,
-    backgroundColor: "#FFF", // Important for shadow
+    backgroundColor: Theme.colors.text, // Important for shadow
     ...Platform.select({
       ios: {
-        shadowColor: "#FFF",
+        shadowColor: Theme.colors.text,
         shadowOffset: {
           width: 0,
           height: 5,
@@ -162,7 +161,7 @@ const styles = StyleSheet.create({
       },
       android: {
         elevation: 6,
-        shadowColor: "#FFF",
+        shadowColor: Theme.colors.text,
       },
     }),
   },
@@ -188,7 +187,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     fontSize: 22,
     fontWeight: "500",
-    color: "white",
+    color: Theme.colors.text,
   },
   logo: {
     // Add appropriate size for your logo

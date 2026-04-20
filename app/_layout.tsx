@@ -9,6 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import "../global.css";
 import useBootstrap from "@/hooks/useBootstrap";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
@@ -20,6 +21,7 @@ import {
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { Providers } from "@/providers";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
+import { applyTheme, THEME_STORAGE_KEY } from "@/constants/Colors";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -29,6 +31,14 @@ export default function RootLayout() {
   const pathname = usePathname();
 
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [themeLoaded, setThemeLoaded] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
+      applyTheme(val !== "light");
+      setThemeLoaded(true);
+    });
+  }, []);
   const [loaded] = useFonts({
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
@@ -103,7 +113,7 @@ export default function RootLayout() {
   }, [loaded, isLoading]);
 
   // Wait until ready
-  if (!loaded || _isNull(isConnected)) {
+  if (!loaded || _isNull(isConnected) || !themeLoaded) {
     return <FullScreenLoader />;
   }
 

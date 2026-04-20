@@ -26,6 +26,7 @@ import { P256Key } from "kokio-sdk/types";
 import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
 import { Kokio } from "kokio-sdk";
 import { returnViemWalletClient } from "@/utils/passkey";
+import { Theme } from "@/constants/Colors";
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -198,7 +199,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const loadingContent = useMemo(
     () => (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size={90} color="#FF9500" />
+        <ActivityIndicator size={90} color={Theme.colors.primary} />
         <Text style={styles.loadingText}>
           Please wait while your wallet is being deployed...
         </Text>
@@ -214,7 +215,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <MaterialCommunityIcons
             name="alert-circle"
             size={60}
-            color="#FF3B30"
+            color={Theme.colors.destructive}
             style={styles.errorIcon}
           />
           <ThemedText bold style={styles.errorTitle}>
@@ -281,7 +282,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <MaterialCommunityIcons
             name="comment-alert"
             size={32}
-            color="#FF9500"
+            color={Theme.colors.primary}
             style={styles.warningIconTopRight}
           />
           <Text style={styles.warningText}>
@@ -309,7 +310,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
                 <MaterialIcons
                   name="open-in-new"
                   size={16}
-                  color="#AEAEB2"
+                  color={Theme.colors.foreground}
                   style={styles.linkIcon}
                 />
               )}
@@ -324,7 +325,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <TextInput
             style={styles.emailInput}
             placeholder="Email id"
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={Theme.colors.accentForeground}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -390,11 +391,11 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Theme.colors.overlay,
     paddingTop: 0,
   },
   modalContainer: {
-    backgroundColor: "rgba(60, 60, 60, 0.9)",
+    backgroundColor: Theme.colors.modalBackground,
     alignItems: "center",
     width: "100%",
     flex: 1,
@@ -405,20 +406,20 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     width: "80%",
-    backgroundColor: "#242427",
+    backgroundColor: Theme.colors.background,
     borderRadius: 20,
     paddingTop: 32,
   },
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 16,
   },
   description: {
     fontSize: 14,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 48,
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#48484A",
+    borderTopColor: Theme.colors.muted,
     marginTop: 28,
   },
   laterButton: {
@@ -434,10 +435,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
     borderRightWidth: 1,
-    borderRightColor: "#48484A",
+    borderRightColor: Theme.colors.muted,
   },
   laterButtonText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 16,
     fontWeight: "400",
   },
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   continueButtonText: {
-    color: "#FF9500",
+    color: Theme.colors.primary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -456,7 +457,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   loadingText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 16,
     textAlign: "center",
     marginTop: 16,
@@ -473,26 +474,26 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 12,
   },
   errorDescription: {
     fontSize: 14,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 24,
   },
   warningContainer: {
     flexDirection: "row",
-    backgroundColor: "#242427",
+    backgroundColor: Theme.colors.background,
     padding: 16,
     borderRadius: 16,
     marginBottom: 16,
   },
   warningText: {
-    color: "white",
+    color: Theme.colors.text,
     fontWeight: "600",
     fontSize: 14,
     lineHeight: 20,
@@ -505,14 +506,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   recoveryCard: {
-    backgroundColor: "#242427",
+    backgroundColor: Theme.colors.background,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
   },
   recoveryTitle: {
     fontSize: 18,
-    color: "white",
+    color: Theme.colors.text,
     marginBottom: 12,
   },
   addressContainer: {
@@ -525,7 +526,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addressText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 14,
     marginRight: 8,
   },
@@ -533,16 +534,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   recoveryDescription: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
   },
   emailInput: {
-    backgroundColor: "#7676803D",
+    backgroundColor: Theme.colors.inputBackground,
     borderRadius: 8,
     padding: 12,
-    color: "white",
+    color: Theme.colors.text,
     fontSize: 16,
   },
   recoveryButtonContainer: {
@@ -553,25 +554,25 @@ const styles = StyleSheet.create({
   remindLaterButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#FF9500",
+    borderColor: Theme.colors.primary,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: "center",
   },
   remindLaterText: {
-    color: "#FF9500",
+    color: Theme.colors.primary,
     fontSize: 16,
     fontWeight: "500",
   },
   doneButton: {
     flex: 1,
-    backgroundColor: "#FF9500",
+    backgroundColor: Theme.colors.primary,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: "center",
   },
   doneButtonText: {
-    color: "black",
+    color: Theme.colors.cardForeground,
     fontSize: 16,
     fontWeight: "600",
   },

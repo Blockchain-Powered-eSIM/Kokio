@@ -8,7 +8,7 @@ import _isEmpty from "lodash/isEmpty";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Colors, Theme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
 import EsimItemSkeleton from "@/components/EsimItemSkeleton";
 
 import ESIMItem, { Esim } from "../ESIMItem";
@@ -43,6 +43,7 @@ const ESIMsFlatList = React.memo(
         )}
         keyExtractor={(_, index) => index.toString()}
         contentContainerStyle={styles.flatListContainer}
+        style={{ backgroundColor: "transparent" }}
       />
     ) : (
       <FlatList
@@ -57,6 +58,7 @@ const ESIMsFlatList = React.memo(
         keyExtractor={(item, index) => item.catalogueId || index.toString()}
         contentContainerStyle={styles.flatListContainer}
         ListEmptyComponent={EmptyListComponent}
+        style={{ backgroundColor: "transparent" }}
       />
     );
   }
@@ -90,7 +92,7 @@ function DataPackTabGroup({
 
   const TabsNavigator = () => {
     return (
-      <Tab.Navigator tabBar={(props) => <TabBar {...props} />}>
+      <Tab.Navigator tabBar={(props) => <TabBar {...props} />} sceneContainerStyle={{ backgroundColor: "transparent" }}>
         <Tab.Screen
           name="Data"
           component={DataTab}
@@ -103,7 +105,7 @@ function DataPackTabGroup({
           options={{
             tabBarLabel: "Data+Calls+SMS",
             tabBarAccessibilityLabel: "Data+Calls+SMS (disabled)",
-            tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText],
+            tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: Theme.colors.inactive }],
           }}
           listeners={{
             tabPress: (e) => {
@@ -132,7 +134,6 @@ function DataPackTabGroup({
 
 const styles = StyleSheet.create({
   tabBarText: {
-    color: Colors.dark.text,
     textAlign: "center",
     paddingVertical: 2,
     fontSize: 14,
@@ -140,11 +141,9 @@ const styles = StyleSheet.create({
   },
   disabledTabText: {
     opacity: 0.5,
-    color: Colors.dark.inactive,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
     paddingTop: Theme.spacing.sm,
   },
   flatListContainer: {

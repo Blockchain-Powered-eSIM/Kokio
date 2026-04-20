@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: CONTAINER_WIDTH,
-    backgroundColor: "#7676803D",
+    backgroundColor: Theme.colors.inputBackground,
     paddingVertical: 16,
     paddingHorizontal: 24,
     marginHorizontal: 0,
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 18,
-    color: "white",
+    color: Theme.colors.text,
   },
   logoImage: {
     width: 24,

@@ -41,7 +41,7 @@ export default function Regions() {
       <FlatList
         data={list}
         renderItem={renderItem}
-        style={{ width: "100%" }}
+        style={{ width: "100%", backgroundColor: "transparent" }}
         keyExtractor={(item, index) => item?.code || index}
       />
     </View>
@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: Theme.spacing.xl,
     width: "100%",
+    backgroundColor: "transparent",
   },
   region: {
     display: "flex",

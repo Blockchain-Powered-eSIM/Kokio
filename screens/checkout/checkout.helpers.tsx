@@ -23,7 +23,7 @@ export const createRadioButtons = (
     color: Theme.colors.secondary,
     containerStyle: [
       buttonStyles,
-      selectedId === key && { backgroundColor: "#78788073" },
+      selectedId === key && { backgroundColor: Theme.colors.inputBackground },
     ],
     disabled: key !== RADIO_KEYS.E_SIM_WALLET, // NOTE: Only Device wallet is enabled
   }));
