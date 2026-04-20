@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
-import { openBrowserAsync } from "expo-web-browser";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { AppState } from "react-native";
+import * as Linking from "expo-linking";
 import { getSignClient } from "@/lib/reownWallet";
 import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
 
@@ -8,6 +9,19 @@ export const useWalletConnect = () => {
   const [externalSession, setExternalSession] = useState<any>(null);
   const [externalAddress, setExternalAddress] = useState<string>("");
   const [payViaExternalWallet, setPayViaExternalWallet] = useState(false);
+  const isConnectingRef = useRef(false);
+
+  // When user returns to app without approving, reset connecting state
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && isConnectingRef.current) {
+        setIsConnecting(false);
+        setPayViaExternalWallet(false);
+        isConnectingRef.current = false;
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // Sync session on mount
   useEffect(() => {
@@ -50,6 +64,7 @@ export const useWalletConnect = () => {
   const connectExternalWallet = useCallback(async () => {
     try {
       setIsConnecting(true);
+      isConnectingRef.current = true;
       const signClient = await getSignClient();
 
       const { uri, approval } = await signClient.connect({
@@ -63,7 +78,7 @@ export const useWalletConnect = () => {
       });
 
       if (uri) {
-        await openBrowserAsync(uri);
+        await Linking.openURL(uri);
       }
 
       const session = await approval();
@@ -76,6 +91,7 @@ export const useWalletConnect = () => {
       setPayViaExternalWallet(false);
     } finally {
       setIsConnecting(false);
+      isConnectingRef.current = false;
     }
   }, []);
 

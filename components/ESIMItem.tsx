@@ -96,7 +96,8 @@ const ESIMItem = ({
               />
               <View style={styles.buyButtonText}>
                 <Ionicons name="cart-outline" size={20} color="black" />
-                <Text style={styles.details}>Buy</Text>
+                {/* replaced "Buy" with "View" */}
+                <Text style={styles.details}>View</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -153,6 +154,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 5,
     color: "#000000",
+    paddingRight: 90,
   },
   detailsContainer: {
     flexDirection: "row",

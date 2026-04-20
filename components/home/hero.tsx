@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   heroButtonText: {
     color: Theme.colors.background,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "500",
     textAlign: "center",
   },
