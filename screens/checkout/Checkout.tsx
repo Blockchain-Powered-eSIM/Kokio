@@ -594,11 +594,12 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             </ThemedText>
           </View>
         )}
+        {/* TODO: TOPUP , selection from  multiple eSIMs(if exists and comptabile) for top-up*/}
         {!isCheckingTopup && isTopupCompatible && (
           <View style={{ marginTop: 16 }}>
             <ThemedText>Apply as Top-up</ThemedText>
             <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
-              Existing eSIM compatible. Apply it as a top-up instead of a new purchase.
+              Top up your existing eSIM instead of buying a new one
             </Text>
             <View style={styles.walletStatusRow}>
               <View style={styles.toggleLeftSide}>
@@ -617,7 +618,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             {applyAsTopup && compatibleTopUpEsimId && (
               <View style={styles.discountAppliedContainer}>
                 <ThemedText style={styles.discountAppliedText}>
-                  Will top-up eSIM: {`${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
+                  {`Top-up existing ${eSimItem.serviceRegionName} ${eSimItem.validity} days ${eSimItem.isUnlimited ? "Unlimited" : `${eSimItem.data} GB`} eSIM: ${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
                 </ThemedText>
               </View>
             )}
