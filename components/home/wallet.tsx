@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
-import { openBrowserAsync } from "expo-web-browser";
+import * as Linking from "expo-linking";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
@@ -37,7 +37,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
     if (walletId) {
       const url = `${BASE_SEPOLIA_TESTNET}/${walletId}`;
       try {
-        await openBrowserAsync(url);
+        await Linking.openURL(url);
       } catch (error) {
         console.error("Error opening browser:", error);
       }

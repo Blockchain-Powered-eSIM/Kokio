@@ -1,7 +1,7 @@
 import api from "./httpService";
 
 const API_PATHS = {
-  FETCH_ESIMS: "/v1/catalogue",
+  FETCH_ESIMS: "/v1/catalogue?vendor=VENDOR1", //TODO remove VENDOR1 before app build,
   ORDER: "/v1/order",
   VALIDATE_COUPON: (couponCode) => `/v1/coupon/${couponCode}`,
   ESIM_COMPATIBILITY: "/v1/esim/compatibility",

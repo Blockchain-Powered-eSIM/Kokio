@@ -33,7 +33,7 @@ import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import CreditCardModal from "@/components/CreditCardModal";
 
-import { openBrowserAsync } from "expo-web-browser";
+import * as Linking from "expo-linking";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
@@ -145,17 +145,16 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         eSimItem,
         deviceWalletId,
         discountCode,
+        applyAsTopup,
+        compatibleTopUpEsimId
       });
       console.log({ eSimItem });
-      console.log("Order Api Payload", payload);
+      console.log("Order Api Payload", { ...payload, payeeAddress: deviceWalletId });
 
-      // const response = await eSimOderCheckout(payload); //Without Top-Up esponse
-      // Attach top-up fields if applicable
-      const finalPayload = applyAsTopup && compatibleTopUpEsimId
-        ? { ...payload, isTopup: true, isNewESim: false, esimId: compatibleTopUpEsimId }
-        : payload;
-
-      const response = await eSimOderCheckout(finalPayload);
+      const response = await eSimOderCheckout({
+        ...payload,
+        payeeAddress: deviceWalletId,
+      });
 
       console.log("Order Api Response", response);
 
@@ -253,7 +252,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       // Trigger deeplink to the wallet app
       const redirect = activeSession.peer.metadata.redirect?.native;
       if (redirect) {
-        await openBrowserAsync(redirect);
+        await Linking.openURL(redirect);
       }
 
       const transactionHash = await payWithUSDC({
@@ -265,22 +264,42 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       console.log("--- Transaction Successful ---");
       console.log("Transaction Hash:", transactionHash);
 
+      setShowSuccessModal(true);
+
       const payload = getEsimOrderPayload({
         eSimItem,
         deviceWalletId: kokio.userWallet?.address,
-        discountCode: ""
-      });
+        discountCode: "",
+        applyAsTopup,
+        compatibleTopUpEsimId
+      });                
+      
+      
+      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{ 
+        ...payload,
+        paymentMethod: "external_wallet", 
+        payeeAddress: externalAddress,
+        txnHash: transactionHash, 
+        paymentVia: "USDC", 
+      })
+
       const response = await eSimOderCheckout({
         ...payload,
-        paymentMethod: "external_wallet",
-        externalWalletAddress: externalAddress,
-        transactionHash: transactionHash, // Pass hash to backend
-        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly
+        paymentMethod: "external_wallet", // NEEDED ?
+        payeeAddress: externalAddress,
+        txnHash: transactionHash, // Pass hash to backend
+        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
+        tokenName: "USDC",
+        network: "BASE"
       });
 
-      if (response?.success) {
+      if (response?.success && response?.data) {
         setOrderResponse(response.data);
-        setShowSuccessModal(true);
+
+        // Store purchased eSIM so it appears on the Home screen
+        if (kokio.deviceUID) {
+          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
+        }
       } else {
         console.error("Backend validation failed:", response?.message);
       }
@@ -291,7 +310,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     } finally {
       setIsCheckoutLoading(false);
     }
-  }, [totalAmount, externalAddress, kokio.userWallet, discountCode]);
+  }, [totalAmount, externalAddress, kokio.userWallet, discountCode, applyAsTopup, compatibleTopUpEsimId]);
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");
@@ -450,7 +469,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           setCompatibleTopUpEsimId(compatibleResult.esimId);
         }
      } catch (err) {
-        console.error("Compatibility check failed:", JSON.stringify(err, null, 2));
+        console.log("Compatibility check failed:", JSON.stringify(err, null, 2));
         setIsTopupCompatible(false);
       } finally {
         setIsCheckingTopup(false);
@@ -575,11 +594,12 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             </ThemedText>
           </View>
         )}
+        {/* TODO: TOPUP , selection from  multiple eSIMs(if exists and comptabile) for top-up*/}
         {!isCheckingTopup && isTopupCompatible && (
           <View style={{ marginTop: 16 }}>
             <ThemedText>Apply as Top-up</ThemedText>
             <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
-              Existing eSIM compatible. Apply it as a top-up instead of a new purchase.
+              Top up your existing eSIM instead of buying a new one
             </Text>
             <View style={styles.walletStatusRow}>
               <View style={styles.toggleLeftSide}>
@@ -598,7 +618,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             {applyAsTopup && compatibleTopUpEsimId && (
               <View style={styles.discountAppliedContainer}>
                 <ThemedText style={styles.discountAppliedText}>
-                  Will top-up eSIM: {`${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
+                  {`Top-up existing ${eSimItem.serviceRegionName} ${eSimItem.validity} days ${eSimItem.isUnlimited ? "Unlimited" : `${eSimItem.data} GB`} eSIM: ${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
                 </ThemedText>
               </View>
             )}
@@ -689,7 +709,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         disabled={!canCheckout}
       >
         <DetailItem
-          prefix="Total "
+          prefix="Pay "
           value={totalAmount}
           suffix="USD"
           containerStyles={styles.checkoutButton}
