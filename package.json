@@ -13,7 +13,10 @@
     "gen:auth-types": "bash scripts/gen-auth-types.sh"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|jose|uuid))"
+    ]
   },
   "dependencies": {
     "@account-kit/infra": "^4.76.0",
