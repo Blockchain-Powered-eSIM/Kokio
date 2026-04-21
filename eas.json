@@ -16,6 +16,14 @@
       },
       "channel": "development"
     },
+    "staging": {
+      "environment": "staging",
+      "distribution": "internal",
+      "channel": "staging",
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "preview": {
       "environment": "preview",
       "distribution": "internal",

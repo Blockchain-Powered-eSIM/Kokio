@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { AppExtraConfig } from '@/appKeys';
 
 export const PASSKEY_CONFIG = {
-  RP_NAME: process.env.EXPO_PUBLIC_PASSKEY_RP_NAME ?? "Kokio App",
+  RP_NAME: process.env.EXPO_PUBLIC_PASSKEY_RP_NAME ?? "Kokio App", // NEEDED?
   RP_ID: process.env.EXPO_PUBLIC_RP_ID ?? "docs.kokio.app",
 };
 
@@ -16,5 +16,6 @@ export const DEFAULT_ETHEREUM_ACCOUNTS = [
 ];
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
-export const TURNKEY_PARENT_ORG_ID = extra.turnkeyOrganizationId ?? "";
-export const TURNKEY_API_URL = process.env.EXPO_PUBLIC_TURNKEY_API_URL ?? "";
+/** @deprecate */ 
+// export const TURNKEY_PARENT_ORG_ID = extra.turnkeyOrganizationId ?? "";
+// export const TURNKEY_API_URL = process.env.EXPO_PUBLIC_TURNKEY_API_URL ?? "";

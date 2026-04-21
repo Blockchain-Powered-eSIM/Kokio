@@ -3,27 +3,35 @@ import { AppExtraConfig } from "./appKeys.js";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const privateConfig: AppExtraConfig = {
-    // ALCHEMY
-    alchemyApiKey: process.env.ALCHEMY_API_KEY,
-    gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
-
-    // PIMLICO
-    pimlicoApiKey: process.env.PIMLICO_API_KEY,
-
-    // TURNKEY
-    turnkeyOrganizationId: process.env.TURNKEY_ORGANIZATION_ID,
-    turnkeyApiPublicKey: process.env.TURNKEY_API_PUBLIC_KEY,
-    turnkeyApiPrivateKey: process.env.TURNKEY_API_PRIVATE_KEY,
+    // Auth server
+    authServerBaseUrl:process.env.AUTH_SERVER_BASE_URL,
+    // Passkey RP Id
+    passkeyRpId:process.env.PASSKEY_RP_ID,
+    // OAuth Client Id
+    oauthClientId:process.env.OAUTH_CLIENT_ID,
 
     // API Base URL
     apiBaseUrl: process.env.API_BASE_URL,
-    serverBaseUrl: process.env.SERVER_BASE_URL,
+    /* @deprecate */
+    // // ALCHEMY
+    // alchemyApiKey: process.env.ALCHEMY_API_KEY,
+    // gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
 
-    // Wallet Connect
-    reownProjectId: process.env.REOWN_PROJECT_ID,
+    // // PIMLICO
+    // pimlicoApiKey: process.env.PIMLICO_API_KEY,
 
-    // Kokio vault address
-    kokioVaultAddress: process.env.KOKIO_VAULT,
+    // // TURNKEY
+    // turnkeyOrganizationId: process.env.TURNKEY_ORGANIZATION_ID,
+    // turnkeyApiPublicKey: process.env.TURNKEY_API_PUBLIC_KEY,
+    // turnkeyApiPrivateKey: process.env.TURNKEY_API_PRIVATE_KEY,
+
+    // serverBaseUrl: process.env.SERVER_BASE_URL,
+
+    // // Wallet Connect
+    // reownProjectId: process.env.REOWN_PROJECT_ID,
+
+    // // Kokio vault address
+    // kokioVaultAddress: process.env.KOKIO_VAULT,
   };
 
   return {
