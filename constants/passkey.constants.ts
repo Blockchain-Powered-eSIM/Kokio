@@ -2,8 +2,8 @@ import Constants from 'expo-constants';
 import { AppExtraConfig } from '@/appKeys';
 
 export const PASSKEY_CONFIG = {
-  RP_NAME: process.env.EXPO_PUBLIC_PASSKEY_RP_NAME ?? "Kokio App", // NEEDED?
-  RP_ID: process.env.EXPO_PUBLIC_RP_ID ?? "docs.kokio.app",
+  RP_NAME: "Kokio App",
+  RP_ID: "docs.kokio.app",
 };
 
 export const DEFAULT_ETHEREUM_ACCOUNTS = [

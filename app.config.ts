@@ -3,14 +3,8 @@ import { AppExtraConfig } from "./appKeys.js";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const privateConfig: AppExtraConfig = {
-    // Auth server
-    authServerBaseUrl:process.env.AUTH_SERVER_BASE_URL,
-    // Passkey RP Id
-    passkeyRpId:process.env.PASSKEY_RP_ID,
-    // OAuth Client Id
-    oauthClientId:process.env.OAUTH_CLIENT_ID,
-
-    // API Base URL
+    authServerBaseUrl: process.env.AUTH_SERVER_BASE_URL,
+    redirectUri: process.env.REDIRECT_URI,
     apiBaseUrl: process.env.API_BASE_URL,
     /* @deprecate */
     // // ALCHEMY

@@ -12,6 +12,7 @@ import { hexToArrayBuffer } from "@/helpers/converters";
 import { useKokio } from "@/hooks/useKokio";
 import { P256Key } from "kokio-sdk/types";
 import { useAppState } from "@/hooks/useAppState";
+import { generateKeyPair, SignJWT, calculateJwkThumbprint, exportJWK } from "jose";
 
 const isValidEmail = (email: string | undefined) => {
   if (!email) return false;
@@ -46,6 +47,30 @@ export default function TestScreen() {
   } | null>(null);
 
   const signUpDisabled = false;
+
+  const [dpopResult, setDpopResult] = useState<string | null>(null);
+
+  const runDpopSmokeTest = useCallback(async () => {
+    setDpopResult("Running…");
+    try {
+      const { privateKey, publicKey } = await generateKeyPair("ES256", {
+        extractable: true,
+      });
+
+      const jwk = await exportJWK(publicKey);
+      const thumbprint = await calculateJwkThumbprint(jwk, "sha256");
+
+      const token = await new SignJWT({ htu: "https://example.com/token", htm: "POST" })
+        .setProtectedHeader({ alg: "ES256", typ: "dpop+jwt", jwk })
+        .setIssuedAt()
+        .setJti(thumbprint)
+        .sign(privateKey);
+
+      setDpopResult(`OK\nthumbprint: ${thumbprint}\ntoken (first 60): ${token.slice(0, 60)}…`);
+    } catch (e: any) {
+      setDpopResult(`FAIL: ${e?.message ?? e}`);
+    }
+  }, []);
 
   const onSignIn = useCallback(async () => {
     try {
@@ -399,6 +424,15 @@ export default function TestScreen() {
         >
           <Text style={[styles.buttonText]}>Export User Wallet</Text>
         </Pressable>
+      )}
+      <View style={styles.separator} />
+
+      <Pressable style={styles.button} onPress={runDpopSmokeTest}>
+        <Text style={styles.buttonText}>DPoP Smoke Test (ES256)</Text>
+      </Pressable>
+
+      {dpopResult && (
+        <Text style={[styles.userText, { marginTop: 8 }]}>{dpopResult}</Text>
       )}
     </ScrollView>
   );
