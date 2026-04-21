@@ -7,8 +7,7 @@ import { router } from 'expo-router';
 import { Config } from '@/appKeys';
 import { useAuthStore } from '@/stores/authStore';
 import { buildDpopProof } from '@/utils/auth/dpopProof';
-import { kokioAuthClient, type DpopProofBuilder } from '@/utils/auth/kokioAuthClient';
-import { type TokenBundle, parseIdToken } from '@/utils/auth/tokenStore';
+import { refreshAccessToken, TokenFamilyRevokedError } from '@/utils/auth/refresh';
 
 // ─── Auth event callbacks ─────────────────────────────────────────────────────
 // Register these in your root provider before any authenticated request fires.
@@ -52,43 +51,6 @@ function waitForStepUp(): Promise<void> {
 
 // ─── Refresh mutex ────────────────────────────────────────────────────────────
 // Concurrent callers that all need a refresh share a single in-flight promise.
-
-let _refreshPromise: Promise<TokenBundle> | null = null;
-
-async function performRefresh(): Promise<TokenBundle> {
-  if (_refreshPromise) return _refreshPromise;
-
-  const current = useAuthStore.getState().tokens;
-  if (!current) throw new Error('No tokens to refresh');
-
-  const tokenUrl = `${Config.AUTH_SERVER_BASE_URL ?? ''}/v1/auth/token`;
-  const buildProof: DpopProofBuilder = (nonce) =>
-    buildDpopProof({ htu: tokenUrl, htm: 'POST', nonce });
-
-  _refreshPromise = kokioAuthClient
-    .token({ grant_type: 'refresh_token', refresh_token: current.refresh_token }, buildProof)
-    .then((resp) => {
-      // OpenAPI response wrapper: { success: boolean; data: TokenResponse }
-      const r = resp as {
-        success: boolean;
-        data: { access_token: string; refresh_token: string; id_token: string; expires_in: number };
-      };
-      if (!r.success) throw new Error('Token refresh rejected by server');
-
-      const { access_token, refresh_token, id_token, expires_in } = r.data;
-      const bundle: TokenBundle = {
-        access_token,
-        refresh_token,
-        id_token,
-        expires_at: Date.now() + expires_in * 1_000,
-        auth_time: parseIdToken(id_token).auth_time ?? Math.floor(Date.now() / 1_000),
-      };
-      return useAuthStore.getState().setTokens(bundle).then(() => bundle);
-    })
-    .finally(() => { _refreshPromise = null; });
-
-  return _refreshPromise;
-}
 
 // ─── Auth failure ─────────────────────────────────────────────────────────────
 
@@ -135,7 +97,7 @@ instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
 
   // Proactive refresh: act before the AT expires mid-flight.
   if (tokens.expires_at - Date.now() < 60_000) {
-    try { tokens = await performRefresh(); }
+    try { tokens = await refreshAccessToken(); }
     catch { /* fall through — 401 handler will retry refresh reactively */ }
   }
 
@@ -212,10 +174,17 @@ instance.interceptors.response.use(
     // 3. Invalid / expired token — refresh once, retry with new AT.
     if (body?.code === 'INVALID_TOKEN' || wwwAuth.includes('invalid_token')) {
       try {
-        await performRefresh();
+        await refreshAccessToken();
         return instance(cfg);
-      } catch {
-        await handleAuthFailure();
+      } catch (refreshErr) {
+        // TokenFamilyRevokedError: tokens already cleared in refresh.ts; just navigate.
+        // Any other error: clear and navigate via handleAuthFailure().
+        if (!(refreshErr instanceof TokenFamilyRevokedError)) {
+          await handleAuthFailure();
+        } else {
+          _onUnauthenticated?.();
+          router.replace('/');
+        }
         return Promise.reject(error.response ?? error);
       }
     }
