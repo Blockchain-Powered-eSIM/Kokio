@@ -21,10 +21,37 @@ export type TokenRevokeRequest        = components['schemas']['TokenRevokeReques
 export type StepUpCompleteRequest     = components['schemas']['StepUpCompleteRequest'];
 export type StepUpTokenResponse       = components['schemas']['StepUpTokenResponse'];
 
-export type RegistrationOptionsResponse  = components['schemas']['RegistrationOptionsResponse'];
+export type RegistrationOptionsResponse   = components['schemas']['RegistrationOptionsResponse'];
 export type AuthenticationOptionsResponse = components['schemas']['AuthenticationOptionsResponse'];
 
-export type ErrorResponse             = components['schemas']['ErrorResponse'];
+export type ErrorResponse = components['schemas']['ErrorResponse'];
+
+// ─── DPoP proof builder type ─────────────────────────────────────────────────
+// A function that produces a fresh compact DPoP proof JWS for one request.
+// Receives the current cached nonce for the origin (undefined on first call to
+// a fresh origin). See utils/auth/dpopProof.ts for the concrete implementation.
+
+export type DpopProofBuilder = (nonce?: string) => Promise<string>;
+
+// ─── DPoP nonce error ────────────────────────────────────────────────────────
+
+export class DpopNonceError extends Error {
+  readonly code = 'DPOP_NONCE_ERROR' as const;
+  constructor() {
+    super('DPoP nonce challenge failed after one retry');
+    this.name = 'DpopNonceError';
+  }
+}
+
+// ─── Per-origin nonce cache (RFC 9449 §8) ────────────────────────────────────
+// Populated from every DPoP-Nonce response header (successful or not) so future
+// proofs include the nonce proactively, avoiding a round-trip challenge entirely.
+
+const _nonceCache = new Map<string, string>();
+
+export function clearNonceCache(): void {
+  _nonceCache.clear();
+}
 
 // ─── Interceptor slots (AUTH-301 / AUTH-302) ─────────────────────────────────
 
@@ -47,41 +74,68 @@ async function authFetch<T>(
   body?: Record<string, unknown> | string,
   extraHeaders?: Record<string, string>,
   formEncoded = false,
+  buildProof?: DpopProofBuilder,
 ): Promise<T> {
   const base = Config.AUTH_SERVER_BASE_URL;
   if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
 
-  const url = `${base}${path}`;
+  const url    = `${base}${path}`;
+  const origin = new URL(url).origin;
 
-  const headers: Record<string, string> = {
-    'x-correlation-id': uuidv4(),
-    ...extraHeaders,
-  };
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    const headers: Record<string, string> = {
+      'x-correlation-id': uuidv4(),
+      ...extraHeaders,
+    };
 
-  if (body !== undefined) {
-    headers['Content-Type'] = formEncoded
-      ? 'application/x-www-form-urlencoded'
-      : 'application/json';
+    if (body !== undefined) {
+      headers['Content-Type'] = formEncoded
+        ? 'application/x-www-form-urlencoded'
+        : 'application/json';
+    }
+
+    // Build a fresh DPoP proof for this attempt, including any cached nonce.
+    if (buildProof) {
+      headers['DPoP'] = await buildProof(_nonceCache.get(origin));
+    }
+
+    let init: RequestInit = {
+      method,
+      headers,
+      body: body === undefined
+        ? undefined
+        : formEncoded
+          ? (body as string)
+          : JSON.stringify(body),
+    };
+
+    if (_onRequest) init = await _onRequest(init, url);
+
+    let res = await fetch(url, init);
+
+    // Proactively cache any nonce the server supplies (RFC 9449 §8).
+    // We do this before the nonce-challenge check so that on retry the
+    // updated nonce is already in the map when buildProof is called above.
+    const freshNonce = res.headers.get('DPoP-Nonce');
+    if (freshNonce) _nonceCache.set(origin, freshNonce);
+
+    // Detect nonce challenge: the server wants us to include its nonce in the
+    // proof. Retry once; if the server rejects again, give up.
+    if (buildProof && res.status === 401) {
+      const wwwAuth = res.headers.get('WWW-Authenticate') ?? '';
+      if (wwwAuth.includes('use_dpop_nonce')) {
+        if (attempt === 1) throw new DpopNonceError();
+        continue; // retry — next iteration picks up freshNonce from cache
+      }
+    }
+
+    if (_onResponse) res = await _onResponse(res, init, url);
+
+    return res.json() as Promise<T>;
   }
 
-  let init: RequestInit = {
-    method,
-    headers,
-    body: body === undefined
-      ? undefined
-      : formEncoded
-        ? (body as string)
-        : JSON.stringify(body),
-  };
-
-  if (_onRequest) init = await _onRequest(init, url);
-
-  let res = await fetch(url, init);
-
-  if (_onResponse) res = await _onResponse(res, init, url);
-
-  const json = await res.json() as T;
-  return json;
+  // Unreachable: the loop always returns or throws. Satisfies TS control flow.
+  throw new DpopNonceError();
 }
 
 // ─── Typed endpoint wrappers ─────────────────────────────────────────────────
@@ -115,16 +169,36 @@ export const kokioAuthClient = {
     return `${base}/v1/auth/authorize?${qs}` as unknown as R;
   },
 
-  token(params: TokenRequest, dpopProof: string) {
+  /**
+   * Token issuance / refresh.
+   * `buildProof` receives the current cached DPoP nonce for the auth server
+   * origin (undefined on first ever call) and must return a compact DPoP proof
+   * JWS. On a `use_dpop_nonce` 401 the proof is rebuilt with the server nonce
+   * and the request is retried once automatically.
+   */
+  token(params: TokenRequest, buildProof: DpopProofBuilder) {
     type R = paths['/v1/auth/token']['post']['responses']['200']['content']['application/json'];
     const body = new URLSearchParams(params as unknown as Record<string, string>).toString();
-    return authFetch<R>('/v1/auth/token', 'POST', body as unknown as Record<string, unknown>, { DPoP: dpopProof }, true);
+    return authFetch<R>(
+      '/v1/auth/token',
+      'POST',
+      body as unknown as Record<string, unknown>,
+      {},
+      true,
+      buildProof,
+    );
   },
 
   revokeToken(body: TokenRevokeRequest) {
     type R = paths['/v1/auth/token/revoke']['post']['responses']['200']['content']['application/json'];
     const encoded = new URLSearchParams(body as unknown as Record<string, string>).toString();
-    return authFetch<R>('/v1/auth/token/revoke', 'POST', encoded as unknown as Record<string, unknown>, {}, true);
+    return authFetch<R>(
+      '/v1/auth/token/revoke',
+      'POST',
+      encoded as unknown as Record<string, unknown>,
+      {},
+      true,
+    );
   },
 
   stepUpBegin(body: LoginBeginRequest) {
@@ -132,8 +206,19 @@ export const kokioAuthClient = {
     return authFetch<R>('/v1/auth/stepup/begin', 'POST', body as unknown as Record<string, unknown>);
   },
 
-  stepUpComplete(body: StepUpCompleteRequest, dpopProof: string) {
+  /**
+   * Step-up authentication completion.
+   * Same nonce retry semantics as `token()`.
+   */
+  stepUpComplete(body: StepUpCompleteRequest, buildProof: DpopProofBuilder) {
     type R = paths['/v1/auth/stepup/complete']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/stepup/complete', 'POST', body as unknown as Record<string, unknown>, { DPoP: dpopProof });
+    return authFetch<R>(
+      '/v1/auth/stepup/complete',
+      'POST',
+      body as unknown as Record<string, unknown>,
+      {},
+      false,
+      buildProof,
+    );
   },
 };
