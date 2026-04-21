@@ -20,6 +20,8 @@ import {
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { Providers } from "@/providers";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
+import { setUnauthenticatedHandler } from "@/services/httpService";
+import { useAuthStore } from "@/stores/authStore";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -46,6 +48,13 @@ export default function RootLayout() {
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
+
+  // Rehydrate persisted tokens from SecureStore and wire the unauthenticated
+  // redirect handler so httpService can navigate on refresh failure.
+  useEffect(() => {
+    useAuthStore.getState().loadPersistedTokens();
+    setUnauthenticatedHandler(() => router.replace("/" as any));
+  }, []);
 
   // Initial connectivity check
   useEffect(() => {
