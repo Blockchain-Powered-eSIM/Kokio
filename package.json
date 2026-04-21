@@ -9,7 +9,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "gen:auth-types": "bash scripts/gen-auth-types.sh"
   },
   "jest": {
     "preset": "jest-expo"
@@ -112,6 +113,7 @@
     "babel-plugin-module-resolver": "^5.0.2",
     "jest": "^29.2.1",
     "jest-expo": "~54.0.13",
+    "openapi-typescript": "^7.13.0",
     "react-test-renderer": "19.0.0",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.2"
