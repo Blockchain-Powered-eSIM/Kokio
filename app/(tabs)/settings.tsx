@@ -17,8 +17,6 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTurnkey } from "@turnkey/sdk-react-native";
-import { deleteSubOrganization } from "@/utils/api";
-import * as Updates from "expo-updates";
 
 // Feature flags for menu item availability
 // Set to true to enable the menu item, false to disable (but keep visible)
@@ -123,10 +121,10 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function MenuScreen() {
-  const { loginWithPasskey, signUpWithPasskey, reauthenticate } =
+  const { loginWithPasskey, signUpWithPasskey, reauthenticate, logout } =
     useAuthRelay();
   const { clearKokioUser } = useKokio();
-  const { clearAllSessions, user } = useTurnkey();
+  const { user } = useTurnkey();
   const router = useRouter();
 
   // State to track whether About screen is visible
@@ -184,14 +182,10 @@ export default function MenuScreen() {
       iconLeft: "log-out-outline",
       iconRight: "chevron-forward-outline",
       action: async () => {
-        clearAllSessions()
-          .then(async () => {
-            await clearKokioUser(user);
-          })
-          .finally(() => {
-            reauthenticate();
-            Updates.reloadAsync();
-          });
+        // Clear Kokio SDK + passkey / wallet / eSIM state from SecureStore first,
+        // then revoke the refresh token and wipe the auth token store.
+        await clearKokioUser(user);
+        await logout();
       },
     },
   ];

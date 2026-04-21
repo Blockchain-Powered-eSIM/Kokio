@@ -16,6 +16,8 @@ import { decodeAttestationObject } from "@simplewebauthn/server/helpers";
 
 import { useRouter } from "expo-router";
 import { createSubOrganization, handleInitEmailOtpAuth, handleOtpAuth } from "@/utils/api";
+import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
+import { useAuthStore } from "@/stores/authStore";
 import { base64UrlToBuffer } from "@/helpers/converters";
 import { toHex } from "@/helpers/iso/isoUint8Array";
 
@@ -102,6 +104,7 @@ export interface AuthRelayProviderType {
   reauthenticate: () => void;
   authenticate: () => Promise<void>;
   clearError: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthRelayContext = createContext<AuthRelayProviderType>({
@@ -132,6 +135,7 @@ export const AuthRelayContext = createContext<AuthRelayProviderType>({
   reauthenticate: () => {},
   authenticate: async () => Promise.resolve(),
   clearError: () => {},
+  logout: async () => Promise.resolve(),
 });
 
 interface AuthRelayProviderProps {
@@ -416,6 +420,31 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     }
   };
 
+  const logout = async () => {
+    // Revoke the refresh token server-side (RFC 7009: server always returns 200,
+    // and we must clear locally regardless of network or server errors).
+    const tokens = useAuthStore.getState().tokens;
+    if (tokens?.refresh_token) {
+      try {
+        await kokioAuthClient.revokeToken({
+          token: tokens.refresh_token,
+          token_type_hint: "refresh_token",
+        });
+      } catch {
+        // Proceed unconditionally — revocation is best-effort.
+      }
+    }
+
+    // Wipe the local token store (kokio.auth.tokens from SecureStore).
+    await useAuthStore.getState().clearTokens();
+
+    // Clear the Turnkey session and reset auth state.
+    clearSession();
+    dispatch({ type: "REAUTHENTICATE" });
+
+    router.replace("/");
+  };
+
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });
   };
@@ -431,6 +460,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
         reauthenticate,
         authenticate,
         clearError,
+        logout,
       }}
     >
       {children}
