@@ -1,27 +1,11 @@
 import { Passkey } from 'react-native-passkey';
-import { base64url } from 'jose';
 import { v4 as uuidv4 } from 'uuid';
 import { kokioAuthClient } from './kokioAuthClient';
 import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
+import { newPkcePair } from './pkce';
 import { useAuthStore } from '@/stores/authStore';
 import { Config } from '@/appKeys';
-
-// ─── PKCE helpers (RFC 7636) ──────────────────────────────────────────────────
-
-async function generateCodeVerifier(): Promise<string> {
-  const bytes = new Uint8Array(32);
-  globalThis.crypto.getRandomValues(bytes);
-  return base64url.encode(bytes);
-}
-
-async function computeCodeChallenge(verifier: string): Promise<string> {
-  const hash = await globalThis.crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(verifier),
-  );
-  return base64url.encode(new Uint8Array(hash));
-}
 
 // ─── Authorize step ───────────────────────────────────────────────────────────
 // GET /v1/auth/authorize returns a 302 to kokio://callback?code=<code>.
@@ -89,8 +73,7 @@ function assertData<T>(raw: unknown, label: string): T {
 export async function loginWithKokioPasskey(deviceWalletAddress: string): Promise<void> {
   // Generate PKCE pair before login/begin so codeVerifier is available
   // at token exchange without requiring an additional network round-trip.
-  const codeVerifier = await generateCodeVerifier();
-  const codeChallenge = await computeCodeChallenge(codeVerifier);
+  const { verifier: codeVerifier, challenge: codeChallenge } = await newPkcePair();
 
   // 1. Login begin — server generates and stores a WebAuthn challenge
   const beginData = assertData<{
