@@ -83,18 +83,29 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   const [state, dispatch] = useReducer(authReducer, initialState);
   const router = useRouter();
 
-  // Mirror token-store state → auth state.
-  // When the authenticated-fetch wrapper (AUTH-302) exhausts its token refresh
-  // and calls clearTokens(), isAuthenticated flips to false. We detect that
-  // here and force the user back to the sign-in screen.
+  // Bidirectional sync: token-store ↔ auth state.
+  //
+  // false → true: loadPersistedTokens() resolved valid tokens on cold launch,
+  //               or signUp/login completed — mark authenticated without forcing
+  //               another biometric prompt.
+  // true → false: AUTH-302 wrapper exhausted token refresh and called
+  //               clearTokens() — force the user back to sign-in.
+  //
+  // The initial snapshot read handles the race where loadPersistedTokens()
+  // completes in a parent effect before this provider mounts.
   useEffect(() => {
-    const unsub = useAuthStore.subscribe((s) => {
-      if (!s.isAuthenticated && state.authenticated) {
-        dispatch({ type: "REAUTHENTICATE" });
+    dispatch({
+      type: "AUTHENTICATE",
+      payload: useAuthStore.getState().isAuthenticated,
+    });
+
+    const unsub = useAuthStore.subscribe((next, prev) => {
+      if (next.isAuthenticated !== prev.isAuthenticated) {
+        dispatch({ type: "AUTHENTICATE", payload: next.isAuthenticated });
       }
     });
     return unsub;
-  }, [state.authenticated]);
+  }, []);
 
   const signUpWithPasskey = async (user: {
     username?: string;
