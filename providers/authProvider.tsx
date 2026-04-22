@@ -11,15 +11,12 @@ import {
   TURNKEY_PARENT_ORG_ID,
 } from "@/constants/passkey.constants";
 import { useTurnkey, User } from "@turnkey/sdk-react-native";
-import { decodeAttestationObj, onPasskeyCreate } from "@/utils/passkey";
-import { decodeAttestationObject } from "@simplewebauthn/server/helpers";
-
+import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
-import { createSubOrganization, handleInitEmailOtpAuth, handleOtpAuth } from "@/utils/api";
-import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
+import { handleInitEmailOtpAuth, handleOtpAuth } from "@/utils/api";
+import { kokioAuthClient, RegisterCompleteData } from "@/utils/auth/kokioAuthClient";
+import { registerPasskey } from "@/utils/auth/passkeyRegister";
 import { useAuthStore } from "@/stores/authStore";
-import { base64UrlToBuffer } from "@/helpers/converters";
-import { toHex } from "@/helpers/iso/isoUint8Array";
 
 type AuthActionType =
   | { type: "PASSKEY"; payload: User | undefined }
@@ -73,33 +70,7 @@ export interface AuthRelayProviderType {
     otpCode: string;
     organizationId: string;
   }) => Promise<void>;
-  signUpWithPasskey: (user: { username?: string; email?: string }) => Promise<
-    | {
-        authenticatorParams: {
-          attestation: {
-            clientDataJson: string;
-            attestationObject: string;
-            credentialId: string;
-          };
-        };
-        decodedAttestationObject:
-          | {
-              decodedAttestationObjectCbor:
-                | {
-                    x: string;
-                    y: string;
-                    credentialId: string;
-                  }
-                | undefined;
-              decodedAttestationObjectSimpleWebAuthnHex: string;
-            }
-          | undefined;
-        user: User | undefined;
-        deviceUID: string;
-      }
-    | undefined
-    | null
-  >;
+  signUpWithPasskey: (user: { username?: string; email?: string }) => Promise<RegisterCompleteData | null | undefined>;
   loginWithPasskey: () => Promise<void>;
   reauthenticate: () => void;
   authenticate: () => Promise<void>;
@@ -111,26 +82,7 @@ export const AuthRelayContext = createContext<AuthRelayProviderType>({
   state: initialState,
   initEmailLogin: async () => Promise.resolve(),
   completeEmailAuth: async () => Promise.resolve(),
-  signUpWithPasskey: async () =>
-    Promise.resolve({
-      authenticatorParams: {
-        attestation: {
-          clientDataJson: "",
-          attestationObject: "",
-          credentialId: "",
-        },
-      },
-      decodedAttestationObject: {
-        decodedAttestationObjectCbor: {
-          x: "",
-          y: "",
-          credentialId: "",
-        },
-        decodedAttestationObjectSimpleWebAuthnHex: "",
-      },
-      user: undefined,
-      deviceUID: "",
-    }),
+  signUpWithPasskey: async () => Promise.resolve(null),
   loginWithPasskey: async () => Promise.resolve(),
   reauthenticate: () => {},
   authenticate: async () => Promise.resolve(),
@@ -148,7 +100,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   const now = new Date().getTime();
 
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const { session, createEmbeddedKey, createSessionFromEmbeddedKey, createSession, clearSession } =
+  const { session, createEmbeddedKey, createSession, clearSession } =
     useTurnkey();
   const router = useRouter();
 
@@ -231,98 +183,20 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     }
   };
 
-  // User will be prompted twice for passkey, once for account creation and once for login
   const signUpWithPasskey = async (user: {
     username?: string;
     email?: string;
   }) => {
-    if (!isSupported()) {
+    if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
 
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const data = await onPasskeyCreate(user);
-
-      if (!data) {
-        throw new Error("Failed to create passkey");
-      }
-
-      console.log("passkey registration succeeded: ", data.authenticatorParams);
-
-      if (data.authenticatorParams) {
-        const authenticatorParams = data.authenticatorParams;
-        // Successfully created sub-organization, proceed with the login flow
-
-        const targetPublicKey = await createEmbeddedKey({ isCompressed: true });
-
-        const userInfo = {
-          userId: data.deviceUID,
-          email: user.email ?? ""
-        };
-        const passkey = {
-          challenge: authenticatorParams.challenge,
-          attestation: authenticatorParams.attestation,
-        };
-        const apiKeys = [{
-            apiKeyName: "Passkey API Key",
-            publicKey: targetPublicKey,
-            curveType: "API_KEY_CURVE_P256",
-        }];
-        const response = await createSubOrganization(
-          userInfo, passkey, apiKeys
-        );
-
-        const decodedAttestationObjectCbor = await decodeAttestationObj({
-          rawId: authenticatorParams.attestation.credentialId,
-          response: {
-            clientDataJson: authenticatorParams.attestation.clientDataJson,
-            attestationObject:
-              authenticatorParams.attestation.attestationObject,
-          },
-        });
-        const decodedAttestationObjSimpleWebAuthn = await decodeAttestationObject(
-          base64UrlToBuffer(
-            authenticatorParams.attestation.attestationObject
-          )
-        );
-
-        console.log(
-          "decoded attestation object cbor: ",
-          decodedAttestationObjectCbor
-        );
-        console.log(
-          "decoded attestation object simpleWebAuthn: ",
-          toHex(decodedAttestationObjSimpleWebAuthn.get("authData"))
-        );
-
-        const subOrganizationId = response.subOrganizationId;
-
-        if(subOrganizationId) {
-          const session = await createSessionFromEmbeddedKey({ 
-            subOrganizationId,
-            expirationSeconds: 3600
-          });
-          
-          dispatch({
-            type: "PASSKEY",
-            payload: session.user,
-          });
-
-          return {
-            authenticatorParams: authenticatorParams,
-            decodedAttestationObject: {
-              decodedAttestationObjectCbor,
-              decodedAttestationObjectSimpleWebAuthnHex: toHex(
-                decodedAttestationObjSimpleWebAuthn.get("authData")
-              ),
-            },
-            user: session?.user,
-            deviceUID: data.deviceUID,
-          };
-        }
-      }
+      const data = await registerPasskey(user.username ?? user.email ?? "Kokio User");
+      dispatch({ type: "PASSKEY", payload: undefined });
+      return data;
     } catch (error: any) {
       dispatch({ type: "ERROR", payload: error.message });
       return null;

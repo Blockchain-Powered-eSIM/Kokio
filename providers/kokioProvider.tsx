@@ -73,6 +73,7 @@ type AuthActionType =
   | { type: "CLEAR_ERROR" }
   | { type: "SET_KOKIO"; payload: any }
   | { type: "SET_DEVICE_UID"; payload: string }
+  | { type: "SET_DEVICE_WALLET_ADDRESS"; payload: string }
   | { type: "SET_KOKIO_USER"; payload: UserData }
   | { type: "SET_KOKIO_PASSKEY"; payload: UserPasskey }
   | { type: "SET_USER_WALLET"; payload: SmartContractAccount }
@@ -99,6 +100,7 @@ interface KokioState {
   error: string;
   sdk?: Kokio;
   deviceUID: string;
+  deviceWalletAddress: string;
   userData?: UserData;
   userPasskey?: UserPasskey;
   userWallet?: SmartContractAccount;
@@ -109,6 +111,7 @@ const initialState: KokioState = {
   error: "",
   sdk: undefined,
   deviceUID: "",
+  deviceWalletAddress: "",
   userData: undefined,
   userPasskey: undefined,
   userWallet: undefined,
@@ -125,6 +128,8 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
       return { ...kokio, sdk: action.payload };
     case "SET_DEVICE_UID":
       return { ...kokio, deviceUID: action.payload };
+    case "SET_DEVICE_WALLET_ADDRESS":
+      return { ...kokio, deviceWalletAddress: action.payload };
     case "SET_KOKIO_USER":
       return { ...kokio, userData: action.payload };
     case "SET_KOKIO_PASSKEY":
@@ -142,6 +147,7 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
       return {
         ...kokio,
         deviceUID: "",
+        deviceWalletAddress: "",
         userPasskey: undefined,
         userData: undefined,
         userWallet: undefined,
@@ -171,6 +177,7 @@ export interface KokioProviderType {
     eSimItem: Esim,
     transactionData: any // TODO: Create a type for this once BE contract is finalized
   ) => Promise<void>;
+  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string) => Promise<void>;
   clearKokio: () => void;
   clearKokioUser: (user: User | undefined) => Promise<void>;
 }
@@ -184,6 +191,7 @@ export const KokioContext = createContext<KokioProviderType>({
   setupKokioUserPasskey: async () => Promise.resolve(),
   setupKokioUserWallet: async () => Promise.resolve(),
   savePurchasedESIM: async () => Promise.resolve(),
+  setupKokioRegistration: async () => Promise.resolve(),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
 });
@@ -313,6 +321,12 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   // and use the existing user data
   useEffect(() => {
     const fetchUserData = async () => {
+      // Rehydrate server-derived registration data (new Kokio auth flow)
+      const storedWalletAddress = await SecureStore.getItemAsync("deviceWalletAddress");
+      if (storedWalletAddress) {
+        dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: storedWalletAddress });
+      }
+
       const deviceUID = await getValueForDeviceUID("deviceUID");
 
       if (deviceUID) {
@@ -400,6 +414,17 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       type: "SET_DEVICE_UID",
       payload: deviceUID,
     });
+  };
+
+  const setupKokioRegistration = async (
+    deviceWalletAddress: string,
+    deviceUniqueIdentifier: string
+  ) => {
+    await saveValueForDeviceUID("deviceUID", deviceUniqueIdentifier);
+    await SecureStore.setItemAsync("deviceWalletAddress", deviceWalletAddress);
+
+    dispatch({ type: "SET_DEVICE_UID", payload: deviceUniqueIdentifier });
+    dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
   };
 
   const setupKokioUserData = async (deviceUID: string, user: User) => {
@@ -557,6 +582,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await deleteValueForUser(`userData-${kokio.deviceUID}`);
     await deleteValueForPurchasedESIMs(`purchasedESIMs-${kokio.deviceUID}`);
     await deleteValueForUser("deviceUID");
+    await SecureStore.deleteItemAsync("deviceWalletAddress");
     await clearKokio();
     await clearSession();
   };
@@ -572,6 +598,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         setupKokioUserPasskey,
         setupKokioUserWallet,
         savePurchasedESIM,
+        setupKokioRegistration,
         clearKokio,
         clearKokioUser,
       }}

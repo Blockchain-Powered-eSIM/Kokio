@@ -13,7 +13,7 @@ import BottomSheet, {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
-import { User, useTurnkey } from "@turnkey/sdk-react-native";
+import { useTurnkey } from "@turnkey/sdk-react-native";
 import { ThemedText } from "./ThemedText";
 import { useRouter } from "expo-router";
 import { useKokio } from "@/hooks/useKokio";
@@ -28,9 +28,7 @@ export function AuthenticationModal() {
   const { state, loginWithPasskey, signUpWithPasskey } = useAuthRelay();
   const {
     kokio,
-    setupKokioDeviceUID,
-    setupKokioUserData,
-    setupKokioUserPasskey,
+    setupKokioRegistration,
   } = useKokio();
   const { clearAllSessions } = useTurnkey();
   const router = useRouter();
@@ -82,23 +80,7 @@ export function AuthenticationModal() {
         await signUpWithPasskey({})
           .then((data) => {
             if (data) {
-              setupKokioDeviceUID(data.deviceUID);
-              setupKokioUserData(data.deviceUID, data.user as User);
-              setupKokioUserPasskey(data.deviceUID, {
-                x:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.x || "",
-                y:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.y || "",
-                credentialId:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.credentialId || "",
-                attestationObject:
-                  data.authenticatorParams?.attestation.attestationObject || "",
-                clientDataJson:
-                  data.authenticatorParams.attestation.clientDataJson,
-              });
+              setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier);
             }
           })
           .finally(() => {
