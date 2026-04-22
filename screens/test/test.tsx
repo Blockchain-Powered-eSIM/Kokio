@@ -26,8 +26,7 @@ export default function TestScreen() {
   const appState = useAppState(true);
   console.log("AppState in layout", appState);
 
-  const { signUpWithPasskey, loginWithPasskey, initEmailLogin } =
-    useAuthRelay();
+  const { signUpWithPasskey, loginWithPasskey } = useAuthRelay();
   const {
     user,
     session,
@@ -37,7 +36,7 @@ export default function TestScreen() {
     updateUser,
   } = useTurnkey();
 
-  const { kokio, setupKokioUserPasskey, clearKokioUser } = useKokio();
+  const { kokio, clearKokioUser } = useKokio();
 
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState(kokio.userData?.email ?? "");
@@ -175,16 +174,6 @@ export default function TestScreen() {
     }
   }, [email, username]);
 
-  const onSignInEmail = useCallback(async () => {
-    try {
-      if (!isValidEmail(email) || email.length < 1)
-        return alert("Invalid email address");
-      const response = await initEmailLogin(email);
-      return response;
-    } catch (e) {
-      console.error("Error signing in", e);
-    }
-  }, [email, username]);
 
   const onSignUp = useCallback(async () => {
     if (signUpDisabled) return alert("Please fill in all fields");
@@ -192,23 +181,7 @@ export default function TestScreen() {
       return alert("Invalid email address");
     try {
       const response = await signUpWithPasskey({ username, email });
-      console.log("response from user signup", response);
-      if (response?.authenticatorParams && response?.user) {
-        // save kokio user data authenticator params
-        setupKokioUserPasskey(kokio.deviceUID, {
-          clientDataJson:
-            response.authenticatorParams.attestation.clientDataJson,
-          attestationObject:
-            response.authenticatorParams.attestation.attestationObject,
-          credentialId: response.authenticatorParams.attestation.credentialId,
-          x:
-            response.decodedAttestationObject?.decodedAttestationObjectCbor
-              ?.x ?? "",
-          y:
-            response.decodedAttestationObject?.decodedAttestationObjectCbor
-              ?.y ?? "",
-        });
-      }
+      console.log("sign-up result", response);
     } catch (e) {
       console.error("Error signing up", e);
     }
@@ -373,25 +346,6 @@ export default function TestScreen() {
                 ]}
               >
                 <Text style={[styles.buttonText]}>Sign In with Passkey</Text>
-              </View>
-            )}
-          </Pressable>
-
-          <Pressable onPress={onSignInEmail}>
-            {({ pressed }) => (
-              <View
-                style={[
-                  styles.button,
-                  {
-                    transform: [
-                      {
-                        scale: pressed ? 0.98 : 1,
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Text style={[styles.buttonText]}>Sign In with Email</Text>
               </View>
             )}
           </Pressable>

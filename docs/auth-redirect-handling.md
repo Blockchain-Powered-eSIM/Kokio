@@ -10,7 +10,7 @@ spike findings and the chosen approach.
 
 ## The Core Problem
 
-The custom scheme `kokio://` cannot be fetched by the HTTP stack — no transport
+The custom scheme `kokio://` cannot be fetched by the HTTP stack - no transport
 handler is registered for it. Any approach that *follows* the redirect will error
 out before we can read the code. We therefore need to intercept the 302 *before*
 the stack attempts to follow it.
@@ -38,7 +38,7 @@ The response surfaced to JS is an *opaque redirect* response:
 | `response.type` | `"opaqueredirect"` |
 | `response.status` | `0` |
 | `response.url` | **redirect target URL** (`kokio://callback?code=…`) |
-| `response.headers.get('Location')` | `null` — headers are not readable on opaque responses |
+| `response.headers.get('Location')` | `null` - headers are not readable on opaque responses |
 
 `response.url` is the correct extraction point on iOS.
 
@@ -116,7 +116,7 @@ Rationale:
 - Works on both platforms on RN 0.81 + Expo 54 (confirmed in spike).
 - Zero native code.
 - The iOS `res.url` and Android `Location` header extraction paths are orthogonal
-  — neither interferes with the other.
+  - neither interferes with the other.
 - If a future RN version changes opaque-redirect semantics, the fallback chain
   degrades gracefully to an `AuthError('AUTHORIZE_FAILED')` rather than a silent
   wrong value.
@@ -129,7 +129,7 @@ pre-designed above and can be added without touching the JS caller.
 
 ## Implemented In
 
-`utils/auth/passkeyLogin.ts` — `authorizeAndGetCode()`:
+`utils/auth/passkeyLogin.ts` - `authorizeAndGetCode()`:
 
 ```typescript
 const res = await fetch(`${base}/v1/auth/authorize?${qs}`, {
@@ -156,11 +156,11 @@ const rawTarget =
 
 ## Spike Code
 
-`screens/test/test.tsx` — "Redirect Spike" section.  
+`screens/test/test.tsx` - "Redirect Spike" section.  
 Run the three buttons in order on a physical device (not simulator) on each
 platform. Copy the log output to this document under a "Spike Results" heading.
 
-**Expected output — iOS physical device:**
+**Expected output - iOS physical device:**
 
 ```
 ── fetch/manual ──────────────────
@@ -177,7 +177,7 @@ Location (header)   : (unavailable)
 → unusable ✗
 ```
 
-**Expected output — Android physical device:**
+**Expected output - Android physical device:**
 
 ```
 ── fetch/manual ──────────────────
