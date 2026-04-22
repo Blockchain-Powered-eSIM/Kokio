@@ -14,8 +14,9 @@ import { useTurnkey, User } from "@turnkey/sdk-react-native";
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
 import { handleInitEmailOtpAuth, handleOtpAuth } from "@/utils/api";
-import { kokioAuthClient, RegisterCompleteData } from "@/utils/auth/kokioAuthClient";
+import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
 import { registerPasskey } from "@/utils/auth/passkeyRegister";
+import { loginWithKokioPasskey } from "@/utils/auth/passkeyLogin";
 import { useAuthStore } from "@/stores/authStore";
 
 type AuthActionType =
@@ -70,7 +71,7 @@ export interface AuthRelayProviderType {
     otpCode: string;
     organizationId: string;
   }) => Promise<void>;
-  signUpWithPasskey: (user: { username?: string; email?: string }) => Promise<RegisterCompleteData | null | undefined>;
+  signUpWithPasskey: (user: { username?: string; email?: string }) => Promise<{ deviceWalletAddress: string; deviceUniqueIdentifier: string } | null | undefined>;
   loginWithPasskey: () => Promise<void>;
   reauthenticate: () => void;
   authenticate: () => Promise<void>;
@@ -194,9 +195,17 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const data = await registerPasskey(user.username ?? user.email ?? "Kokio User");
+      // 1. Register new passkey credential with the Kokio auth server
+      const { deviceWalletAddress, deviceUniqueIdentifier } = await registerPasskey(
+        user.username ?? user.email ?? "Kokio User"
+      );
+
+      // 2. Immediately log in: login/begin → Passkey.get → login/complete →
+      //    PKCE authorize → token exchange → tokens stored in authStore
+      await loginWithKokioPasskey(deviceWalletAddress);
+
       dispatch({ type: "PASSKEY", payload: undefined });
-      return data;
+      return { deviceWalletAddress, deviceUniqueIdentifier };
     } catch (error: any) {
       dispatch({ type: "ERROR", payload: error.message });
       return null;

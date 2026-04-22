@@ -12,6 +12,7 @@ import {
 
 type AuthStoreState = {
   tokens: TokenBundle | null;
+  isAuthenticated: boolean;
   setTokens: (bundle: TokenBundle) => Promise<void>;
   loadPersistedTokens: () => Promise<void>;
   clearTokens: () => Promise<void>;
@@ -21,20 +22,21 @@ type AuthStoreState = {
 
 export const useAuthStore = create<AuthStoreState>((set) => ({
   tokens: null,
+  isAuthenticated: false,
 
   setTokens: async (bundle) => {
     await saveTokens(bundle);
-    set({ tokens: bundle });
+    set({ tokens: bundle, isAuthenticated: true });
   },
 
   loadPersistedTokens: async () => {
     const bundle = await loadTokens();
-    set({ tokens: bundle });
+    set({ tokens: bundle, isAuthenticated: bundle !== null });
   },
 
   clearTokens: async () => {
     await persistClear();
-    set({ tokens: null });
+    set({ tokens: null, isAuthenticated: false });
   },
 }));
 

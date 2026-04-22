@@ -8,7 +8,7 @@ import Constants from "expo-constants";
 import { AppExtraConfig } from "@/appKeys";
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
-import { useTurnkey, User, Wallet } from "@turnkey/sdk-react-native";
+import { useTurnkey, User } from "@turnkey/sdk-react-native";
 import { TurnkeyClient } from "@turnkey/sdk-react-native";
 import { SmartContractAccount } from "@aa-sdk/core";
 
@@ -94,7 +94,7 @@ interface UserData {
   email: string;
   organizationId: string;
   id: string;
-  wallets: Wallet[];
+  wallets: { address: string }[];
 }
 interface KokioState {
   error: string;
@@ -423,31 +423,37 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await saveValueForDeviceUID("deviceUID", deviceUniqueIdentifier);
     await SecureStore.setItemAsync("deviceWalletAddress", deviceWalletAddress);
 
+    const userData: UserData = {
+      id: deviceUniqueIdentifier,
+      userName: "",
+      email: "",
+      organizationId: "",
+      wallets: [{ address: deviceWalletAddress }],
+    };
+    await saveValueForUserData(`userData-${deviceUniqueIdentifier}`, userData);
+
     dispatch({ type: "SET_DEVICE_UID", payload: deviceUniqueIdentifier });
     dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
+    dispatch({ type: "SET_KOKIO_USER", payload: userData });
   };
 
   const setupKokioUserData = async (deviceUID: string, user: User) => {
-    // Save user data to secure store
-    await saveValueForUserData(`userData-${deviceUID}`, {
+    // Map Turnkey wallet accounts to the common { address } shape
+    const wallets: { address: string }[] = (user.wallets ?? []).flatMap(
+      (w) => (w.accounts ?? []).map((a) => ({ address: a.address }))
+    );
+    const userData: UserData = {
       id: user.id,
       organizationId: user.organizationId,
       userName: user.userName,
       email: user.email ?? "",
-      wallets: user.wallets || [],
-    });
-
-    console.log("User data saved to secure store:", user);
+      wallets,
+    };
+    await saveValueForUserData(`userData-${deviceUID}`, userData);
 
     dispatch({
       type: "SET_KOKIO_USER",
-      payload: {
-        userName: user.userName,
-        email: user.email ?? "",
-        organizationId: user.organizationId,
-        id: user.id,
-        wallets: user.wallets || [],
-      },
+      payload: userData,
     });
   };
 

@@ -17,15 +17,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { checkIfEmailInUse } from "@/utils/api";
-import {
-  PasskeyStamper,
-  TurnkeyClient,
-  useTurnkey,
-} from "@turnkey/sdk-react-native";
-import { P256Key } from "kokio-sdk/types";
-import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
-import { Kokio } from "kokio-sdk";
-import { returnViemWalletClient } from "@/utils/passkey";
+import { useTurnkey } from "@turnkey/sdk-react-native";
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -57,63 +49,6 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   );
   const modalRef = React.useRef<Modal>(null);
   const { kokio, setupKokioUserWallet } = useKokio();
-  const { session, user } = useTurnkey();
-
-  const returnSmartAccountAddress = useCallback(async (): Promise<{
-    wallet?: SmartContractAccount;
-    shouldRetry?: boolean;
-  }> => {
-    const deviceUniqueIdentifier = kokio.deviceUID;
-    const deviceWalletOwnerKey: P256Key = [
-      kokio.userPasskey?.x as `0x${string}`, // Public Key X from attestationObject
-      kokio.userPasskey?.y as `0x${string}`, // Public Key Y from attestationObject
-    ];
-    const salt = 25042025n; // BigInt
-
-    console.log("data", deviceUniqueIdentifier, deviceWalletOwnerKey);
-
-    if (user && kokio.sdk) {
-      try {
-        // Calculates device wallet address without deploying
-        const deviceWallet = await kokio.sdk.smartAccount.getSmartWallet(
-          deviceUniqueIdentifier,
-          deviceWalletOwnerKey,
-          salt
-        );
-
-        console.log("wallet", deviceWallet);
-
-        // Returns the smart account client, inline with Alchemy’s SDK
-        const deviceWalletClient =
-          await kokio.sdk.smartAccount.getSmartWalletClient(
-            deviceWallet // Returned by getSmartWallet fn
-          );
-        console.log("deviceWalletClient", deviceWalletClient.account?.address);
-
-        const uo = await deviceWalletClient.sendUserOperation({
-          uo: {
-            target: deviceWalletClient.account.address,
-            data: "0x",
-            value: 0n,
-          },
-          overrides: {
-            preVerificationGas: 0xeeee,
-          },
-        });
-        console.log("sendUserOperation", uo);
-        return { wallet: deviceWallet, shouldRetry: false };
-      } catch (e) {
-        console.log("error uo", e);
-        return { wallet: undefined, shouldRetry: true };
-      }
-    } else {
-      console.error(
-        "Wallet setup error... User is not authenticated or kokio sdk not set"
-      );
-      return { wallet: undefined, shouldRetry: false };
-    }
-  }, [kokio, user]);
-
   const { updateUser } = useTurnkey();
 
   const handleAddressPress = useCallback(async () => {
@@ -131,32 +66,22 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(true);
     setShowRetry(false);
 
-    //wallet setup
-    if (session?.user && kokio.sdk) {
-      console.log("Setting up wallet...");
-      const { wallet, shouldRetry } = await returnSmartAccountAddress();
-
-      if (shouldRetry) {
-        setIsLoading(false);
-        setShowRetry(true);
-        return;
-      }
-
-      if (wallet) {
-        console.log("setWalletAddress", wallet);
-
-        // Store the wallet address for display
-        setWalletAddress(wallet?.address);
-
-        await setupKokioUserWallet(kokio.deviceUID, wallet);
-
-        setShowRecovery(true);
-      }
+    const address = kokio.deviceWalletAddress;
+    if (!address) {
+      setShowRetry(true);
+      setIsLoading(false);
+      return;
     }
 
+    setWalletAddress(address);
+    // Store as a minimal wallet record — only address is needed downstream
+    await setupKokioUserWallet(
+      kokio.deviceUID,
+      { address } as unknown as SmartContractAccount
+    );
+    setShowRecovery(true);
     setIsLoading(false);
-  // }, []);
-  }, [session, kokio, returnSmartAccountAddress, setupKokioUserWallet]);
+  }, [kokio.deviceWalletAddress, kokio.deviceUID, setupKokioUserWallet]);
 
   const handleClose = useCallback(() => {
     setIsLoading(false);
