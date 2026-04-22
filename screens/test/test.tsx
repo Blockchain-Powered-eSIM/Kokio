@@ -7,7 +7,6 @@ import { Config } from "@/appKeys";
 import { useTurnkey } from "@turnkey/sdk-react-native";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { stampGetWhoami } from "@/utils/passkey";
-import { checkIfEmailInUse } from "@/utils/api";
 import { toHex } from "viem";
 import { uncompressRawPublicKey } from "@turnkey/crypto";
 import { hexToArrayBuffer } from "@/helpers/converters";
@@ -189,11 +188,6 @@ export default function TestScreen() {
 
   const onChangeUserEmail = useCallback(async () => {
     if (!isValidEmail(email)) return alert("Invalid email address");
-    const inUse = await checkIfEmailInUse({ email });
-    if (inUse) {
-      alert("Email already in use");
-      return;
-    }
     try {
       const response = await updateUser({ email });
       console.log("response", response);

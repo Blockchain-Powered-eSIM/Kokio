@@ -20,9 +20,6 @@ export enum Authenticator {
 
 export enum LoginMethod {
   Passkey = "PASSKEY",
-  Email = "EMAIL",
-  Phone = "PHONE",
-  OAuth = "OAUTH",
 }
 
 export type KeyPair = {
@@ -83,27 +80,10 @@ export type OAuthProviderParams = {
   oidcToken: string;
 };
 
-export type InitOtpAuthParams = {
-  otpType: "OTP_TYPE_EMAIL" | "OTP_TYPE_SMS";
-  contact: string;
-};
-
-export type OtpAuthParams = {
-  otpId: string;
-  otpCode: string;
-  organizationId: string;
-  targetPublicKey: string;
-  apiKeyName?: string;
-  expirationSeconds?: string;
-  invalidateExisting?: boolean;
-};
-
 export type MethodParamsMap = {
   getSubOrgId: GetSubOrgIdParams;
   createSubOrg: CreateSubOrgParams;
   getWhoami: GetWhoamiParams;
-  initOTPAuth: InitOtpAuthParams;
-  otpAuth: OtpAuthParams;
 };
 
 export type MethodName = keyof MethodParamsMap;

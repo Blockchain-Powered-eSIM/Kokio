@@ -1,11 +1,5 @@
-import {
-  DEFAULT_ETHEREUM_ACCOUNTS,
-  TURNKEY_API_URL,
-  TURNKEY_PARENT_ORG_ID,
-} from "@/constants/passkey.constants";
-
-// Assuming types.ts is still available for ParamsType
-import { APIKeysT, ParamsType, PasskeyT } from "./types";
+import { TURNKEY_API_URL } from "@/constants/passkey.constants";
+import { APIKeysT, PasskeyT } from "./types";
 import Constants from "expo-constants";
 import { AppExtraConfig, Config } from "@/appKeys";
 import { PasskeyStamper, TurnkeyClient } from "@turnkey/sdk-react-native";
@@ -47,36 +41,6 @@ async function post(endpoint: string, body: any) {
   }
 
   return json;
-}
-
-/**
- * Initiates OTP auth by calling the server endpoint.
- * Original signature: handleInitEmailOtpAuth({ email }: { email: string })
- */
-export async function handleInitEmailOtpAuth({ email }: { email: string }) {
-  try {
-    const result = await post("/api/init-email-otp-auth", { email });
-    // Expected server response: { result: InitOtpAuthResponse, organizationId: string }
-    return result;
-  } catch (error) {
-    console.error("error during handleInitEmailOtpAuth", error);
-    throw error;
-  }
-}
-
-/**
- * Completes OTP authentication by calling the server endpoint.
- * Original signature: handleOtpAuth(params: ParamsType<"otpAuth">)
- */
-export async function handleOtpAuth(params: ParamsType<"otpAuth">) {
-  try {
-    // params directly match the server's expected request body
-    const result = await post("/api/otp-auth", params);
-    return result;
-  } catch (error) {
-    console.error("error during otpAuth", error);
-    throw error;
-  }
 }
 
 /**
@@ -149,31 +113,3 @@ export async function createSubOrganization(
   }
 }
 
-/**
- * Checks if a sub-organization exists for an email via the server.
- * Original signature: checkIfEmailInUse({ email }: { email: string }): Promise<boolean | string[]>
- */
-export async function checkIfEmailInUse({
-  email,
-}: {
-  email: string;
-}): Promise<boolean | string[]> {
-  if (!email) {
-    throw new Error("Email is required for check.");
-  }
-
-  try {
-    // The server returns { inUse: boolean, organizationIds: string[] }
-    const result = await post("/api/check-email", { email });
-
-    // Match the original function's return type: boolean (false) or string[] (organization IDs)
-    if (result.inUse) {
-      return result.organizationIds;
-    } else {
-      return false;
-    }
-  } catch (error) {
-    console.error("error during checkIfEmailInUse", error);
-    throw error;
-  }
-}

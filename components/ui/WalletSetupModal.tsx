@@ -16,7 +16,6 @@ import { SmartContractAccount } from "@aa-sdk/core";
 import { ThemedText } from "@/components/ThemedText";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { checkIfEmailInUse } from "@/utils/api";
 import { useTurnkey } from "@turnkey/sdk-react-native";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
@@ -189,12 +188,6 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
   const onChangeUserEmail = useCallback(async () => {
     if (!email) return;
-
-    const inUse = await checkIfEmailInUse({ email });
-    if (inUse) {
-      showMessage("That email is already in use. Try a different one.", "error");
-      return;
-    }
     try {
       return await updateUser({ email });
     } catch (e) {
