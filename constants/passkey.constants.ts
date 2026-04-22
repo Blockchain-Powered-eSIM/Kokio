@@ -16,6 +16,3 @@ export const DEFAULT_ETHEREUM_ACCOUNTS = [
 ];
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
-/** @deprecate */ 
-// export const TURNKEY_PARENT_ORG_ID = extra.turnkeyOrganizationId ?? "";
-// export const TURNKEY_API_URL = process.env.EXPO_PUBLIC_TURNKEY_API_URL ?? "";
