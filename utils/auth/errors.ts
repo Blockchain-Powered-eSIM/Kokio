@@ -1,4 +1,5 @@
 const ERROR_MESSAGES: Record<string, string> = {
+  // Registration
   CREDENTIAL_ALREADY_EXISTS: 'A passkey is already set up on this device. Try signing in.',
   CREDENTIAL_EXISTS:         'A passkey is already set up on this device. Try signing in.',
   DEVICE_WALLET_DERIVATION_FAILED: "We couldn't set up your wallet. Please try again.",
@@ -7,6 +8,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_ATTESTATION:       'Passkey setup failed. Please try again.',
   RATE_LIMIT_EXCEEDED:       'Too many attempts. Please wait a minute.',
   TOO_MANY_REQUESTS:         'Too many attempts. Please wait a minute.',
+  // Login
+  AUTH_TIME_RECENCY_VIOLATION: 'Biometric confirmation timed out. Please try again.',
+  INVALID_ASSERTION:           'Passkey verification failed. Please try again.',
+  CREDENTIAL_NOT_FOUND:        'No passkey found for this device. Try signing in with email.',
+  NO_DEVICE_WALLET:            'No wallet found on this device. Please sign up first.',
+  AUTHORIZE_FAILED:            'Sign-in could not be completed. Please try again.',
+  LOGIN_FAILED:                'Sign-in failed. Please try again.',
 };
 
 const HTTP_MESSAGES: Record<number, string> = {

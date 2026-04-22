@@ -1,15 +1,5 @@
 import { ReactNode, createContext, useEffect, useReducer } from "react";
-import {
-  isSupported,
-  PasskeyStamper,
-} from "@turnkey/react-native-passkey-stamper";
-import { TurnkeyClient } from "@turnkey/sdk-react-native";
 import { LoginMethod } from "@/utils/types";
-import {
-  PASSKEY_CONFIG,
-  TURNKEY_API_URL,
-  TURNKEY_PARENT_ORG_ID,
-} from "@/constants/passkey.constants";
 import { useTurnkey, User } from "@turnkey/sdk-react-native";
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
@@ -215,53 +205,19 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   };
 
   const loginWithPasskey = async () => {
-    if (!isSupported()) {
+    if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
 
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const stamper = new PasskeyStamper({
-        rpId: PASSKEY_CONFIG.RP_ID,
-      });
-
-      const httpClient = new TurnkeyClient(
-        { baseUrl: TURNKEY_API_URL },
-        stamper
-      );
-
-      const targetPublicKey = await createEmbeddedKey();
-
-      const sessionResponse = await httpClient.createReadWriteSession({
-        type: "ACTIVITY_TYPE_CREATE_READ_WRITE_SESSION_V2",
-        timestampMs: Date.now().toString(),
-        organizationId: TURNKEY_PARENT_ORG_ID,
-        parameters: {
-          targetPublicKey,
-        },
-      });
-
-      console.log("Session response", sessionResponse);
-
-      const credentialBundle =
-        sessionResponse.activity.result.createReadWriteSessionResultV2
-          ?.credentialBundle;
-
-      console.log(credentialBundle);
-
-      if (credentialBundle) {
-        const session = await createSession({
-          bundle: credentialBundle,
-          expirationSeconds: 3600,
-        });
-        dispatch({
-          type: "PASSKEY",
-          payload: session.user,
-        });
-      }
+      // Reads deviceWalletAddress from SecureStore (stored at registration).
+      // Retries once on AUTH_TIME_RECENCY_VIOLATION (biometric timeout >120s).
+      await loginWithKokioPasskey();
+      dispatch({ type: "PASSKEY", payload: undefined });
     } catch (error: any) {
-      dispatch({ type: "ERROR", payload: error.message });
+      dispatch({ type: "ERROR", payload: error.userMessage ?? error.message });
     } finally {
       dispatch({ type: "LOADING", payload: null });
     }
