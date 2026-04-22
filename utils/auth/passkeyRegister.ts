@@ -1,10 +1,11 @@
 import { Passkey } from 'react-native-passkey';
 import { kokioAuthClient, RegisterCompleteData } from './kokioAuthClient';
+import { AuthError } from './errors';
 
-export class CredentialExistsError extends Error {
-  readonly code = 'CREDENTIAL_EXISTS' as const;
+/** @deprecated Use AuthError with code CREDENTIAL_EXISTS instead */
+export class CredentialExistsError extends AuthError {
   constructor() {
-    super('A passkey is already registered for this device');
+    super('CREDENTIAL_EXISTS');
     this.name = 'CredentialExistsError';
   }
 }
@@ -23,9 +24,9 @@ export class CredentialExistsError extends Error {
 export async function registerPasskey(username: string): Promise<RegisterCompleteData> {
   // 1. Fetch server-generated WebAuthn creation options
   const beginResp = await kokioAuthClient.registerBegin({ username });
-  const beginBody = beginResp as unknown as { success?: boolean; code?: string; message?: string; data?: typeof beginResp.data };
+  const beginBody = beginResp as unknown as { success?: boolean; code?: string; message?: string; data?: typeof beginResp.data; httpStatus?: number };
   if (!beginBody.data) {
-    throw new Error(beginBody.message ?? 'Registration options unavailable');
+    throw new AuthError(beginBody.code ?? 'REGISTRATION_FAILED', beginBody.httpStatus, beginBody.message);
   }
   const options = beginBody.data;
 
@@ -55,12 +56,11 @@ export async function registerPasskey(username: string): Promise<RegisterComplet
     },
   });
 
-  const completeBody = completeResp as unknown as { success?: boolean; code?: string; message?: string; data?: RegisterCompleteData };
+  const completeBody = completeResp as unknown as { success?: boolean; code?: string; message?: string; data?: RegisterCompleteData; httpStatus?: number };
 
   if (!completeBody.success) {
-    if (completeBody.code === 'CREDENTIAL_ALREADY_EXISTS') throw new CredentialExistsError();
-    throw new Error(completeBody.message ?? 'Registration failed');
+    throw new AuthError(completeBody.code ?? 'REGISTRATION_FAILED', completeBody.httpStatus, completeBody.message);
   }
-  if (!completeBody.data) throw new Error('Registration succeeded but no data returned');
+  if (!completeBody.data) throw new AuthError('REGISTRATION_FAILED');
   return completeBody.data;
 }

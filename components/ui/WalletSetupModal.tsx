@@ -18,6 +18,8 @@ import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { checkIfEmailInUse } from "@/utils/api";
 import { useTurnkey } from "@turnkey/sdk-react-native";
+import { useToast } from "@/contexts/ToastContext";
+import { AuthError } from "@/utils/auth/errors";
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -50,6 +52,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const modalRef = React.useRef<Modal>(null);
   const { kokio, setupKokioUserWallet } = useKokio();
   const { updateUser } = useTurnkey();
+  const { showMessage } = useToast();
 
   const handleAddressPress = useCallback(async () => {
     if (walletAddress) {
@@ -73,15 +76,25 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       return;
     }
 
-    setWalletAddress(address);
-    // Store as a minimal wallet record — only address is needed downstream
-    await setupKokioUserWallet(
-      kokio.deviceUID,
-      { address } as unknown as SmartContractAccount
-    );
-    setShowRecovery(true);
-    setIsLoading(false);
-  }, [kokio.deviceWalletAddress, kokio.deviceUID, setupKokioUserWallet]);
+    try {
+      setWalletAddress(address);
+      await setupKokioUserWallet(
+        kokio.deviceUID,
+        { address } as unknown as SmartContractAccount
+      );
+      setShowRecovery(true);
+    } catch (err: unknown) {
+      const message = err instanceof AuthError
+        ? err.userMessage
+        : err instanceof Error
+          ? err.message
+          : 'Something went wrong. Please try again.';
+      showMessage(message, 'error');
+      setShowRetry(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [kokio.deviceWalletAddress, kokio.deviceUID, setupKokioUserWallet, showMessage]);
 
   const handleClose = useCallback(() => {
     setIsLoading(false);
@@ -179,17 +192,15 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
     const inUse = await checkIfEmailInUse({ email });
     if (inUse) {
-      alert("Email already in use");
+      showMessage("That email is already in use. Try a different one.", "error");
       return;
     }
     try {
-      const response = await updateUser({ email });
-      console.log("response", response);
-      return response;
+      return await updateUser({ email });
     } catch (e) {
-      console.error("Error updating user email", e);
+      showMessage("Failed to save recovery email. You can update it later in settings.", "error");
     }
-  }, [email]);
+  }, [email, showMessage]);
 
   const handleDone = useCallback(() => {
     // if email is provided, save it for recovery purpose
