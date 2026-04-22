@@ -1,7 +1,9 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useState } from "react";
 import { TextInput } from "react-native-gesture-handler";
+import { v4 as uuidv4 } from "uuid";
+import { Config } from "@/appKeys";
 import { useTurnkey } from "@turnkey/sdk-react-native";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { stampGetWhoami } from "@/utils/passkey";
@@ -49,6 +51,98 @@ export default function TestScreen() {
   const signUpDisabled = false;
 
   const [dpopResult, setDpopResult] = useState<string | null>(null);
+
+  // ─── Redirect spike state ────────────────────────────────────────────────
+  const [redirectLog, setRedirectLog] = useState<string>("");
+  const [redirectUrl, setRedirectUrl] = useState<string>(
+    `${Config.AUTH_SERVER_BASE_URL ?? ""}/v1/auth/authorize?response_type=code&redirect_uri=kokio%3A%2F%2Fcallback&code_challenge=SPIKE_CHALLENGE&code_challenge_method=S256&device_wallet_address=0x0000000000000000000000000000000000000000&auth_time=0`
+  );
+
+  const appendLog = (line: string) =>
+    setRedirectLog((prev) => (prev ? prev + "\n" + line : line));
+
+  const runFetchManual = useCallback(async () => {
+    setRedirectLog("── fetch/manual ──────────────────");
+    try {
+      const res = await fetch(redirectUrl, {
+        method: "GET",
+        headers: { "x-correlation-id": uuidv4() },
+        redirect: "manual",
+      });
+
+      appendLog(`status : ${res.status}`);
+      appendLog(`type   : ${(res as any).type ?? "(no type)"}`);
+      appendLog(`url    : ${(res as any).url ?? "(empty)"}`);
+      appendLog(`Location (header): ${res.headers.get("location") ?? res.headers.get("Location") ?? "null"}`);
+
+      const isRedirect =
+        res.status === 302 ||
+        res.status === 0 ||
+        (res as any).type === "opaqueredirect";
+
+      if (isRedirect) {
+        const extracted =
+          res.headers.get("location") ??
+          res.headers.get("Location") ??
+          (res as unknown as { url?: string }).url ??
+          null;
+        const via =
+          (res.headers.get("location") || res.headers.get("Location"))
+            ? "Location header"
+            : (res as any).url
+            ? "res.url"
+            : "NOTHING";
+        appendLog(`→ extracted via: ${via}`);
+        appendLog(`→ target: ${extracted ?? "(null)"}`);
+
+        const code = extracted ? new URL(extracted).searchParams.get("code") : null;
+        appendLog(`→ code param: ${code ?? "(none — expected for spike dummy URL)"}`);
+      } else {
+        appendLog("→ NOT a redirect response");
+        try {
+          const body = await res.text();
+          appendLog(`body: ${body.slice(0, 200)}`);
+        } catch {
+          appendLog("(body unreadable)");
+        }
+      }
+    } catch (e: any) {
+      appendLog(`EXCEPTION: ${e?.message ?? String(e)}`);
+    }
+    appendLog(`platform: ${Platform.OS}`);
+  }, [redirectUrl]);
+
+  const runXhr = useCallback(() => {
+    setRedirectLog("── XMLHttpRequest ───────────────────────");
+    const xhr = new XMLHttpRequest();
+
+    xhr.onreadystatechange = () => {
+      appendLog(`readyState ${xhr.readyState} status: ${xhr.status}`);
+      if (xhr.readyState === 2) {
+        // HEADERS_RECEIVED — fires for final response, not the 302
+        appendLog(`  Location (HEADERS_RECEIVED): ${xhr.getResponseHeader("Location") ?? "null"}`);
+        appendLog(`  responseURL: ${xhr.responseURL ?? "(empty)"}`);
+      }
+    };
+
+    xhr.onload = () => {
+      appendLog(`onload — status: ${xhr.status}`);
+      appendLog(`responseURL: ${xhr.responseURL ?? "(empty)"}`);
+      appendLog(`Location: ${xhr.getResponseHeader("Location") ?? "null"}`);
+    };
+
+    xhr.onerror = () => {
+      appendLog("onerror fired (expected — kokio:// not fetchable)");
+      appendLog(`responseURL on error: ${xhr.responseURL ?? "(empty)"}`);
+      appendLog(`status on error: ${xhr.status}`);
+      appendLog("→ NO redirect URL extractable via XHR ✗");
+    };
+
+    xhr.open("GET", redirectUrl);
+    xhr.setRequestHeader("x-correlation-id", uuidv4());
+    xhr.send();
+    appendLog(`platform: ${Platform.OS}`);
+  }, [redirectUrl]);
 
   const runDpopSmokeTest = useCallback(async () => {
     setDpopResult("Running…");
@@ -433,6 +527,63 @@ export default function TestScreen() {
 
       {dpopResult && (
         <Text style={[styles.userText, { marginTop: 8 }]}>{dpopResult}</Text>
+      )}
+
+      <View style={styles.separator} />
+
+      {/* ── Redirect spike ──────────────────────────────────────────────── */}
+      <Text style={[styles.title, { fontSize: 14 }]}>
+        Redirect Spike (AUTH-502)
+      </Text>
+      <Text style={[styles.userText, { marginBottom: 8, color: "#666" }]}>
+        Edit URL then run each approach. Check docs/auth-redirect-handling.md
+        for expected output per platform.
+      </Text>
+
+      <TextInput
+        style={[styles.textInput, { height: 60, fontSize: 10 }]}
+        value={redirectUrl}
+        onChangeText={setRedirectUrl}
+        multiline
+        placeholder="authorize URL"
+      />
+
+      <Pressable style={styles.button} onPress={runFetchManual}>
+        <Text style={styles.buttonText}>
+          1 — fetch / redirect:manual
+        </Text>
+      </Pressable>
+
+      <Pressable style={styles.button} onPress={runXhr}>
+        <Text style={styles.buttonText}>
+          2 — XMLHttpRequest (expect ✗)
+        </Text>
+      </Pressable>
+
+      <Pressable
+        style={[styles.button, { backgroundColor: "#555" }]}
+        onPress={() => setRedirectLog("")}
+      >
+        <Text style={styles.buttonText}>Clear log</Text>
+      </Pressable>
+
+      {redirectLog !== "" && (
+        <View
+          style={{
+            width: "100%",
+            backgroundColor: "#111",
+            borderRadius: 8,
+            padding: 10,
+            marginTop: 8,
+          }}
+        >
+          <Text
+            style={[styles.userText, { color: "#0f0", fontSize: 10, lineHeight: 16 }]}
+            selectable
+          >
+            {redirectLog}
+          </Text>
+        </View>
       )}
     </ScrollView>
   );
