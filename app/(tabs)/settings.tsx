@@ -16,7 +16,6 @@ import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTurnkey } from "@turnkey/sdk-react-native";
 
 // Feature flags for menu item availability
 // Set to true to enable the menu item, false to disable (but keep visible)
@@ -124,7 +123,6 @@ export default function MenuScreen() {
   const { loginWithPasskey, signUpWithPasskey, reauthenticate, logout } =
     useAuthRelay();
   const { clearKokioUser } = useKokio();
-  const { user } = useTurnkey();
   const router = useRouter();
 
   // State to track whether About screen is visible
@@ -184,7 +182,7 @@ export default function MenuScreen() {
       action: async () => {
         // Clear Kokio SDK + passkey / wallet / eSIM state from SecureStore first,
         // then revoke the refresh token and wipe the auth token store.
-        await clearKokioUser(user);
+        await clearKokioUser();
         await logout();
       },
     },

@@ -1,4 +1,5 @@
-import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
+import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
+const TURNKEY_API_URL = "https://api.turnkey.com"; // retained for stampGetWhoami (test utility only)
 import { PasskeyStamper } from "@turnkey/react-native-passkey-stamper";
 import { TurnkeyClient } from "@turnkey/sdk-react-native";
 import {

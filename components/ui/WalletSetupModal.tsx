@@ -16,7 +16,6 @@ import { SmartContractAccount } from "@aa-sdk/core";
 import { ThemedText } from "@/components/ThemedText";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { useTurnkey } from "@turnkey/sdk-react-native";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 
@@ -50,7 +49,6 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   );
   const modalRef = React.useRef<Modal>(null);
   const { kokio, setupKokioUserWallet } = useKokio();
-  const { updateUser } = useTurnkey();
   const { showMessage } = useToast();
 
   const handleAddressPress = useCallback(async () => {
@@ -187,13 +185,9 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   }, [onClose]);
 
   const onChangeUserEmail = useCallback(async () => {
+    // TODO: save recovery email via Kokio API once endpoint is available
     if (!email) return;
-    try {
-      return await updateUser({ email });
-    } catch (e) {
-      showMessage("Failed to save recovery email. You can update it later in settings.", "error");
-    }
-  }, [email, showMessage]);
+  }, [email]);
 
   const handleDone = useCallback(() => {
     // if email is provided, save it for recovery purpose

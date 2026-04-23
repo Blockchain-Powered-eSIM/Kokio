@@ -13,7 +13,6 @@ import BottomSheet, {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
-import { useTurnkey } from "@turnkey/sdk-react-native";
 import { ThemedText } from "./ThemedText";
 import { useRouter } from "expo-router";
 import { useKokio } from "@/hooks/useKokio";
@@ -30,7 +29,6 @@ export function AuthenticationModal() {
     kokio,
     setupKokioRegistration,
   } = useKokio();
-  const { clearAllSessions } = useTurnkey();
   const router = useRouter();
 
   // renders
@@ -105,7 +103,6 @@ export function AuthenticationModal() {
   useEffect(() => {
     // Show the modal if not authenticated and we have user data (meaning user has set up passkey)
     if (!state.authenticated) {
-      clearAllSessions();
       sheetRef.current?.expand({
         duration: 250,
         easing: Easing.in(Easing.quad),

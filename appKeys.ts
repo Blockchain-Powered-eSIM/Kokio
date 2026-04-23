@@ -5,6 +5,9 @@ export interface AppExtraConfig {
     authServerBaseUrl?: string;
     redirectUri?: string;
     apiBaseUrl?: string;
+    alchemyApiKey?: string;
+    pimlicoApiKey?: string;
+    gasManagerPolicyId?: string;
 }
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
@@ -14,6 +17,9 @@ export const Config = {
     AUTH_SERVER_BASE_URL: extra?.authServerBaseUrl,
     REDIRECT_URI: extra?.redirectUri,
     API_BASE_URL: extra?.apiBaseUrl,
+    ALCHEMY_API_KEY: extra?.alchemyApiKey,
+    PIMLICO_API_KEY: extra?.pimlicoApiKey,
+    GAS_MANAGER_POLICY_ID: extra?.gasManagerPolicyId,
 
     // Utility function for validation
     validateSecrets: () => {

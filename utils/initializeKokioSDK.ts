@@ -1,44 +1,36 @@
-import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
-import { PasskeyStamper } from "@turnkey/react-native-passkey-stamper";
-import { returnViemWalletClient } from "./passkey";
-import { TurnkeyClient, User } from "@turnkey/sdk-react-native";
+import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
 import { UserPasskey } from "@/providers/kokioProvider";
 import Constants from "expo-constants";
 import { AppExtraConfig } from "@/appKeys";
 import { SmartContractAccount } from "@aa-sdk/core";
 import { Kokio } from "kokio-sdk";
+import { createWalletClient, http } from "viem";
+import { baseSepolia } from "viem/chains";
 
-export const initializeKokioSDK = async (user: User, userPasskey: UserPasskey, walletAddress: string) => {
+export const initializeKokioSDK = async (userPasskey: UserPasskey, walletAddress: string) => {
   const extra = Constants.expoConfig?.extra as AppExtraConfig;
-  
-  const stamper = new PasskeyStamper({
-    rpId: PASSKEY_CONFIG.RP_ID,
+
+  const rpcUrl = extra.alchemyApiKey
+    ? `https://base-sepolia.g.alchemy.com/v2/${extra.alchemyApiKey}`
+    : 'https://sepolia.base.org';
+
+  const viemClient = createWalletClient({
+    chain: baseSepolia,
+    transport: http(rpcUrl),
   });
 
-  const turnkeyClient = new TurnkeyClient(
-    { baseUrl: TURNKEY_API_URL },
-    stamper
-  );
-
-  const viemClient = await returnViemWalletClient(
-    user,
-    turnkeyClient,
-    walletAddress
-  );
-
   if (!userPasskey.credentialId) {
-    console.error("Error credentialId", userPasskey.credentialId);
+    console.error("Error: credentialId missing");
     return;
   }
 
   const kokioSDK = new Kokio(
     viemClient,
-    turnkeyClient,
     userPasskey.credentialId,
     PASSKEY_CONFIG.RP_ID,
-    extra.turnkeyOrganizationId ?? "",
-    extra.pimlicoApiKey ?? "",
-    extra.gasManagerPolicyId ?? ""
+    '',
+    extra.pimlicoApiKey ?? '',
+    extra.gasManagerPolicyId ?? '',
   );
 
   return kokioSDK;
