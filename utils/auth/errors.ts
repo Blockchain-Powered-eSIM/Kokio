@@ -15,6 +15,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   NO_DEVICE_WALLET:            'No wallet found on this device. Please sign up first.',
   AUTHORIZE_FAILED:            'Sign-in could not be completed. Please try again.',
   LOGIN_FAILED:                'Sign-in failed. Please try again.',
+  // Step-up
+  STEP_UP_CANCELLED:           'Biometric confirmation was cancelled.',
+  STEP_UP_FAILED:              'Biometric confirmation failed. Please try again.',
   // Network / server
   SERVER_ERROR:                'Something went wrong. Please try again.',
   NETWORK_ERROR:               'Network error. Check your connection and try again.',
@@ -44,5 +47,12 @@ export class AuthError extends Error {
     this.code = code;
     this.userMessage = userMessage;
     this.httpStatus = httpStatus;
+  }
+}
+
+export class StepUpCancelledError extends AuthError {
+  constructor() {
+    super('STEP_UP_CANCELLED');
+    this.name = 'StepUpCancelledError';
   }
 }

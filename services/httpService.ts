@@ -8,16 +8,25 @@ import { Config } from '@/appKeys';
 import { useAuthStore } from '@/stores/authStore';
 import { buildDpopProof } from '@/utils/auth/dpopProof';
 import { refreshAccessToken, TokenFamilyRevokedError } from '@/utils/auth/refresh';
+import { StepUpCancelledError } from '@/utils/auth/errors';
 
 // ─── Auth event callbacks ─────────────────────────────────────────────────────
 // Register these in your root provider before any authenticated request fires.
 // AUTH-502 wires up setStepUpHandler; AUTH-506 wires up setUnauthenticatedHandler.
 
-let _onStepUpNeeded: (() => void) | null = null;
+/** Metadata forwarded to the step-up UI so it can show context-aware copy. */
+export type StepUpHint = {
+  /** e.g. "POST /v1/order" — for UX telemetry / copy. */
+  operationName: string;
+  /** Seconds since last biometric auth that the server requires (from 401 body). */
+  requiredAuthTimeAge?: number;
+};
+
+let _onStepUpNeeded: ((hint: StepUpHint) => void) | null = null;
 let _onUnauthenticated: (() => void) | null = null;
 
-export function setStepUpHandler(fn: () => void): void      { _onStepUpNeeded    = fn; }
-export function setUnauthenticatedHandler(fn: () => void): void { _onUnauthenticated = fn; }
+export function setStepUpHandler(fn: (hint: StepUpHint) => void): void { _onStepUpNeeded    = fn; }
+export function setUnauthenticatedHandler(fn: () => void): void        { _onUnauthenticated = fn; }
 
 // ─── Step-up queue (AUTH-502) ─────────────────────────────────────────────────
 // All concurrent requests that hit STEP_UP_REQUIRED park here. AUTH-502 calls
@@ -33,18 +42,18 @@ export function resolveStepUp(): void {
   entries.forEach(({ resolve }) => resolve());
 }
 
-export function rejectStepUp(err: Error = new Error('Step-up cancelled')): void {
+export function rejectStepUp(err: Error = new StepUpCancelledError()): void {
   const entries = _stepUpQueue.splice(0);
   _stepUpActive = false;
   entries.forEach(({ reject }) => reject(err));
 }
 
-function waitForStepUp(): Promise<void> {
+function waitForStepUp(hint: StepUpHint): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     _stepUpQueue.push({ resolve, reject });
     if (!_stepUpActive) {
       _stepUpActive = true;
-      _onStepUpNeeded?.();
+      _onStepUpNeeded?.(hint);
     }
   });
 }
@@ -141,7 +150,7 @@ instance.interceptors.response.use(
   async (error: AxiosError) => {
     const cfg    = error.config as RetryableConfig | undefined;
     const status = error.response?.status;
-    const body   = error.response?.data as { code?: string } | undefined;
+    const body   = error.response?.data as { code?: string; error?: string; required_auth_time_age?: number } | undefined;
     const wwwAuth = (error.response?.headers?.['www-authenticate'] as string | undefined) ?? '';
 
     // Cache any nonce from the error response too (RFC 9449 §8).
@@ -160,13 +169,19 @@ instance.interceptors.response.use(
       return instance(cfg);
     }
 
-    // 4. Step-up required — park request until AUTH-502 resolves step-up.
-    if (body?.code === 'STEP_UP_REQUIRED') {
+    // 4. Step-up required — park request until AUTH-602 resolves step-up.
+    //    The BFF may return the error code in either `error` or `code` field.
+    //    On cancel / failure: reject the queued request only — the session is
+    //    still valid, so do NOT clear tokens or navigate away.
+    if (body?.code === 'STEP_UP_REQUIRED' || body?.error === 'STEP_UP_REQUIRED') {
+      const hint: StepUpHint = {
+        operationName:       `${(cfg.method ?? 'GET').toUpperCase()} ${cfg.url ?? ''}`,
+        requiredAuthTimeAge: body?.required_auth_time_age,
+      };
       try {
-        await waitForStepUp();
+        await waitForStepUp(hint);
         return instance(cfg);
       } catch (stepErr) {
-        await handleAuthFailure();
         return Promise.reject(stepErr);
       }
     }
