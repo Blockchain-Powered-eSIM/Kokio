@@ -1,10 +1,18 @@
-import { ReactNode, createContext, useEffect, useReducer } from "react";
+import { ReactNode, createContext, useCallback, useEffect, useReducer, useState } from "react";
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
 import { LoginMethod } from "@/utils/types";
 import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
 import { registerPasskey } from "@/utils/auth/passkeyRegister";
 import { loginWithKokioPasskey } from "@/utils/auth/passkeyLogin";
+import { performStepUp } from "@/utils/auth/stepUp";
+import { StepUpCancelledError } from "@/utils/auth/errors";
+import {
+  setStepUpHandler,
+  resolveStepUp,
+  rejectStepUp,
+  type StepUpHint,
+} from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -60,6 +68,12 @@ export interface AuthRelayProviderType {
   reauthenticate: () => void;
   clearError: () => void;
   logout: () => Promise<void>;
+  // Step-up (AUTH-602)
+  stepUpVisible: boolean;
+  stepUpHint: StepUpHint | null;
+  stepUpError: string;
+  stepUp: () => Promise<void>;
+  dismissStepUp: () => void;
 }
 
 export const AuthRelayContext = createContext<AuthRelayProviderType>({
@@ -69,6 +83,11 @@ export const AuthRelayContext = createContext<AuthRelayProviderType>({
   reauthenticate: () => {},
   clearError: () => {},
   logout: async () => {},
+  stepUpVisible: false,
+  stepUpHint: null,
+  stepUpError: '',
+  stepUp: async () => {},
+  dismissStepUp: () => {},
 });
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -81,7 +100,19 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   children,
 }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [stepUpVisible, setStepUpVisible] = useState(false);
+  const [stepUpHint, setStepUpHint] = useState<StepUpHint | null>(null);
+  const [stepUpError, setStepUpError] = useState('');
   const router = useRouter();
+
+  // Wire httpService step-up handler — fires whenever a BFF request returns
+  // 401 STEP_UP_REQUIRED. The modal reads stepUpVisible / stepUpHint.
+  useEffect(() => {
+    setStepUpHandler((hint: StepUpHint) => {
+      setStepUpHint(hint);
+      setStepUpVisible(true);
+    });
+  }, []);
 
   // Bidirectional sync: token-store ↔ auth state.
   //
@@ -182,6 +213,26 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "CLEAR_ERROR" });
   };
 
+  const stepUp = useCallback(async () => {
+    setStepUpError('');
+    try {
+      await performStepUp();
+      resolveStepUp();
+      setStepUpVisible(false);
+      setStepUpHint(null);
+    } catch (err: any) {
+      setStepUpError(err?.userMessage ?? err?.message ?? 'Biometric confirmation failed. Please try again.');
+    }
+  }, []);
+
+  const dismissStepUp = useCallback(() => {
+    if (__DEV__) console.log('[stepup] stepup.cancelled');
+    rejectStepUp(new StepUpCancelledError());
+    setStepUpVisible(false);
+    setStepUpHint(null);
+    setStepUpError('');
+  }, []);
+
   return (
     <AuthRelayContext.Provider
       value={{
@@ -191,6 +242,11 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
         reauthenticate,
         clearError,
         logout,
+        stepUpVisible,
+        stepUpHint,
+        stepUpError,
+        stepUp,
+        dismissStepUp,
       }}
     >
       {children}

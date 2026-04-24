@@ -20,6 +20,7 @@ import {
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { Providers } from "@/providers";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
+import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -124,6 +125,7 @@ export default function RootLayout() {
         <Stack.Screen name="Offline" options={{ headerShown: false }} />
       </Stack>
       <AuthenticationModal />
+      <StepUpPromptModal />
     </Providers>
   );
 }
