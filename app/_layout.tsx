@@ -1,7 +1,6 @@
 // Add global shims
 import "react-native-get-random-values";
 import "@ethersproject/shims";
-import "cbor-rn-prereqs";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";

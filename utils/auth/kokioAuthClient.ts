@@ -140,7 +140,7 @@ async function authFetch<T>(
     const contentType = res.headers.get('content-type') ?? '';
 
     if (__DEV__) {
-      console.log(`[authFetch] ${method} ${path} → ${res.status} (${contentType})\n`, text.slice(0, 500));
+      console.log(`[authFetch] ${method} ${path} → ${res.status} (${contentType})\n req:`, body, '\n res:', text.slice(0, 1000));
     }
 
     if (!contentType.includes('application/json')) {

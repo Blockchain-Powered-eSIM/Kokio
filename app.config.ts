@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
-      associatedDomains: ["webcredentials:kokio.app", "webcredentials:docs.kokio.app"],
+      associatedDomains: ["webcredentials:kokio.app", "webcredentials:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
       },

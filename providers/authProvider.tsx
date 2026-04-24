@@ -16,6 +16,16 @@ import {
 } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 
+// ─── Error formatting ─────────────────────────────────────────────────────────
+
+function formatError(error: any): string {
+  const code: string | undefined = error?.code;
+  const status: number | undefined = error?.httpStatus;
+  const msg: string = error?.message ?? error?.userMessage ?? 'Unknown error';
+  if (!code) return msg;
+  return status ? `[${code} ${status}] ${msg}` : `[${code}] ${msg}`;
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 interface AuthState {
@@ -159,7 +169,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       dispatch({ type: "PASSKEY" });
       return result;
     } catch (error: any) {
-      dispatch({ type: "ERROR", payload: error.userMessage ?? error.message });
+      dispatch({ type: "ERROR", payload: formatError(error) });
       return null;
     } finally {
       dispatch({ type: "LOADING", payload: null });
@@ -179,7 +189,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       await loginWithKokioPasskey();
       dispatch({ type: "PASSKEY" });
     } catch (error: any) {
-      dispatch({ type: "ERROR", payload: error.userMessage ?? error.message });
+      dispatch({ type: "ERROR", payload: formatError(error) });
     } finally {
       dispatch({ type: "LOADING", payload: null });
     }
@@ -221,7 +231,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       setStepUpVisible(false);
       setStepUpHint(null);
     } catch (err: any) {
-      setStepUpError(err?.userMessage ?? err?.message ?? 'Biometric confirmation failed. Please try again.');
+      setStepUpError(formatError(err));
     }
   }, []);
 

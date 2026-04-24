@@ -1,24 +1,17 @@
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { TextInput } from "react-native-gesture-handler";
 import { v4 as uuidv4 } from "uuid";
 import { Config } from "@/appKeys";
-import { useTurnkey } from "@turnkey/sdk-react-native";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
-import { stampGetWhoami } from "@/utils/passkey";
-import { toHex } from "viem";
-import { uncompressRawPublicKey } from "@turnkey/crypto";
-import { hexToArrayBuffer } from "@/helpers/converters";
 import { useKokio } from "@/hooks/useKokio";
-import { P256Key } from "kokio-sdk/types";
 import { useAppState } from "@/hooks/useAppState";
 import { generateKeyPair, SignJWT, calculateJwkThumbprint, exportJWK } from "jose";
 
 const isValidEmail = (email: string | undefined) => {
   if (!email) return false;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
 export default function TestScreen() {
@@ -26,27 +19,11 @@ export default function TestScreen() {
   console.log("AppState in layout", appState);
 
   const { signUpWithPasskey, loginWithPasskey } = useAuthRelay();
-  const {
-    user,
-    session,
-    clearSession,
-    signRawPayload,
-    exportWallet,
-    updateUser,
-  } = useTurnkey();
-
   const { kokio, clearKokioUser } = useKokio();
 
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState(kokio.userData?.email ?? "");
   const [username, setUsername] = useState("");
-  const [smartAccountAddress, setSmartAccountAddress] = useState("");
-  const [data, setData] = useState<{
-    x: string;
-    y: string;
-  } | null>(null);
-
-  const signUpDisabled = false;
 
   const [dpopResult, setDpopResult] = useState<string | null>(null);
 
@@ -117,7 +94,6 @@ export default function TestScreen() {
     xhr.onreadystatechange = () => {
       appendLog(`readyState ${xhr.readyState} status: ${xhr.status}`);
       if (xhr.readyState === 2) {
-        // HEADERS_RECEIVED — fires for final response, not the 302
         appendLog(`  Location (HEADERS_RECEIVED): ${xhr.getResponseHeader("Location") ?? "null"}`);
         appendLog(`  responseURL: ${xhr.responseURL ?? "(empty)"}`);
       }
@@ -166,16 +142,13 @@ export default function TestScreen() {
 
   const onSignIn = useCallback(async () => {
     try {
-      const response = await loginWithPasskey();
-      return response;
+      await loginWithPasskey();
     } catch (e) {
       console.error("Error signing in", e);
     }
-  }, [email, username]);
-
+  }, [loginWithPasskey]);
 
   const onSignUp = useCallback(async () => {
-    if (signUpDisabled) return alert("Please fill in all fields");
     if (email.length > 0 && !isValidEmail(email))
       return alert("Invalid email address");
     try {
@@ -184,90 +157,7 @@ export default function TestScreen() {
     } catch (e) {
       console.error("Error signing up", e);
     }
-  }, [email, username]);
-
-  const onChangeUserEmail = useCallback(async () => {
-    if (!isValidEmail(email)) return alert("Invalid email address");
-    try {
-      const response = await updateUser({ email });
-      console.log("response", response);
-      return response;
-    } catch (e) {
-      console.error("Error updating user email", e);
-    }
-  }, [email, username]);
-
-  useEffect(() => {
-    if (session) {
-      const publicKey = session ? session.publicKey : "0x";
-      const bufferPublicKey = hexToArrayBuffer(publicKey);
-      const publicKeyBytes = new Uint8Array(bufferPublicKey);
-      const decompressed = session
-        ? uncompressRawPublicKey(publicKeyBytes)
-        : "";
-
-      // Remove the 0x04 prefix
-      const xBytes = decompressed.slice(1, 33);
-      const yBytes = decompressed.slice(33, 65);
-
-      const xHex = toHex(xBytes);
-      const yHex = toHex(yBytes);
-      setData({
-        x: xHex,
-        y: yHex,
-      });
-    }
-  }, [session]);
-
-  const returnSmartAccountAddress = useCallback(async () => {
-    const deviceUniqueIdentifier = "Device_App";
-    const deviceWalletOwnerKey: P256Key = [
-      kokio.userPasskey?.x as `0x${string}`, // Public Key X from attestationObject
-      kokio.userPasskey?.y as `0x${string}`, // Public Key Y from attestationObject
-    ];
-    const salt = 25042025n; // BigInt
-
-    // Calculates device wallet address without deploying
-    const deviceWallet = await kokio.sdk!.smartAccount.getSmartWallet(
-      deviceUniqueIdentifier,
-      deviceWalletOwnerKey,
-      salt
-    );
-
-    /* Returns the smart account client, inline with
-     ** Alchemy’s SDK
-     */
-    const deviceWalletClient =
-      await kokio.sdk!.smartAccount.getSmartWalletClient(
-        deviceWallet // Returned by getSmartWallet fn
-      );
-    console.log("device wallet client", deviceWalletClient.account?.address);
-    setSmartAccountAddress(deviceWalletClient.account?.address);
-
-    try {
-      const uo = await deviceWalletClient.sendUserOperation({
-        uo: {
-          target: deviceWalletClient.account.address,
-          data: "0x",
-          value: 0n,
-        },
-      });
-      console.log("uo", uo);
-    } catch (e) {
-      console.log("error uo", e);
-    }
-  }, [kokio]);
-
-  useEffect(() => {
-    if (kokio.sdk && user) {
-      console.log("user sub org", user.organizationId);
-      const viemWalletAddressFromKokioSdk =
-        kokio.sdk?.viemWalletClient.account?.address;
-      console.log("kokio viem wallet address", viemWalletAddressFromKokioSdk);
-    }
-  }, [kokio, user]);
-
-  const now = new Date().getTime();
+  }, [email, username, signUpWithPasskey]);
 
   return (
     <ScrollView
@@ -280,193 +170,57 @@ export default function TestScreen() {
       contentContainerStyle={styles.scrollContainer}
     >
       <Text style={styles.title}>Testing Passkeys and Smart Accounts</Text>
+
       {kokio.userData && (
         <Text style={styles.userText}>
           Welcome User: {kokio.userData.userName}
         </Text>
       )}
-      {!user && (
-        <View style={styles.textInputContainer}>
-          {!kokio.userData && (
-            <>
-              <TextInput
-                style={styles.textInput}
-                value={username}
-                onChangeText={(val) => setUsername(val)}
-                placeholder="John Doe"
-              />
-              <TextInput
-                style={styles.textInput}
-                value={email}
-                onChangeText={(val) => setEmail(val.toLowerCase())}
-                placeholder="john@doe.com"
-              />
-              <Pressable onPress={onSignUp}>
-                {({ pressed }) => (
-                  <View
-                    style={[
-                      styles.button,
-                      {
-                        opacity: pressed || signUpDisabled ? 0.5 : 1,
-                        transform: [
-                          {
-                            scale: pressed ? 0.98 : 1,
-                          },
-                        ],
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.buttonText]}>
-                      Sign Up with Passkey & OPTIONAL EMAIL
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-            </>
-          )}
 
-          <Pressable onPress={onSignIn}>
-            {({ pressed }) => (
-              <View
-                style={[
-                  styles.button,
-                  {
-                    transform: [
-                      {
-                        scale: pressed ? 0.98 : 1,
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Text style={[styles.buttonText]}>Sign In with Passkey</Text>
-              </View>
-            )}
-          </Pressable>
-
-          {kokio.userData && (
-            <Pressable onPress={() => clearKokioUser()}>
+      <View style={styles.textInputContainer}>
+        {!kokio.userData && (
+          <>
+            <TextInput
+              style={styles.textInput}
+              value={username}
+              onChangeText={(val) => setUsername(val)}
+              placeholder="John Doe"
+            />
+            <TextInput
+              style={styles.textInput}
+              value={email}
+              onChangeText={(val) => setEmail(val.toLowerCase())}
+              placeholder="john@doe.com"
+            />
+            <Pressable onPress={onSignUp}>
               {({ pressed }) => (
-                <View
-                  style={[
-                    styles.button,
-                    {
-                      transform: [
-                        {
-                          scale: pressed ? 0.98 : 1,
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <Text style={[styles.buttonText]}>Clear User Data</Text>
+                <View style={[styles.button, { opacity: pressed ? 0.5 : 1 }]}>
+                  <Text style={styles.buttonText}>Sign Up with Passkey</Text>
                 </View>
               )}
             </Pressable>
+          </>
+        )}
+
+        <Pressable onPress={onSignIn}>
+          {({ pressed }) => (
+            <View style={[styles.button, { opacity: pressed ? 0.5 : 1 }]}>
+              <Text style={styles.buttonText}>Sign In with Passkey</Text>
+            </View>
           )}
-        </View>
-      )}
+        </Pressable>
 
-      {user && session && (
-        <>
-          <Text style={styles.userText}>{user.userName}</Text>
-          <Text style={styles.userText}>{user.email}</Text>
-
-          <TextInput
-            style={styles.textInput}
-            value={email}
-            onChangeText={(val) => setEmail(val.toLowerCase())}
-            placeholder={user.email !== "" ? user.email : "john@doe.com"}
-          />
-
-          <Pressable
-            onPress={onChangeUserEmail}
-            style={[styles.button, { opacity: !isValidEmail(email) ? 0.5 : 1 }]}
-            disabled={!isValidEmail(email)}
-          >
-            <Text style={[styles.buttonText]}>
-              {user.email !== "" ? "Change" : "Set"} Email Address
-            </Text>
+        {kokio.userData && (
+          <Pressable onPress={() => clearKokioUser()}>
+            {({ pressed }) => (
+              <View style={[styles.button, { opacity: pressed ? 0.5 : 1 }]}>
+                <Text style={styles.buttonText}>Clear User Data</Text>
+              </View>
+            )}
           </Pressable>
+        )}
+      </View>
 
-          <Pressable
-            style={styles.button}
-            onPress={() => {
-              clearSession();
-              setSmartAccountAddress("");
-            }}
-          >
-            <Text style={[styles.buttonText]}>Logout</Text>
-          </Pressable>
-
-          <View style={styles.separator} />
-
-          <View>
-            <Text style={styles.userText}>SubOrgId: {user.organizationId}</Text>
-
-            {smartAccountAddress && (
-              <Text style={styles.userText}>
-                Smart Account Address: {smartAccountAddress}
-              </Text>
-            )}
-
-            {data && (
-              <Text style={styles.userText}>
-                {`\n`}
-                Session public key X: {data.x}
-                {`\n`}
-                Session public key Y: {data.y}
-              </Text>
-            )}
-            {kokio && (
-              <Text style={styles.userText}>
-                {`\n`}
-                Attestation public key X: {kokio.userPasskey?.x}
-                {`\n`}
-                Attestation public key Y: {kokio.userPasskey?.y}
-              </Text>
-            )}
-          </View>
-        </>
-      )}
-
-      {session && user && (
-        <Pressable
-          style={styles.button}
-          onPress={() => {
-            returnSmartAccountAddress();
-          }}
-        >
-          <Text style={[styles.buttonText]}>Get Account Address</Text>
-        </Pressable>
-      )}
-
-      {session && user && (
-        <Pressable
-          style={styles.button}
-          onPress={() => stampGetWhoami(user.organizationId)}
-        >
-          <Text style={[styles.buttonText]}>Get stamped Who Am I</Text>
-        </Pressable>
-      )}
-
-      {session && user && (
-        <Pressable
-          style={styles.button}
-          onPress={async () => {
-            try {
-              const mnem = await exportWallet({
-                walletId: session?.user?.wallets[0].id!,
-              });
-              console.log(mnem);
-            } catch (error) {
-              console.error("Error exporting wallet:", error);
-            }
-          }}
-        >
-          <Text style={[styles.buttonText]}>Export User Wallet</Text>
-        </Pressable>
-      )}
       <View style={styles.separator} />
 
       <Pressable style={styles.button} onPress={runDpopSmokeTest}>
@@ -497,15 +251,11 @@ export default function TestScreen() {
       />
 
       <Pressable style={styles.button} onPress={runFetchManual}>
-        <Text style={styles.buttonText}>
-          1 — fetch / redirect:manual
-        </Text>
+        <Text style={styles.buttonText}>1 — fetch / redirect:manual</Text>
       </Pressable>
 
       <Pressable style={styles.button} onPress={runXhr}>
-        <Text style={styles.buttonText}>
-          2 — XMLHttpRequest (expect ✗)
-        </Text>
+        <Text style={styles.buttonText}>2 — XMLHttpRequest (expect ✗)</Text>
       </Pressable>
 
       <Pressable

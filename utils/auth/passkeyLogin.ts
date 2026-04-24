@@ -61,6 +61,10 @@ async function authorizeAndGetCode(params: {
     res.status === 0 ||
     (res as unknown as { type?: string }).type === 'opaqueredirect';
 
+  if (__DEV__) {
+    console.log(`[authFetch] GET /v1/auth/authorize → ${res.status}\n req:`, qs, '\n res:', isRedirect ? res.headers.get('location') ?? res.headers.get('Location') ?? '(opaque redirect)' : '(error)');
+  }
+
   if (!isRedirect) {
     // Server returned an error — parse the body for a typed error code.
     let errCode = 'AUTHORIZE_FAILED';
