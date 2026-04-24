@@ -6,6 +6,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     authServerBaseUrl: process.env.AUTH_SERVER_BASE_URL,
     redirectUri: process.env.REDIRECT_URI,
     apiBaseUrl: process.env.API_BASE_URL,
+    alchemyApiKey: process.env.ALCHEMY_API_KEY,
+    pimlicoApiKey: process.env.PIMLICO_API_KEY,
+    gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
   };
 
   return {
@@ -28,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
-      associatedDomains: ["webcredentials:docs.kokio.app"],
+      associatedDomains: ["webcredentials:kokio.app", "webcredentials:docs.kokio.app"],
       config: {
         usesNonExemptEncryption: false,
       },

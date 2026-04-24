@@ -1,6 +1,7 @@
 import type { paths, components } from './generated/kokioAuth';
 import { Config } from '@/appKeys';
 import { v4 as uuidv4 } from 'uuid';
+import { AuthError } from './errors';
 
 // ─── Re-export generated types consumed across the auth layer ────────────────
 
@@ -131,7 +132,25 @@ async function authFetch<T>(
 
     if (_onResponse) res = await _onResponse(res, init, url);
 
-    return res.json() as Promise<T>;
+    // Read the body as text first so we can inspect it regardless of Content-Type.
+    // Some error paths return plain text or HTML — calling res.json() directly on
+    // those throws a SyntaxError that has no userMessage and surfaces as a raw
+    // "Unexpected token T" crash in logs.
+    const text = await res.text();
+    const contentType = res.headers.get('content-type') ?? '';
+
+    if (__DEV__) {
+      console.log(`[authFetch] ${method} ${path} → ${res.status} (${contentType})\n`, text.slice(0, 500));
+    }
+
+    if (!contentType.includes('application/json')) {
+      throw new AuthError('SERVER_ERROR', res.status, text || `HTTP ${res.status}`);
+    }
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new AuthError('SERVER_ERROR', res.status, `HTTP ${res.status}: invalid JSON`);
+    }
   }
 
   // Unreachable: the loop always returns or throws. Satisfies TS control flow.

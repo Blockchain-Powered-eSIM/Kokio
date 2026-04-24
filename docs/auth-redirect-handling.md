@@ -8,9 +8,36 @@ spike findings and the chosen approach.
 
 ---
 
-## The Core Problem
+## Why 302 Is Correct (and 200 Is Not)
 
-The custom scheme `kokio://` cannot be fetched by the HTTP stack - no transport
+The server **must** respond with `302 Location: kokio://callback?code=<code>` — this
+is the standard OAuth 2.0 / PKCE authorization-code redirect flow.
+
+Key points:
+
+- **`kokio://` is an OS-level deep link.** The scheme is registered in the app's
+  `app.config.ts` intent filters (Android) and URL scheme declarations (iOS). The
+  OS intercepts any navigation to `kokio://` and routes it back to the Kokio app.
+  This is the security boundary: only the registered app can receive the code.
+- **302 keeps the authorization code off the response body.** A `200 OK` response
+  with the callback URL in the JSON/HTML body would expose the code to any
+  intermediary that can read response payloads (proxies, CDN logs, JS `response.text()`
+  calls). Delivering it via `Location` header on a redirect is the spec-mandated
+  approach precisely to avoid this.
+- **Token grant security.** The authorization code is short-lived and single-use.
+  Embedding it in a 200 body deviates from RFC 6749 §4.1.2 and breaks the
+  assumption that only the redirect_uri owner (the OS-registered app) can receive
+  it. Do not change the server to return 200.
+
+The implementation challenge below is **not** a reason to question the 302 — it is
+a React Native platform detail about intercepting the redirect before the network
+stack attempts to follow a non-HTTP URI.
+
+---
+
+## The Implementation Challenge
+
+The custom scheme `kokio://` cannot be fetched by the HTTP stack — no transport
 handler is registered for it. Any approach that *follows* the redirect will error
 out before we can read the code. We therefore need to intercept the 302 *before*
 the stack attempts to follow it.

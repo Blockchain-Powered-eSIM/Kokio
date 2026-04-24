@@ -15,6 +15,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   NO_DEVICE_WALLET:            'No wallet found on this device. Please sign up first.',
   AUTHORIZE_FAILED:            'Sign-in could not be completed. Please try again.',
   LOGIN_FAILED:                'Sign-in failed. Please try again.',
+  // Network / server
+  SERVER_ERROR:                'Something went wrong. Please try again.',
+  NETWORK_ERROR:               'Network error. Check your connection and try again.',
 };
 
 const HTTP_MESSAGES: Record<number, string> = {
