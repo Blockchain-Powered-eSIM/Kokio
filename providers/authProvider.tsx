@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { LoginMethod } from "@/utils/types";
 import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
 import { registerPasskey } from "@/utils/auth/passkeyRegister";
+import type { RegisterResult } from "@/utils/auth/passkeyRegister";
 import { loginWithKokioPasskey } from "@/utils/auth/passkeyLogin";
 import { performStepUp } from "@/utils/auth/stepUp";
 import { StepUpCancelledError } from "@/utils/auth/errors";
@@ -63,7 +64,7 @@ export interface AuthRelayProviderType {
   signUpWithPasskey: (user: {
     username?: string;
     email?: string;
-  }) => Promise<{ deviceWalletAddress: string; deviceUniqueIdentifier: string } | null | undefined>;
+  }) => Promise<RegisterResult | null | undefined>;
   loginWithPasskey: () => Promise<void>;
   reauthenticate: () => void;
   clearError: () => void;
@@ -149,15 +150,14 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const { deviceWalletAddress, deviceUniqueIdentifier } =
-        await registerPasskey(user.username ?? user.email ?? "Kokio User");
+      const result = await registerPasskey(user.username ?? user.email ?? "Kokio User");
 
       // Immediately log in: register/complete → login/begin → Passkey.get →
       // login/complete → PKCE authorize → token exchange → tokens in authStore
-      await loginWithKokioPasskey(deviceWalletAddress);
+      await loginWithKokioPasskey(result.deviceWalletAddress);
 
       dispatch({ type: "PASSKEY" });
-      return { deviceWalletAddress, deviceUniqueIdentifier };
+      return result;
     } catch (error: any) {
       dispatch({ type: "ERROR", payload: error.userMessage ?? error.message });
       return null;

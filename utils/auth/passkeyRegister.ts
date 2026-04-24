@@ -10,6 +10,11 @@ export class CredentialExistsError extends AuthError {
   }
 }
 
+export type RegisterResult = RegisterCompleteData & {
+  /** WebAuthn credential ID — needed locally to initialise the Kokio SDK. */
+  credentialId: string;
+};
+
 /**
  * Full Kokio passkey registration ceremony.
  *
@@ -18,10 +23,13 @@ export class CredentialExistsError extends AuthError {
  * 3. POST /v1/auth/register/complete → server verifies and returns
  *    { deviceWalletAddress, deviceUniqueIdentifier, registered }
  *
+ * Returns the server data plus the WebAuthn credentialId so callers can
+ * persist it for Kokio SDK initialisation without a second SecureStore read.
+ *
  * Throws CredentialExistsError if the device already has a registered passkey
  * (server 409 CREDENTIAL_ALREADY_EXISTS).
  */
-export async function registerPasskey(username: string): Promise<RegisterCompleteData> {
+export async function registerPasskey(username: string): Promise<RegisterResult> {
   // 1. Fetch server-generated WebAuthn creation options
   const beginResp = await kokioAuthClient.registerBegin({ username });
   const beginBody = beginResp as unknown as { success?: boolean; code?: string; message?: string; data?: typeof beginResp.data; httpStatus?: number };
@@ -62,5 +70,5 @@ export async function registerPasskey(username: string): Promise<RegisterComplet
     throw new AuthError(completeBody.code ?? 'REGISTRATION_FAILED', completeBody.httpStatus, completeBody.message);
   }
   if (!completeBody.data) throw new AuthError('REGISTRATION_FAILED');
-  return completeBody.data;
+  return { ...completeBody.data, credentialId: credential.id };
 }

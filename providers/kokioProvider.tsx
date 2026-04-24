@@ -13,7 +13,6 @@ import { SmartContractAccount } from "@aa-sdk/core";
 
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { Esim } from "@/components/ESIMItem";
 
 export interface StoredTransactionData {
@@ -80,10 +79,6 @@ type AuthActionType =
   | { type: "CLEAR_KOKIO_USER" };
 
 export interface UserPasskey {
-  x: string;
-  y: string;
-  attestationObject: string;
-  clientDataJson: string;
   credentialId: string;
 }
 
@@ -161,10 +156,6 @@ export interface KokioProviderType {
   clearError: () => void;
   setupKokio: () => void;
   setupKokioDeviceUID: (deviceUID: string) => Promise<void>;
-  setupKokioUserPasskey: (
-    deviceUID: string,
-    passkey: UserPasskey
-  ) => Promise<void>;
   setupKokioUserWallet: (
     deviceUID: string,
     wallet: SmartContractAccount
@@ -174,7 +165,7 @@ export interface KokioProviderType {
     eSimItem: Esim,
     transactionData: any // TODO: Create a type for this once BE contract is finalized
   ) => Promise<void>;
-  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string) => Promise<void>;
+  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string) => Promise<void>;
   clearKokio: () => void;
   clearKokioUser: () => Promise<void>;
 }
@@ -184,7 +175,6 @@ export const KokioContext = createContext<KokioProviderType>({
   clearError: () => {},
   setupKokio: async () => Promise.resolve(),
   setupKokioDeviceUID: async () => Promise.resolve(),
-  setupKokioUserPasskey: async () => Promise.resolve(),
   setupKokioUserWallet: async () => Promise.resolve(),
   savePurchasedESIM: async () => Promise.resolve(),
   setupKokioRegistration: async () => Promise.resolve(),
@@ -198,17 +188,12 @@ interface KokioProviderProps {
 
 export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   const [kokio, dispatch] = useReducer(kokioReducer, initialState);
-  const { reauthenticate } = useAuthRelay();
 
   const saveValueForDeviceUID = async (key: string, value: string) => {
     await SecureStore.setItemAsync(key, JSON.stringify(value));
   };
 
   const saveValueForUserData = async (key: string, value: UserData) => {
-    await SecureStore.setItemAsync(key, JSON.stringify(value));
-  };
-
-  const saveValueForUserPasskey = async (key: string, value: UserPasskey) => {
     await SecureStore.setItemAsync(key, JSON.stringify(value));
   };
 
@@ -231,16 +216,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     let result = await SecureStore.getItemAsync(key);
     if (result) {
       const parsedResult: UserData = JSON.parse(result);
-      return parsedResult;
-    }
-  };
-
-  const getValueForUserPasskey = async (
-    key: string
-  ): Promise<UserPasskey | void> => {
-    let result = await SecureStore.getItemAsync(key);
-    if (result) {
-      const parsedResult: UserPasskey = JSON.parse(result);
       return parsedResult;
     }
   };
@@ -323,20 +298,9 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
             },
           });
         }
-        const userPasskey = await getValueForUserPasskey(
-          `userPasskey-${deviceUID}`
-        );
-        if (userPasskey) {
-          dispatch({
-            type: "SET_KOKIO_PASSKEY",
-            payload: {
-              x: userPasskey.x,
-              y: userPasskey.y,
-              attestationObject: userPasskey.attestationObject,
-              clientDataJson: userPasskey.clientDataJson,
-              credentialId: userPasskey.credentialId,
-            },
-          });
+        const credentialId = await SecureStore.getItemAsync('credentialId');
+        if (credentialId) {
+          dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId } });
         }
         const userWallet = await getValueForUserWallet(
           `userWallet-${deviceUID}`
@@ -382,10 +346,12 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
   const setupKokioRegistration = async (
     deviceWalletAddress: string,
-    deviceUniqueIdentifier: string
+    deviceUniqueIdentifier: string,
+    credentialId: string,
   ) => {
     await saveValueForDeviceUID("deviceUID", deviceUniqueIdentifier);
     await SecureStore.setItemAsync("deviceWalletAddress", deviceWalletAddress);
+    await SecureStore.setItemAsync("credentialId", credentialId);
 
     const userData: UserData = {
       id: deviceUniqueIdentifier,
@@ -399,30 +365,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     dispatch({ type: "SET_DEVICE_UID", payload: deviceUniqueIdentifier });
     dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
     dispatch({ type: "SET_KOKIO_USER", payload: userData });
-  };
-
-  const setupKokioUserPasskey = async (
-    deviceUID: string,
-    passkey: UserPasskey
-  ) => {
-    await saveValueForUserPasskey(`userPasskey-${deviceUID}`, {
-      x: passkey.x,
-      y: passkey.y,
-      attestationObject: passkey.attestationObject,
-      clientDataJson: passkey.clientDataJson,
-      credentialId: passkey.credentialId,
-    });
-
-    dispatch({
-      type: "SET_KOKIO_PASSKEY",
-      payload: {
-        x: passkey.x,
-        y: passkey.y,
-        attestationObject: passkey.attestationObject,
-        clientDataJson: passkey.clientDataJson,
-        credentialId: passkey.credentialId,
-      },
-    });
+    dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId } });
   };
 
   const setupKokioUserWallet = async (
@@ -466,7 +409,14 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   };
 
   const setupKokio = async () => {
-    if (!kokio.userPasskey?.credentialId) {
+    // Prefer state (populated at mount or registration); fall back to SecureStore
+    // for the case where setupKokio() is called before hydration completes.
+    const credentialId =
+      kokio.userPasskey?.credentialId ??
+      await SecureStore.getItemAsync('credentialId') ??
+      null;
+
+    if (!credentialId) {
       dispatch({ type: "ERROR", payload: "Credential ID not found" });
       return;
     }
@@ -482,9 +432,9 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
     const kokioSDK = new Kokio(
       viemClient,
-      kokio.userPasskey.credentialId,
+      credentialId,
       PASSKEY_CONFIG.RP_ID,
-      kokio.userData?.organizationId ?? '',
+      '',
       extra.pimlicoApiKey ?? '',
       extra.gasManagerPolicyId ?? '',
     );
@@ -498,12 +448,12 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
   const clearKokioUser = async () => {
     dispatch({ type: "CLEAR_KOKIO_USER" });
-    await deleteValueForUser(`userPasskey-${kokio.deviceUID}`);
     await deleteValueForUser(`userWallet-${kokio.deviceUID}`);
     await deleteValueForUser(`userData-${kokio.deviceUID}`);
     await deleteValueForPurchasedESIMs(`purchasedESIMs-${kokio.deviceUID}`);
     await deleteValueForUser("deviceUID");
     await SecureStore.deleteItemAsync("deviceWalletAddress");
+    await SecureStore.deleteItemAsync("credentialId");
     clearKokio();
   };
 
@@ -514,7 +464,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         clearError,
         setupKokio,
         setupKokioDeviceUID,
-        setupKokioUserPasskey,
         setupKokioUserWallet,
         savePurchasedESIM,
         setupKokioRegistration,
