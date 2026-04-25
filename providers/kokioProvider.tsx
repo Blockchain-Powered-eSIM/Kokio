@@ -279,7 +279,16 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
       const deviceUID = await getValueForDeviceUID("deviceUID");
 
-      if (deviceUID) {
+      // Guard: deviceUID without deviceWalletAddress means orphaned state
+      // (e.g. old Turnkey installation, or a crashed registration). Purge it
+      // so the modal correctly routes to sign-up instead of a broken login attempt.
+      if (deviceUID && !storedWalletAddress) {
+        await SecureStore.deleteItemAsync("deviceUID");
+        await SecureStore.deleteItemAsync("credentialId");
+        if (__DEV__) console.log('[kokio] purged orphaned deviceUID (no deviceWalletAddress)');
+      }
+
+      if (deviceUID && storedWalletAddress) {
         dispatch({
           type: "SET_DEVICE_UID",
           payload: deviceUID,
