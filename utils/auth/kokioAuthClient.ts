@@ -30,9 +30,10 @@ export type ErrorResponse = components['schemas']['ErrorResponse'];
 // ─── DPoP proof builder type ─────────────────────────────────────────────────
 // A function that produces a fresh compact DPoP proof JWS for one request.
 // Receives the current cached nonce for the origin (undefined on first call to
-// a fresh origin). See utils/auth/dpopProof.ts for the concrete implementation.
+// a fresh origin) and the normalized htu derived from the actual request URL.
+// See utils/auth/dpopProof.ts for the concrete implementation.
 
-export type DpopProofBuilder = (nonce?: string) => Promise<string>;
+export type DpopProofBuilder = (nonce?: string, htu?: string) => Promise<string>;
 
 // ─── DPoP nonce error ────────────────────────────────────────────────────────
 
@@ -69,6 +70,18 @@ export function setResponseInterceptor(fn: ResponseInterceptor) { _onResponse = 
 
 type Method = 'GET' | 'POST';
 
+// Derive the htu claim (RFC 9449 §4.2): scheme+host+path with no query, fragment,
+// or trailing slash on the base, so the proof matches the URL fetch actually uses.
+function computeHtu(base: string, path: string): string {
+  const raw = base.replace(/\/$/, '') + path;
+  try {
+    const u = new URL(raw);
+    return `${u.origin}${u.pathname}`;
+  } catch {
+    return raw;
+  }
+}
+
 async function authFetch<T>(
   path: string,
   method: Method,
@@ -80,7 +93,8 @@ async function authFetch<T>(
   const base = Config.AUTH_SERVER_BASE_URL;
   if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
 
-  const url    = `${base}${path}`;
+  const url    = base.replace(/\/$/, '') + path;
+  const htu    = computeHtu(base, path);
   const origin = new URL(url).origin;
 
   for (let attempt = 0; attempt <= 1; attempt++) {
@@ -96,8 +110,9 @@ async function authFetch<T>(
     }
 
     // Build a fresh DPoP proof for this attempt, including any cached nonce.
+    // Pass the normalized htu so callers don't need to compute it independently.
     if (buildProof) {
-      headers['DPoP'] = await buildProof(_nonceCache.get(origin));
+      headers['DPoP'] = await buildProof(_nonceCache.get(origin), htu);
     }
 
     let init: RequestInit = {

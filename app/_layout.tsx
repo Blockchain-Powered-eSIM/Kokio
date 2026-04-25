@@ -1,6 +1,7 @@
 // Add global shims
 import "react-native-get-random-values";
 import "@ethersproject/shims";
+import { install as installQuickCrypto } from "react-native-quick-crypto";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
@@ -22,6 +23,10 @@ import { AuthenticationModal } from "@/components/AuthenticationModal";
 import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
+
+// Polyfill global.crypto.subtle for jose / DPoP key generation.
+// index.js is not used when "main" = "expo-router/entry", so this must live here.
+installQuickCrypto();
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();

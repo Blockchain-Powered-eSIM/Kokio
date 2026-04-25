@@ -205,11 +205,8 @@ export async function loginWithKokioPasskey(deviceWalletAddress?: string): Promi
         redirect_uri:  redirectUri,
         code_verifier: codeVerifier,
       },
-      (nonce) => buildDpopProof({
-        htu: `${Config.AUTH_SERVER_BASE_URL}/v1/auth/token`,
-        htm: 'POST',
-        nonce,
-      }),
+      // htu is provided by authFetch from the actual request URL — do not hardcode it here.
+      (nonce, htu) => buildDpopProof({ htu: htu!, htm: 'POST', nonce }),
     ),
     'LOGIN_FAILED',
   );

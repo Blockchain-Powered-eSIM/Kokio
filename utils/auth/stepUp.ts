@@ -5,7 +5,6 @@ import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
-import { Config } from '@/appKeys';
 
 // ─── Response envelope helper (mirrors passkeyLogin.ts) ──────────────────────
 
@@ -71,9 +70,9 @@ export async function performStepUp(): Promise<void> {
     });
 
     // 3. Complete the ceremony; DPoP nonce retry is handled inside kokioAuthClient.
-    const stepUpUrl = `${Config.AUTH_SERVER_BASE_URL ?? ''}/v1/auth/stepup/complete`;
-    const buildProof: DpopProofBuilder = (nonce) =>
-      buildDpopProof({ htu: stepUpUrl, htm: 'POST', nonce });
+    // htu is provided by authFetch from the actual request URL — do not hardcode it here.
+    const buildProof: DpopProofBuilder = (nonce, htu) =>
+      buildDpopProof({ htu: htu!, htm: 'POST', nonce });
 
     const resp = assertData<{
       access_token: string;

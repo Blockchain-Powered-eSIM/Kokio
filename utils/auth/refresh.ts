@@ -1,4 +1,3 @@
-import { Config } from '@/appKeys';
 import { useAuthStore } from '@/stores/authStore';
 import { buildDpopProof } from '@/utils/auth/dpopProof';
 import { kokioAuthClient, type DpopProofBuilder } from '@/utils/auth/kokioAuthClient';
@@ -37,12 +36,11 @@ async function _doRefresh(): Promise<TokenBundle> {
     throw new TokenFamilyRevokedError();
   }
 
-  const tokenUrl = `${Config.AUTH_SERVER_BASE_URL ?? ''}/v1/auth/token`;
-
+  // htu is provided by authFetch from the actual request URL — do not hardcode it here.
   // No `accessToken` → no `ath` claim (RFC 9449 §4.2: ath is only present when
   // calling a protected resource with an existing AT, not during token issuance).
-  const buildProof: DpopProofBuilder = (nonce) =>
-    buildDpopProof({ htu: tokenUrl, htm: 'POST', nonce });
+  const buildProof: DpopProofBuilder = (nonce, htu) =>
+    buildDpopProof({ htu: htu!, htm: 'POST', nonce });
 
   // kokioAuthClient.token() handles DPoP nonce retry internally (AUTH-303).
   // Non-200 responses are returned as parsed JSON (not thrown), so we inspect
