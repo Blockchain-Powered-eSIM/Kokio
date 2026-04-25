@@ -58,7 +58,7 @@ export function AuthenticationModal() {
     clearError();
     setLoading(true);
     try {
-      if (kokio.deviceUID) {
+      if (kokio.deviceWalletAddress) {
         await loginWithPasskey();
       } else {
         const data = await signUpWithPasskey({});
