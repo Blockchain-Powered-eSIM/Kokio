@@ -1,4 +1,7 @@
 import { Passkey } from 'react-native-passkey';
+import { type Hex, bytesToHex } from 'viem';
+import { decodeAttestationObject, parseAuthenticatorData, decodeCredentialPublicKey } from '@simplewebauthn/server/helpers';
+import { isoBase64URL } from '@simplewebauthn/server/helpers';
 import { kokioAuthClient, RegisterCompleteData } from './kokioAuthClient';
 import { AuthError } from './errors';
 
@@ -13,6 +16,10 @@ export class CredentialExistsError extends AuthError {
 export type RegisterResult = RegisterCompleteData & {
   /** WebAuthn credential ID — needed locally to initialise the Kokio SDK. */
   credentialId: string;
+  /** P-256 public key x coordinate (0x-prefixed hex, 32 bytes). Required by the Kokio SDK for smart account initCode generation. */
+  publicKeyX: Hex;
+  /** P-256 public key y coordinate (0x-prefixed hex, 32 bytes). Required by the Kokio SDK for smart account initCode generation. */
+  publicKeyY: Hex;
 };
 
 /**
@@ -50,6 +57,19 @@ export async function registerPasskey(username: string): Promise<RegisterResult>
     attestation: options.attestation,
   });
 
+  // Extract the P-256 public key (x, y) from the attestation object.
+  // The Kokio SDK needs these to compute the smart account initCode for on-chain deployment.
+  // COSE integer keys: -2 = x, -3 = y (https://www.iana.org/assignments/cose/cose.xhtml)
+  const attestationBuf = isoBase64URL.toBuffer(credential.response.attestationObject);
+  const decoded = decodeAttestationObject(attestationBuf);
+  const authData = parseAuthenticatorData(decoded.get('authData'));
+  if (!authData.credentialPublicKey) {
+    throw new AuthError('REGISTRATION_FAILED', undefined, 'No public key in attestation');
+  }
+  const cosePubKey = decodeCredentialPublicKey(authData.credentialPublicKey);
+  const publicKeyX = bytesToHex(cosePubKey.get(-2) as Uint8Array) as Hex;
+  const publicKeyY = bytesToHex(cosePubKey.get(-3) as Uint8Array) as Hex;
+
   // 3. Complete registration — server verifies attestation and derives wallet address
   const completeResp = await kokioAuthClient.registerComplete({
     attestationResponse: {
@@ -70,5 +90,5 @@ export async function registerPasskey(username: string): Promise<RegisterResult>
     throw new AuthError(completeBody.code ?? 'REGISTRATION_FAILED', completeBody.httpStatus, completeBody.message);
   }
   if (!completeBody.data) throw new AuthError('REGISTRATION_FAILED');
-  return { ...completeBody.data, credentialId: credential.id };
+  return { ...completeBody.data, credentialId: credential.id, publicKeyX, publicKeyY };
 }

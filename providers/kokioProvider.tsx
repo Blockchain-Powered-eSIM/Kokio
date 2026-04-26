@@ -3,7 +3,7 @@ import _pick from "lodash/pick";
 import _get from "lodash/get";
 import { Kokio } from "kokio-sdk";
 import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
-import { createWalletClient, http } from "viem";
+import { createWalletClient, http, type Hex } from "viem";
 import { baseSepolia } from "viem/chains";
 import Constants from "expo-constants";
 import { AppExtraConfig } from "@/appKeys";
@@ -80,6 +80,8 @@ type AuthActionType =
 
 export interface UserPasskey {
   credentialId: string;
+  x: Hex;
+  y: Hex;
 }
 
 interface UserData {
@@ -165,7 +167,7 @@ export interface KokioProviderType {
     eSimItem: Esim,
     transactionData: any // TODO: Create a type for this once BE contract is finalized
   ) => Promise<void>;
-  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string) => Promise<void>;
+  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex) => Promise<void>;
   clearKokio: () => void;
   clearKokioUser: () => Promise<void>;
 }
@@ -177,7 +179,7 @@ export const KokioContext = createContext<KokioProviderType>({
   setupKokioDeviceUID: async () => Promise.resolve(),
   setupKokioUserWallet: async () => Promise.resolve(),
   savePurchasedESIM: async () => Promise.resolve(),
-  setupKokioRegistration: async () => Promise.resolve(),
+  setupKokioRegistration: async (_a, _b, _c, _d, _e) => Promise.resolve(),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
 });
@@ -308,8 +310,10 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
           });
         }
         const credentialId = await SecureStore.getItemAsync('credentialId');
-        if (credentialId) {
-          dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId } });
+        const publicKeyX = await SecureStore.getItemAsync('publicKeyX');
+        const publicKeyY = await SecureStore.getItemAsync('publicKeyY');
+        if (credentialId && publicKeyX && publicKeyY) {
+          dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX as Hex, y: publicKeyY as Hex } });
         }
         const userWallet = await getValueForUserWallet(
           `userWallet-${deviceUID}`
@@ -357,10 +361,14 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     deviceWalletAddress: string,
     deviceUniqueIdentifier: string,
     credentialId: string,
+    publicKeyX: Hex,
+    publicKeyY: Hex,
   ) => {
     await saveValueForDeviceUID("deviceUID", deviceUniqueIdentifier);
     await SecureStore.setItemAsync("deviceWalletAddress", deviceWalletAddress);
     await SecureStore.setItemAsync("credentialId", credentialId);
+    await SecureStore.setItemAsync("publicKeyX", publicKeyX);
+    await SecureStore.setItemAsync("publicKeyY", publicKeyY);
 
     const userData: UserData = {
       id: deviceUniqueIdentifier,
@@ -374,7 +382,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     dispatch({ type: "SET_DEVICE_UID", payload: deviceUniqueIdentifier });
     dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
     dispatch({ type: "SET_KOKIO_USER", payload: userData });
-    dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId } });
+    dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX, y: publicKeyY } });
   };
 
   const setupKokioUserWallet = async (
@@ -430,6 +438,15 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       return;
     }
 
+    // The SDK requires client.account to be set — it uses client.account.address as
+    // the `signWith` arg in signTypedData (a TODO stub). Real signing happens via
+    // Passkey.get() inside _stamp(), so the address value is irrelevant for deployment.
+    const signerAddress = (
+      kokio.deviceWalletAddress ||
+      await SecureStore.getItemAsync('deviceWalletAddress') ||
+      '0x0000000000000000000000000000000000000000'
+    ) as `0x${string}`;
+
     const rpcUrl = extra.alchemyApiKey
       ? `https://base-sepolia.g.alchemy.com/v2/${extra.alchemyApiKey}`
       : 'https://sepolia.base.org';
@@ -437,6 +454,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     const viemClient = createWalletClient({
       chain: baseSepolia,
       transport: http(rpcUrl),
+      account: signerAddress,
     });
 
     const kokioSDK = new Kokio(
@@ -463,6 +481,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await deleteValueForUser("deviceUID");
     await SecureStore.deleteItemAsync("deviceWalletAddress");
     await SecureStore.deleteItemAsync("credentialId");
+    await SecureStore.deleteItemAsync("publicKeyX");
+    await SecureStore.deleteItemAsync("publicKeyY");
     clearKokio();
   };
 

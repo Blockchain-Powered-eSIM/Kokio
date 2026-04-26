@@ -122,7 +122,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 export default function MenuScreen() {
   const { loginWithPasskey, signUpWithPasskey, reauthenticate, logout } =
     useAuthRelay();
-  const { clearKokioUser } = useKokio();
+  const { clearKokioUser, kokio } = useKokio();
   const router = useRouter();
 
   // State to track whether About screen is visible
@@ -166,12 +166,19 @@ export default function MenuScreen() {
     },
     {
       id: "6",
-      title: "Login with Passkey",
+      title: "Login",
       iconLeft: "log-in-outline",
       iconRight: "chevron-forward-outline",
       action: async () => {
-        router.push("/");
-        loginWithPasskey();
+        if (kokio.deviceWalletAddress) {
+          // Device is registered — run the ceremony first, then navigate.
+          // Errors land in authProvider state and surface in AuthenticationModal
+          // on "/", which opens automatically when !state.authenticated.
+          await loginWithPasskey();
+        }
+        // No registration on this device (new phone, post-logout, etc.):
+        // go to "/" so AuthenticationModal handles sign-up naturally.
+        router.replace("/");
       },
     },
     {

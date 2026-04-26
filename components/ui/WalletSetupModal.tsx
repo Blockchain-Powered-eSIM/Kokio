@@ -12,12 +12,15 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { openBrowserAsync } from "expo-web-browser";
-import { SmartContractAccount } from "@aa-sdk/core";
+import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
+
+// Salt used for smart account CREATE2 deployment - must match the value used at registration time.
+const DEVICE_WALLET_SALT = 25042025n;
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -66,21 +69,57 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(true);
     setShowRetry(false);
 
-    const address = kokio.deviceWalletAddress;
-    if (!address) {
+    const { deviceWalletAddress, deviceUID, userPasskey, sdk } = kokio;
+
+    console.log('[wallet] handleContinue state:', {
+      deviceWalletAddress: !!deviceWalletAddress,
+      deviceUID: !!deviceUID,
+      hasX: !!userPasskey?.x,
+      hasY: !!userPasskey?.y,
+      sdkReady: !!sdk,
+    });
+
+    if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !sdk) {
+      console.warn('[wallet] guard failed — missing:', {
+        deviceWalletAddress,
+        x: userPasskey?.x,
+        y: userPasskey?.y,
+        sdk: !!sdk,
+      });
       setShowRetry(true);
       setIsLoading(false);
       return;
     }
 
     try {
-      setWalletAddress(address);
-      await setupKokioUserWallet(
-        kokio.deviceUID,
-        { address } as unknown as SmartContractAccount
+      setWalletAddress(deviceWalletAddress);
+
+      // Reconstruct the smart account from the stored P-256 public key.
+      // This computes the same counterfactual address the server derived at registration.
+      const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
+      const deviceWallet = await sdk.smartAccount.getSmartWallet(
+        deviceUID,
+        ownerKey,
+        DEVICE_WALLET_SALT,
       );
+
+      const deviceWalletClient = await sdk.smartAccount.getSmartWalletClient(deviceWallet);
+
+      // A no-op userOp that includes the initCode on first send, deploying the contract.
+      // This triggers Passkey.get() inside the SDK's _stamp() — the biometric prompt.
+      await deviceWalletClient.sendUserOperation({
+        uo: {
+          target: deviceWalletClient.account.address,
+          data: '0x',
+          value: 0n,
+        },
+        overrides: { preVerificationGas: 0xeeee },
+      });
+
+      await setupKokioUserWallet(deviceUID, deviceWallet);
       setShowRecovery(true);
     } catch (err: unknown) {
+      console.error('[wallet] deployment error:', err);
       const message = err instanceof AuthError
         ? err.userMessage
         : err instanceof Error
@@ -91,7 +130,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [kokio.deviceWalletAddress, kokio.deviceUID, setupKokioUserWallet, showMessage]);
+  }, [kokio, setupKokioUserWallet, showMessage]);
 
   const handleClose = useCallback(() => {
     setIsLoading(false);
