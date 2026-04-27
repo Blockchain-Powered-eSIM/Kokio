@@ -3,10 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import _defaults from "lodash/defaults";
 import _find from "lodash/find";
 import _map from "lodash/map";
-import _get from "lodash/get";
 import _filter from "lodash/filter";
 
-import { fetchEsimsCatalogue } from "@/services/esims";
+import { getPlans } from "@/utils/bff/catalogue";
 
 const defaultOptions = {
   retry: false,
@@ -27,9 +26,8 @@ function useEsimsByCountry(serviceRegionCode, options = defaultOptions) {
       queryKey: emisQueryKeys.esimsByCountry(serviceRegionCode),
       queryFn: async () => {
         try {
-          const payload = { serviceRegionCode };
-          const response = await fetchEsimsCatalogue(payload);
-          const allPlans = _get(response, "data.plans") || [];
+          const response = await getPlans({ serviceRegionCode });
+          const allPlans = response.plans;
           return allPlans;
         } catch (err) {
           return [];
@@ -50,9 +48,8 @@ function useEsimsByRegion(region, options = defaultOptions) {
       queryKey: emisQueryKeys.esimsByRegion(region),
       queryFn: async () => {
         try {
-          const payload = { serviceRegionCode: region };
-          const response = await fetchEsimsCatalogue(payload);
-          const allPlans = _get(response, "data.plans") || [];
+          const response = await getPlans({ serviceRegionCode: region });
+          const allPlans = response.plans;
           return allPlans;
         } catch (err) {
           return [];
@@ -73,9 +70,8 @@ function useGloabalEsims(options = defaultOptions) {
       queryKey: emisQueryKeys.esimsByGlobal("GLOBAL"),
       queryFn: async () => {
         try {
-          const payload = { serviceRegionCode: "GLOBAL" };
-          const response = await fetchEsimsCatalogue(payload);
-          const allPlans = _get(response, "data.plans") || [];
+          const response = await getPlans({ serviceRegionCode: "GLOBAL" });
+          const allPlans = response.plans;
           return allPlans;
         } catch (err) {
           return [];
@@ -96,9 +92,8 @@ function useCustomEsims(options = defaultOptions) {
       queryKey: emisQueryKeys.esimsByCustom("CUSTOM_REGIONAL"),
       queryFn: async () => {
         try {
-          const payload = { serviceRegionCode: "CUSTOM_REGIONAL" };
-          const response = await fetchEsimsCatalogue(payload);
-          const allPlans = _get(response, "data.plans") || [];
+          const response = await getPlans({ serviceRegionCode: "CUSTOM_REGIONAL" });
+          const allPlans = response.plans;
           return allPlans;
         } catch (err) {
           return [];

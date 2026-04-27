@@ -1,3 +1,5 @@
+// @deprecated Use utils/bff/catalogue.ts, utils/bff/order.ts, utils/bff/esim.ts,
+//             utils/bff/coupon.ts instead. Remove in BFF-601.
 import api from "./httpService";
 
 const API_PATHS = {
