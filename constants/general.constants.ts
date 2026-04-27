@@ -15,37 +15,25 @@ export const COUNTRY = {
   GERMANY: "GERMANY",
   RUSSIA: "RUSSIA",
   MEXICO: "MEXICO",
-};
+} as const;
 
-export const COUNTRY_CONFIG = {
+export type CountryKey = keyof typeof COUNTRY;
+
+type CountryConfigEntry = { isoCode: string; label: string; name: string };
+
+export const COUNTRY_CONFIG: Record<string, CountryConfigEntry> = {
   [COUNTRY.INDIA]: { isoCode: "IN", label: "India", name: "INDIA" },
   [COUNTRY.SINGAPORE]: { isoCode: "SG", label: "Singapore", name: "SINGAPORE" },
-  [COUNTRY.UNITED_KINGDOM]: {
-    isoCode: "GB",
-    label: "United Kingdom",
-    name: "UNITED_KINGDOM",
-  },
+  [COUNTRY.UNITED_KINGDOM]: { isoCode: "GB", label: "United Kingdom", name: "UNITED_KINGDOM" },
   [COUNTRY.YEMEN]: { isoCode: "YE", label: "Yemen", name: "YEMEN" },
-  [COUNTRY.COSTA_RICA]: {
-    isoCode: "CR",
-    label: "Costa Rica",
-    name: "COSTA_RICA",
-  },
-  [COUNTRY.UNITED_STATES]: {
-    isoCode: "US",
-    label: "United States",
-    name: "UNITED_STATES",
-  },
+  [COUNTRY.COSTA_RICA]: { isoCode: "CR", label: "Costa Rica", name: "COSTA_RICA" },
+  [COUNTRY.UNITED_STATES]: { isoCode: "US", label: "United States", name: "UNITED_STATES" },
   [COUNTRY.AUSTRALIA]: { isoCode: "AU", label: "Australia", name: "AUSTRALIA" },
   [COUNTRY.JAPAN]: { isoCode: "JP", label: "Japan", name: "JAPAN" },
   [COUNTRY.FRANCE]: { isoCode: "FR", label: "France", name: "FRANCE" },
   [COUNTRY.BRAZIL]: { isoCode: "BR", label: "Brazil", name: "BRAZIL" },
   [COUNTRY.CANADA]: { isoCode: "CA", label: "Canada", name: "CANADA" },
-  [COUNTRY.SOUTH_AFRICA]: {
-    isoCode: "ZA",
-    label: "South Africa",
-    name: "SOUTH_AFRICA",
-  },
+  [COUNTRY.SOUTH_AFRICA]: { isoCode: "ZA", label: "South Africa", name: "SOUTH_AFRICA" },
   [COUNTRY.CHINA]: { isoCode: "CN", label: "China", name: "CHINA" },
   [COUNTRY.GERMANY]: { isoCode: "DE", label: "Germany", name: "GERMANY" },
   [COUNTRY.RUSSIA]: { isoCode: "RU", label: "Russia", name: "RUSSIA" },
@@ -61,9 +49,13 @@ export const REGION = {
   MIDDLE_EAST: "MIDDLE_EAST",
   OCEANIA: "OCEANIA",
   CARIBBEAN_ISLANDS: "CARIBBEAN_ISLANDS",
-};
+} as const;
 
-export const REGION_CONFIG = {
+export type RegionKey = keyof typeof REGION;
+
+type RegionConfigEntry = { imagePath: number };
+
+export const REGION_CONFIG: Record<string, RegionConfigEntry> = {
   [REGION.ASIA]: {
     imagePath: require("@/assets/images/asia.png"),
   },
@@ -92,7 +84,7 @@ export const REGION_CONFIG = {
 
 // Static mapping from ISO country code to the region code(s) it belongs to.
 // Region codes must match the `code` field returned by the bootstrap API.
-export const COUNTRY_TO_REGIONS = {
+export const COUNTRY_TO_REGIONS: Record<string, string[]> = {
   // Asia
   AF: ["ASIA"], AM: ["ASIA"], AZ: ["ASIA"], BD: ["ASIA"], BN: ["ASIA"],
   BT: ["ASIA"], CN: ["ASIA"], GE: ["ASIA"], HK: ["ASIA"], ID: ["ASIA"],

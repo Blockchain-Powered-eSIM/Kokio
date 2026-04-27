@@ -12,10 +12,7 @@ export const ROUTE_NAMES = {
   TRANSACTIONDETAILS: "transactionDetails",
   INSTALLATION: "installation",
   OFFLINE: "Offline",
-  TOKENS: "tokens",
-  TRANSACTIONS: "transactions",
   CONTACTS: "(contacts)",
-  TRANSACTIONDETAILS: "transactionDetails",
   CONTACTS_SCREEN: "contactsScreen",
   ADD_CONTACTS_SCREEN: "addContactScreen",
   QR_CODE_SCREEN: "qrCodeScreen",
@@ -23,9 +20,11 @@ export const ROUTE_NAMES = {
   EDIT_CONTACT: "editContact",
   SEND_TO_CONTACT: "sendToContact",
   CONTACT_TRANSACTIONS: "contactTransactions",
-};
+} as const;
 
-export const TAB_BAR_ENABLED_ROUTES = [
+export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
+
+export const TAB_BAR_ENABLED_ROUTES: string[] = [
   ROUTE_NAMES.HOME,
   ROUTE_NAMES.SHOP,
   `${ROUTE_NAMES.SHOP}/${ROUTE_NAMES.HOME}`,

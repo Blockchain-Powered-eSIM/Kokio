@@ -2,41 +2,59 @@ export const RADIO_KEYS = {
   E_SIM_WALLET: "E_SIM_WALLET",
   CREDIT_CARD: "CREDIT_CARD",
   APPLE_PAY: "APPLE_PAY",
-};
+} as const;
+
+export type RadioKey = (typeof RADIO_KEYS)[keyof typeof RADIO_KEYS];
 
 export const PLAN_TYPES = {
   DATA: "DATA",
   DATA_CALLS_SMS: "DATA_CALLS_SMS",
-};
+} as const;
 
-export const PLAN_TYPE_LABELS = {
+export type PlanType = (typeof PLAN_TYPES)[keyof typeof PLAN_TYPES];
+
+export const PLAN_TYPE_LABELS: Record<PlanType, string> = {
   [PLAN_TYPES.DATA]: "Data",
   [PLAN_TYPES.DATA_CALLS_SMS]: "Data+Calls+SMS",
 };
 
-export const ESIM_EXTRA_DETAILS = [
+type NetworkCoverage = {
+  networks?: { name: string }[];
+};
+
+type EsimExtraDetail = {
+  iconType?: string;
+  iconName: string;
+  key: string;
+  label: string;
+  formatter: (value: any) => string;
+  isFlexColumn?: boolean;
+  dataContainerStyles?: object;
+};
+
+export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
   {
     iconType: "MCI",
     iconName: "card-text-outline",
     key: "planType",
     label: "Plan Type",
-    formatter: (value) => PLAN_TYPE_LABELS[value] || value,
+    formatter: (value: string) => PLAN_TYPE_LABELS[value as PlanType] || value,
   },
   {
     iconType: "MCI",
     iconName: "plus-box-multiple-outline",
     key: "isTopupAvailable",
     label: "Top-Up Options",
-    formatter: (value) => (value ? "Available" : "Not Available"),
+    formatter: (value: boolean) => (value ? "Available" : "Not Available"),
   },
   {
     iconType: "MCI",
     iconName: "signal-cellular-outline",
     key: "countryWiseNetworkCoverages",
     label: "Network",
-    formatter: (value) =>
+    formatter: (value: NetworkCoverage[]) =>
       value
-        .reduce((acc, item) => {
+        .reduce<string[]>((acc, item) => {
           const { networks } = item || {};
           return [...acc, ...(networks?.map((network) => network.name) || [])];
         }, [])
@@ -54,7 +72,7 @@ export const ESIM_EXTRA_DETAILS = [
     iconName: "file-check-outline",
     key: "isAutoStart",
     label: "Activation Policy",
-    formatter: (value) =>
+    formatter: (value: boolean) =>
       value
         ? "The validity period starts when the eSIM connects to any supported network/s."
         : "N/A",
@@ -66,7 +84,7 @@ export const ESIM_EXTRA_DETAILS = [
     iconName: "person-circle-outline",
     key: "isKycRequired",
     label: "Identity Verification",
-    formatter: (value) => (value ? "Required" : "Not Required"),
+    formatter: (value: boolean) => (value ? "Required" : "Not Required"),
     isFlexColumn: true,
     dataContainerStyles: { marginLeft: 22 },
   },
