@@ -1,5 +1,12 @@
 import axios from 'axios';
-import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+
+// Allow callers to opt out of auth header injection for public endpoints.
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    skipAuth?: boolean;
+  }
+}
 import qs from 'qs';
 import { v4 as uuidv4 } from 'uuid';
 import { router } from 'expo-router';
@@ -100,6 +107,8 @@ const instance: AxiosInstance = axios.create({
 instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   config.headers['x-correlation-id'] = uuidv4();
   config.baseURL ??= Config.API_BASE_URL;
+
+  if (config.skipAuth) return config; // public endpoint — skip auth entirely
 
   const stored = useAuthStore.getState().tokens;
   if (!stored) return config; // unauthenticated request — no auth headers
@@ -249,19 +258,19 @@ const api = {
     };
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get(url: string, params: Record<string, unknown> = EMPTY, config = this.getConfig()): Promise<any> {
+  get(url: string, params: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
     return instance.get(url, { ...config, params });
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  post(url: string, data: Record<string, unknown> = EMPTY, config = this.getConfig()): Promise<any> {
+  post(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
     return instance.post(url, data, config);
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  put(url: string, data: Record<string, unknown> = EMPTY, config = this.getConfig()): Promise<any> {
+  put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
     return instance.put(url, data, config);
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete(url: string, config = this.getConfig()): Promise<any> {
+  delete(url: string, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
     return instance.delete(url, config);
   },
 };
