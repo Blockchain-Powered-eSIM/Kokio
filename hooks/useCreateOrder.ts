@@ -12,6 +12,11 @@ export type CreateOrderVariables = {
   eSimItem: Esim;
 };
 
+export type CreateTopupOrderVariables = {
+  request: Omit<CreateOrderRequest, 'isNewESim' | 'eSimId'> & { isNewESim: false; eSimId: string };
+  eSimItem: Esim;
+};
+
 // SecureStore key for the most recently purchased eSIM wallet address.
 // Read by topup flows to pre-populate the eSimId for compatibility checks.
 const ESIM_ID_KEY = 'esimId';
@@ -35,6 +40,23 @@ export function useCreateOrder() {
       }
 
       // 3. Invalidate any cached order history so it refetches on next access.
+      await queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+}
+
+export function useCreateTopupOrder() {
+  const queryClient = useQueryClient();
+  const { kokio, savePurchasedESIM } = useKokio();
+
+  return useMutation<CreateOrderResponse, Error, CreateTopupOrderVariables>({
+    mutationFn: ({ request }) => createOrder(request as CreateOrderRequest),
+
+    onSuccess: async (data, { eSimItem }) => {
+      await SecureStore.setItemAsync(ESIM_ID_KEY, data.esimId);
+      if (kokio.deviceUID) {
+        await savePurchasedESIM(kokio.deviceUID, eSimItem, data);
+      }
       await queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });

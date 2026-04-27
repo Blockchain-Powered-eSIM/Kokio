@@ -29,6 +29,9 @@ import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
 import { eSimOderCheckout, validateCoupon } from "@/services/esims";
+import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
+import { useCreateTopupOrder } from "@/hooks/useCreateOrder";
+import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import CreditCardModal from "@/components/CreditCardModal";
@@ -43,7 +46,6 @@ import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
 import { AppExtraConfig } from "@/appKeys";
 import Constants from "expo-constants";
 import { keccak256 } from "viem";
-import { checkEsimTopUpCompatibility } from "@/services/esims";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -92,10 +94,21 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     [selectedPaymentMethod]
   );
 
-  const [isCheckingTopup, setIsCheckingTopup] = useState(false);
-  const [isTopupCompatible, setIsTopupCompatible] = useState(false);
+  const { showMessage } = useToast();
+  const createTopupOrder = useCreateTopupOrder();
+
+  const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility({
+    planId: eSimItem?.catalogueId,
+  });
+  const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup] = useState(false);
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
+      setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
+    }
+  }, [compatibleEsims]);
 
   const addAmountSection = useMemo(() => {
     return (
@@ -138,9 +151,28 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const handleEsimCheckout = useCallback(async () => {
     try {
       setIsCheckoutLoading(true);
-      setShowSuccessModal(true);
 
       const deviceWalletId = kokio.userWallet?.address || "";
+
+      if (applyAsTopup && compatibleTopUpEsimId) {
+        await createTopupOrder.mutateAsync({
+          request: {
+            catalogueId: eSimItem.catalogueId,
+            currency: "USD",
+            isNewESim: false,
+            eSimId: compatibleTopUpEsimId,
+            isCryptoPayment: true,
+            payeeAddress: deviceWalletId,
+            coupon: discountCode || null,
+          },
+          eSimItem,
+        });
+        showMessage('eSIM topped up successfully!', 'info');
+        return;
+      }
+
+      setShowSuccessModal(true);
+
       const payload = getEsimOrderPayload({
         eSimItem,
         deviceWalletId,
@@ -173,7 +205,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       setIsCheckoutLoading(false);
     } catch (err) {
       console.error("Checkout error:", err);
-      const { data } = err || {};
+      const { data } = (err as any) || {};
       if (data?.message) {
         console.error("Checkout failed:", data.message);
       }
@@ -188,6 +220,8 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     savePurchasedESIM,
     applyAsTopup,
     compatibleTopUpEsimId,
+    createTopupOrder,
+    showMessage,
   ]);
 
   const payWithUSDC = async (params: {
@@ -264,6 +298,25 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       console.log("--- Transaction Successful ---");
       console.log("Transaction Hash:", transactionHash);
 
+      if (applyAsTopup && compatibleTopUpEsimId) {
+        await createTopupOrder.mutateAsync({
+          request: {
+            catalogueId: eSimItem.catalogueId,
+            currency: "USD",
+            isNewESim: false,
+            eSimId: compatibleTopUpEsimId,
+            isCryptoPayment: true,
+            txnHash: transactionHash as string,
+            tokenName: "USDC",
+            network: "BASE",
+            payeeAddress: externalAddress,
+          },
+          eSimItem,
+        });
+        showMessage('eSIM topped up successfully!', 'info');
+        return;
+      }
+
       setShowSuccessModal(true);
 
       const payload = getEsimOrderPayload({
@@ -272,15 +325,14 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         discountCode: "",
         applyAsTopup,
         compatibleTopUpEsimId
-      });                
-      
-      
-      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{ 
+      });
+
+      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{
         ...payload,
-        paymentMethod: "external_wallet", 
+        paymentMethod: "external_wallet",
         payeeAddress: externalAddress,
-        txnHash: transactionHash, 
-        paymentVia: "USDC", 
+        txnHash: transactionHash,
+        paymentVia: "USDC",
       })
 
       const response = await eSimOderCheckout({
@@ -310,7 +362,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     } finally {
       setIsCheckoutLoading(false);
     }
-  }, [totalAmount, externalAddress, kokio.userWallet, discountCode, applyAsTopup, compatibleTopUpEsimId]);
+  }, [totalAmount, externalAddress, kokio.userWallet, kokio.deviceUID, savePurchasedESIM, discountCode, applyAsTopup, compatibleTopUpEsimId, eSimItem, createTopupOrder, showMessage]);
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");
@@ -443,41 +495,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     return eSimItem.actualSellingPrice;
   }, [eSimItem.actualSellingPrice, isDiscountApplied, discountAmount]);
 
-  // Check compatibility on mount
-  useEffect(() => {
-    const checkCompatibility = async () => {
-      const deviceId = kokio.userWallet?.address;
-      const planId = eSimItem?.catalogueId;
-
-      if (!deviceId || !planId) return;
-
-      setIsCheckingTopup(true);
-      try {
-        const response = await checkEsimTopUpCompatibility({
-          deviceId,
-          planId,
-        });
-
-        const data = response?.data;
-        const compatibleResult = data?.results?.find(
-          (r: any) => r.compatible && !r.checkError
-        );
-        const isCompatible = !!data?.topupPlanResolved && !!compatibleResult;
-
-        setIsTopupCompatible(isCompatible);
-        if (compatibleResult) {
-          setCompatibleTopUpEsimId(compatibleResult.esimId);
-        }
-     } catch (err) {
-        console.log("Compatibility check failed:", JSON.stringify(err, null, 2));
-        setIsTopupCompatible(false);
-      } finally {
-        setIsCheckingTopup(false);
-      }
-    };
-
-    checkCompatibility();
-  }, [kokio.userWallet?.address, eSimItem]);
 
   // const canCheckout = useMemo(
   //   () =>
@@ -615,11 +632,36 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                 </ThemedText>
               </View>
             </View>
-            {applyAsTopup && compatibleTopUpEsimId && (
+            {applyAsTopup && compatibleEsims.length === 1 && compatibleTopUpEsimId && (
               <View style={styles.discountAppliedContainer}>
                 <ThemedText style={styles.discountAppliedText}>
-                  {`Top-up existing ${eSimItem.serviceRegionName} ${eSimItem.validity} days ${eSimItem.isUnlimited ? "Unlimited" : `${eSimItem.data} GB`} eSIM: ${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
+                  {`eSIM: ${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
                 </ThemedText>
+              </View>
+            )}
+            {applyAsTopup && compatibleEsims.length > 1 && (
+              <View style={{ marginTop: 8 }}>
+                <ThemedText style={{ color: Theme.colors.muted, fontSize: 13, marginBottom: 6 }}>
+                  Select eSIM to top up:
+                </ThemedText>
+                {compatibleEsims.map((r) => (
+                  <TouchableOpacity
+                    key={r.esimId}
+                    onPress={() => setCompatibleTopUpEsimId(r.esimId)}
+                    style={[
+                      styles.discountAppliedContainer,
+                      { marginTop: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+                      compatibleTopUpEsimId === r.esimId && { borderWidth: 1, borderColor: "#30D158" },
+                    ]}
+                  >
+                    <ThemedText style={styles.discountAppliedText}>
+                      {`${r.esimId.slice(0, 6)}...${r.esimId.slice(-4)}`}
+                    </ThemedText>
+                    {compatibleTopUpEsimId === r.esimId && (
+                      <Ionicons name="checkmark-circle" size={18} color="#30D158" />
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
