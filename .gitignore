@@ -63,3 +63,9 @@ yarn-error.*
 # @end expo-cli
 
 .env
+
+# docs
+docs/
+
+# Test coverage
+coverage/
