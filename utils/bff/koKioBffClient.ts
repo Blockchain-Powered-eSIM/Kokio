@@ -1,4 +1,7 @@
+import { BffError } from './errors';
+
 export type { paths, components, operations } from './generated/koKioBff';
+export { BffError, formatBffError } from './errors';
 
 // ─── BFF response envelope types ─────────────────────────────────────────────
 
@@ -18,20 +21,6 @@ interface BffErrorEnvelope {
 
 type BffEnvelope<T> = BffSuccessEnvelope<T> | BffErrorEnvelope;
 
-// ─── BffError ─────────────────────────────────────────────────────────────────
-
-export class BffError extends Error {
-  readonly code: string;
-  readonly correlationId: string | null;
-
-  constructor(envelope: BffErrorEnvelope) {
-    super(envelope.message);
-    this.name = 'BffError';
-    this.code = envelope.code;
-    this.correlationId = envelope.correlationId;
-  }
-}
-
 // ─── unwrapBffResponse ────────────────────────────────────────────────────────
 // The httpService interceptor already strips the Axios wrapper and returns the
 // raw BFF envelope as the resolved value. This helper asserts success and
@@ -40,7 +29,7 @@ export class BffError extends Error {
 export async function unwrapBffResponse<T>(promise: Promise<unknown>): Promise<T> {
   const envelope = (await promise) as BffEnvelope<T>;
   if (!envelope.success) {
-    throw new BffError(envelope);
+    throw new BffError(envelope.code, undefined, envelope.message);
   }
   return envelope.data;
 }
