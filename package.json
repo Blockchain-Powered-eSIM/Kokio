@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "gen:auth-types": "bash scripts/gen-auth-types.sh"
+    "gen:auth-types": "bash scripts/gen-auth-types.sh",
+    "gen:bff-types": "bash scripts/gen-bff-types.sh"
   },
   "jest": {
     "preset": "jest-expo",
