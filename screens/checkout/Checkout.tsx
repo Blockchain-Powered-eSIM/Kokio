@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   View,
   Platform,
@@ -32,6 +33,7 @@ import { eSimOderCheckout, validateCoupon } from "@/services/esims";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateTopupOrder } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
+import { isHashUsed, markHashUsed } from "@/utils/orderTracking";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import CreditCardModal from "@/components/CreditCardModal";
@@ -298,6 +300,12 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       console.log("--- Transaction Successful ---");
       console.log("Transaction Hash:", transactionHash);
 
+      const txnHash = transactionHash as string;
+      if (await isHashUsed(txnHash)) {
+        Alert.alert('Payment Already Used', 'This transaction has already been used. Please use a different payment.');
+        return;
+      }
+
       if (applyAsTopup && compatibleTopUpEsimId) {
         await createTopupOrder.mutateAsync({
           request: {
@@ -306,13 +314,14 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             isNewESim: false,
             eSimId: compatibleTopUpEsimId,
             isCryptoPayment: true,
-            txnHash: transactionHash as string,
+            txnHash,
             tokenName: "USDC",
             network: "BASE",
             payeeAddress: externalAddress,
           },
           eSimItem,
         });
+        await markHashUsed(txnHash);
         showMessage('eSIM topped up successfully!', 'info');
         return;
       }
@@ -331,7 +340,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         ...payload,
         paymentMethod: "external_wallet",
         payeeAddress: externalAddress,
-        txnHash: transactionHash,
+        txnHash,
         paymentVia: "USDC",
       })
 
@@ -339,7 +348,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         ...payload,
         paymentMethod: "external_wallet", // NEEDED ?
         payeeAddress: externalAddress,
-        txnHash: transactionHash, // Pass hash to backend
+        txnHash, // Pass hash to backend
         paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
         tokenName: "USDC",
         network: "BASE"
@@ -347,6 +356,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
       if (response?.success && response?.data) {
         setOrderResponse(response.data);
+        await markHashUsed(txnHash);
 
         // Store purchased eSIM so it appears on the Home screen
         if (kokio.deviceUID) {

@@ -16,6 +16,7 @@ import {
   type StepUpHint,
 } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
+import { clearUsedHashes } from "@/utils/orderTracking";
 
 // ─── Error formatting ─────────────────────────────────────────────────────────
 
@@ -217,6 +218,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
 
     await useAuthStore.getState().clearTokens();
     clearBffNonceCache();
+    await clearUsedHashes();
     dispatch({ type: "REAUTHENTICATE" });
     router.replace("/");
   };
