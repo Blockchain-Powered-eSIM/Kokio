@@ -12,6 +12,7 @@ import {
   setStepUpHandler,
   resolveStepUp,
   rejectStepUp,
+  clearBffNonceCache,
   type StepUpHint,
 } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
@@ -215,6 +216,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     }
 
     await useAuthStore.getState().clearTokens();
+    clearBffNonceCache();
     dispatch({ type: "REAUTHENTICATE" });
     router.replace("/");
   };

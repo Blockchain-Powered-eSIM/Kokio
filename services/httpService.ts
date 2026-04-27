@@ -75,6 +75,8 @@ async function handleAuthFailure(): Promise<void> {
 
 const _bffNonceCache = new Map<string, string>();
 
+export function clearBffNonceCache(): void { _bffNonceCache.clear(); }
+
 function bffOrigin(): string | null {
   const base = Config.API_BASE_URL;
   if (!base) return null;
