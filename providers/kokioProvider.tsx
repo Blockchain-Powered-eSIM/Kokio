@@ -272,6 +272,24 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.deleteItemAsync(key);
   };
 
+  // TODO: BFF does not yet expose GET /v1/orders. When it does:
+  //   1. Fetch order history: await api.get('/v1/orders')
+  //   2. Map BFF orders to StoredPurchasedESIM shape
+  //   3. Merge with local list (prefer BFF as source of truth; keep local for offline access)
+  //   4. Persist merged list via saveValueForPurchasedESIMs and dispatch SET_PURCHASED_ESIMS
+  //   5. lastSyncedAt (written below) lets callers detect stale local data
+  const syncPurchasedEsimsWithBff = async (deviceUID: string): Promise<void> => {
+    // no-op — awaiting GET /v1/orders BFF endpoint
+    try {
+      await AsyncStorage.setItem(
+        `esimLastSync-${deviceUID}`,
+        new Date().toISOString(),
+      );
+    } catch {
+      // non-critical — timestamp failure should not surface to the user
+    }
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       const storedWalletAddress = await SecureStore.getItemAsync("deviceWalletAddress");
@@ -333,6 +351,9 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
             payload: purchasedESIMs,
           });
         }
+
+        // Fire-and-forget: local data already dispatched above; sync runs in background
+        syncPurchasedEsimsWithBff(deviceUID);
       }
     };
     fetchUserData();
