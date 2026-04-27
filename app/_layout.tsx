@@ -6,6 +6,7 @@ import { install as installQuickCrypto } from "react-native-quick-crypto";
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
@@ -21,6 +22,7 @@ import { ROUTE_NAMES } from "@/constants/route.constants";
 import { Providers } from "@/providers";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
 import { StepUpPromptModal } from "@/components/StepUpPromptModal";
+import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -123,11 +125,14 @@ export default function RootLayout() {
 
   return (
     <Providers>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-        <Stack.Screen name="Offline" options={{ headerShown: false }} />
-      </Stack>
+      <ServiceStatusBanner />
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+          <Stack.Screen name="Offline" options={{ headerShown: false }} />
+        </Stack>
+      </View>
       <AuthenticationModal />
       <StepUpPromptModal />
     </Providers>
