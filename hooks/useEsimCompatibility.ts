@@ -9,7 +9,7 @@ export type UseEsimCompatibilityParams = {
 
 type ExtraOptions = Omit<
   UseQueryOptions<CompatibilityResponse>,
-  'queryKey' | 'queryFn' | 'enabled'
+  'queryKey' | 'queryFn'
 >;
 
 export function useEsimCompatibility(

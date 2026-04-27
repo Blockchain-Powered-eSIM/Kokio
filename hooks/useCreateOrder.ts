@@ -19,7 +19,7 @@ export type CreateTopupOrderVariables = {
 
 // SecureStore key for the most recently purchased eSIM wallet address.
 // Read by topup flows to pre-populate the eSimId for compatibility checks.
-const ESIM_ID_KEY = 'esimId';
+export const ESIM_ID_KEY = 'esimId';
 
 export function useCreateOrder() {
   const queryClient = useQueryClient();

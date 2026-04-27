@@ -30,8 +30,9 @@ import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
 import { eSimOderCheckout, validateCoupon } from "@/services/esims";
+import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
-import { useCreateTopupOrder } from "@/hooks/useCreateOrder";
+import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
 import { isHashUsed, markHashUsed } from "@/utils/orderTracking";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
@@ -99,9 +100,17 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const { showMessage } = useToast();
   const createTopupOrder = useCreateTopupOrder();
 
-  const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility({
-    planId: eSimItem?.catalogueId,
-  });
+  // undefined = not yet read; null = read, no prior eSIM; string = prior eSIM address
+  const [storedEsimId, setStoredEsimId] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    SecureStore.getItemAsync(ESIM_ID_KEY).then(setStoredEsimId);
+  }, []);
+
+  const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility(
+    { planId: eSimItem?.catalogueId, esimId: storedEsimId ?? undefined },
+    { enabled: !!storedEsimId },
+  );
   const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup] = useState(false);
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
