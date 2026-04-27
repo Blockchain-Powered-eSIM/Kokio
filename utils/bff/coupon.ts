@@ -7,8 +7,14 @@ type CouponDocument     = components['schemas']['CouponDocument'];
 
 export type { IssueCouponRequest, CouponDocument };
 
+export class InvalidCouponCodeError extends Error {
+  constructor() { super('Coupon code must be exactly 8 characters'); }
+}
+
 export function getCoupon(code: string): Promise<CouponDocument> {
-  return unwrapBffResponse(api.get(`/v1/coupon/${code}`));
+  const normalized = code.trim().toUpperCase();
+  if (normalized.length !== 8) throw new InvalidCouponCodeError();
+  return unwrapBffResponse(api.get(`/v1/coupon/${normalized}`));
 }
 
 export function issueCoupon(body: IssueCouponRequest): Promise<CouponDocument> {

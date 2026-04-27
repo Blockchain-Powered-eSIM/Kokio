@@ -29,7 +29,8 @@ import Checkbox from "@/components/ui/Checkbox";
 import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { eSimOderCheckout, validateCoupon } from "@/services/esims";
+import { eSimOderCheckout } from "@/services/esims";
+import { useCouponLookup } from "@/hooks/useCouponLookup";
 import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
@@ -87,6 +88,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [showCreditCardModal, setShowCreditCardModal] = useState(false);
   const { kokio, savePurchasedESIM } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
+  const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [orderResponse, setOrderResponse] = useState<any>(null);
@@ -106,6 +108,17 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   useEffect(() => {
     SecureStore.getItemAsync(ESIM_ID_KEY).then(setStoredEsimId);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedCode(discountCode), 500);
+    return () => clearTimeout(timer);
+  }, [discountCode]);
+
+  const {
+    data: coupon,
+    isLoading: isCouponLoading,
+    isError: isCouponError,
+  } = useCouponLookup(debouncedCode, debouncedCode.length === 8);
 
   const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility(
     { planId: eSimItem?.catalogueId, esimId: storedEsimId ?? undefined },
@@ -217,7 +230,10 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     } catch (err) {
       console.error("Checkout error:", err);
       const { data } = (err as any) || {};
-      if (data?.message) {
+      if (data?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
+        handleRemoveDiscount();
+      } else if (data?.message) {
         console.error("Checkout failed:", data.message);
       }
       setIsCheckoutLoading(false);
@@ -233,6 +249,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     compatibleTopUpEsimId,
     createTopupOrder,
     showMessage,
+    handleRemoveDiscount,
   ]);
 
   const payWithUSDC = async (params: {
@@ -376,12 +393,16 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       }
 
     } catch (err: any) {
-      // TODO: add error handling, maybe error pop-up
       console.log("Full Error Object:", JSON.stringify(err, null, 2));
+      const errData = err?.data || {};
+      if (errData?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
+        handleRemoveDiscount();
+      }
     } finally {
       setIsCheckoutLoading(false);
     }
-  }, [totalAmount, externalAddress, kokio.userWallet, kokio.deviceUID, savePurchasedESIM, discountCode, applyAsTopup, compatibleTopUpEsimId, eSimItem, createTopupOrder, showMessage]);
+  }, [totalAmount, externalAddress, kokio.userWallet, kokio.deviceUID, savePurchasedESIM, discountCode, applyAsTopup, compatibleTopUpEsimId, eSimItem, createTopupOrder, showMessage, handleRemoveDiscount]);
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");
@@ -461,44 +482,28 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
   const handleDiscountCodeChange = useCallback((text: string) => {
     setDiscountCode(_toUpper(text));
+    setIsDiscountApplied(false);
+    setDiscountAmount(0);
+    setDiscountError('');
   }, []);
 
-  const handleApplyDiscount = useCallback(async () => {
-    if (!_trim(discountCode)) return;
+  const handleApplyDiscount = useCallback(() => {
+    if (!coupon || coupon.isExhausted) return;
+    setDiscountError('');
 
-    try {
-      // Clear previous error
-      setDiscountError("");
-
-      const response = await validateCoupon(discountCode);
-
-      const couponBalance = _toNumber(response?.data?.balance || 0);
-      const isValidCoupon = eSimItem.actualSellingPrice <= couponBalance;
-
-      if (!isValidCoupon) {
-        setDiscountError("Cannot sponsor the entire amount");
-        setIsDiscountApplied(false);
-        setDiscountAmount(0);
-        return;
-      }
-
-      // Apply full discount (100% off)
-      setIsDiscountApplied(true);
-      setDiscountAmount(eSimItem.actualSellingPrice);
-      console.log("Applying discount code:", discountCode);
-
-      // Check if wallet is set up when applying discount
-      if (!kokio.userWallet) {
-        setShowWalletSetupModal(true);
-        return;
-      }
-    } catch {
-      setDiscountError("Invalid discount code");
-      setIsDiscountApplied(false);
-      setDiscountAmount(0);
+    const couponBalance = _toNumber(coupon.balance || 0);
+    if (eSimItem.actualSellingPrice > couponBalance) {
+      setDiscountError('Cannot sponsor the entire amount');
       return;
     }
-  }, [discountCode, eSimItem.actualSellingPrice, kokio.userWallet]);
+
+    setIsDiscountApplied(true);
+    setDiscountAmount(eSimItem.actualSellingPrice);
+
+    if (!kokio.userWallet) {
+      setShowWalletSetupModal(true);
+    }
+  }, [coupon, eSimItem.actualSellingPrice, kokio.userWallet]);
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
@@ -581,22 +586,41 @@ const Checkout = ({ currentBalance = 25 }: any) => {
               style={styles.discountInput}
               value={discountCode}
               onChangeText={handleDiscountCodeChange}
-              placeholder="Enter discount code"
+              placeholder="Enter coupon code"
               placeholderTextColor={Theme.colors.muted}
               autoCapitalize="characters"
+              maxLength={8}
             />
-            <TouchableOpacity
-              key={`apply-${discountCode?.length}`}
-              style={[
-                styles.applyButton,
-                !_trim(discountCode) && { opacity: 0.5 },
-              ]}
-              onPress={handleApplyDiscount}
-              disabled={!_trim(discountCode)}
-            >
-              <ThemedText style={styles.applyButtonText}>Apply</ThemedText>
-            </TouchableOpacity>
           </View>
+
+          {/* Loading */}
+          {isCouponLoading && (
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+              <ActivityIndicator size="small" color={Theme.colors.foreground} />
+              <ThemedText style={{ marginLeft: 8, color: Theme.colors.muted, fontSize: 14 }}>
+                Validating coupon…
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Valid coupon — show balance and Apply button */}
+          {!isCouponLoading && debouncedCode.length === 8 && coupon && !coupon.isExhausted && !isDiscountApplied && (
+            <View style={styles.discountAppliedContainer}>
+              <View style={styles.discountAppliedContent}>
+                <ThemedText style={styles.discountAppliedText}>
+                  {`Balance: $${_toNumber(coupon.balance).toFixed(2)} ${coupon.tokenName}`}
+                </ThemedText>
+                <TouchableOpacity
+                  style={[styles.applyButton, { paddingVertical: 6, paddingHorizontal: 14 }]}
+                  onPress={handleApplyDiscount}
+                >
+                  <ThemedText style={styles.applyButtonText}>Apply Coupon</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Applied */}
           {isDiscountApplied && (
             <View style={styles.discountAppliedContainer}>
               <View style={styles.discountAppliedContent}>
@@ -612,13 +636,33 @@ const Checkout = ({ currentBalance = 25 }: any) => {
               </View>
             </View>
           )}
-          {discountError && (
+
+          {/* Exhausted coupon */}
+          {!isCouponLoading && debouncedCode.length === 8 && coupon?.isExhausted && (
+            <View style={styles.discountErrorContainer}>
+              <ThemedText style={styles.discountErrorText}>
+                This coupon has been fully used
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Invalid / not found */}
+          {!isCouponLoading && isCouponError && debouncedCode.length === 8 && (
+            <View style={styles.discountErrorContainer}>
+              <ThemedText style={styles.discountErrorText}>
+                Invalid coupon code
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Balance / other errors */}
+          {discountError ? (
             <View style={styles.discountErrorContainer}>
               <ThemedText style={styles.discountErrorText}>
                 {discountError}
               </ThemedText>
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* Top-up compatibility */}
