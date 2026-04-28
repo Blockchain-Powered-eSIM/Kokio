@@ -18,10 +18,6 @@ import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTurnkey } from "@turnkey/sdk-react-native";
-import { deleteSubOrganization } from "@/utils/api";
-import * as Updates from "expo-updates";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Feature flags for menu item availability
 // Set to true to enable the menu item, false to disable (but keep visible)
@@ -126,10 +122,9 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function MenuScreen() {
-  const { loginWithPasskey, signUpWithPasskey, reauthenticate } =
+  const { loginWithPasskey, signUpWithPasskey, reauthenticate, logout } =
     useAuthRelay();
-  const { clearKokioUser } = useKokio();
-  const { clearAllSessions, user } = useTurnkey();
+  const { clearKokioUser, kokio } = useKokio();
   const router = useRouter();
 
   const [showAbout, setShowAbout] = useState(false);
@@ -186,12 +181,19 @@ export default function MenuScreen() {
     },
     {
       id: "6",
-      title: "Login with Passkey",
+      title: "Login",
       iconLeft: "log-in-outline",
       iconRight: "chevron-forward-outline",
       action: async () => {
-        router.push("/");
-        loginWithPasskey();
+        if (kokio.deviceWalletAddress) {
+          // Device is registered — run the ceremony first, then navigate.
+          // Errors land in authProvider state and surface in AuthenticationModal
+          // on "/", which opens automatically when !state.authenticated.
+          await loginWithPasskey();
+        }
+        // No registration on this device (new phone, post-logout, etc.):
+        // go to "/" so AuthenticationModal handles sign-up naturally.
+        router.replace("/");
       },
     },
     {
@@ -200,14 +202,10 @@ export default function MenuScreen() {
       iconLeft: "log-out-outline",
       iconRight: "chevron-forward-outline",
       action: async () => {
-        clearAllSessions()
-          .then(async () => {
-            await clearKokioUser(user);
-          })
-          .finally(() => {
-            reauthenticate();
-            Updates.reloadAsync();
-          });
+        // Clear Kokio SDK + passkey / wallet / eSIM state from SecureStore first,
+        // then revoke the refresh token and wipe the auth token store.
+        await clearKokioUser();
+        await logout();
       },
     },
   ];

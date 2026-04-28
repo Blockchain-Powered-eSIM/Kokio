@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   StyleSheet,
+  Text,
   View,
 } from "react-native";
 import BottomSheet, {
@@ -13,9 +13,7 @@ import BottomSheet, {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
-import { User, useTurnkey } from "@turnkey/sdk-react-native";
 import { ThemedText } from "./ThemedText";
-import { useRouter } from "expo-router";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
@@ -25,15 +23,11 @@ export function AuthenticationModal() {
   const [loading, setLoading] = useState<boolean>(false);
   const sheetRef = useRef<BottomSheet>(null);
 
-  const { state, loginWithPasskey, signUpWithPasskey } = useAuthRelay();
+  const { state, loginWithPasskey, signUpWithPasskey, clearError } = useAuthRelay();
   const {
     kokio,
-    setupKokioDeviceUID,
-    setupKokioUserData,
-    setupKokioUserPasskey,
+    setupKokioRegistration,
   } = useKokio();
-  const { clearAllSessions } = useTurnkey();
-  const router = useRouter();
 
   // renders
   const renderBackdrop = useCallback(
@@ -59,75 +53,33 @@ export function AuthenticationModal() {
   );
 
   const loginOrSignUpWithPasskey = useCallback(async () => {
+    clearError();
     setLoading(true);
-    if (kokio.deviceUID) {
-      try {
-        await loginWithPasskey().then(() => {
-          setLoading(false);
-          sheetRef.current?.close({
-            duration: 250,
-            easing: Easing.out(Easing.quad),
-          });
-        });
-      } catch (e) {
-        console.error("Error signing in", e);
-        Alert.alert("Error signing in");
-        sheetRef.current?.close({
-          duration: 250,
-          easing: Easing.out(Easing.quad),
-        });
+    try {
+      if (kokio.deviceWalletAddress) {
+        const success = await loginWithPasskey();
+        if (success) {
+          sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        }
+      } else {
+        const data = await signUpWithPasskey({});
+        if (data) {
+          await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY);
+          sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        }
       }
-    } else {
-      try {
-        await signUpWithPasskey({})
-          .then((data) => {
-            if (data) {
-              setupKokioDeviceUID(data.deviceUID);
-              setupKokioUserData(data.deviceUID, data.user as User);
-              setupKokioUserPasskey(data.deviceUID, {
-                x:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.x || "",
-                y:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.y || "",
-                credentialId:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.credentialId || "",
-                attestationObject:
-                  data.authenticatorParams?.attestation.attestationObject || "",
-                clientDataJson:
-                  data.authenticatorParams.attestation.clientDataJson,
-              });
-            }
-          })
-          .finally(() => {
-            setLoading(false);
-            sheetRef.current?.close({
-              duration: 250,
-              easing: Easing.out(Easing.quad),
-            });
-          });
-      } catch (e) {
-        console.error("Error signing in", e);
-        setLoading(false);
-        Alert.alert("Error signing up");
-        sheetRef.current?.close({
-          duration: 250,
-          easing: Easing.out(Easing.quad),
-        });
-      }
+    } catch (e) {
+      console.error("Passkey flow error", e);
+    } finally {
+      setLoading(false);
     }
-  }, [signUpWithPasskey, loginWithPasskey, kokio]);
+  }, [signUpWithPasskey, loginWithPasskey, kokio, setupKokioRegistration, clearError]);
 
   useEffect(() => {
-    // Show the modal if not authenticated and we have user data (meaning user has set up passkey)
-    if (!state.authenticated) {
-      clearAllSessions();
-      sheetRef.current?.expand({
-        duration: 250,
-        easing: Easing.in(Easing.quad),
-      });
+    if (state.authenticated) {
+      sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+    } else {
+      sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
     }
   }, [state.authenticated]);
 
@@ -179,6 +131,9 @@ export function AuthenticationModal() {
               Touch the fingerprint sensor
             </ThemedText>
           </Pressable>
+        )}
+        {!!state.error && !loading && (
+          <Text style={styles.errorText}>{state.error}</Text>
         )}
         <Pressable
           disabled={loading}
@@ -239,5 +194,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "300",
     fontFamily: "Lexend-Light",
+  },
+  errorText: {
+    fontSize: 13,
+    color: "#FF3B30",
+    fontFamily: "Lexend-Light",
+    textAlign: "center",
+    marginTop: 12,
+    paddingHorizontal: 24,
   },
 });

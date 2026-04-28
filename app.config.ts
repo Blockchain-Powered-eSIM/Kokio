@@ -3,27 +3,12 @@ import { AppExtraConfig } from "./appKeys.js";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const privateConfig: AppExtraConfig = {
-    // ALCHEMY
-    alchemyApiKey: process.env.ALCHEMY_API_KEY,
-    gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
-
-    // PIMLICO
-    pimlicoApiKey: process.env.PIMLICO_API_KEY,
-
-    // TURNKEY
-    turnkeyOrganizationId: process.env.TURNKEY_ORGANIZATION_ID,
-    turnkeyApiPublicKey: process.env.TURNKEY_API_PUBLIC_KEY,
-    turnkeyApiPrivateKey: process.env.TURNKEY_API_PRIVATE_KEY,
-
-    // API Base URL
+    authServerBaseUrl: process.env.AUTH_SERVER_BASE_URL,
+    redirectUri: process.env.REDIRECT_URI,
     apiBaseUrl: process.env.API_BASE_URL,
-    serverBaseUrl: process.env.SERVER_BASE_URL,
-
-    // Wallet Connect
-    reownProjectId: process.env.REOWN_PROJECT_ID,
-
-    // Kokio vault address
-    kokioVaultAddress: process.env.KOKIO_VAULT,
+    alchemyApiKey: process.env.ALCHEMY_API_KEY,
+    pimlicoApiKey: process.env.PIMLICO_API_KEY,
+    gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
   };
 
   return {
@@ -46,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
-      associatedDomains: ["webcredentials:docs.kokio.app"],
+      associatedDomains: ["webcredentials:kokio.app", "webcredentials:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
       },

@@ -1,208 +1,83 @@
-import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
-import {
-  isSupported,
-  createPasskey,
-  PasskeyStamper,
-  TurnkeyAuthenticatorParams,
-} from "@turnkey/react-native-passkey-stamper";
-import { TurnkeyClient } from "@turnkey/sdk-react-native";
-import { v4 as uuid } from "uuid";
-import {
-  base64UrlToBuffer,
-  parseDEREncodedSignature,
-} from "@/helpers/converters";
-import Constants from "expo-constants";
-import { AppExtraConfig } from "@/appKeys";
-import { decodeClientDataJSON } from "@simplewebauthn/server/helpers";
+// @deprecate
+// import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
+// const TURNKEY_API_URL = "https://api.turnkey.com"; // retained for stampGetWhoami (test utility only)
+// import { PasskeyStamper } from "@turnkey/react-native-passkey-stamper";
+// import { TurnkeyClient } from "@turnkey/sdk-react-native";
+// import {
+//   base64UrlToBuffer,
+//   parseDEREncodedSignature,
+// } from "@/helpers/converters";
+// import Constants from "expo-constants";
+// import { AppExtraConfig } from "@/appKeys";
+// import { decodeClientDataJSON } from "@simplewebauthn/server/helpers";
 
-import { decode } from "cbor";
-import { Buffer } from "buffer";
-import { parseAuthenticatorData } from "@/helpers/parseAuthenticatorData";
-import { toHex, http, createWalletClient, Account, WalletClient } from "viem";
-import { baseSepolia } from "viem/chains";
-import { createAccount } from "@turnkey/viem";
-import { User } from "@turnkey/sdk-react-native";
-import { checkIfEmailInUse } from "./api";
+// import { toHex, http, createWalletClient, Account, WalletClient } from "viem";
+// import { baseSepolia } from "viem/chains";
+// import { createAccount } from "@turnkey/viem";
+// import { User } from "@turnkey/sdk-react-native";
 
-const extra = Constants.expoConfig?.extra as AppExtraConfig;
+// const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
-/**
- * Decodes the attestation object and extracts public key data
- * @param json - JSON object containing the attestation data
- * @returns object containing x and y coordinates of the public key
- * @throws error if decoding fails
- * @throws error if no json is provided
- */
-export async function decodeAttestationObj(cred: {
-  rawId: string;
-  response: {
-    clientDataJson: string;
-    attestationObject: string;
-  };
-}): Promise<
-  | {
-      x: string;
-      y: string;
-      credentialId: string;
-    }
-  | undefined
-> {
-  if (!cred) {
-    console.error("No json provided");
-    return { x: "", y: "", credentialId: "" };
-  }
-  try {
-    console.log("creation json -", cred);
+// export const returnViemWalletClient = async (
+//   user: User,
+//   client: TurnkeyClient,
+//   smartAccountAddress: string
+// ): Promise<WalletClient> => {
+//   console.log("user wallet address", smartAccountAddress);
 
-    if (cred?.rawId) console.log("Credentials id:", cred.rawId);
-    if (cred?.response) console.log(cred.response);
-    const attestationObject = Buffer.from(
-      cred.response.attestationObject,
-      "base64"
-    );
-    const decodedAttestationObj = decode(attestationObject);
-    console.log("Decoded Attestation Object in f:", decodedAttestationObj);
-    let authDataBuffer = decodedAttestationObj.authData;
-    if (Buffer.isBuffer(authDataBuffer)) {
-      authDataBuffer = authDataBuffer.buffer.slice(
-        authDataBuffer.byteOffset,
-        authDataBuffer.byteOffset + authDataBuffer.byteLength
-      );
-    }
-    const authDataUint8Array = new Uint8Array(decodedAttestationObj.authData); // Safe conversion
-    const authData = parseAuthenticatorData(authDataUint8Array);
-    const publicKey = decode(Buffer.from(authData.credentialPublicKey!.buffer));
-    const x = toHex(publicKey.get(-2));
-    const y = toHex(publicKey.get(-3));
-    console.log("Public Key X from attestationObject:", x);
-    console.log("Public Key Y from attestationObject:", y);
-    return { x, y, credentialId: cred.rawId };
-  } catch (e) {
-    console.error("create error", e);
-  }
-}
+//   const viemAccount = await createAccount({
+//     //@ts-ignore-line
+//     client,
+//     organizationId: user.organizationId,
+//     signWith: user.wallets[0].accounts[0].address,
+//     ethereumAddress: user.wallets[0].accounts[0].address,
+//   });
 
-export async function onPasskeyCreate(user: {
-  username?: string;
-  email?: string;
-}): Promise<
-  | {
-      authenticatorParams: TurnkeyAuthenticatorParams;
-      deviceUID: string;
-    }
-  | undefined
-> {
-  if (!isSupported()) {
-    alert("Passkeys are not supported on this device");
-  }
+//   const viemClient = createWalletClient({
+//     account: viemAccount as Account,
+//     chain: baseSepolia,
+//     transport: http(
+//       `https://base-sepolia.g.alchemy.com/v2/${extra.alchemyApiKey}`
+//     ),
+//   });
 
-  // Check if user already exists with the same email only if email was provided by the user
-  if (user.email) {
-    const inUse = await checkIfEmailInUse({ email: user.email });
-    if (inUse) {
-      console.log("User with this email already exists", user.email);
-      return;
-    }
-  }
+//   console.log("viemClient", viemClient.account.address);
 
-  try {
-    // ID isn't visible by users, but needs to be random enough and valid base64 (for Android)
-    const deviceUID = uuid();
+//   return viemClient;
+// };
 
-    const authenticatorParams = await createPasskey({
-      // This doesn't matter much, it will be the name of the authenticator persisted on the Turnkey side.
-      // Won't be visible by default.
-      authenticatorName: "End-User Passkey",
-      rp: {
-        id: PASSKEY_CONFIG.RP_ID,
-        name: PASSKEY_CONFIG.RP_NAME,
-      },
-      user: {
-        id: deviceUID,
-        // Username will be ignored and set to Kokio Passkey
-        name: "Kokio Passkey",
-        // if we make the email optional the passkey authenticator will not have the email as the displayName and this cannot be changed later on
-        // display name is set only at creation time
-        displayName: "",
-      },
-      authenticatorSelection: {
-        residentKey: "required",
-        requireResidentKey: true,
-        userVerification: "preferred",
-      },
-    });
+// export const stampGetWhoami = async (organizationId: string) => {
+//   const stamper = new PasskeyStamper({
+//     rpId: PASSKEY_CONFIG.RP_ID,
+//   });
+//   const client = new TurnkeyClient({ baseUrl: TURNKEY_API_URL }, stamper);
 
-    console.log("authenticatorParams", authenticatorParams);
-    return { authenticatorParams, deviceUID };
-  } catch (e) {
-    console.error("error during passkey creation", e);
-  }
-}
+//   const signedRequest = await client.stampGetWhoami({
+//     organizationId,
+//   });
 
-export const returnViemWalletClient = async (
-  user: User,
-  client: TurnkeyClient,
-  smartAccountAddress: string
-): Promise<WalletClient> => {
-  // Kokio user wallet address comes from kokio SDK not Turnkey here - change??
-  console.log("user wallet address", smartAccountAddress);
+//   console.log("signedRequest", signedRequest);
 
-  const viemAccount = await createAccount({
-    //@ts-ignore-line
-    client,
-    organizationId: user.organizationId,
-    signWith: user.wallets[0].accounts[0].address,
-    ethereumAddress: user.wallets[0].accounts[0].address,
-  });
+//   const { url, body, stamp } = signedRequest;
 
-  const viemClient = createWalletClient({
-    account: viemAccount as Account,
-    chain: baseSepolia,
-    transport: http(
-      `https://base-sepolia.g.alchemy.com/v2/${extra.alchemyApiKey}`
-    ),
-  });
+//   const clientDataJson = JSON.parse(stamp.stampHeaderValue).clientDataJson;
+//   const signature = JSON.parse(stamp.stampHeaderValue).signature;
+//   const sigBytes = base64UrlToBuffer(signature);
+//   const { r, s } = parseDEREncodedSignature(sigBytes);
+//   const decodedClientDataJson = decodeClientDataJSON(clientDataJson);
+//   console.log("decodedClientDataJSON:", decodedClientDataJson);
+//   console.log("r:", r);
+//   console.log("s:", s);
 
-  console.log("viemClient", viemClient.account.address);
+//   const resp = await fetch(url, {
+//     method: "POST",
+//     body,
+//     headers: {
+//       [stamp.stampHeaderName]: stamp.stampHeaderValue,
+//     },
+//   });
 
-  return viemClient;
-};
+//   console.log("response from validation", await resp.json());
 
-// this is the way to send transactions and signed requests for validation
-export const stampGetWhoami = async (organizationId: string) => {
-  const stamper = new PasskeyStamper({
-    rpId: PASSKEY_CONFIG.RP_ID,
-  });
-  const client = new TurnkeyClient({ baseUrl: TURNKEY_API_URL }, stamper);
-
-  // we can do client.stampSignTransaction
-  const signedRequest = await client.stampGetWhoami({
-    organizationId,
-  });
-
-  console.log("signedRequest", signedRequest);
-
-  const { url, body, stamp } = signedRequest;
-
-  const clientDataJson = JSON.parse(stamp.stampHeaderValue).clientDataJson;
-  const signature = JSON.parse(stamp.stampHeaderValue).signature;
-  const sigBytes = base64UrlToBuffer(signature);
-  const { r, s } = parseDEREncodedSignature(sigBytes);
-  const decodedClientDataJson = decodeClientDataJSON(clientDataJson);
-  console.log("decodedClientDataJSON:", decodedClientDataJson);
-  console.log("r:", r);
-  console.log("s:", s);
-
-  // Forward the signed request to the Turnkey API for validation
-  const resp = await fetch(url, {
-    method: "POST",
-    body,
-    headers: {
-      [stamp.stampHeaderName]: stamp.stampHeaderValue,
-    },
-  });
-
-  console.log("response from validation", await resp.json());
-
-  return resp.json();
-};
+//   return resp.json();
+// };

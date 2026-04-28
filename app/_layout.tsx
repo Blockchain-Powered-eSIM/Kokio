@@ -1,11 +1,12 @@
 // Add global shims
 import "react-native-get-random-values";
 import "@ethersproject/shims";
-import "cbor-rn-prereqs";
+import { install as installQuickCrypto } from "react-native-quick-crypto";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
@@ -21,7 +22,14 @@ import {
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { Providers } from "@/providers";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
-import { applyTheme, THEME_STORAGE_KEY } from "@/constants/Colors";
+import { StepUpPromptModal } from "@/components/StepUpPromptModal";
+import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
+import { setUnauthenticatedHandler } from "@/services/httpService";
+import { useAuthStore } from "@/stores/authStore";
+
+// Polyfill global.crypto.subtle for jose / DPoP key generation.
+// index.js is not used when "main" = "expo-router/entry", so this must live here.
+installQuickCrypto();
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -56,6 +64,13 @@ export default function RootLayout() {
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
+
+  // Rehydrate persisted tokens from SecureStore and wire the unauthenticated
+  // redirect handler so httpService can navigate on refresh failure.
+  useEffect(() => {
+    useAuthStore.getState().loadPersistedTokens();
+    setUnauthenticatedHandler(() => router.replace("/" as any));
+  }, []);
 
   // Initial connectivity check
   useEffect(() => {
@@ -119,12 +134,16 @@ export default function RootLayout() {
 
   return (
     <Providers>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-        <Stack.Screen name="Offline" options={{ headerShown: false }} />
-      </Stack>
+      <ServiceStatusBanner />
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+          <Stack.Screen name="Offline" options={{ headerShown: false }} />
+        </Stack>
+      </View>
       <AuthenticationModal />
+      <StepUpPromptModal />
     </Providers>
   );
 }
