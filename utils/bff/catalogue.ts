@@ -7,13 +7,14 @@ type GetPlansParams          = GetCatalogueParams; // backward compat
 type CatalogueResponse       = components['schemas']['CatalogueResponse'];
 type ServiceRegionsResponse  = components['schemas']['ServiceRegionsResponse'];
 
+export type CataloguePlan = components['schemas']['CataloguePlan'];
+
 export type { GetCatalogueParams, GetPlansParams, CatalogueResponse, ServiceRegionsResponse };
-export type { CataloguePlan } from './generated/koKioBff';
 
 // ─── Catalogue plans ──────────────────────────────────────────────────────────
 
 export function getCatalogue(params: GetCatalogueParams): Promise<CatalogueResponse> {
-  return unwrapBffResponse(api.get('/v1/catalogue', params as Record<string, unknown>));
+  return unwrapBffResponse(api.get('/v1/catalogue', params as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
 }
 
 /** @deprecated Use getCatalogue */

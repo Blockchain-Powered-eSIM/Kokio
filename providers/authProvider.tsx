@@ -77,7 +77,7 @@ export interface AuthRelayProviderType {
     username?: string;
     email?: string;
   }) => Promise<RegisterResult | null | undefined>;
-  loginWithPasskey: () => Promise<void>;
+  loginWithPasskey: () => Promise<boolean>;
   reauthenticate: () => void;
   clearError: () => void;
   logout: () => Promise<void>;
@@ -92,7 +92,7 @@ export interface AuthRelayProviderType {
 export const AuthRelayContext = createContext<AuthRelayProviderType>({
   state: initialState,
   signUpWithPasskey: async () => null,
-  loginWithPasskey: async () => {},
+  loginWithPasskey: async () => false,
   reauthenticate: () => {},
   clearError: () => {},
   logout: async () => {},
@@ -127,25 +127,14 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     });
   }, []);
 
-  // Bidirectional sync: token-store ↔ auth state.
-  //
-  // false → true: loadPersistedTokens() resolved valid tokens on cold launch,
-  //               or signUp/login completed — mark authenticated without forcing
-  //               another biometric prompt.
-  // true → false: AUTH-302 wrapper exhausted token refresh and called
-  //               clearTokens() — force the user back to sign-in.
-  //
-  // The initial snapshot read handles the race where loadPersistedTokens()
-  // completes in a parent effect before this provider mounts.
+  // Re-auth gate: only drop to unauthenticated when a live session is
+  // invalidated (token refresh failure, logout). Loading persisted tokens on
+  // cold launch does NOT set authenticated — the user must always pass the
+  // biometric prompt on every cold launch.
   useEffect(() => {
-    dispatch({
-      type: "AUTHENTICATE",
-      payload: useAuthStore.getState().isAuthenticated,
-    });
-
     const unsub = useAuthStore.subscribe((next, prev) => {
-      if (next.isAuthenticated !== prev.isAuthenticated) {
-        dispatch({ type: "AUTHENTICATE", payload: next.isAuthenticated });
+      if (prev.isAuthenticated && !next.isAuthenticated) {
+        dispatch({ type: "AUTHENTICATE", payload: false });
       }
     });
     return unsub;
@@ -178,7 +167,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     }
   };
 
-  const loginWithPasskey = async () => {
+  const loginWithPasskey = async (): Promise<boolean> => {
     if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
@@ -190,8 +179,10 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       // Retries once on AUTH_TIME_RECENCY_VIOLATION (biometric timeout >120s).
       await loginWithKokioPasskey();
       dispatch({ type: "PASSKEY" });
+      return true;
     } catch (error: any) {
       dispatch({ type: "ERROR", payload: formatError(error) });
+      return false;
     } finally {
       dispatch({ type: "LOADING", payload: null });
     }

@@ -47,7 +47,7 @@ export async function buildDpopProof({
   if (nonce !== undefined) payload.nonce = nonce;
   if (ath !== undefined) payload.ath = ath;
 
-  if (__DEV__) console.log('[dpop] proof payload:', JSON.stringify({ htm, htu, nonce, hasAth: ath !== undefined }));
+  if (__DEV__) console.log('[dpop] proof payload:', JSON.stringify({ htm, htu, nonce, ath }));
 
   return new SignJWT(payload)
     .setProtectedHeader({ typ: 'dpop+jwt', alg: 'ES256', jwk: publicJwk })

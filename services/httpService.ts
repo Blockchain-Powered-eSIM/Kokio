@@ -1,10 +1,12 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-// Allow callers to opt out of auth header injection for public endpoints.
+// Allow callers to opt out of auth header injection for public endpoints,
+// or to override the htu claim for routes with path parameters.
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
     skipAuth?: boolean;
+    dpopHtu?: string;
   }
 }
 import qs from 'qs';
@@ -121,10 +123,12 @@ instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
     catch { /* fall through — 401 handler will retry refresh reactively */ }
   }
 
-  // htu = full URL without query / fragment (RFC 9449 §4.2)
+  // htu = full URL without query / fragment (RFC 9449 §4.2).
+  // dpopHtu overrides the computed value for routes where path params must
+  // be stripped (e.g. /v1/coupon/:code → htu is /v1/coupon).
   const base   = (config.baseURL ?? '').replace(/\/$/, '');
   const path   = config.url ?? '';
-  const htu    = buildHtu(base, path);
+  const htu    = config.dpopHtu ?? buildHtu(base, path);
   const htm    = (config.method ?? 'get').toUpperCase();
   const origin = htu ? safeOrigin(htu) : null;
   const nonce  = origin ? _bffNonceCache.get(origin) : undefined;

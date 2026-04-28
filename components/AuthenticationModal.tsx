@@ -14,7 +14,6 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { ThemedText } from "./ThemedText";
-import { useRouter } from "expo-router";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
@@ -29,7 +28,6 @@ export function AuthenticationModal() {
     kokio,
     setupKokioRegistration,
   } = useKokio();
-  const router = useRouter();
 
   // renders
   const renderBackdrop = useCallback(
@@ -59,11 +57,15 @@ export function AuthenticationModal() {
     setLoading(true);
     try {
       if (kokio.deviceWalletAddress) {
-        await loginWithPasskey();
+        const success = await loginWithPasskey();
+        if (success) {
+          sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        }
       } else {
         const data = await signUpWithPasskey({});
         if (data) {
           await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY);
+          sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
         }
       }
     } catch (e) {
