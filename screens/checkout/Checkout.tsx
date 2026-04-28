@@ -716,14 +716,14 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                     style={[
                       styles.discountAppliedContainer,
                       { marginTop: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-                      compatibleTopUpEsimId === r.esimId && { borderWidth: 1, borderColor: "#30D158" },
+                      compatibleTopUpEsimId === r.esimId && { borderWidth: 1, borderColor: Theme.colors.success },
                     ]}
                   >
                     <ThemedText style={styles.discountAppliedText}>
                       {`${r.esimId.slice(0, 6)}...${r.esimId.slice(-4)}`}
                     </ThemedText>
                     {compatibleTopUpEsimId === r.esimId && (
-                      <Ionicons name="checkmark-circle" size={18} color="#30D158" />
+                      <Ionicons name="checkmark-circle" size={18} color={Theme.colors.success} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -901,7 +901,7 @@ const styles = StyleSheet.create({
   },
   walletModalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Theme.colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,

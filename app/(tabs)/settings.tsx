@@ -18,6 +18,7 @@ import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Feature flags for menu item availability
 // Set to true to enable the menu item, false to disable (but keep visible)

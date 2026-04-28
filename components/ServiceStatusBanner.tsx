@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { useBffHealth } from '@/hooks/useBffHealth';
+import { Theme } from '@/constants/Colors';
 
 export function ServiceStatusBanner() {
   const { isHealthy } = useBffHealth();
@@ -12,7 +13,7 @@ export function ServiceStatusBanner() {
 
   return (
     <View style={[styles.banner, { paddingTop: insets.top + 8 }]}>
-      <Ionicons name="warning-outline" size={16} color="#fff" />
+      <Ionicons name="warning-outline" size={16} color={Theme.colors.destructiveForeground} />
       <ThemedText style={styles.text}>
         Service experiencing issues. Some features may be unavailable.
       </ThemedText>
@@ -22,7 +23,7 @@ export function ServiceStatusBanner() {
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: '#FF9500',
+    backgroundColor: Theme.colors.warning,
     flexDirection:   'row',
     alignItems:      'center',
     paddingHorizontal: 16,
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
     gap:             8,
   },
   text: {
-    color:      '#fff',
+    color:      Theme.colors.destructiveForeground,
     fontSize:   13,
     fontWeight: '500',
     flex:       1,

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastNotification from '../components/ui/ToastNotification/ToastNotification';
+import { Theme } from '@/constants/Colors';
 
 type MessageVariant = 'error' | 'info';
 
@@ -35,7 +36,7 @@ function MessageToast({ message, variant, onHide }: { message: string; variant: 
     ]).start(onHide);
   }, []);
 
-  const bg = variant === 'error' ? '#FF3B30' : '#48484A';
+  const bg = variant === 'error' ? Theme.colors.destructive : Theme.colors.muted;
 
   return (
     <Animated.View style={[styles.messageToast, { backgroundColor: bg, opacity }]}>

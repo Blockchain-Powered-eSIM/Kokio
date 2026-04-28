@@ -14,6 +14,7 @@ import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { openBrowserAsync } from "expo-web-browser";
 import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
+import { Theme } from "@/constants/Colors";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";

@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
+import { Theme } from "@/constants/Colors";
 
 export function StepUpPromptModal() {
   const { stepUpVisible, stepUpHint, stepUpError, stepUp, dismissStepUp } =
@@ -59,7 +60,7 @@ export function StepUpPromptModal() {
 
           {loading ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color="#FFCC00" />
+              <ActivityIndicator color={Theme.colors.highlight} />
               <Text style={styles.loadingText}>Confirming…</Text>
             </View>
           ) : (
@@ -94,14 +95,14 @@ export function StepUpPromptModal() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: Theme.colors.overlayMedium,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
   },
   card: {
     width: "100%",
-    backgroundColor: "#242427",
+    backgroundColor: Theme.colors.background,
     borderRadius: 20,
     paddingTop: 28,
     paddingHorizontal: 24,
@@ -110,21 +111,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: Theme.colors.text,
     fontFamily: "Lexend-SemiBold",
     textAlign: "center",
     marginBottom: 16,
   },
   body: {
     fontSize: 14,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontFamily: "Lexend-Light",
     textAlign: "center",
     lineHeight: 20,
   },
   operation: {
     fontSize: 13,
-    color: "#FFCC00",
+    color: Theme.colors.highlight,
     fontFamily: "Lexend",
     textAlign: "center",
     marginTop: 4,
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: 13,
-    color: "#FF3B30",
+    color: Theme.colors.destructive,
     fontFamily: "Lexend-Light",
     textAlign: "center",
     marginBottom: 16,
@@ -145,18 +146,18 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: "#48484A",
+    borderTopColor: Theme.colors.muted,
     marginTop: 4,
   },
   loadingText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 14,
     fontFamily: "Lexend-Light",
   },
   buttonRow: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#48484A",
+    borderTopColor: Theme.colors.muted,
     marginTop: 4,
   },
   cancelBtn: {
@@ -164,10 +165,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     borderRightWidth: 1,
-    borderRightColor: "#48484A",
+    borderRightColor: Theme.colors.muted,
   },
   cancelText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 16,
     fontFamily: "Lexend-Light",
   },
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   confirmText: {
-    color: "#FFCC00",
+    color: Theme.colors.highlight,
     fontSize: 16,
     fontFamily: "Lexend-SemiBold",
   },

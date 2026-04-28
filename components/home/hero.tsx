@@ -39,12 +39,12 @@ const Hero = () => {
         </View>
         <TouchableOpacity
           style={[styles.heroButton, {
-            backgroundColor: isDarkTheme ? "#FFFFFF" : Theme.colors.secondary,
+            backgroundColor: isDarkTheme ? Theme.colors.text : Theme.colors.secondary,
           }]}
           onPress={handleShopCTAClick}
         >
           <Text style={[styles.heroButtonText, {
-            color: isDarkTheme ? "#000000" : Theme.colors.secondaryForeground,
+            color: isDarkTheme ? Theme.colors.background : Theme.colors.secondaryForeground,
           }]}>Shop</Text>
         </TouchableOpacity>
       </CardFooter>

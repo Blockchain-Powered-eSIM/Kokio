@@ -88,6 +88,8 @@ const EXTRA_TOKENS = {
   successBackground: "rgba(48, 209, 88, 0.12)",
   destructiveBackground: "rgba(255, 69, 58, 0.12)",
   overlay: "rgba(0, 0, 0, 0.5)",
+  overlayMedium: "rgba(0, 0, 0, 0.6)",
+  overlayDark: "rgba(0, 0, 0, 0.7)",
   handle: "rgba(60, 60, 67, 0.2)",
   handleArrow: "rgba(60, 60, 67, 0.8)",
   info: "#64D2FF",
@@ -95,6 +97,11 @@ const EXTRA_TOKENS = {
   gradientDark: "#404040",
   modalBackground: "rgba(60, 60, 60, 0.9)",
   contentBackground: "rgba(100, 100, 100, 0.9)",
+  itemBackground: "#1c1c1e",
+  warning: "#FF9500",
+  pink: "#FF2D55",
+  systemBlue: "#007AFF",
+  sheetBackground: "rgba(37, 37, 37, 0.95)",
 };
 
 const DARK_TOKENS = {
@@ -127,6 +134,8 @@ const LIGHT_TOKENS = {
   gradientDark: "#FFFFFF",          // wallet card gradient start: white → sky
   modalBackground: "rgba(255, 255, 255, 0.95)",
   contentBackground: "rgba(238, 248, 252, 0.98)",
+  itemBackground: "#FFFFFF",
+  sheetBackground: "rgba(255, 255, 255, 0.95)",
 };
 
 export const THEME_STORAGE_KEY = "@kokio_theme";

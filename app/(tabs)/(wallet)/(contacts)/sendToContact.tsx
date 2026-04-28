@@ -13,6 +13,7 @@ import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Alert } from 'react-native'
 import { useToast } from '@/contexts/ToastContext'
+import { Theme } from '@/constants/Colors'
 
 interface Token {
     id: string;
@@ -167,7 +168,7 @@ const sendToContact = () => {
                         </View>
                     </ThemedView>
                     <View className='flex-1 mt-10 items-center'>
-                        <ThemedView darkColor='#1c1c1e' className='w-auto mx-2 flex-row py-3 rounded-3xl '>
+                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2 flex-row py-3 rounded-3xl '>
                             <View className='w-[67%]'>
                                 <ThemedText light className='ml-6 mt-2'>Amount</ThemedText>
                                 <TextInput
@@ -190,7 +191,7 @@ const sendToContact = () => {
 
                         </ThemedView>
                         <ThemedText className='mt-3' >Balance: 100 {token?.symbol}</ThemedText>
-                        <ThemedView darkColor='#1c1c1e' className='w-[97%] mt-3 mx-2 px-6 py-5 rounded-3xl '>
+                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-[97%] mt-3 mx-2 px-6 py-5 rounded-3xl '>
                             <View className='flex-row justify-between'>
                                 <ThemedText>Estimated Gas Fee:</ThemedText>
                                 <ThemedText> 0.0014 {token?.symbol}</ThemedText>
@@ -200,7 +201,7 @@ const sendToContact = () => {
                                 <ThemedText>{(parseFloat(amount) + 0.0014).toFixed(4)} {token?.symbol}</ThemedText>
                             </View>
                         </ThemedView>
-                        <Pressable onPress={handleSend} className='w-[97%] fixed bg-[#FFD60A] py-3  mt-[200] rounded-3xl'>
+                        <Pressable onPress={handleSend} className='w-[97%] fixed py-3  mt-[200] rounded-3xl' style={{ backgroundColor: Theme.colors.secondary }}>
                             {isLoading?<ActivityIndicator size='small'/>:
                             <ThemedText darkColor='black' className='text-center'>Confirm & Send {amount} {token?.symbol} </ThemedText>}
                         </Pressable>
@@ -213,16 +214,16 @@ const sendToContact = () => {
                      snapPoints={snapPoints}
                      enablePanDownToClose
                      style={{ paddingBottom: 10, borderRadius: 25 }}
-                     backgroundStyle={{ backgroundColor: 'rgba(37, 37, 37, 0.95)' }}
+                     backgroundStyle={{ backgroundColor: Theme.colors.sheetBackground }}
                 >
-                    <ThemedText variant='xl' className='text-center bg-[rgba(37, 37, 37)] pt-2 pb-4'>Select Token</ThemedText>
+                    <ThemedText variant='xl' className='text-center pt-2 pb-4' style={{ backgroundColor: Theme.colors.background }}>Select Token</ThemedText>
                     <BottomSheetScrollView contentContainerStyle={styles.contentContainer}>
                         {_.size(tokens) === 0 ? (
-                            <ThemedText darkColor='#AEAEB2' className='mt-5 ml-2 mb-2'>
+                            <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
                                 You don't hold any tokens yet.
                             </ThemedText>
                         ) : (
-                            <ThemedView darkColor='rgba(37, 37, 37)' className='gap-y-3 mt-3 mb-3 px-4'>
+                            <ThemedView darkColor={Theme.colors.background} className='gap-y-3 mt-3 mb-3 px-4'>
                                 {_.map(tokens, (tk, index) => (
                                     <Pressable
                                         onPress={() => setToken(tokens[index])}
@@ -234,10 +235,8 @@ const sendToContact = () => {
                                             <ThemedText
                                                 bold
                                                 variant="xl"
-                                                darkColor={token?.id === tk.id ? '#FF9F0A' : 'white'
-                                                }
-                                                className={`ml-3 ${token?.id === tk.id ? 'text-[#FF9F0A]' : 'text-white'
-                                                    }`}
+                                                darkColor={token?.id === tk.id ? Theme.colors.primary : Theme.colors.text}
+                                                className="ml-3"
                                             >
                                                 {tk?.symbol}
                                             </ThemedText>
@@ -245,10 +244,7 @@ const sendToContact = () => {
                                         <View className="flex-col items-end">
                                             <ThemedText
                                                 variant="xl"
-                                                darkColor={token?.id === tk.id ? '#FF9F0A' : 'white'
-                                                }
-                                                className={`${token?.id === tk.id ? 'text-[#FF9F0A]' : 'text-white'
-                                                    }`}
+                                                darkColor={token?.id === tk.id ? Theme.colors.primary : Theme.colors.text}
                                             >
                                                 {tk?.value}
                                             </ThemedText>
@@ -265,14 +261,9 @@ const sendToContact = () => {
 }
 const styles = StyleSheet.create({
     contentContainer: {
-        backgroundColor: 'rgba(37, 37, 37)',
+        backgroundColor: Theme.colors.background,
         padding: 0,
-
         elevation: 50,
-
-
-
-
     },
 })
 

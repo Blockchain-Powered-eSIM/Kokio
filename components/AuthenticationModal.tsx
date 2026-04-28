@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    color: "#FF3B30",
+    color: Theme.colors.destructive,
     fontFamily: "Lexend-Light",
     textAlign: "center",
     marginTop: 12,

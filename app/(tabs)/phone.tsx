@@ -71,7 +71,7 @@ const contactsScreen = () => {
           }
           className="ml-[-10] justify-center mt-[-19] mr-4 "
         >
-          <View className=" ml-8  h-16 items-center justify-center  w-16 rounded-full bg-[#FF9500]">
+          <View className="ml-8 h-16 items-center justify-center w-16 rounded-full" style={{ backgroundColor: Theme.colors.warning }}>
             <Image
               source={require("../../assets/images/wallet/add_contact.png")}
               className="h-[32] w-[38]"

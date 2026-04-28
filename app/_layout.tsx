@@ -26,6 +26,7 @@ import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
+import { THEME_STORAGE_KEY, applyTheme } from "@/constants/Colors";
 
 // Polyfill global.crypto.subtle for jose / DPoP key generation.
 // index.js is not used when "main" = "expo-router/entry", so this must live here.

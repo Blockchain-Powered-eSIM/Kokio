@@ -4,6 +4,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 import _ from "lodash"
+import { Theme } from '@/constants/Colors'
 import { useCallback } from 'react';
 
 
@@ -94,7 +95,7 @@ const Transactions = () => {
                 <ThemedText variant='xl'>{tr?.walletId}</ThemedText>
               )}
               <ThemedText
-                darkColor={tr?.type === 'received' ? '#AEAEB2' : '#FF9F0A'}
+                darkColor={tr?.type === 'received' ? Theme.colors.foreground : Theme.colors.primary}
                 variant='sm'
               >
                 {tr?.type}
@@ -104,7 +105,7 @@ const Transactions = () => {
           <View className='flex-col items-end'>
             <ThemedText variant='xl'>{tr?.amount}</ThemedText>
             <ThemedText
-              darkColor={tr?.status === 'completed' ? '#AEAEB2' : '#FF9F0A'}
+              darkColor={tr?.status === 'completed' ? Theme.colors.foreground : Theme.colors.primary}
               variant='sm'
             >
               {tr?.status}
@@ -118,21 +119,21 @@ const Transactions = () => {
 
   return (
     <ThemedView>
-      <ThemedView darkColor='#1c1c1e' className='mx-2 py-3 rounded-3xl mt-5'>
-        <ThemedText darkColor='#AEAEB2' className='ml-6'>Pending</ThemedText>
+      <ThemedView darkColor={Theme.colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+        <ThemedText darkColor={Theme.colors.foreground} className='ml-6'>Pending</ThemedText>
         {_.size(transactions) > 0 ? (
           <View className='gap-y-6 mt-5 mb-3'>
             {_.map(transactions, renderTransaction)}
         </View>
       ) : (
-        <ThemedText darkColor='#AEAEB2' className='mt-5 ml-6 mb-2'>
+        <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-6 mb-2'>
           No Transactions to show
         </ThemedText>
       )}
 
       </ThemedView>
-      <ThemedView darkColor='#1c1c1e' className='mx-2 py-3 rounded-3xl mt-5'>
-        <ThemedText darkColor='#AEAEB2' className='ml-6'>Completed</ThemedText>
+      <ThemedView darkColor={Theme.colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+        <ThemedText darkColor={Theme.colors.foreground} className='ml-6'>Completed</ThemedText>
         {transactions.length > 0 ? (
           <View className='gap-y-6 mt-5 mb-3'>
             {_.map(transactions,(tr, index) => (
@@ -151,7 +152,7 @@ const Transactions = () => {
                     {tr?.name ? <ThemedText variant='xl'>{tr?.name}</ThemedText>:
                       <ThemedText variant='xl'>{shortenId(tr?.walletId)}</ThemedText>}
                       <ThemedText
-                        darkColor={tr?.type === 'received' ? '#AEAEB2' : '#FF9F0A'}
+                        darkColor={tr?.type === 'received' ? Theme.colors.foreground : Theme.colors.primary}
                         variant='sm'
                       >
                         {tr?.type}
@@ -161,7 +162,7 @@ const Transactions = () => {
                   <View className='flex-col items-end'>
                     <ThemedText variant='xl'>{tr?.amount}</ThemedText>
                     <ThemedText
-                      darkColor={tr?.status === 'completed' ? '#AEAEB2' : '#FF9F0A'}
+                      darkColor={tr?.status === 'completed' ? Theme.colors.foreground : Theme.colors.primary}
                       variant='sm'
                     >
                       {tr?.status}
@@ -172,7 +173,7 @@ const Transactions = () => {
             ))}
           </View>
         ) : (
-          <ThemedText darkColor='#AEAEB2' className='mt-5 ml-6 mb-2'>
+          <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-6 mb-2'>
             No Transactions to show
           </ThemedText>
         )}
