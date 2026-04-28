@@ -22,14 +22,7 @@ export async function getCoupon(code: string): Promise<CouponDocument> {
   log('lookup.request', { code: normalized, url: `/v1/coupon/${normalized}` });
 
   try {
-    const doc = await unwrapBffResponse<CouponDocument>(       
-            api.get(                                                 
-               `/v1/coupon/${normalized}`,                            
-               {},                                                    
-               { ...api.getConfig(), dpopHtu: `${api.getBaseURL()}/v1/coupon`},
-              ),
-            ); 
-    // const doc = await unwrapBffResponse<CouponDocument>(api.get(`/v1/coupon/${normalized}`));
+    const doc = await unwrapBffResponse<CouponDocument>(api.get(`/v1/coupon/${normalized}`));
     log('lookup.success', {
       code:        normalized,
       balance:     doc.balance,
