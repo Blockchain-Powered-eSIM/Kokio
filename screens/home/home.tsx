@@ -6,6 +6,7 @@ import ActiveESIMsScroll from "@/components/home/active-esim-scroll";
 import Wallet from "@/components/home/wallet";
 import Hero from "@/components/home/hero";
 import { useKokio } from "@/hooks/useKokio";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 import { useState } from "react";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
@@ -13,6 +14,7 @@ import WalletSetupModal from "@/components/ui/WalletSetupModal";
 export default function HomeScreen() {
   const { kokio, setupKokio } = useKokio();
   const [showWalletSetup, setShowWalletSetup] = useState(false);
+  const bg = useThemeColor({}, "background");
 
   const purchasedESIMs = _get(kokio, "purchasedESIMs") || [];
 
@@ -24,8 +26,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
+      <ScrollView style={{ backgroundColor: bg }}>
         <Hero />
         <ActiveESIMsScroll purchasedESIMs={purchasedESIMs} />
         {kokio.userWallet ? (
@@ -49,3 +51,4 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
+

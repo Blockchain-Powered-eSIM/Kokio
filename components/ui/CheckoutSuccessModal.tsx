@@ -76,7 +76,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
           <MaterialCommunityIcons
             name="check-decagram"
             size={42}
-            color="#30D158"
+            color={Theme.colors.success}
           />
         </Animated.View>
 
@@ -133,11 +133,11 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Theme.colors.overlay,
     paddingTop: 0,
   },
   modalContainer: {
-    backgroundColor: "rgba(60, 60, 60, 0.9)",
+    backgroundColor: Theme.colors.modalBackground,
     paddingHorizontal: 16,
     alignItems: "center",
     width: "100%",
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     width: "80%",
-    backgroundColor: "rgba(100, 100, 100, 0.9)",
+    backgroundColor: Theme.colors.contentBackground,
     borderRadius: 20,
     padding: 24,
     paddingTop: 32,
@@ -160,14 +160,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     marginTop: 24,
     lineHeight: 22,
   },
   loadingSubText: {
     fontSize: 16,
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     lineHeight: 22,
   },
@@ -181,13 +181,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 22,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   installButtonText: {
-    color: "black",
+    color: Theme.colors.cardForeground,
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",

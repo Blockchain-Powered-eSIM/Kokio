@@ -24,6 +24,7 @@ import _toUpper from "lodash/toUpper";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import AmountInput from "@/components/amountInput";
@@ -127,6 +128,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup] = useState(false);
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
+  const bg = useThemeColor({}, "background");
 
   useEffect(() => {
     if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
@@ -547,7 +549,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   ]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: bg }]}>
       <KeyboardAwareScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
@@ -631,7 +633,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                   onPress={handleRemoveDiscount}
                   style={styles.removeDiscountButton}
                 >
-                  <Ionicons name="close" size={16} color="#FF453A" />
+                  <Ionicons name="close" size={16} color={Theme.colors.destructive} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -686,7 +688,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                 <ToggleSwitch
                   isOn={applyAsTopup}
                   onToggle={setApplyAsTopup}
-                  onColor="#30D158"
+                  onColor={Theme.colors.success}
                   offColor={Theme.colors.muted}
                   size="small"
                 />
@@ -749,7 +751,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                     await disconnectExternalWallet();
                   }
                 }}
-                onColor="#30D158"
+                onColor={Theme.colors.success}
                 offColor={Theme.colors.muted}
                 size="small"
                 disabled={isConnecting}
@@ -795,7 +797,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             <ToggleSwitch
               isOn={fundOnDeviceWallet}
               onToggle={setFundOnDeviceWallet}
-              onColor="#30D158"
+              onColor={Theme.colors.success}
               offColor={Theme.colors.muted}
               size="small"
             />
@@ -817,7 +819,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           prefix="Pay "
           value={totalAmount}
           suffix="USD"
-          containerStyles={styles.checkoutButton}
+          containerStyles={[styles.checkoutButton, { backgroundColor: Theme.colors.secondary }]}
         />
       </TouchableOpacity>
 
@@ -866,7 +868,6 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 8 : 16,
   },
   checkoutButton: {
-    backgroundColor: Theme.colors.secondary,
     borderRadius: 32,
     paddingVertical: 12,
     flexDirection: "row",
@@ -890,7 +891,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: RADIO_WIDTH,
-    backgroundColor: "#7676803D",
+    backgroundColor: Theme.colors.inputBackground,
     paddingVertical: 16,
     paddingHorizontal: 24,
     marginHorizontal: 0,
@@ -906,7 +907,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   walletModalContainer: {
-    backgroundColor: "#2C2C2E",
+    backgroundColor: Theme.colors.popover,
     borderRadius: 16,
     padding: 24,
     width: "100%",
@@ -920,7 +921,7 @@ const styles = StyleSheet.create({
   },
   walletModalDescription: {
     fontSize: 16,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 32,
@@ -931,7 +932,7 @@ const styles = StyleSheet.create({
   },
   laterButton: {
     flex: 1,
-    backgroundColor: "#48484A",
+    backgroundColor: Theme.colors.muted,
     paddingVertical: 16,
     alignItems: "center",
     borderTopLeftRadius: 8,
@@ -944,7 +945,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     flex: 1,
-    backgroundColor: "#FF9500",
+    backgroundColor: Theme.colors.primary,
     paddingVertical: 16,
     alignItems: "center",
     borderTopRightRadius: 8,
@@ -962,7 +963,7 @@ const styles = StyleSheet.create({
   },
   discountInput: {
     flex: 1,
-    backgroundColor: "#7676803D",
+    backgroundColor: Theme.colors.inputBackground,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -972,7 +973,6 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   applyButton: {
-    backgroundColor: Theme.colors.secondary,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 24,
@@ -980,14 +980,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   applyButtonText: {
-    color: "black",
+    color: Theme.colors.secondaryForeground,
     fontSize: 16,
     fontWeight: "600",
   },
   discountAppliedContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: "#30D15820",
+    backgroundColor: Theme.colors.successBackground,
     borderRadius: 8,
   },
   discountAppliedContent: {
@@ -996,22 +996,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   discountAppliedText: {
-    color: "#30D158",
+    color: Theme.colors.success,
     fontSize: 14,
   },
   removeDiscountButton: {
     padding: 4,
-    backgroundColor: "#FF453A20",
+    backgroundColor: Theme.colors.destructiveBackground,
     borderRadius: 32,
   },
   discountErrorContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: "#FF453A20",
+    backgroundColor: Theme.colors.destructiveBackground,
     borderRadius: 8,
   },
   discountErrorText: {
-    color: "#FF453A",
+    color: Theme.colors.destructive,
     fontSize: 14,
   },
   walletStatusRow: {
@@ -1032,27 +1032,27 @@ const styles = StyleSheet.create({
   addressBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2C2C2E",
+    backgroundColor: Theme.colors.popover,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#3A3A3C",
+    borderColor: Theme.colors.muted,
   },
   greenDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#30D158",
+    backgroundColor: Theme.colors.success,
     marginRight: 6,
-    shadowColor: "#30D158",
+    shadowColor: Theme.colors.success,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
   },
   addressText: {
     fontSize: 12,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });

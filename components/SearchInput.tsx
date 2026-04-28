@@ -11,7 +11,7 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { Theme } from "@/constants/Colors";
+import { Colors, Theme } from "@/constants/Colors";
 
 const ICON_SIZE = 16;
 
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 12,
     alignSelf: "center",
-    shadowColor: "#000",
+    shadowColor: Colors.dark.background,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,

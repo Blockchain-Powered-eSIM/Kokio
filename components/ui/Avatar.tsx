@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ImageSourcePropType,
 } from "react-native";
+import { Theme } from "@/constants/Colors";
 
 const Avatar = ({
   imageUri,
@@ -47,11 +48,11 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#30D158",
+    backgroundColor: Theme.colors.success,
     overflow: "hidden",
   },
   initials: {
-    color: "white",
+    color: Theme.colors.text,
     fontWeight: "bold",
   },
 });

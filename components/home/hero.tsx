@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 
-import { Theme } from "@/constants/Colors";
+import { Theme, isDarkTheme } from "@/constants/Colors";
 
 import { Card, CardFooter } from "../ui/Card";
 
@@ -38,10 +38,14 @@ const Hero = () => {
           <Text style={styles.subHeader}>The world awaits you!</Text>
         </View>
         <TouchableOpacity
-          style={styles.heroButton}
+          style={[styles.heroButton, {
+            backgroundColor: isDarkTheme ? "#FFFFFF" : Theme.colors.secondary,
+          }]}
           onPress={handleShopCTAClick}
         >
-          <Text style={styles.heroButtonText}>Shop</Text>
+          <Text style={[styles.heroButtonText, {
+            color: isDarkTheme ? "#000000" : Theme.colors.secondaryForeground,
+          }]}>Shop</Text>
         </TouchableOpacity>
       </CardFooter>
     </Card>
@@ -81,21 +85,19 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#000000",
+    color: Theme.colors.cardForeground,
   },
   subHeader: {
     fontSize: 10,
     fontWeight: "400",
-    color: "#000000",
+    color: Theme.colors.cardForeground,
   },
   heroButton: {
-    backgroundColor: Theme.colors.text,
     borderRadius: 40,
     paddingHorizontal: 24,
     paddingVertical: 5,
   },
   heroButtonText: {
-    color: Theme.colors.background,
     fontSize: 18,
     fontWeight: "500",
     textAlign: "center",

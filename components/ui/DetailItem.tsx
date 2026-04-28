@@ -3,6 +3,7 @@ import _isNil from "lodash/isNil";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import _get from "lodash/get";
+import { Theme } from "@/constants/Colors";
 
 const ICON_TYPE_VS_RENDERER = {
   ION: Ionicons,
@@ -27,12 +28,12 @@ const DetailItem = ({
 
   return (
     <View style={[styles.detailItem, containerStyles]}>
-      {iconName && <IconRenderer name={iconName} size={20} color="#000000" />}
-      {prefix && <Text style={styles.text}>{prefix}</Text>}
-      <Text style={[styles.details, highlight && { fontWeight: "800" }]}>
+      {iconName && <IconRenderer name={iconName} size={20} color={Theme.colors.cardForeground} />}
+      {prefix && <Text style={[styles.text, { color: Theme.colors.cardForeground }]}>{prefix}</Text>}
+      <Text style={[styles.details, { color: Theme.colors.cardForeground }, highlight && { fontWeight: "800" }]}>
         {value ?? ""}
       </Text>
-      {suffix && <Text style={styles.text}>{suffix}</Text>}
+      {suffix && <Text style={[styles.text, { color: Theme.colors.cardForeground }]}>{suffix}</Text>}
     </View>
   );
 };
@@ -47,9 +48,6 @@ const styles = StyleSheet.create({
   },
   details: {
     fontSize: 14,
-    color: "#000000",
   },
-  text: {
-    color: "#000000",
-  },
+  text: {},
 });

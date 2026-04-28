@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     marginTop: Theme.spacing.lg,
   },
   esimItem: {
-    backgroundColor: "#5C5C61",
+    backgroundColor: Theme.colors.skeletonBase,
     borderRadius: 21,
     padding: 16,
     gap: 8,
@@ -96,18 +96,18 @@ const styles = StyleSheet.create({
   },
   // Skeleton styles
   skeleton: {
-    backgroundColor: "#E0E0E0",
+    backgroundColor: Theme.colors.skeletonHighlight,
   },
   skeletonText: {
     height: 20,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: Theme.colors.skeletonHighlight,
     borderRadius: 4,
     marginBottom: 5,
   },
   skeletonDetail: {
     width: 50,
     height: 20,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: Theme.colors.skeletonHighlight,
     borderRadius: 4,
   },
 });

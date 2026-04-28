@@ -120,7 +120,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
             onPress={handleBack}
           />
           <Text
-            style={styles.countryText}
+            style={[styles.countryText, { color: Theme.colors.cardForeground }]}
             numberOfLines={2}
             adjustsFontSizeToFit
           >
@@ -210,7 +210,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
       <Animated.View
         style={[
           styles.header,
-          { paddingTop: insets.top + 16 },
+          { paddingTop: insets.top + 16, backgroundColor: Theme.colors.card },
           animatedHeaderStyle,
         ]}
       >
@@ -231,12 +231,12 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         <View style={styles.expandIndicatorRow}>
           <Animated.View style={[styles.pillHandle, animatedPillWidth]}>
             <Animated.View style={animatedArrowDownStyle}>
-              <Ionicons name="chevron-down" size={12} color="#3C3C43CC" />
+              <Ionicons name="chevron-down" size={12} color={Theme.colors.handleArrow} />
             </Animated.View>
             <Animated.View
               style={[StyleSheet.absoluteFillObject, styles.arrowCenter, animatedArrowUpStyle]}
             >
-              <Ionicons name="chevron-up" size={12} color="#3C3C43CC" />
+              <Ionicons name="chevron-up" size={12} color={Theme.colors.handleArrow} />
             </Animated.View>
           </Animated.View>
         </View>
@@ -254,7 +254,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: Theme.colors.card,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     paddingHorizontal: 16,
@@ -275,7 +274,6 @@ const styles = StyleSheet.create({
   countryText: {
     fontSize: 30,
     fontWeight: "700",
-    color: "#000000",
     flex: 1,
     flexShrink: 1,
   },
@@ -302,7 +300,7 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === "android" ? 4 : 6,
   },
   pillHandle: {
-    backgroundColor: "#3C3C4333",
+    backgroundColor: Theme.colors.handle,
     borderRadius: 10,
     height: 10,
     alignItems: "center",

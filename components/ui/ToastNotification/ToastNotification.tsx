@@ -1,6 +1,7 @@
 import { View, Image } from 'react-native'
 import React, { useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
+import { Theme } from '@/constants/Colors';
 import Animated, {
   FadeInUp,
   useAnimatedGestureHandler,
@@ -89,7 +90,7 @@ const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
         <Animated.View style={animatedStyle} className="w-full items-center">
           <ThemedView
             className='w-[95%] rounded-3xl items-center h-[115px] flex-row'
-            style={{ backgroundColor: 'rgba(37, 37, 37, 0.82)' }}
+            style={{ backgroundColor: Theme.colors.modalBackground }}
           >
             <Image
               source={require("../../../assets/images/wallet/complete.png")}
@@ -104,11 +105,11 @@ const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
             </View>
             <View className='ml-[20]'>
               <ThemedText>{amount}</ThemedText>
-              <ThemedText darkColor='#AEAEB2' variant='sm'>{ethAmount}</ThemedText>
+              <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{ethAmount}</ThemedText>
             </View>
             <View className='ml-[70]'>
               <ThemedText>{type}</ThemedText>
-              <ThemedText darkColor='#AEAEB2' variant='sm'>Completed</ThemedText>
+              <ThemedText darkColor={Theme.colors.foreground} variant='sm'>Completed</ThemedText>
             </View>
           </ThemedView>
         </Animated.View>

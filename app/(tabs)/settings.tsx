@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -6,11 +6,13 @@ import {
   View,
   ScrollView,
   Text,
+  Switch,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
-import { Theme } from "@/constants/Colors";
+import { Theme, THEME_STORAGE_KEY } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";
 import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
@@ -125,8 +127,21 @@ export default function MenuScreen() {
   const { clearKokioUser, kokio } = useKokio();
   const router = useRouter();
 
-  // State to track whether About screen is visible
   const [showAbout, setShowAbout] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+  const bg = useThemeColor({}, "background");
+
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
+      setIsDark(val !== "light");
+    });
+  }, []);
+
+  const handleThemeToggle = useCallback(async (value: boolean) => {
+    setIsDark(value);
+    await AsyncStorage.setItem(THEME_STORAGE_KEY, value ? "dark" : "light");
+    await Updates.reloadAsync();
+  }, []);
 
   const menuItems = [
     {
@@ -196,25 +211,45 @@ export default function MenuScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
       <ThemedView style={styles.container}>
         {showAbout ? (
           <AboutContent onClose={() => setShowAbout(false)} />
         ) : (
-          <FlatList
-            data={menuItems}
-            renderItem={({ item }) => (
-              <MenuItem
-                title={item.title}
-                iconLeft={item.iconLeft}
-                iconRight={item.iconRight}
-                action={item.action}
-                disabled={item.disabled}
+          <>
+            <FlatList
+              data={menuItems}
+              renderItem={({ item }) => (
+                <MenuItem
+                  title={item.title}
+                  iconLeft={item.iconLeft}
+                  iconRight={item.iconRight}
+                  action={item.action}
+                  disabled={item.disabled}
+                />
+              )}
+              keyExtractor={(item) => item.id}
+              style={styles.list}
+            />
+            {/* THEME SWITCH : TODO interate to improve*/}
+            {/* <View style={styles.themeRow}>
+              <Ionicons
+                name={isDark ? "moon-outline" : "sunny-outline"}
+                size={24}
+                color={Theme.colors.text}
+                style={styles.iconLeft}
               />
-            )}
-            keyExtractor={(item) => item.id}
-            style={styles.list}
-          />
+              <ThemedText style={styles.themeLabel}>
+                {isDark ? "Dark Mode" : "Light Mode"}
+              </ThemedText>
+              <Switch
+                value={isDark}
+                onValueChange={handleThemeToggle}
+                trackColor={{ false: Theme.colors.muted, true: Theme.colors.primary }}
+                thumbColor={Theme.colors.text}
+              />
+            </View> */}
+          </>
         )}
       </ThemedView>
     </SafeAreaView>
@@ -224,13 +259,11 @@ export default function MenuScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
     padding: 10,
     paddingTop: 20,
     paddingBottom: 40,
   },
   list: {
-    backgroundColor: "#242427",
     borderRadius: 25,
     maxHeight: "auto",
     padding: 10,
@@ -245,7 +278,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   menuItemText: {
-    color: "white",
+    color: Theme.colors.text,
     fontSize: 16,
     fontWeight: "500",
     flex: 1,
@@ -257,7 +290,6 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   aboutContainer: {
-    backgroundColor: "#242427",
     borderRadius: 25,
     flex: 1,
     padding: 20,
@@ -269,10 +301,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#3a3a3d",
+    borderBottomColor: Theme.colors.muted,
   },
   aboutTitle: {
-    color: "white",
+    color: Theme.colors.text,
     fontSize: 24,
     fontWeight: "600",
   },
@@ -283,7 +315,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   aboutText: {
-    color: "white",
+    color: Theme.colors.text,
     fontSize: 15,
     lineHeight: 24,
     marginBottom: 16,
@@ -296,15 +328,30 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   linkText: {
-    color: "white",
+    color: Theme.colors.text,
     fontSize: 15,
     lineHeight: 24,
     opacity: 0.9,
   },
   aboutLink: {
-    color: "#4A9EFF",
+    color: Theme.colors.link,
     textDecorationLine: "underline",
     fontSize: 15,
     lineHeight: 24,
+  },
+  themeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+    borderRadius: 16,
+    marginHorizontal: 4,
+  },
+  themeLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    color: Theme.colors.text,
   },
 });

@@ -1,4 +1,5 @@
 import { ThemedView } from "@/components/ThemedView";
+import { Theme } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { Image, Pressable, View } from "react-native";
 import React from "react";
@@ -56,11 +57,11 @@ const contactsScreen = () => {
   );
   return (
     <ThemedView
-      darkColor="#1c1c1e"
+      darkColor={Theme.colors.surface}
       className="mx-2 py-3   rounded-3xl mt-5 w-auto"
     >
       <ThemedView
-        darkColor="#1c1c1e"
+        darkColor={Theme.colors.surface}
         className="gap-y-4 justify-start items-center gap-x-1 flex-wrap bg-slate-50 flex-row mt-7 mb-3"
       >
         {/* add contact btn  */}
