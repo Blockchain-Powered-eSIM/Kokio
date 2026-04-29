@@ -1,5 +1,4 @@
 import { Passkey } from 'react-native-passkey';
-import * as SecureStore from 'expo-secure-store';
 import { kokioAuthClient, type DpopProofBuilder } from './kokioAuthClient';
 import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
@@ -35,12 +34,6 @@ function logEvent(event: string, data?: Record<string, unknown>): void {
 export async function performStepUp(): Promise<void> {
   logEvent('stepup.started');
 
-  const deviceWalletAddress = await SecureStore.getItemAsync('deviceWalletAddress');
-  if (!deviceWalletAddress) {
-    logEvent('stepup.failed', { reason: 'NO_DEVICE_WALLET' });
-    throw new AuthError('NO_DEVICE_WALLET');
-  }
-
   const current = useAuthStore.getState().tokens;
   if (!current) {
     logEvent('stepup.failed', { reason: 'NO_TOKENS' });
@@ -48,7 +41,7 @@ export async function performStepUp(): Promise<void> {
   }
 
   try {
-    // 1. Fetch WebAuthn options from the server.
+    // 1. Fetch WebAuthn options from the server — no body required.
     const opts = assertData<{
       challenge:        string;
       timeout:          number;
@@ -56,7 +49,7 @@ export async function performStepUp(): Promise<void> {
       allowCredentials: { id: string; type: 'public-key'; transports?: string[] }[];
       userVerification: 'required';
     }>(
-      await kokioAuthClient.stepUpBegin({ deviceWalletAddress }),
+      await kokioAuthClient.stepUpBegin(),
       'STEP_UP_FAILED',
     );
 

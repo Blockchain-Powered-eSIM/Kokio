@@ -71,6 +71,7 @@ type AuthActionType =
   | { type: "SET_KOKIO"; payload: any }
   | { type: "SET_DEVICE_UID"; payload: string }
   | { type: "SET_DEVICE_WALLET_ADDRESS"; payload: string }
+  | { type: "SET_RAW_SALT"; payload: string }
   | { type: "SET_KOKIO_USER"; payload: UserData }
   | { type: "SET_KOKIO_PASSKEY"; payload: UserPasskey }
   | { type: "SET_USER_WALLET"; payload: SmartContractAccount }
@@ -96,6 +97,7 @@ interface KokioState {
   sdk?: Kokio;
   deviceUID: string;
   deviceWalletAddress: string;
+  rawSalt: string;
   userData?: UserData;
   userPasskey?: UserPasskey;
   userWallet?: SmartContractAccount;
@@ -107,6 +109,7 @@ const initialState: KokioState = {
   sdk: undefined,
   deviceUID: "",
   deviceWalletAddress: "",
+  rawSalt: "",
   userData: undefined,
   userPasskey: undefined,
   userWallet: undefined,
@@ -125,6 +128,8 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
       return { ...kokio, deviceUID: action.payload };
     case "SET_DEVICE_WALLET_ADDRESS":
       return { ...kokio, deviceWalletAddress: action.payload };
+    case "SET_RAW_SALT":
+      return { ...kokio, rawSalt: action.payload };
     case "SET_KOKIO_USER":
       return { ...kokio, userData: action.payload };
     case "SET_KOKIO_PASSKEY":
@@ -143,6 +148,7 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
         ...kokio,
         deviceUID: "",
         deviceWalletAddress: "",
+        rawSalt: "",
         userPasskey: undefined,
         userData: undefined,
         userWallet: undefined,
@@ -167,7 +173,7 @@ export interface KokioProviderType {
     eSimItem: Esim,
     transactionData: any // TODO: Create a type for this once BE contract is finalized
   ) => Promise<void>;
-  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex) => Promise<void>;
+  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex, rawSalt: string) => Promise<void>;
   clearKokio: () => void;
   clearKokioUser: () => Promise<void>;
 }
@@ -179,7 +185,7 @@ export const KokioContext = createContext<KokioProviderType>({
   setupKokioDeviceUID: async () => Promise.resolve(),
   setupKokioUserWallet: async () => Promise.resolve(),
   savePurchasedESIM: async () => Promise.resolve(),
-  setupKokioRegistration: async (_a, _b, _c, _d, _e) => Promise.resolve(),
+  setupKokioRegistration: async (_a, _b, _c, _d, _e, _f) => Promise.resolve(),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
 });
@@ -333,6 +339,10 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         if (credentialId && publicKeyX && publicKeyY) {
           dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX as Hex, y: publicKeyY as Hex } });
         }
+        const rawSalt = await SecureStore.getItemAsync('rawSalt');
+        if (rawSalt) {
+          dispatch({ type: "SET_RAW_SALT", payload: rawSalt });
+        }
         const userWallet = await getValueForUserWallet(
           `userWallet-${deviceUID}`
         );
@@ -384,12 +394,14 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     credentialId: string,
     publicKeyX: Hex,
     publicKeyY: Hex,
+    rawSalt: string,
   ) => {
     await saveValueForDeviceUID("deviceUID", deviceUniqueIdentifier);
     await SecureStore.setItemAsync("deviceWalletAddress", deviceWalletAddress);
     await SecureStore.setItemAsync("credentialId", credentialId);
     await SecureStore.setItemAsync("publicKeyX", publicKeyX);
     await SecureStore.setItemAsync("publicKeyY", publicKeyY);
+    await SecureStore.setItemAsync("rawSalt", rawSalt);
 
     const userData: UserData = {
       id: deviceUniqueIdentifier,
@@ -402,6 +414,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
     dispatch({ type: "SET_DEVICE_UID", payload: deviceUniqueIdentifier });
     dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
+    dispatch({ type: "SET_RAW_SALT", payload: rawSalt });
     dispatch({ type: "SET_KOKIO_USER", payload: userData });
     dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX, y: publicKeyY } });
   };
@@ -504,6 +517,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.deleteItemAsync("credentialId");
     await SecureStore.deleteItemAsync("publicKeyX");
     await SecureStore.deleteItemAsync("publicKeyY");
+    await SecureStore.deleteItemAsync("rawSalt");
     clearKokio();
   };
 

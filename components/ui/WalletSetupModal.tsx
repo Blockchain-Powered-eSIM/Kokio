@@ -20,9 +20,6 @@ import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 
-// Salt used for smart account CREATE2 deployment - must match the value used at registration time.
-const DEVICE_WALLET_SALT = 25042025n;
-
 interface WalletSetupModalProps {
   visible: boolean;
   onClose: () => void;
@@ -70,21 +67,23 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(true);
     setShowRetry(false);
 
-    const { deviceWalletAddress, deviceUID, userPasskey, sdk } = kokio;
+    const { deviceWalletAddress, deviceUID, userPasskey, rawSalt, sdk } = kokio;
 
     console.log('[wallet] handleContinue state:', {
       deviceWalletAddress: !!deviceWalletAddress,
       deviceUID: !!deviceUID,
       hasX: !!userPasskey?.x,
       hasY: !!userPasskey?.y,
+      hasRawSalt: !!rawSalt,
       sdkReady: !!sdk,
     });
 
-    if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !sdk) {
+    if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !rawSalt || !sdk) {
       console.warn('[wallet] guard failed — missing:', {
         deviceWalletAddress,
         x: userPasskey?.x,
         y: userPasskey?.y,
+        rawSalt: !!rawSalt,
         sdk: !!sdk,
       });
       setShowRetry(true);
@@ -98,13 +97,32 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       // Reconstruct the smart account from the stored P-256 public key.
       // This computes the same counterfactual address the server derived at registration.
       const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
+      const salt = BigInt('0x' + rawSalt);
+
+      console.log('[wallet] getSmartWallet inputs:', {
+        deviceUID,
+        ownerKeyX: userPasskey.x,
+        ownerKeyY: userPasskey.y,
+        rawSalt,
+        saltBigInt: salt.toString(),
+        saltHex: '0x' + salt.toString(16).padStart(64, '0'),
+        serverAddress: deviceWalletAddress,
+      });
+
       const deviceWallet = await sdk.smartAccount.getSmartWallet(
         deviceUID,
         ownerKey,
-        DEVICE_WALLET_SALT,
+        salt,
       );
 
       const deviceWalletClient = await sdk.smartAccount.getSmartWalletClient(deviceWallet);
+
+      const sdkAddress = deviceWalletClient.account?.address;
+      console.log('[wallet] getSmartWallet result:', {
+        sdkAddress,
+        serverAddress: deviceWalletAddress,
+        match: sdkAddress?.toLowerCase() === deviceWalletAddress.toLowerCase(),
+      });
 
       // A no-op userOp that includes the initCode on first send, deploying the contract.
       // This triggers Passkey.get() inside the SDK's _stamp() — the biometric prompt.

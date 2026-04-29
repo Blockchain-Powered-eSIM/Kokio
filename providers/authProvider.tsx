@@ -155,7 +155,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
 
       // Immediately log in: register/complete → login/begin → Passkey.get →
       // login/complete → PKCE authorize → token exchange → tokens in authStore
-      await loginWithKokioPasskey(result.deviceWalletAddress);
+      await loginWithKokioPasskey();
 
       dispatch({ type: "PASSKEY" });
       return result;

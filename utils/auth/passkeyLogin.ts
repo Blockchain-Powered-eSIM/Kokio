@@ -1,5 +1,4 @@
 import { Passkey } from 'react-native-passkey';
-import * as SecureStore from 'expo-secure-store';
 import { v4 as uuidv4 } from 'uuid';
 import { kokioAuthClient } from './kokioAuthClient';
 import { buildDpopProof } from './dpopProof';
@@ -96,10 +95,7 @@ async function authorizeAndGetCode(params: {
 // ─── Inner ceremony (retried on AUTH_TIME_RECENCY_VIOLATION) ──────────────────
 // Steps: login/begin → Passkey.get → login/complete → authorize → code
 
-async function performLoginCeremony(
-  deviceWalletAddress: string,
-  codeChallenge: string,
-): Promise<string> {
+async function performLoginCeremony(codeChallenge: string): Promise<string> {
   const beginData = assertData<{
     challenge: string;
     timeout: number;
@@ -107,7 +103,7 @@ async function performLoginCeremony(
     allowCredentials: { id: string; type: 'public-key'; transports?: string[] }[];
     userVerification: 'required';
   }>(
-    await kokioAuthClient.loginBegin({ deviceWalletAddress }),
+    await kokioAuthClient.loginBegin(),
     'LOGIN_FAILED',
   );
 
@@ -142,7 +138,7 @@ async function performLoginCeremony(
   // code AUTH_TIME_RECENCY_VIOLATION, which the caller retries from here.
   return authorizeAndGetCode({
     codeChallenge,
-    deviceWalletAddress,
+    deviceWalletAddress: completeData.deviceWalletAddress,
     authTime: completeData.authTime,
   });
 }
@@ -153,8 +149,9 @@ async function performLoginCeremony(
  * Full Kokio passkey login ceremony:
  *   PKCE → login/begin → Passkey.get → login/complete → authorize → token
  *
- * `deviceWalletAddress` is optional. When omitted the address stored in
- * SecureStore from the registration ceremony is used (normal app-restart login).
+ * login/begin requires no body — the server issues a discoverable-credential
+ * challenge and the authenticated deviceWalletAddress is derived from
+ * login/complete. This supports recovery after app data clear or reinstall.
  *
  * AUTH_TIME_RECENCY_VIOLATION (user spent >120s at the biometric prompt) is
  * retried once: a fresh login/begin challenge is fetched and the user is
@@ -163,10 +160,7 @@ async function performLoginCeremony(
  * On success the token bundle is persisted and `isAuthenticated` is set to true.
  * Throws AuthError on any ceremony or network failure.
  */
-export async function loginWithKokioPasskey(deviceWalletAddress?: string): Promise<void> {
-  const address = deviceWalletAddress ?? await SecureStore.getItemAsync('deviceWalletAddress');
-  if (!address) throw new AuthError('NO_DEVICE_WALLET');
-
+export async function loginWithKokioPasskey(): Promise<void> {
   // PKCE pair lives in this closure for the lifetime of one login attempt.
   // The same pair is reused on AUTH_TIME_RECENCY_VIOLATION retry so the
   // verifier remains available for the eventual token exchange.
@@ -176,7 +170,7 @@ export async function loginWithKokioPasskey(deviceWalletAddress?: string): Promi
 
   for (let attempt = 0; attempt <= 1; attempt++) {
     try {
-      code = await performLoginCeremony(address, codeChallenge);
+      code = await performLoginCeremony(codeChallenge);
       break;
     } catch (err) {
       if (

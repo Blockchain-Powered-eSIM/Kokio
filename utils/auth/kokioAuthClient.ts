@@ -11,7 +11,6 @@ export type RegisterBeginRequest      = components['schemas']['RegisterBeginRequ
 export type RegisterCompleteRequest   = components['schemas']['RegisterCompleteRequest'];
 export type RegisterCompleteData      = components['schemas']['RegisterCompleteData'];
 
-export type LoginBeginRequest         = components['schemas']['LoginBeginRequest'];
 export type LoginCompleteRequest      = components['schemas']['LoginCompleteRequest'];
 export type LoginCompleteData         = components['schemas']['LoginCompleteData'];
 
@@ -186,9 +185,9 @@ export const kokioAuthClient = {
     return authFetch<R>('/v1/auth/register/complete', 'POST', body as unknown as Record<string, unknown>);
   },
 
-  loginBegin(body: LoginBeginRequest) {
+  loginBegin() {
     type R = paths['/v1/auth/login/begin']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/login/begin', 'POST', body as unknown as Record<string, unknown>);
+    return authFetch<R>('/v1/auth/login/begin', 'POST');
   },
 
   loginComplete(body: LoginCompleteRequest) {
@@ -235,9 +234,9 @@ export const kokioAuthClient = {
     );
   },
 
-  stepUpBegin(body: LoginBeginRequest) {
+  stepUpBegin() {
     type R = paths['/v1/auth/stepup/begin']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/stepup/begin', 'POST', body as unknown as Record<string, unknown>);
+    return authFetch<R>('/v1/auth/stepup/begin', 'POST');
   },
 
   /**

@@ -897,9 +897,6 @@ export interface components {
              *     This is the canonical identity primitive for this device.
              *     It is the `sub` claim on all issued JWTs and the foreign key on all Order, eSIM,
              *     and Account documents on the BFF.
-             *
-             *     Store this value — it is required as the `deviceWalletAddress` input
-             *     to `POST /v1/auth/login/begin`.
              * @example 0xabc123def456abc123def456abc123def456abc1
              */
             deviceWalletAddress: string;
@@ -912,24 +909,22 @@ export interface components {
              */
             deviceUniqueIdentifier: string;
             /**
+             * Format: hex
+             * @description The raw salt value used in `deviceWalletAddress` calculation. Server-generated
+             *     per registration and persisted for the credential's lifetime. Use directly for
+             *     Device Wallet deployment — pass as `BigInt('0x' + rawSalt)` to the SDK.
+             * @pattern ^[0-9a-fA-F]{16}
+             * @example 9f0f2a0f6a702b5aa90c6c1d4414a786
+             */
+            rawSalt?: string;
+            /**
              * @description Confirms successful credential registration.
              * @example true
              * @enum {boolean}
              */
             registered: true;
         };
-        LoginBeginRequest: {
-            /**
-             * @description EVM address of the device initiating the authentication ceremony.
-             *     Returned as `deviceWalletAddress` from a prior successful
-             *     `POST /v1/auth/register/complete` call.
-             *
-             *     Used server-side to look up the stored credential and scope the
-             *     WebAuthn challenge to the correct authenticator.
-             * @example 0xabc123def456abc123def456abc123def456abc1
-             */
-            deviceWalletAddress: string;
-        };
+        LoginBeginRequest: Record<string, never>;
         /**
          * @description WebAuthn authentication options. Pass this object directly to `navigator.credentials.get({ publicKey: <this object> })`
          *     via the `@simplewebauthn/browser` `startAuthentication()` helper (or any supported platform passkey library).
@@ -1777,16 +1772,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "deviceWalletAddress": "0xabc123def456abc123def456abc123def456abc1"
-                 *     }
-                 */
-                "application/json": components["schemas"]["LoginBeginRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Authentication options generated. Proceed to `POST /v1/auth/login/complete`. */
             200: {
@@ -1797,53 +1783,6 @@ export interface operations {
                     "application/json": components["schemas"]["SuccessResponse"] & {
                         data?: components["schemas"]["AuthenticationOptionsResponse"];
                     };
-                };
-            };
-            /**
-             * @description Request body failed validation.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
-             *     | `REQUIRED_FIELD` | `deviceWalletAddress` field is missing |
-             */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INVALID_PAYLOAD",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "The request payload is invalid"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /**
-             * @description No passkey found for the provided device address.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `CREDENTIAL_NOT_FOUND` | No registered passkey exists for this `deviceWalletAddress` |
-             */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "CREDENTIAL_NOT_FOUND",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "No passkey found for the provided identity."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Unhandled internal server error. */
@@ -2340,16 +2279,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "deviceWalletAddress": "0xabc123def456abc123def456abc123def456abc1"
-                 *     }
-                 */
-                "application/json": components["schemas"]["LoginBeginRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /**
              * @description Step-up authentication options generated.
@@ -2363,53 +2293,6 @@ export interface operations {
                     "application/json": components["schemas"]["SuccessResponse"] & {
                         data?: components["schemas"]["AuthenticationOptionsResponse"];
                     };
-                };
-            };
-            /**
-             * @description Request body failed validation.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
-             *     | `REQUIRED_FIELD` | `deviceWalletAddress` field is missing |
-             */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INVALID_PAYLOAD",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "The request payload is invalid"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /**
-             * @description No passkey found for the provided device address.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `CREDENTIAL_NOT_FOUND` | No registered passkey exists for this `deviceWalletAddress` |
-             */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "CREDENTIAL_NOT_FOUND",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "No passkey found for the provided identity."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Unhandled internal server error. */

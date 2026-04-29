@@ -64,7 +64,7 @@ export function AuthenticationModal() {
       } else {
         const data = await signUpWithPasskey({});
         if (data) {
-          await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY);
+          await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY, data.rawSalt ?? '');
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
         }
       }
