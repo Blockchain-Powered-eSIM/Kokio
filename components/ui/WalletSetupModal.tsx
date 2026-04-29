@@ -97,7 +97,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       // Reconstruct the smart account from the stored P-256 public key.
       // This computes the same counterfactual address the server derived at registration.
       const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
-      const salt = BigInt('0x' + rawSalt);
+      const salt = BigInt(rawSalt);
 
       console.log('[wallet] getSmartWallet inputs:', {
         deviceUID,
