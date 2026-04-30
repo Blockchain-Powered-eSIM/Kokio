@@ -23,12 +23,32 @@ function assertData<T>(raw: unknown, fallbackCode: string): T {
 // ─── Authorize redirect interception ─────────────────────────────────────────
 // GET /v1/auth/authorize → 302 kokio://callback?code=<code>
 //
-// RN behaviour:
-//   iOS (URLSession): redirect: 'manual' → opaque response, status 0, res.url = redirect target
-//   Android (OkHttp): redirect: 'manual' → 302 with Location header accessible
-//
-// TODO SPIKE: XHR-based fallback for environments where neither Location nor
-// res.url is populated. Track in a prototype ticket before shipping to prod.
+// RN platform behaviour with redirect: 'manual':
+//   Android (OkHttp): returns 302 with Location header accessible
+//   iOS (URLSession): throws "Network request failed" instead of returning an
+//     opaque response when the redirect target is a custom URL scheme. Falls
+//     back to XHR which surfaces the target via responseURL or Location header.
+
+// XHR fallback: resolves with the redirect target URL, or null if unavailable.
+function xhrGetRedirectTarget(url: string): Promise<string | null> {
+  return new Promise<string | null>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('x-correlation-id', uuidv4());
+    xhr.timeout = 15000;
+
+    const extract = () => {
+      const loc = xhr.getResponseHeader('Location') ?? xhr.getResponseHeader('location');
+      const respUrl = (xhr as unknown as { responseURL?: string }).responseURL ?? '';
+      resolve(loc ?? (respUrl && respUrl !== url ? respUrl : null));
+    };
+
+    xhr.onreadystatechange = () => { if (xhr.readyState === 4) extract(); };
+    xhr.onerror   = extract;
+    xhr.ontimeout = () => resolve(null);
+    xhr.send();
+  });
+}
 
 async function authorizeAndGetCode(params: {
   codeChallenge: string;
@@ -48,47 +68,72 @@ async function authorizeAndGetCode(params: {
     auth_time:              String(params.authTime),
   }).toString();
 
-  const res = await fetch(`${base}/v1/auth/authorize?${qs}`, {
-    method: 'GET',
-    headers: { 'x-correlation-id': uuidv4() },
-    redirect: 'manual',
-  });
+  const url = `${base}/v1/auth/authorize?${qs}`;
+  let rawTarget: string | null = null;
 
-  // A genuine redirect has status 302 (Android) or 0 / type 'opaqueredirect' (iOS).
-  const isRedirect =
-    res.status === 302 ||
-    res.status === 0 ||
-    (res as unknown as { type?: string }).type === 'opaqueredirect';
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'x-correlation-id': uuidv4() },
+      redirect: 'manual',
+    });
 
-  if (__DEV__) {
-    console.log(`[authFetch] GET /v1/auth/authorize → ${res.status}\n req:`, qs, '\n res:', isRedirect ? res.headers.get('location') ?? res.headers.get('Location') ?? '(opaque redirect)' : '(error)');
-  }
+    // A genuine redirect has status 302 (Android) or 0 / type 'opaqueredirect' (iOS).
+    const isRedirect =
+      res.status === 302 ||
+      res.status === 0 ||
+      (res as unknown as { type?: string }).type === 'opaqueredirect';
 
-  if (!isRedirect) {
-    // Server returned an error — parse the body for a typed error code.
-    let errCode = 'AUTHORIZE_FAILED';
-    let errMsg: string | undefined;
-    try {
-      const body = (await res.json()) as { code?: string; message?: string };
-      errCode = body.code ?? errCode;
-      errMsg  = body.message;
-    } catch {
-      // Body unreadable; fall through to generic error.
+    if (__DEV__) {
+      console.log(`[authFetch] GET /v1/auth/authorize → ${res.status}\n req:`, qs, '\n res:', isRedirect ? res.headers.get('location') ?? res.headers.get('Location') ?? '(opaque redirect)' : '(error)');
     }
-    throw new AuthError(errCode, res.status, errMsg);
-  }
 
-  const rawTarget =
-    res.headers.get('location') ??
-    res.headers.get('Location') ??
-    ((res as unknown as { url?: string }).url ?? '');
+    if (!isRedirect) {
+      // Server returned an error — parse the body for a typed error code.
+      let errCode = 'AUTHORIZE_FAILED';
+      let errMsg: string | undefined;
+      try {
+        const body = (await res.json()) as { code?: string; message?: string };
+        errCode = body.code ?? errCode;
+        errMsg  = body.message;
+      } catch {
+        // Body unreadable; fall through to generic error.
+      }
+      throw new AuthError(errCode, res.status, errMsg);
+    }
+
+    rawTarget =
+      res.headers.get('location') ??
+      res.headers.get('Location') ??
+      ((res as unknown as { url?: string }).url ?? null);
+
+  } catch (fetchErr) {
+    // Re-throw typed auth errors (e.g. AUTHORIZE_FAILED from non-redirect above).
+    if (fetchErr instanceof AuthError) throw fetchErr;
+
+    // iOS URLSession throws "Network request failed" for custom-scheme redirects
+    // instead of returning an opaque response. XHR surfaces the target URL via
+    // responseURL or the Location header before erroring.
+    if (__DEV__) {
+      console.log('[authFetch] GET /v1/auth/authorize fetch threw, trying XHR fallback:', fetchErr);
+    }
+    rawTarget = await xhrGetRedirectTarget(url);
+    if (__DEV__) {
+      console.log('[authFetch] GET /v1/auth/authorize XHR fallback → rawTarget:', rawTarget);
+    }
+  }
 
   if (!rawTarget) {
-    throw new AuthError('AUTHORIZE_FAILED', res.status, 'No redirect target in response');
+    throw new AuthError('AUTHORIZE_FAILED', 0, 'No redirect target in response');
   }
 
-  const code = new URL(rawTarget).searchParams.get('code');
-  if (!code) throw new AuthError('AUTHORIZE_FAILED', res.status, 'No code in redirect URL');
+  let code: string | null;
+  try {
+    code = new URL(rawTarget).searchParams.get('code');
+  } catch {
+    throw new AuthError('AUTHORIZE_FAILED', 0, 'Invalid redirect URL');
+  }
+  if (!code) throw new AuthError('AUTHORIZE_FAILED', 0, 'No code in redirect URL');
   return code;
 }
 
