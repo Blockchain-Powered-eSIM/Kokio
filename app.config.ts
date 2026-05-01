@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
-      associatedDomains: ["webcredentials:kokio.app", "webcredentials:kokio.app"],
+      associatedDomains: ["webcredentials:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
       },
@@ -48,9 +48,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: "#242427",
       },
       package: "app.kokio",
-      edgeToEdgeEnabled: false,
+      edgeToEdgeEnabled: true,
       version: "1.0.0",
       runtimeVersion: "1.0.0",
+      intentFilters: [
+        {
+          action: "VIEW",
+          data: [{ scheme: "kokio" }],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
     },
     web: {
       bundler: "metro",

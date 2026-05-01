@@ -195,13 +195,6 @@ export const kokioAuthClient = {
     return authFetch<R>('/v1/auth/login/complete', 'POST', body as unknown as Record<string, unknown>);
   },
 
-  authorize(params: paths['/v1/auth/authorize']['get']['parameters']['query']) {
-    type R = void; // 302 redirect — caller follows via expo-linking
-    const qs = new URLSearchParams(params as Record<string, string>).toString();
-    const base = Config.AUTH_SERVER_BASE_URL ?? '';
-    return `${base}/v1/auth/authorize?${qs}` as unknown as R;
-  },
-
   /**
    * Token issuance / refresh.
    * `buildProof` receives the current cached DPoP nonce for the auth server

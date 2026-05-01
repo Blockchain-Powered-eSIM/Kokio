@@ -1,9 +1,9 @@
 import { Passkey } from 'react-native-passkey';
+import * as AuthSession from 'expo-auth-session';
 import { v4 as uuidv4 } from 'uuid';
 import { kokioAuthClient } from './kokioAuthClient';
 import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
-import { newPkcePair } from './pkce';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
 import { Config } from '@/appKeys';
@@ -20,127 +20,21 @@ function assertData<T>(raw: unknown, fallbackCode: string): T {
   return body.data;
 }
 
-// ─── Authorize redirect interception ─────────────────────────────────────────
-// GET /v1/auth/authorize → 302 kokio://callback?code=<code>
+// ─── OAuth redirect via universal link ───────────────────────────────────────
+
+const REDIRECT_URI = AuthSession.makeRedirectUri({ native: Config.REDIRECT_URI });
+
+// ─── Inner ceremony (retried on AUTH_TIME_RECENCY_VIOLATION) ──────────────────
+// Steps: login/begin → Passkey.get → login/complete → authorize → { code, codeVerifier }
 //
-// RN platform behaviour with redirect: 'manual':
-//   Android (OkHttp): returns 302 with Location header accessible
-//   iOS (URLSession): throws "Network request failed" instead of returning an
-//     opaque response when the redirect target is a custom URL scheme. Falls
-//     back to XHR which surfaces the target via responseURL or Location header.
+// AuthRequest owns the PKCE pair (usePKCE: true). codeVerifier is read from the
+// request instance after promptAsync resolves and passed back to the caller for
+// the token exchange.
 
-// XHR fallback: resolves with the redirect target URL, or null if unavailable.
-function xhrGetRedirectTarget(url: string): Promise<string | null> {
-  return new Promise<string | null>((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.setRequestHeader('x-correlation-id', uuidv4());
-    xhr.timeout = 15000;
-
-    const extract = () => {
-      const loc = xhr.getResponseHeader('Location') ?? xhr.getResponseHeader('location');
-      const respUrl = (xhr as unknown as { responseURL?: string }).responseURL ?? '';
-      resolve(loc ?? (respUrl && respUrl !== url ? respUrl : null));
-    };
-
-    xhr.onreadystatechange = () => { if (xhr.readyState === 4) extract(); };
-    xhr.onerror   = extract;
-    xhr.ontimeout = () => resolve(null);
-    xhr.send();
-  });
-}
-
-async function authorizeAndGetCode(params: {
-  codeChallenge: string;
-  deviceWalletAddress: string;
-  authTime: number;
-}): Promise<string> {
+async function performLoginCeremony(): Promise<{ code: string; codeVerifier: string }> {
   const base = Config.AUTH_SERVER_BASE_URL;
   if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
 
-  const redirectUri = Config.REDIRECT_URI ?? 'kokio://callback';
-  const qs = new URLSearchParams({
-    response_type:          'code',
-    redirect_uri:           redirectUri,
-    code_challenge:         params.codeChallenge,
-    code_challenge_method:  'S256',
-    device_wallet_address:  params.deviceWalletAddress,
-    auth_time:              String(params.authTime),
-  }).toString();
-
-  const url = `${base}/v1/auth/authorize?${qs}`;
-  let rawTarget: string | null = null;
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'x-correlation-id': uuidv4() },
-      redirect: 'manual',
-    });
-
-    // A genuine redirect has status 302 (Android) or 0 / type 'opaqueredirect' (iOS).
-    const isRedirect =
-      res.status === 302 ||
-      res.status === 0 ||
-      (res as unknown as { type?: string }).type === 'opaqueredirect';
-
-    if (__DEV__) {
-      console.log(`[authFetch] GET /v1/auth/authorize → ${res.status}\n req:`, qs, '\n res:', isRedirect ? res.headers.get('location') ?? res.headers.get('Location') ?? '(opaque redirect)' : '(error)');
-    }
-
-    if (!isRedirect) {
-      // Server returned an error — parse the body for a typed error code.
-      let errCode = 'AUTHORIZE_FAILED';
-      let errMsg: string | undefined;
-      try {
-        const body = (await res.json()) as { code?: string; message?: string };
-        errCode = body.code ?? errCode;
-        errMsg  = body.message;
-      } catch {
-        // Body unreadable; fall through to generic error.
-      }
-      throw new AuthError(errCode, res.status, errMsg);
-    }
-
-    rawTarget =
-      res.headers.get('location') ??
-      res.headers.get('Location') ??
-      ((res as unknown as { url?: string }).url ?? null);
-
-  } catch (fetchErr) {
-    // Re-throw typed auth errors (e.g. AUTHORIZE_FAILED from non-redirect above).
-    if (fetchErr instanceof AuthError) throw fetchErr;
-
-    // iOS URLSession throws "Network request failed" for custom-scheme redirects
-    // instead of returning an opaque response. XHR surfaces the target URL via
-    // responseURL or the Location header before erroring.
-    if (__DEV__) {
-      console.log('[authFetch] GET /v1/auth/authorize fetch threw, trying XHR fallback:', fetchErr);
-    }
-    rawTarget = await xhrGetRedirectTarget(url);
-    if (__DEV__) {
-      console.log('[authFetch] GET /v1/auth/authorize XHR fallback → rawTarget:', rawTarget);
-    }
-  }
-
-  if (!rawTarget) {
-    throw new AuthError('AUTHORIZE_FAILED', 0, 'No redirect target in response');
-  }
-
-  let code: string | null;
-  try {
-    code = new URL(rawTarget).searchParams.get('code');
-  } catch {
-    throw new AuthError('AUTHORIZE_FAILED', 0, 'Invalid redirect URL');
-  }
-  if (!code) throw new AuthError('AUTHORIZE_FAILED', 0, 'No code in redirect URL');
-  return code;
-}
-
-// ─── Inner ceremony (retried on AUTH_TIME_RECENCY_VIOLATION) ──────────────────
-// Steps: login/begin → Passkey.get → login/complete → authorize → code
-
-async function performLoginCeremony(codeChallenge: string): Promise<string> {
   const beginData = assertData<{
     challenge: string;
     timeout: number;
@@ -153,11 +47,11 @@ async function performLoginCeremony(codeChallenge: string): Promise<string> {
   );
 
   const assertion = await Passkey.get({
-    challenge:          beginData.challenge,
-    rpId:               beginData.rpId,
-    timeout:            beginData.timeout,
-    allowCredentials:   beginData.allowCredentials as { id: string; type: string }[],
-    userVerification:   beginData.userVerification,
+    challenge:         beginData.challenge,
+    rpId:              beginData.rpId,
+    timeout:           beginData.timeout,
+    allowCredentials:  beginData.allowCredentials as { id: string; type: string }[],
+    userVerification:  beginData.userVerification,
   });
 
   const completeData = assertData<{ deviceWalletAddress: string; authTime: number }>(
@@ -181,41 +75,72 @@ async function performLoginCeremony(codeChallenge: string): Promise<string> {
   // authorize must be called immediately after login/complete; the server enforces
   // a 120-second recency window on authTime. If violated it throws AuthError with
   // code AUTH_TIME_RECENCY_VIOLATION, which the caller retries from here.
-  return authorizeAndGetCode({
-    codeChallenge,
-    deviceWalletAddress: completeData.deviceWalletAddress,
-    authTime: completeData.authTime,
+  const correlationId = uuidv4();
+  const request = new AuthSession.AuthRequest({
+    clientId:    'kokio-bff',
+    redirectUri: REDIRECT_URI,
+    usePKCE:     true,
+    state: correlationId,
+    extraParams: {
+      device_wallet_address: completeData.deviceWalletAddress,
+      auth_time: String(completeData.authTime),
+    },
   });
+
+  console.log("[REQUEST]" , request);
+
+  if (__DEV__) {
+    console.log(
+      `[authFetch] GET /v1/auth/authorize\n req:`,
+      { 'x-correlation-id': correlationId, device_wallet_address: completeData.deviceWalletAddress, auth_time: completeData.authTime },
+    );
+  }
+
+  const result = await request.promptAsync({
+    authorizationEndpoint: `${base}/v1/auth/authorize`,
+  });
+
+  if (__DEV__) {
+    console.log(`[authFetch] GET /v1/auth/authorize → ${result.type}\n res:`, result.type === 'success' ? { code: result.params.code, state: result.params.state } : result);
+  }
+
+  if (result.type === 'success') {
+    const { code } = result.params;
+    if (!code) throw new AuthError('AUTHORIZE_FAILED', undefined, 'No code in redirect');
+    return { code, codeVerifier: request.codeVerifier! };
+  }
+
+  if (result.type === 'error') {
+    throw new AuthError('AUTHORIZE_FAILED', undefined, result.params.error);
+  }
+
+  // dismiss | cancel
+  throw new AuthError('AUTHORIZE_FAILED', undefined, 'Authorization was dismissed');
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
  * Full Kokio passkey login ceremony:
- *   PKCE → login/begin → Passkey.get → login/complete → authorize → token
+ *   login/begin → Passkey.get → login/complete → authorize (AuthSession) → token
  *
  * login/begin requires no body — the server issues a discoverable-credential
  * challenge and the authenticated deviceWalletAddress is derived from
  * login/complete. This supports recovery after app data clear or reinstall.
  *
  * AUTH_TIME_RECENCY_VIOLATION (user spent >120s at the biometric prompt) is
- * retried once: a fresh login/begin challenge is fetched and the user is
- * prompted again, reusing the same PKCE pair.
+ * retried once: a fresh ceremony runs with a new PKCE pair, new passkey
+ * assertion, and a new AuthSession prompt.
  *
  * On success the token bundle is persisted and `isAuthenticated` is set to true.
  * Throws AuthError on any ceremony or network failure.
  */
 export async function loginWithKokioPasskey(): Promise<void> {
-  // PKCE pair lives in this closure for the lifetime of one login attempt.
-  // The same pair is reused on AUTH_TIME_RECENCY_VIOLATION retry so the
-  // verifier remains available for the eventual token exchange.
-  const { verifier: codeVerifier, challenge: codeChallenge } = await newPkcePair();
-
-  let code: string | undefined;
+  let ceremony: { code: string; codeVerifier: string } | undefined;
 
   for (let attempt = 0; attempt <= 1; attempt++) {
     try {
-      code = await performLoginCeremony(codeChallenge);
+      ceremony = await performLoginCeremony();
       break;
     } catch (err) {
       if (
@@ -223,13 +148,11 @@ export async function loginWithKokioPasskey(): Promise<void> {
         err.code === 'AUTH_TIME_RECENCY_VIOLATION' &&
         attempt === 0
       ) {
-        continue; // retry: fresh challenge + new biometric prompt
+        continue; // retry: fresh passkey challenge + new biometric prompt + new PKCE pair
       }
       throw err;
     }
   }
-
-  const redirectUri = Config.REDIRECT_URI ?? 'kokio://callback';
 
   const tokenData = assertData<{
     access_token:  string;
@@ -240,11 +163,10 @@ export async function loginWithKokioPasskey(): Promise<void> {
     await kokioAuthClient.token(
       {
         grant_type:    'authorization_code',
-        code:          code!,
-        redirect_uri:  redirectUri,
-        code_verifier: codeVerifier,
+        code:          ceremony!.code,
+        redirect_uri:  REDIRECT_URI,
+        code_verifier: ceremony!.codeVerifier,
       },
-      // htu is provided by authFetch from the actual request URL — do not hardcode it here.
       (nonce, htu) => buildDpopProof({ htu: htu!, htm: 'POST', nonce }),
     ),
     'LOGIN_FAILED',
