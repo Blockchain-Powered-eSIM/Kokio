@@ -1,5 +1,6 @@
 import { Passkey } from 'react-native-passkey';
 import * as AuthSession from 'expo-auth-session';
+import * as SecureStore from 'expo-secure-store';
 import { v4 as uuidv4 } from 'uuid';
 import { kokioAuthClient } from './kokioAuthClient';
 import { buildDpopProof } from './dpopProof';
@@ -21,7 +22,6 @@ function assertData<T>(raw: unknown, fallbackCode: string): T {
 }
 
 // ─── OAuth redirect via universal link ───────────────────────────────────────
-
 const REDIRECT_URI = AuthSession.makeRedirectUri({ native: Config.REDIRECT_URI });
 
 // ─── Inner ceremony (retried on AUTH_TIME_RECENCY_VIOLATION) ──────────────────
@@ -31,7 +31,7 @@ const REDIRECT_URI = AuthSession.makeRedirectUri({ native: Config.REDIRECT_URI }
 // request instance after promptAsync resolves and passed back to the caller for
 // the token exchange.
 
-async function performLoginCeremony(): Promise<{ code: string; codeVerifier: string }> {
+async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: string; codeVerifier: string }> {
   const base = Config.AUTH_SERVER_BASE_URL;
   if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
 
@@ -46,13 +46,38 @@ async function performLoginCeremony(): Promise<{ code: string; codeVerifier: str
     'LOGIN_FAILED',
   );
 
-  const assertion = await Passkey.get({
-    challenge:         beginData.challenge,
-    rpId:              beginData.rpId,
-    timeout:           beginData.timeout,
-    allowCredentials:  beginData.allowCredentials as { id: string; type: string }[],
-    userVerification:  beginData.userVerification,
-  });
+  // const assertion = await Passkey.get({
+  //   challenge:         beginData.challenge,
+  //   rpId:              beginData.rpId,
+  //   timeout:           beginData.timeout,
+  //   allowCredentials:  beginData.allowCredentials as { id: string; type: string }[],
+  //   userVerification:  beginData.userVerification,
+  // });
+
+  let assertion;
+  try {
+    console.log('[PASSKEY] calling Passkey.get');
+    // On Android, empty allowCredentials triggers discoverable-credential discovery
+    // via Google Password Manager, which hangs or shows "Use another device" when
+    // the credential isn't yet locally indexed. Use the stored credential ID to
+    // target the credential directly and skip the cloud enumeration entirely.
+    const resolvedId = credentialIdHint ?? await SecureStore.getItemAsync('credentialId') ?? undefined;
+    const allowCredentials = resolvedId
+      ? [{ id: resolvedId, type: 'public-key' as const }]
+      : beginData.allowCredentials as { id: string; type: string }[];
+
+    assertion = await Passkey.get({
+      challenge:        beginData.challenge,
+      rpId:             beginData.rpId,
+      timeout:          beginData.timeout,
+      allowCredentials: allowCredentials,
+      userVerification: beginData.userVerification,
+    });
+    console.log('[PASSKEY] got assertion');
+  } catch (e) {
+    console.log('[PASSKEY] error', e);
+    throw e;
+  }
 
   const completeData = assertData<{ deviceWalletAddress: string; authTime: number }>(
     await kokioAuthClient.loginComplete({
@@ -135,12 +160,12 @@ async function performLoginCeremony(): Promise<{ code: string; codeVerifier: str
  * On success the token bundle is persisted and `isAuthenticated` is set to true.
  * Throws AuthError on any ceremony or network failure.
  */
-export async function loginWithKokioPasskey(): Promise<void> {
+export async function loginWithKokioPasskey(credentialIdHint?: string): Promise<void> {
   let ceremony: { code: string; codeVerifier: string } | undefined;
 
   for (let attempt = 0; attempt <= 1; attempt++) {
     try {
-      ceremony = await performLoginCeremony();
+      ceremony = await performLoginCeremony(credentialIdHint);
       break;
     } catch (err) {
       if (

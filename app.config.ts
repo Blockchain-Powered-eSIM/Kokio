@@ -54,14 +54,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       intentFilters: [
         {
           action: "VIEW",
-          data: [{ scheme: "kokio" }],
+          autoVerify: true,
+          data: [{ "scheme": "https", "host": "kokio.app", "pathPrefix": "/callback" }],
           category: ["BROWSABLE", "DEFAULT"],
         },
       ],
     },
     web: {
       bundler: "metro",
-      output: "static",
+      output: "server",
       favicon: "./assets/images/favicon.png",
     },
     plugins: [

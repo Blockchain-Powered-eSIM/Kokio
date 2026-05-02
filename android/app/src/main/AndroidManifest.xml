@@ -31,6 +31,12 @@
         <data android:scheme="kokio"/>
         <data android:scheme="exp+kokio"/>
       </intent-filter>
+      <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="https" android:host="kokio.app" android:pathPrefix="/callback"/>
+      </intent-filter>
     </activity>
   </application>
 </manifest>
