@@ -188,15 +188,10 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         applyAsTopup,
         compatibleTopUpEsimId
       });
-      console.log({ eSimItem });
-      console.log("Order Api Payload", { ...payload, payeeAddress: deviceWalletId });
-
       const orderData = await createOrder(({
         ...payload,
         payeeAddress: deviceWalletId,
       }) as any);
-
-      console.log("Order Api Response", orderData);
 
       setOrderResponse(orderData);
 
@@ -207,14 +202,14 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
       setIsCheckoutLoading(false);
     } catch (err) {
-      console.error("Checkout error:", err);
+      if (__DEV__) console.error("Checkout error:", err);
       const errCode = (err as any)?.code;
       const errMessage = (err as any)?.message;
       if (errCode === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
       } else if (errMessage) {
-        console.error("Checkout failed:", errMessage);
+        if (__DEV__) console.error("Checkout failed:", errMessage);
       }
       setIsCheckoutLoading(false);
       setShowSuccessModal(false);
@@ -261,7 +256,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const handlePaymentMethodChange = useCallback(
     (value: string) => {
       if (value === RADIO_KEYS.E_SIM_WALLET) {
-        console.log(kokio.userWallet?.address);
         if (kokio.userWallet) {
           setSelectedPaymentMethod(value);
         } else {
@@ -288,7 +282,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       saveCard: boolean;
     }) => {
       // TODO: Handle credit card submission
-      console.log("Credit card data:", cardData);
       setShowCreditCardModal(false);
 
       // Now proceed with the actual checkout process

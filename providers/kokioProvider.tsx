@@ -245,7 +245,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error("Error saving purchased eSIMs to AsyncStorage:", error);
+      if (__DEV__) console.error("Error saving purchased eSIMs to AsyncStorage:", error);
     }
   };
 
@@ -259,10 +259,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         return parsedResult;
       }
     } catch (error) {
-      console.error(
-        "Error retrieving purchased eSIMs from AsyncStorage:",
-        error
-      );
+      if (__DEV__) console.error("Error retrieving purchased eSIMs from AsyncStorage:", error);
     }
   };
 
@@ -270,7 +267,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     try {
       await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.error("Error deleting purchased eSIMs from AsyncStorage:", error);
+      if (__DEV__) console.error("Error deleting purchased eSIMs from AsyncStorage:", error);
     }
   };
 
