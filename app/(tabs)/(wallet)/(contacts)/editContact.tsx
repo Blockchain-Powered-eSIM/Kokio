@@ -1,5 +1,5 @@
 import 'react-native-get-random-values';
-import { View, Text, Image, TextInput, Button, KeyboardAvoidingView, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, Image, TextInput, Button, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -14,8 +14,10 @@ import { router } from 'expo-router';
 import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
 import ColorPaletteModal from '@/components/ui/modals/colorPalleteModal';
 import { Theme } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 
 const editContact = () => {
+    const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [walletAddress, setWalletAddress] = useState("");
@@ -86,7 +88,7 @@ const editContact = () => {
 
     const handleSave = async () => {
         if (firstName === "" || walletAddress === "") {
-          Alert.alert("Please fill the first Name and Address to Proceed");
+          showMessage("Please fill in first name and address to proceed", "error");
           return;
         }
       
@@ -122,7 +124,7 @@ const editContact = () => {
           // (The contactId should already exist in contactIds)
       
           // Optional: Show success message
-          Alert.alert("Success", "Contact updated successfully");
+          showMessage("Contact updated successfully", "info");
       
           // Navigate to contactDetails with updated info
           router.replace({
@@ -143,7 +145,7 @@ const editContact = () => {
       
         } catch (error) {
           console.log("Error updating contact:", error);
-          Alert.alert("Error", "Failed to update contact");
+          showMessage("Failed to update contact", "error");
         } finally {
           setIsLoading(false);
           setFirstName("");

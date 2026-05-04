@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import _isNull from "lodash/isNull";
@@ -17,6 +16,7 @@ import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 
 const OfflineScreen: React.FC = () => {
   const router = useRouter();
+  const { showMessage } = useToast();
 
   const handleRetry = useCallback(async () => {
     const state = await NetInfo.fetch();
@@ -31,11 +31,9 @@ const OfflineScreen: React.FC = () => {
     if (isOnline) {
       router.replace("/");
     } else {
-      alert(
-        "Still Offline , Please check your internet connection and try again."
-      );
+      showMessage("Still offline. Please check your internet connection.", "error");
     }
-  }, [router]);
+  }, [router, showMessage]);
 
   const handleContinue = useCallback(() => {
     setSkipNextOfflineRedirect(true);
