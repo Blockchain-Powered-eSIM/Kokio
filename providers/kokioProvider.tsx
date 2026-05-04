@@ -1,6 +1,5 @@
 import { ReactNode, createContext, useEffect, useReducer } from "react";
 import _pick from "lodash/pick";
-import _get from "lodash/get";
 import { Kokio } from "kokio-sdk";
 import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
 import { createWalletClient, http, type Hex } from "viem";
@@ -14,6 +13,7 @@ import { SmartContractAccount } from "@aa-sdk/core";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Esim } from "@/components/ESIMItem";
+import { CreateOrderResponse } from "@/utils/bff/order";
 
 export interface StoredTransactionData {
   orderId: string;
@@ -31,7 +31,7 @@ export interface StoredPurchasedESIM {
 
 const reduceESimDataForStorage = (
   eSimItem: Esim,
-  transactionData: any
+  transactionData: CreateOrderResponse
 ): StoredPurchasedESIM => {
   const reducedESimItem = _pick(eSimItem, [
     "catalogueId",
@@ -47,15 +47,11 @@ const reduceESimDataForStorage = (
   ]) as Esim;
 
   const reducedTransactionData: StoredTransactionData = {
-    orderId: _get(transactionData, "orderId", ""),
-    iccid: _get(transactionData, "iccid", ""),
+    orderId: transactionData.orderId,
+    iccid: transactionData.iccid,
     installationDetails: {
-      qrcode: _get(transactionData, "installationDetails.qrcode", ""),
-      appleInstallationUrl: _get(
-        transactionData,
-        "installationDetails.appleInstallationUrl",
-        ""
-      ),
+      qrcode: transactionData.installationDetails?.qrcode ?? "",
+      appleInstallationUrl: transactionData.installationDetails?.appleInstallationUrl ?? "",
     },
   };
 
@@ -68,7 +64,7 @@ const reduceESimDataForStorage = (
 type AuthActionType =
   | { type: "ERROR"; payload: string }
   | { type: "CLEAR_ERROR" }
-  | { type: "SET_KOKIO"; payload: any }
+  | { type: "SET_KOKIO"; payload: Kokio }
   | { type: "SET_DEVICE_UID"; payload: string }
   | { type: "SET_DEVICE_WALLET_ADDRESS"; payload: string }
   | { type: "SET_RAW_SALT"; payload: string }
@@ -171,7 +167,7 @@ export interface KokioProviderType {
   savePurchasedESIM: (
     deviceUID: string,
     eSimItem: Esim,
-    transactionData: any // TODO: Create a type for this once BE contract is finalized
+    transactionData: CreateOrderResponse
   ) => Promise<void>;
   setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex, rawSalt: string) => Promise<void>;
   clearKokio: () => void;
@@ -431,7 +427,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   const savePurchasedESIM = async (
     deviceUID: string,
     eSimItem: Esim,
-    transactionData: any
+    transactionData: CreateOrderResponse
   ) => {
     const existingESIMs = await getValueForPurchasedESIMs(
       `purchasedESIMs-${deviceUID}`

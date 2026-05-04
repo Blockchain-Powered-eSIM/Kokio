@@ -20,10 +20,14 @@ import { clearUsedHashes } from "@/utils/orderTracking";
 
 // ─── Error formatting ─────────────────────────────────────────────────────────
 
-function formatError(error: any): string {
-  const code: string | undefined = error?.code;
-  const status: number | undefined = error?.httpStatus;
-  const msg: string = error?.message ?? error?.userMessage ?? 'Unknown error';
+function formatError(error: unknown): string {
+  if (typeof error !== 'object' || error === null) return 'Unknown error';
+  const e = error as Record<string, unknown>;
+  const code = typeof e.code === 'string' ? e.code : undefined;
+  const status = typeof e.httpStatus === 'number' ? e.httpStatus : undefined;
+  const msg = typeof e.message === 'string' ? e.message
+    : typeof e.userMessage === 'string' ? e.userMessage
+    : 'Unknown error';
   if (!code) return msg;
   return status ? `[${code} ${status}] ${msg}` : `[${code}] ${msg}`;
 }
@@ -166,7 +170,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
 
       dispatch({ type: "PASSKEY" });
       return result;
-    } catch (error: any) {
+    } catch (error) {
       dispatch({ type: "ERROR", payload: formatError(error) });
       return null;
     } finally {
@@ -187,7 +191,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       await loginWithKokioPasskey();
       dispatch({ type: "PASSKEY" });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       dispatch({ type: "ERROR", payload: formatError(error) });
       return false;
     } finally {
@@ -232,7 +236,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       resolveStepUp();
       setStepUpVisible(false);
       setStepUpHint(null);
-    } catch (err: any) {
+    } catch (err) {
       setStepUpError(formatError(err));
     }
   }, []);

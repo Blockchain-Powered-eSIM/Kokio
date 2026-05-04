@@ -41,11 +41,16 @@ import CreditCardModal from "@/components/CreditCardModal";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
+import type { CreateOrderResponse } from "@/utils/bff/order";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
 
-const Checkout = ({ currentBalance = 25 }: any) => {
+interface CheckoutProps {
+  currentBalance?: number;
+}
+
+const Checkout = ({ currentBalance = 25 }: CheckoutProps) => {
   const { item: eSimDetails } = useLocalSearchParams();
 
   const eSimItem: Esim = React.useMemo(() => {
@@ -74,7 +79,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
-  const [orderResponse, setOrderResponse] = useState<any>(null);
+  const [orderResponse, setOrderResponse] = useState<CreateOrderResponse | null>(null);
   const [discountError, setDiscountError] = useState<string>("");
 
   const radioButtons: RadioButtonProps[] = useMemo(
@@ -188,10 +193,10 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         applyAsTopup,
         compatibleTopUpEsimId
       });
-      const orderData = await createOrder(({
+      const orderData = await createOrder({
         ...payload,
         payeeAddress: deviceWalletId,
-      }) as any);
+      });
 
       setOrderResponse(orderData);
 
@@ -203,8 +208,9 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       setIsCheckoutLoading(false);
     } catch (err) {
       if (__DEV__) console.error("Checkout error:", err);
-      const errCode = (err as any)?.code;
-      const errMessage = (err as any)?.message;
+      const e = err as { code?: string; message?: string };
+      const errCode = e.code;
+      const errMessage = e.message;
       if (errCode === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
