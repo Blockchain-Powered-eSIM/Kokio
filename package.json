@@ -28,8 +28,6 @@
     "@react-navigation/material-top-tabs": "^7.4.1",
     "@react-navigation/native": "^7.1.8",
     "@tanstack/react-query": "^5.90.5",
-    "@walletconnect/modal-react-native": "^1.1.0",
-    "@walletconnect/react-native-compat": "^2.23.1",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "crypto-browserify": "^3.12.1",
