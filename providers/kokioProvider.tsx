@@ -511,15 +511,17 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
   const clearKokioUser = async () => {
     dispatch({ type: "CLEAR_KOKIO_USER" });
-    await deleteValueForUser(`userWallet-${kokio.deviceUID}`);
-    await deleteValueForUser(`userData-${kokio.deviceUID}`);
-    await deleteValueForPurchasedESIMs(`purchasedESIMs-${kokio.deviceUID}`);
-    await deleteValueForUser("deviceUID");
-    await SecureStore.deleteItemAsync("deviceWalletAddress");
-    await SecureStore.deleteItemAsync("credentialId");
-    await SecureStore.deleteItemAsync("publicKeyX");
-    await SecureStore.deleteItemAsync("publicKeyY");
-    await SecureStore.deleteItemAsync("rawSalt");
+    // Best-effort deletes — iOS SecureStore throws when a key doesn't exist,
+    // so each delete is wrapped individually to ensure all keys are attempted.
+    await deleteValueForUser(`userWallet-${kokio.deviceUID}`).catch(() => {});
+    await deleteValueForUser(`userData-${kokio.deviceUID}`).catch(() => {});
+    await deleteValueForPurchasedESIMs(`purchasedESIMs-${kokio.deviceUID}`).catch(() => {});
+    await deleteValueForUser("deviceUID").catch(() => {});
+    await SecureStore.deleteItemAsync("deviceWalletAddress").catch(() => {});
+    await SecureStore.deleteItemAsync("credentialId").catch(() => {});
+    await SecureStore.deleteItemAsync("publicKeyX").catch(() => {});
+    await SecureStore.deleteItemAsync("publicKeyY").catch(() => {});
+    await SecureStore.deleteItemAsync("rawSalt").catch(() => {});
     clearKokio();
   };
 

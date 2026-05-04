@@ -121,9 +121,10 @@ async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: 
     );
   }
 
-  const result = await request.promptAsync({
-    authorizationEndpoint: `${base}/v1/auth/authorize`,
-  });
+  const result = await request.promptAsync(
+    { authorizationEndpoint: `${base}/v1/auth/authorize` },
+    { preferUniversalLinks: true },
+  );
 
   if (__DEV__) {
     console.log(`[authFetch] GET /v1/auth/authorize → ${result.type}\n res:`, result.type === 'success' ? { code: result.params.code, state: result.params.state } : result);

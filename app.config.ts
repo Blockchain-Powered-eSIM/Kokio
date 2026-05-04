@@ -39,8 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       config: {
         usesNonExemptEncryption: false,
       },
-      // runtimeVersion floats with version so each app release gets its own OTA channel.
-      runtimeVersion: { policy: "appVersion" },
+      runtimeVersion: version,
       version,
       buildNumber: "1",
       infoPlist: {
@@ -55,8 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       package: "app.kokio",
       edgeToEdgeEnabled: true,
       version,
-      // runtimeVersion floats with version so each app release gets its own OTA channel.
-      runtimeVersion: { policy: "appVersion" },
+      runtimeVersion: version,
       intentFilters: [
         {
           action: "VIEW",
