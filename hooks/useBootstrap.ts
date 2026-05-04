@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { fetchBootstrapDataAPI, healthCheck } from "@/services/general";
+import { getServiceRegions } from "@/utils/bff/catalogue";
+import { checkBffHealth } from "@/utils/bff/health";
 import AppBootstrap from "@/utils/appBootstrap";
-import type { components } from "@/utils/bff/generated/koKioBff";
-
-type ServiceRegion = components["schemas"]["ServiceRegion"];
 
 export default function useBootstrap() {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,9 +11,9 @@ export default function useBootstrap() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await healthCheck();
-      console.log("Health status", response);
-      if ((response as any)?.success !== true) {
+      const healthy = await checkBffHealth();
+      console.log("Health status", healthy);
+      if (!healthy) {
         console.error("Non 200 status");
       }
     } catch (err) {
@@ -31,11 +29,7 @@ export default function useBootstrap() {
     setError(null);
 
     try {
-      const response = await fetchBootstrapDataAPI();
-      const { countries, regions } = (response as any)?.data as {
-        countries?: ServiceRegion[];
-        regions?: ServiceRegion[];
-      } || {};
+      const { countries, regions } = await getServiceRegions();
       new AppBootstrap({ countries, regions });
     } catch (err) {
       console.error("Failed to fetch bootstrap data:", err);
