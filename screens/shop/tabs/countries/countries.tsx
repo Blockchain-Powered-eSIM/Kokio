@@ -5,7 +5,7 @@ import _map from "lodash/map";
 
 import { ThemedText } from "@/components/ThemedText";
 import CountryFlag from "@/components/ui/CountryFlag";
-import { Colors, Theme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
 import appBootstrap from "@/utils/appBootstrap";
 import { navigateToESIMsByCountry } from "@/utils/general";
 
@@ -46,6 +46,7 @@ export default function Countries() {
           columnWrapperStyle={styles.columnWrapperStyle}
           keyExtractor={(item, index) => item?.code || index}
           contentContainerStyle={{ paddingBottom: 100 }}
+          style={{ backgroundColor: "transparent" }}
         />
       </View>
     </View>
@@ -56,17 +57,18 @@ const styles = StyleSheet.create({
   tabTitle: {
     paddingTop: 12,
     paddingBottom: 24,
-    color: Colors.dark.text,
   },
   tabWrapper: {
     flex: 1,
     flexDirection: "column",
     alignItems: "center",
     paddingTop: 12,
+    backgroundColor: "transparent",
   },
   countriesWrapper: {
     width: "90%",
     flex: 1,
+    backgroundColor: "transparent",
   },
   country: {
     flexDirection: "column",
@@ -75,7 +77,6 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.md,
   },
   countryLabel: {
-    color: Colors.dark.text,
     paddingTop: Theme.spacing.sm,
     paddingHorizontal: Theme.spacing.sm,
     textAlign: "center", 
@@ -83,6 +84,7 @@ const styles = StyleSheet.create({
   },
   flag: {
     borderRadius: Theme.borderRadius.medium * 2,
+    backgroundColor: "transparent",
   },
   columnWrapperStyle: {
     flexDirection: "row",

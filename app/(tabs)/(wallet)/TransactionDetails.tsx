@@ -4,6 +4,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
+import { Theme } from '@/constants/Colors';
 
 const TransactionDetails = () => {
 
@@ -15,7 +16,7 @@ const TransactionDetails = () => {
   
   return (
     <ThemedView className='flex-1'>
-      <ThemedView darkColor='#1c1c1e' className='w-auto px-7 mt-10 rounded-3xl'>
+      <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto px-7 mt-10 rounded-3xl'>
         <View className='flex-row justify-between mt-5 '>
           {parsedTransaction?.name?
           <View className='items-center'>
@@ -27,7 +28,7 @@ const TransactionDetails = () => {
         </View>:
         <View className='mt-6 w-[70%]'>
           <ThemedText>Wallet</ThemedText>
-          <ThemedText light darkColor='#AEAEB2'>{parsedTransaction?.walletId}</ThemedText>
+          <ThemedText light darkColor={Theme.colors.foreground}>{parsedTransaction?.walletId}</ThemedText>
         </View>
         }
           
@@ -38,28 +39,28 @@ const TransactionDetails = () => {
             }
 
             <ThemedText
-              darkColor={parsedTransaction?.type === 'received' ? '#FFFFFf' : '#FF9F0A'}
+              darkColor={parsedTransaction?.type === 'received' ? Theme.colors.text : Theme.colors.primary}
               variant='xl'
               className='mt-6'
             >{parsedTransaction?.type}</ThemedText>
             <ThemedText
-              darkColor={parsedTransaction?.type === 'received' ? '#AEAEB2' : '#FF9F0A'}
+              darkColor={parsedTransaction?.type === 'received' ? Theme.colors.foreground : Theme.colors.primary}
 
               light
             >{parsedTransaction?.status}</ThemedText>
           </View>
         </View>
         <View className='mt-5 flex-row justify-between'>
-          <ThemedText darkColor='#FFFFFF'>Amount</ThemedText>
+          <ThemedText darkColor={Theme.colors.text}>Amount</ThemedText>
           <View className='items-end'>
-            <ThemedText variant='xl' bold darkColor='#FFFFFF'>{parsedTransaction?.amount}</ThemedText>
-            <ThemedText light darkColor='#AEAEB2'>{parsedTransaction?.ethAmount}</ThemedText>
+            <ThemedText variant='xl' bold darkColor={Theme.colors.text}>{parsedTransaction?.amount}</ThemedText>
+            <ThemedText light darkColor={Theme.colors.foreground}>{parsedTransaction?.ethAmount}</ThemedText>
             
           </View>
         </View>
         <View className='mt-5'>
           <ThemedText>Date and Time</ThemedText>
-          <ThemedText  light darkColor='#AEAEB2' className='mt-3' >{parsedTransaction?.dateTime}</ThemedText>
+          <ThemedText  light darkColor={Theme.colors.foreground} className='mt-3' >{parsedTransaction?.dateTime}</ThemedText>
         </View>
         <View className='mt-5 mb-6'>
           <View className='flex-row justify-between'>
@@ -67,7 +68,7 @@ const TransactionDetails = () => {
           <Entypo name="link" size={20} color="white" />
          
           </View>
-          <ThemedText light darkColor='#AEAEB2' className='mt-3' >{parsedTransaction?.id}</ThemedText>
+          <ThemedText light darkColor={Theme.colors.foreground} className='mt-3' >{parsedTransaction?.id}</ThemedText>
           
         </View>
 

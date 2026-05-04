@@ -1,3 +1,6 @@
+import { install as installQuickCrypto } from 'react-native-quick-crypto';
+installQuickCrypto(); // polyfill global.crypto.subtle for jose / DPoP
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';

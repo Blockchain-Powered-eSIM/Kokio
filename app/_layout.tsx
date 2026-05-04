@@ -1,14 +1,16 @@
 // Add global shims
 import "react-native-get-random-values";
 import "@ethersproject/shims";
-import "cbor-rn-prereqs";
+import { install as installQuickCrypto } from "react-native-quick-crypto";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import "../global.css";
 import useBootstrap from "@/hooks/useBootstrap";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
@@ -20,6 +22,15 @@ import {
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { Providers } from "@/providers";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
+import { StepUpPromptModal } from "@/components/StepUpPromptModal";
+import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
+import { setUnauthenticatedHandler } from "@/services/httpService";
+import { useAuthStore } from "@/stores/authStore";
+import { THEME_STORAGE_KEY, applyTheme } from "@/constants/Colors";
+
+// Polyfill global.crypto.subtle for jose / DPoP key generation.
+// index.js is not used when "main" = "expo-router/entry", so this must live here.
+installQuickCrypto();
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -29,6 +40,14 @@ export default function RootLayout() {
   const pathname = usePathname();
 
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [themeLoaded, setThemeLoaded] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
+      applyTheme(val !== "light");
+      setThemeLoaded(true);
+    });
+  }, []);
   const [loaded] = useFonts({
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
@@ -46,6 +65,13 @@ export default function RootLayout() {
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
+
+  // Rehydrate persisted tokens from SecureStore and wire the unauthenticated
+  // redirect handler so httpService can navigate on refresh failure.
+  useEffect(() => {
+    useAuthStore.getState().loadPersistedTokens();
+    setUnauthenticatedHandler(() => router.replace("/" as any));
+  }, []);
 
   // Initial connectivity check
   useEffect(() => {
@@ -103,18 +129,22 @@ export default function RootLayout() {
   }, [loaded, isLoading]);
 
   // Wait until ready
-  if (!loaded || _isNull(isConnected)) {
+  if (!loaded || _isNull(isConnected) || !themeLoaded) {
     return <FullScreenLoader />;
   }
 
   return (
     <Providers>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-        <Stack.Screen name="Offline" options={{ headerShown: false }} />
-      </Stack>
+      <ServiceStatusBanner />
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+          <Stack.Screen name="Offline" options={{ headerShown: false }} />
+        </Stack>
+      </View>
       <AuthenticationModal />
+      <StepUpPromptModal />
     </Providers>
   );
 }

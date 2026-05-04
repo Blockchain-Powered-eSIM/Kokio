@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View, Alert, Linking, Pressable, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
+import { Theme } from '@/constants/Colors';
 
 export default function QrCodeScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   },
   overlayTop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: Theme.colors.overlay,
   },
   horizontalContainer: {
     flexDirection: 'row',
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   },
   overlaySide: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: Theme.colors.overlay,
   },
   scanArea: {
     width: 250,
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   },
   overlayBottom: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: Theme.colors.overlay,
   },
   cornerTopLeft: {
     position: 'absolute',
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderTopWidth: 3,
     borderLeftWidth: 3,
-    borderColor: '#fff',
+    borderColor: Theme.colors.text,
   },
   cornerTopRight: {
     position: 'absolute',
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderTopWidth: 3,
     borderRightWidth: 3,
-    borderColor: '#fff',
+    borderColor: Theme.colors.text,
   },
   cornerBottomLeft: {
     position: 'absolute',
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderBottomWidth: 3,
     borderLeftWidth: 3,
-    borderColor: '#fff',
+    borderColor: Theme.colors.text,
   },
   cornerBottomRight: {
     position: 'absolute',
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderBottomWidth: 3,
     borderRightWidth: 3,
-    borderColor: '#fff',
+    borderColor: Theme.colors.text,
   },
   backButton: {
     position: 'absolute',
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: Theme.colors.overlayDark,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,

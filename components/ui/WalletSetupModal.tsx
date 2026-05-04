@@ -12,20 +12,13 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { openBrowserAsync } from "expo-web-browser";
-import { SmartContractAccount } from "@aa-sdk/core";
+import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
+import { Theme } from "@/constants/Colors";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { checkIfEmailInUse } from "@/utils/api";
-import {
-  PasskeyStamper,
-  TurnkeyClient,
-  useTurnkey,
-} from "@turnkey/sdk-react-native";
-import { P256Key } from "kokio-sdk/types";
-import { PASSKEY_CONFIG, TURNKEY_API_URL } from "@/constants/passkey.constants";
-import { Kokio } from "kokio-sdk";
-import { returnViemWalletClient } from "@/utils/passkey";
+import { useToast } from "@/contexts/ToastContext";
+import { AuthError } from "@/utils/auth/errors";
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -57,64 +50,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   );
   const modalRef = React.useRef<Modal>(null);
   const { kokio, setupKokioUserWallet } = useKokio();
-  const { session, user } = useTurnkey();
-
-  const returnSmartAccountAddress = useCallback(async (): Promise<{
-    wallet?: SmartContractAccount;
-    shouldRetry?: boolean;
-  }> => {
-    const deviceUniqueIdentifier = kokio.deviceUID;
-    const deviceWalletOwnerKey: P256Key = [
-      kokio.userPasskey?.x as `0x${string}`, // Public Key X from attestationObject
-      kokio.userPasskey?.y as `0x${string}`, // Public Key Y from attestationObject
-    ];
-    const salt = 25042025n; // BigInt
-
-    console.log("data", deviceUniqueIdentifier, deviceWalletOwnerKey);
-
-    if (user && kokio.sdk) {
-      try {
-        // Calculates device wallet address without deploying
-        const deviceWallet = await kokio.sdk.smartAccount.getSmartWallet(
-          deviceUniqueIdentifier,
-          deviceWalletOwnerKey,
-          salt
-        );
-
-        console.log("wallet", deviceWallet);
-
-        // Returns the smart account client, inline with Alchemy’s SDK
-        const deviceWalletClient =
-          await kokio.sdk.smartAccount.getSmartWalletClient(
-            deviceWallet // Returned by getSmartWallet fn
-          );
-        console.log("deviceWalletClient", deviceWalletClient.account?.address);
-
-        const uo = await deviceWalletClient.sendUserOperation({
-          uo: {
-            target: deviceWalletClient.account.address,
-            data: "0x",
-            value: 0n,
-          },
-          overrides: {
-            preVerificationGas: 0xeeee,
-          },
-        });
-        console.log("sendUserOperation", uo);
-        return { wallet: deviceWallet, shouldRetry: false };
-      } catch (e) {
-        console.log("error uo", e);
-        return { wallet: undefined, shouldRetry: true };
-      }
-    } else {
-      console.error(
-        "Wallet setup error... User is not authenticated or kokio sdk not set"
-      );
-      return { wallet: undefined, shouldRetry: false };
-    }
-  }, [kokio, user]);
-
-  const { updateUser } = useTurnkey();
+  const { showMessage } = useToast();
 
   const handleAddressPress = useCallback(async () => {
     if (walletAddress) {
@@ -131,32 +67,89 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(true);
     setShowRetry(false);
 
-    //wallet setup
-    if (session?.user && kokio.sdk) {
-      console.log("Setting up wallet...");
-      const { wallet, shouldRetry } = await returnSmartAccountAddress();
+    const { deviceWalletAddress, deviceUID, userPasskey, rawSalt, sdk } = kokio;
 
-      if (shouldRetry) {
-        setIsLoading(false);
-        setShowRetry(true);
-        return;
-      }
+    console.log('[wallet] handleContinue state:', {
+      deviceWalletAddress: !!deviceWalletAddress,
+      deviceUID: !!deviceUID,
+      hasX: !!userPasskey?.x,
+      hasY: !!userPasskey?.y,
+      hasRawSalt: !!rawSalt,
+      sdkReady: !!sdk,
+    });
 
-      if (wallet) {
-        console.log("setWalletAddress", wallet);
-
-        // Store the wallet address for display
-        setWalletAddress(wallet?.address);
-
-        await setupKokioUserWallet(kokio.deviceUID, wallet);
-
-        setShowRecovery(true);
-      }
+    if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !rawSalt || !sdk) {
+      console.warn('[wallet] guard failed — missing:', {
+        deviceWalletAddress,
+        x: userPasskey?.x,
+        y: userPasskey?.y,
+        rawSalt: !!rawSalt,
+        sdk: !!sdk,
+      });
+      setShowRetry(true);
+      setIsLoading(false);
+      return;
     }
 
-    setIsLoading(false);
-  // }, []);
-  }, [session, kokio, returnSmartAccountAddress, setupKokioUserWallet]);
+    try {
+      setWalletAddress(deviceWalletAddress);
+
+      // Reconstruct the smart account from the stored P-256 public key.
+      // This computes the same counterfactual address the server derived at registration.
+      const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
+      const salt = BigInt(rawSalt);
+
+      console.log('[wallet] getSmartWallet inputs:', {
+        deviceUID,
+        ownerKeyX: userPasskey.x,
+        ownerKeyY: userPasskey.y,
+        rawSalt,
+        saltBigInt: salt.toString(),
+        saltHex: '0x' + salt.toString(16).padStart(64, '0'),
+        serverAddress: deviceWalletAddress,
+      });
+
+      const deviceWallet = await sdk.smartAccount.getSmartWallet(
+        deviceUID,
+        ownerKey,
+        salt,
+      );
+
+      const deviceWalletClient = await sdk.smartAccount.getSmartWalletClient(deviceWallet);
+
+      const sdkAddress = deviceWalletClient.account?.address;
+      console.log('[wallet] getSmartWallet result:', {
+        sdkAddress,
+        serverAddress: deviceWalletAddress,
+        match: sdkAddress?.toLowerCase() === deviceWalletAddress.toLowerCase(),
+      });
+
+      // A no-op userOp that includes the initCode on first send, deploying the contract.
+      // This triggers Passkey.get() inside the SDK's _stamp() — the biometric prompt.
+      await deviceWalletClient.sendUserOperation({
+        uo: {
+          target: deviceWalletClient.account.address,
+          data: '0x',
+          value: 0n,
+        },
+        overrides: { preVerificationGas: 0xeeee },
+      });
+
+      await setupKokioUserWallet(deviceUID, deviceWallet);
+      setShowRecovery(true);
+    } catch (err: unknown) {
+      console.error('[wallet] deployment error:', err);
+      const message = err instanceof AuthError
+        ? err.userMessage
+        : err instanceof Error
+          ? err.message
+          : 'Something went wrong. Please try again.';
+      showMessage(message, 'error');
+      setShowRetry(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [kokio, setupKokioUserWallet, showMessage]);
 
   const handleClose = useCallback(() => {
     setIsLoading(false);
@@ -198,7 +191,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const loadingContent = useMemo(
     () => (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size={90} color="#FF9500" />
+        <ActivityIndicator size={90} color={Theme.colors.primary} />
         <Text style={styles.loadingText}>
           Please wait while your wallet is being deployed...
         </Text>
@@ -214,7 +207,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <MaterialCommunityIcons
             name="alert-circle"
             size={60}
-            color="#FF3B30"
+            color={Theme.colors.destructive}
             style={styles.errorIcon}
           />
           <ThemedText bold style={styles.errorTitle}>
@@ -250,20 +243,8 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   }, [onClose]);
 
   const onChangeUserEmail = useCallback(async () => {
+    // TODO: save recovery email via Kokio API once endpoint is available
     if (!email) return;
-
-    const inUse = await checkIfEmailInUse({ email });
-    if (inUse) {
-      alert("Email already in use");
-      return;
-    }
-    try {
-      const response = await updateUser({ email });
-      console.log("response", response);
-      return response;
-    } catch (e) {
-      console.error("Error updating user email", e);
-    }
   }, [email]);
 
   const handleDone = useCallback(() => {
@@ -281,7 +262,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <MaterialCommunityIcons
             name="comment-alert"
             size={32}
-            color="#FF9500"
+            color={Theme.colors.primary}
             style={styles.warningIconTopRight}
           />
           <Text style={styles.warningText}>
@@ -309,7 +290,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
                 <MaterialIcons
                   name="open-in-new"
                   size={16}
-                  color="#AEAEB2"
+                  color={Theme.colors.foreground}
                   style={styles.linkIcon}
                 />
               )}
@@ -324,7 +305,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <TextInput
             style={styles.emailInput}
             placeholder="Email id"
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={Theme.colors.accentForeground}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -390,11 +371,11 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Theme.colors.overlay,
     paddingTop: 0,
   },
   modalContainer: {
-    backgroundColor: "rgba(60, 60, 60, 0.9)",
+    backgroundColor: Theme.colors.modalBackground,
     alignItems: "center",
     width: "100%",
     flex: 1,
@@ -405,20 +386,20 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     width: "80%",
-    backgroundColor: "#242427",
+    backgroundColor: Theme.colors.background,
     borderRadius: 20,
     paddingTop: 32,
   },
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 16,
   },
   description: {
     fontSize: 14,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 48,
@@ -426,7 +407,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#48484A",
+    borderTopColor: Theme.colors.muted,
     marginTop: 28,
   },
   laterButton: {
@@ -434,10 +415,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
     borderRightWidth: 1,
-    borderRightColor: "#48484A",
+    borderRightColor: Theme.colors.muted,
   },
   laterButtonText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 16,
     fontWeight: "400",
   },
@@ -447,7 +428,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   continueButtonText: {
-    color: "#FF9500",
+    color: Theme.colors.primary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -456,7 +437,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   loadingText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 16,
     textAlign: "center",
     marginTop: 16,
@@ -473,26 +454,26 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "white",
+    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 12,
   },
   errorDescription: {
     fontSize: 14,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 24,
   },
   warningContainer: {
     flexDirection: "row",
-    backgroundColor: "#242427",
+    backgroundColor: Theme.colors.background,
     padding: 16,
     borderRadius: 16,
     marginBottom: 16,
   },
   warningText: {
-    color: "white",
+    color: Theme.colors.text,
     fontWeight: "600",
     fontSize: 14,
     lineHeight: 20,
@@ -505,14 +486,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   recoveryCard: {
-    backgroundColor: "#242427",
+    backgroundColor: Theme.colors.background,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
   },
   recoveryTitle: {
     fontSize: 18,
-    color: "white",
+    color: Theme.colors.text,
     marginBottom: 12,
   },
   addressContainer: {
@@ -525,7 +506,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addressText: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 14,
     marginRight: 8,
   },
@@ -533,16 +514,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   recoveryDescription: {
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
   },
   emailInput: {
-    backgroundColor: "#7676803D",
+    backgroundColor: Theme.colors.inputBackground,
     borderRadius: 8,
     padding: 12,
-    color: "white",
+    color: Theme.colors.text,
     fontSize: 16,
   },
   recoveryButtonContainer: {
@@ -553,25 +534,25 @@ const styles = StyleSheet.create({
   remindLaterButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#FF9500",
+    borderColor: Theme.colors.primary,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: "center",
   },
   remindLaterText: {
-    color: "#FF9500",
+    color: Theme.colors.primary,
     fontSize: 16,
     fontWeight: "500",
   },
   doneButton: {
     flex: 1,
-    backgroundColor: "#FF9500",
+    backgroundColor: Theme.colors.primary,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: "center",
   },
   doneButtonText: {
-    color: "black",
+    color: Theme.colors.cardForeground,
     fontSize: 16,
     fontWeight: "600",
   },

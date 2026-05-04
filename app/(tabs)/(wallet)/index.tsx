@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Link, useRouter } from 'expo-router';
-import { Colors } from '@/constants/Colors';
+import { Colors, Theme } from '@/constants/Colors';
 
 import Wallet from '@/components/home/wallet';
 import ToastNotification from '@/components/ui/ToastNotification/ToastNotification';
@@ -85,23 +85,23 @@ useFocusEffect(
 
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
           <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent","Sandra",null)} className='flex-1'>
-          <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
-            <View className='p-[12] rounded-full bg-[#FF9500]'>
+          <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
+            <View className='p-[12] rounded-full' style={{ backgroundColor: Theme.colors.warning }}>
               <Image source={require("../../../assets/images/wallet/arrow_up.png")} className='h-[32] w-[32]' />
             </View>
             <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
           </Pressable>
           <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved","Sandra",null)} className='flex-1'>
-          <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
-            <View className='p-[12] rounded-full bg-[#34C759]'>
+          <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
+            <View className='p-[12] rounded-full' style={{ backgroundColor: Theme.colors.success }}>
               <Image source={require("../../../assets/images/wallet/arrow_down.png")} className='h-[32] w-[32]' />
             </View>
             <ThemedText variant='sm' className='text-white mt-2' bold>Recieve</ThemedText>
           </ThemedView>
           </Pressable>
-          <ThemedView darkColor='#1c1c1e' className='flex-1 rounded-3xl py-5  justify-center items-center'>
-            <View className='p-[12] rounded-full bg-[#007AFF]'>
+          <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
+            <View className='p-[12] rounded-full' style={{ backgroundColor: Theme.colors.systemBlue }}>
               <Image source={require("../../../assets/images/wallet/square_arrow.png")} className='h-[32] w-[32]' />
             </View>
             <ThemedText variant='sm' className='text-white mt-2' bold>Deposit</ThemedText>
@@ -109,17 +109,17 @@ useFocusEffect(
         </View>
 
         <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/(contacts)/sendToContact")}>
-          <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
+          <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
             <View className='flex-row justify-between'>
-              <ThemedText darkColor='#AEAEB2' className=' ml-6'>Your Tokens</ThemedText>
+              <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Your Tokens</ThemedText>
 
               {tokens.length > 0 &&
-                <ThemedText darkColor='#AEAEB2' className=' mr-5'>See all</ThemedText>}
+                <ThemedText darkColor={Theme.colors.foreground} className=' mr-5'>See all</ThemedText>}
 
             </View>
 
             {tokens.length === 0 ?
-              <ThemedText darkColor='#AEAEB2' className=' mt-5 ml-6 mb-2' >You don't hold any tokens yet.</ThemedText>
+              <ThemedText darkColor={Theme.colors.foreground} className=' mt-5 ml-6 mb-2' >You don't hold any tokens yet.</ThemedText>
               :
               <View className='flex-1 gap-y-3 mt-5 mb-3'>
                 {tokens.map((token, index) => {
@@ -131,7 +131,7 @@ useFocusEffect(
                       </View>
                       <View className='flex-col items-end '>
                         <ThemedText variant='xl'>{token.balance}</ThemedText>
-                        <ThemedText darkColor='#AEAEB2' variant='sm'>{token.value}</ThemedText>
+                        <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{token.value}</ThemedText>
                       </View>
 
                     </View>
@@ -145,11 +145,11 @@ useFocusEffect(
           </ThemedView>
         </Pressable>
         <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/transactions')}>
-        <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
+        <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
-            <ThemedText darkColor='#AEAEB2' className=' ml-6'>Transactions</ThemedText>
+            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Transactions</ThemedText>
             {transactions.length > 0 &&
-              <ThemedText darkColor='#AEAEB2' className=' mr-5'>See all</ThemedText>}
+              <ThemedText darkColor={Theme.colors.foreground} className=' mr-5'>See all</ThemedText>}
           </View>
           {transactions.length > 0 ?
             <View className='flex-1 gap-y-6 mt-5 mb-3'>
@@ -160,16 +160,16 @@ useFocusEffect(
                       <Image source={tr.icon} className='h-[48px] w-[48px]  ' />
                       <View className='flex-col items-start ml-3 '>
                         <ThemedText variant='xl'>{tr.name}</ThemedText>
-                        {tr.type === "recieved"?<ThemedText darkColor='#AEAEB2' variant='sm'>{tr.type}</ThemedText>:
-                        <ThemedText darkColor='#FF9F0A' variant='sm'>{tr.type}</ThemedText>
+                        {tr.type === "recieved"?<ThemedText darkColor={Theme.colors.foreground} variant='sm'>{tr.type}</ThemedText>:
+                        <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.type}</ThemedText>
                         }
                         
                       </View>
                     </View>
                     <View className='flex-col items-end '>
                       <ThemedText variant='xl'>{tr.amount}</ThemedText>
-                      {tr.status === "completed"?<ThemedText darkColor='#AEAEB2' variant='sm'>{tr.status}</ThemedText>:
-                        <ThemedText darkColor='#FF9F0A' variant='sm'>{tr.status}</ThemedText>
+                      {tr.status === "completed"?<ThemedText darkColor={Theme.colors.foreground} variant='sm'>{tr.status}</ThemedText>:
+                        <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.status}</ThemedText>
                         }
                     </View>
 
@@ -177,17 +177,17 @@ useFocusEffect(
                 )
               })}
             </View> :
-            <ThemedText darkColor='#AEAEB2' className=' mt-5 ml-6 mb-2' >No Transactions to show</ThemedText>}
+            <ThemedText darkColor={Theme.colors.foreground} className=' mt-5 ml-6 mb-2' >No Transactions to show</ThemedText>}
 
         </ThemedView>
         </Pressable>
         <Pressable className='flex-1' onPress={()=>router.push({pathname:'/(contacts)',params:{contacts:JSON.stringify(contacts)}})}>
-        <ThemedView darkColor='#1c1c1e' className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
+        <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
-            <ThemedText darkColor='#AEAEB2' className=' ml-6'>Contacts</ThemedText>
+            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Contacts</ThemedText>
 
             {contacts.length > 0 &&
-              <ThemedText darkColor='#AEAEB2' className=' mr-5'>See all</ThemedText>}
+              <ThemedText darkColor={Theme.colors.foreground} className=' mr-5'>See all</ThemedText>}
 
           </View>
 
@@ -211,10 +211,10 @@ useFocusEffect(
             })}
           </View> :
             <View className=' justify-center '>
-              <View className=' ml-8 mt-4 h-16 items-center justify-center  w-16 rounded-full bg-[#FF9500]'>
+              <View className='ml-8 mt-4 h-16 items-center justify-center w-16 rounded-full' style={{ backgroundColor: Theme.colors.warning }}>
                 <Image source={require("../../../assets/images/wallet/add_contact.png")} className='h-[32] w-[38]' />
               </View>
-              <ThemedText darkColor='#AEAEB2' className='ml-8 mt-2'>Add new</ThemedText>
+              <ThemedText darkColor={Theme.colors.foreground} className='ml-8 mt-2'>Add new</ThemedText>
             </View>
 
           }

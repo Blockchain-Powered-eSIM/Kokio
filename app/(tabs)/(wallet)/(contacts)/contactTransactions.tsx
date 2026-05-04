@@ -4,6 +4,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import _ from "lodash"
+import { Theme } from '@/constants/Colors'
 import { useCallback } from 'react';
 
 
@@ -73,7 +74,7 @@ const contactTransactions = () => {
                                 <ThemedText variant='xl'>{tr?.walletId}</ThemedText>
                             )}
                             <ThemedText
-                                darkColor={tr?.type === 'received' ? '#AEAEB2' : '#FF9F0A'}
+                                darkColor={tr?.type === 'received' ? Theme.colors.foreground : Theme.colors.primary}
                                 variant='sm'
                             >
                                 {tr?.type}
@@ -83,7 +84,7 @@ const contactTransactions = () => {
                     <View className='flex-col items-end'>
                         <ThemedText variant='xl'>{tr?.amount}</ThemedText>
                         <ThemedText
-                            darkColor={tr?.status === 'pending' ? '#FF9F0A':'#AEAEB2'  }
+                            darkColor={tr?.status === 'pending' ? Theme.colors.primary : Theme.colors.foreground}
                             variant='sm'
                         >
                             {tr?.status}
@@ -97,21 +98,21 @@ const contactTransactions = () => {
 
     return (
         <ThemedView>
-            <ThemedView darkColor='#1c1c1e' className='mx-2 py-3 rounded-3xl mt-5'>
-                <ThemedText darkColor='#AEAEB2' className='ml-6'>Pending</ThemedText>
+            <ThemedView darkColor={Theme.colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+                <ThemedText darkColor={Theme.colors.foreground} className='ml-6'>Pending</ThemedText>
                 {pendingTransactions && _.size(pendingTransactions) > 0 ? (
                     <View className='gap-y-6 mt-5 mb-3'>
                         {_.map(pendingTransactions, renderTransaction)}
                     </View>
                 ) : (
-                    <ThemedText darkColor='#AEAEB2' className='mt-5 ml-6 mb-2'>
+                    <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-6 mb-2'>
                         No Pending Transactions
                     </ThemedText>
                 )}
 
             </ThemedView>
-            <ThemedView darkColor='#1c1c1e' className='mx-2 py-3 rounded-3xl mt-5'>
-                <ThemedText darkColor='#AEAEB2' className='ml-6'>Completed</ThemedText>
+            <ThemedView darkColor={Theme.colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+                <ThemedText darkColor={Theme.colors.foreground} className='ml-6'>Completed</ThemedText>
                 {completedTransactions.length > 0 ? (
                     <View className='gap-y-6 mt-5 mb-3'>
                         {_.map(completedTransactions, (tr, index) => (
@@ -125,16 +126,16 @@ const contactTransactions = () => {
                                         <Image source={tr.type === 'sent' ? require('../../../../assets/images/contacts/sent.png') : require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                                         <View className='flex-col items-start ml-3 '>
                                             <ThemedText variant='xl'>{tr.name}</ThemedText>
-                                            {tr.type === "received" ? <ThemedText darkColor='#AEAEB2' variant='sm'>{tr.type}</ThemedText> :
-                                                <ThemedText darkColor='#FF9F0A' variant='sm'>{tr.type}</ThemedText>
+                                            {tr.type === "received" ? <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{tr.type}</ThemedText> :
+                                                <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.type}</ThemedText>
                                             }
 
                                         </View>
                                     </View>
                                     <View className='flex-col items-end '>
                                         <ThemedText variant='xl'>{tr.amount}</ThemedText>
-                                        {tr.status === "completed" ? <ThemedText darkColor='#AEAEB2' variant='sm'>{tr.status}</ThemedText> :
-                                            <ThemedText darkColor='#FF9F0A' variant='sm'>{tr.status}</ThemedText>
+                                        {tr.status === "completed" ? <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{tr.status}</ThemedText> :
+                                            <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.status}</ThemedText>
                                         }
                                     </View>
 
@@ -143,7 +144,7 @@ const contactTransactions = () => {
                         ))}
                     </View>
                 ) : (
-                    <ThemedText darkColor='#AEAEB2' className='mt-5 ml-6 mb-2'>
+                    <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-6 mb-2'>
                         No Transactions to show
                     </ThemedText>
                 )}

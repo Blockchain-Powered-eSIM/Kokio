@@ -3,6 +3,7 @@ import React from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import _ from "lodash";
+import { Theme } from '@/constants/Colors';
 
 const Tokens = () => {
   const tokens = [
@@ -13,15 +14,15 @@ const Tokens = () => {
   ];
   return (
 
-    <ThemedView darkColor='#1c1c1e' className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
+    <ThemedView darkColor={Theme.colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
       <View className="px-4">
         <View className='flex-row justify-between'>
-          <ThemedText darkColor='#AEAEB2' className='ml-2'>Your Tokens</ThemedText>
-          <ThemedText darkColor='#AEAEB2' className='mr-2'>Amount</ThemedText>
+          <ThemedText darkColor={Theme.colors.foreground} className='ml-2'>Your Tokens</ThemedText>
+          <ThemedText darkColor={Theme.colors.foreground} className='mr-2'>Amount</ThemedText>
         </View>
 
         {_.size(tokens) === 0 ? (
-          <ThemedText darkColor='#AEAEB2' className='mt-5 ml-2 mb-2'>
+          <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
             You don't hold any tokens yet.
           </ThemedText>
         ) : (
@@ -34,7 +35,7 @@ const Tokens = () => {
                 </View>
                 <View className='flex-col items-end'>
                   <ThemedText variant='xl'>{token?.balance}</ThemedText>
-                  <ThemedText darkColor='#AEAEB2' variant='sm'>{token?.value}</ThemedText>
+                  <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{token?.value}</ThemedText>
                 </View>
               </View>
             ))}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   View,
   Platform,
@@ -23,12 +24,19 @@ import _toUpper from "lodash/toUpper";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { eSimOderCheckout, validateCoupon } from "@/services/esims";
+import { eSimOderCheckout } from "@/services/esims";
+import { useCouponLookup } from "@/hooks/useCouponLookup";
+import * as SecureStore from "expo-secure-store";
+import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
+import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
+import { useToast } from "@/contexts/ToastContext";
+import { isHashUsed, markHashUsed } from "@/utils/orderTracking";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import CreditCardModal from "@/components/CreditCardModal";
@@ -43,7 +51,6 @@ import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
 import { AppExtraConfig } from "@/appKeys";
 import Constants from "expo-constants";
 import { keccak256 } from "viem";
-import { checkEsimTopUpCompatibility } from "@/services/esims";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -82,6 +89,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [showCreditCardModal, setShowCreditCardModal] = useState(false);
   const { kokio, savePurchasedESIM } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
+  const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [orderResponse, setOrderResponse] = useState<any>(null);
@@ -92,10 +100,41 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     [selectedPaymentMethod]
   );
 
-  const [isCheckingTopup, setIsCheckingTopup] = useState(false);
-  const [isTopupCompatible, setIsTopupCompatible] = useState(false);
+  const { showMessage } = useToast();
+  const createTopupOrder = useCreateTopupOrder();
+
+  // undefined = not yet read; null = read, no prior eSIM; string = prior eSIM address
+  const [storedEsimId, setStoredEsimId] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    SecureStore.getItemAsync(ESIM_ID_KEY).then(setStoredEsimId);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedCode(discountCode), 500);
+    return () => clearTimeout(timer);
+  }, [discountCode]);
+
+  const {
+    data: coupon,
+    isLoading: isCouponLoading,
+    isError: isCouponError,
+  } = useCouponLookup(debouncedCode, debouncedCode.length === 8);
+
+  const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility(
+    { planId: eSimItem?.catalogueId, esimId: storedEsimId ?? undefined },
+    { enabled: !!storedEsimId },
+  );
+  const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup] = useState(false);
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
+  const bg = useThemeColor({}, "background");
+
+  useEffect(() => {
+    if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
+      setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
+    }
+  }, [compatibleEsims]);
 
   const addAmountSection = useMemo(() => {
     return (
@@ -138,9 +177,28 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const handleEsimCheckout = useCallback(async () => {
     try {
       setIsCheckoutLoading(true);
-      setShowSuccessModal(true);
 
       const deviceWalletId = kokio.userWallet?.address || "";
+
+      if (applyAsTopup && compatibleTopUpEsimId) {
+        await createTopupOrder.mutateAsync({
+          request: {
+            catalogueId: eSimItem.catalogueId,
+            currency: "USD",
+            isNewESim: false,
+            eSimId: compatibleTopUpEsimId,
+            isCryptoPayment: true,
+            payeeAddress: deviceWalletId,
+            coupon: discountCode || null,
+          },
+          eSimItem,
+        });
+        showMessage('eSIM topped up successfully!', 'info');
+        return;
+      }
+
+      setShowSuccessModal(true);
+
       const payload = getEsimOrderPayload({
         eSimItem,
         deviceWalletId,
@@ -173,8 +231,11 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       setIsCheckoutLoading(false);
     } catch (err) {
       console.error("Checkout error:", err);
-      const { data } = err || {};
-      if (data?.message) {
+      const { data } = (err as any) || {};
+      if (data?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
+        handleRemoveDiscount();
+      } else if (data?.message) {
         console.error("Checkout failed:", data.message);
       }
       setIsCheckoutLoading(false);
@@ -188,6 +249,9 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     savePurchasedESIM,
     applyAsTopup,
     compatibleTopUpEsimId,
+    createTopupOrder,
+    showMessage,
+    handleRemoveDiscount,
   ]);
 
   const payWithUSDC = async (params: {
@@ -264,6 +328,32 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       console.log("--- Transaction Successful ---");
       console.log("Transaction Hash:", transactionHash);
 
+      const txnHash = transactionHash as string;
+      if (await isHashUsed(txnHash)) {
+        Alert.alert('Payment Already Used', 'This transaction has already been used. Please use a different payment.');
+        return;
+      }
+
+      if (applyAsTopup && compatibleTopUpEsimId) {
+        await createTopupOrder.mutateAsync({
+          request: {
+            catalogueId: eSimItem.catalogueId,
+            currency: "USD",
+            isNewESim: false,
+            eSimId: compatibleTopUpEsimId,
+            isCryptoPayment: true,
+            txnHash,
+            tokenName: "USDC",
+            network: "BASE",
+            payeeAddress: externalAddress,
+          },
+          eSimItem,
+        });
+        await markHashUsed(txnHash);
+        showMessage('eSIM topped up successfully!', 'info');
+        return;
+      }
+
       setShowSuccessModal(true);
 
       const payload = getEsimOrderPayload({
@@ -272,22 +362,21 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         discountCode: "",
         applyAsTopup,
         compatibleTopUpEsimId
-      });                
-      
-      
-      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{ 
+      });
+
+      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{
         ...payload,
-        paymentMethod: "external_wallet", 
+        paymentMethod: "external_wallet",
         payeeAddress: externalAddress,
-        txnHash: transactionHash, 
-        paymentVia: "USDC", 
+        txnHash,
+        paymentVia: "USDC",
       })
 
       const response = await eSimOderCheckout({
         ...payload,
         paymentMethod: "external_wallet", // NEEDED ?
         payeeAddress: externalAddress,
-        txnHash: transactionHash, // Pass hash to backend
+        txnHash, // Pass hash to backend
         paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
         tokenName: "USDC",
         network: "BASE"
@@ -295,6 +384,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
       if (response?.success && response?.data) {
         setOrderResponse(response.data);
+        await markHashUsed(txnHash);
 
         // Store purchased eSIM so it appears on the Home screen
         if (kokio.deviceUID) {
@@ -305,12 +395,16 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       }
 
     } catch (err: any) {
-      // TODO: add error handling, maybe error pop-up
       console.log("Full Error Object:", JSON.stringify(err, null, 2));
+      const errData = err?.data || {};
+      if (errData?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
+        handleRemoveDiscount();
+      }
     } finally {
       setIsCheckoutLoading(false);
     }
-  }, [totalAmount, externalAddress, kokio.userWallet, discountCode, applyAsTopup, compatibleTopUpEsimId]);
+  }, [totalAmount, externalAddress, kokio.userWallet, kokio.deviceUID, savePurchasedESIM, discountCode, applyAsTopup, compatibleTopUpEsimId, eSimItem, createTopupOrder, showMessage, handleRemoveDiscount]);
 
   const handleCheckout = useCallback(async () => {
     console.log("handleCheckout triggered");
@@ -390,44 +484,28 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
   const handleDiscountCodeChange = useCallback((text: string) => {
     setDiscountCode(_toUpper(text));
+    setIsDiscountApplied(false);
+    setDiscountAmount(0);
+    setDiscountError('');
   }, []);
 
-  const handleApplyDiscount = useCallback(async () => {
-    if (!_trim(discountCode)) return;
+  const handleApplyDiscount = useCallback(() => {
+    if (!coupon || coupon.isExhausted) return;
+    setDiscountError('');
 
-    try {
-      // Clear previous error
-      setDiscountError("");
-
-      const response = await validateCoupon(discountCode);
-
-      const couponBalance = _toNumber(response?.data?.balance || 0);
-      const isValidCoupon = eSimItem.actualSellingPrice <= couponBalance;
-
-      if (!isValidCoupon) {
-        setDiscountError("Cannot sponsor the entire amount");
-        setIsDiscountApplied(false);
-        setDiscountAmount(0);
-        return;
-      }
-
-      // Apply full discount (100% off)
-      setIsDiscountApplied(true);
-      setDiscountAmount(eSimItem.actualSellingPrice);
-      console.log("Applying discount code:", discountCode);
-
-      // Check if wallet is set up when applying discount
-      if (!kokio.userWallet) {
-        setShowWalletSetupModal(true);
-        return;
-      }
-    } catch {
-      setDiscountError("Invalid discount code");
-      setIsDiscountApplied(false);
-      setDiscountAmount(0);
+    const couponBalance = _toNumber(coupon.balance || 0);
+    if (eSimItem.actualSellingPrice > couponBalance) {
+      setDiscountError('Cannot sponsor the entire amount');
       return;
     }
-  }, [discountCode, eSimItem.actualSellingPrice, kokio.userWallet]);
+
+    setIsDiscountApplied(true);
+    setDiscountAmount(eSimItem.actualSellingPrice);
+
+    if (!kokio.userWallet) {
+      setShowWalletSetupModal(true);
+    }
+  }, [coupon, eSimItem.actualSellingPrice, kokio.userWallet]);
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
@@ -443,41 +521,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     return eSimItem.actualSellingPrice;
   }, [eSimItem.actualSellingPrice, isDiscountApplied, discountAmount]);
 
-  // Check compatibility on mount
-  useEffect(() => {
-    const checkCompatibility = async () => {
-      const deviceId = kokio.userWallet?.address;
-      const planId = eSimItem?.catalogueId;
-
-      if (!deviceId || !planId) return;
-
-      setIsCheckingTopup(true);
-      try {
-        const response = await checkEsimTopUpCompatibility({
-          deviceId,
-          planId,
-        });
-
-        const data = response?.data;
-        const compatibleResult = data?.results?.find(
-          (r: any) => r.compatible && !r.checkError
-        );
-        const isCompatible = !!data?.topupPlanResolved && !!compatibleResult;
-
-        setIsTopupCompatible(isCompatible);
-        if (compatibleResult) {
-          setCompatibleTopUpEsimId(compatibleResult.esimId);
-        }
-     } catch (err) {
-        console.log("Compatibility check failed:", JSON.stringify(err, null, 2));
-        setIsTopupCompatible(false);
-      } finally {
-        setIsCheckingTopup(false);
-      }
-    };
-
-    checkCompatibility();
-  }, [kokio.userWallet?.address, eSimItem]);
 
   // const canCheckout = useMemo(
   //   () =>
@@ -506,7 +549,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   ]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: bg }]}>
       <KeyboardAwareScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
@@ -545,22 +588,41 @@ const Checkout = ({ currentBalance = 25 }: any) => {
               style={styles.discountInput}
               value={discountCode}
               onChangeText={handleDiscountCodeChange}
-              placeholder="Enter discount code"
+              placeholder="Enter coupon code"
               placeholderTextColor={Theme.colors.muted}
               autoCapitalize="characters"
+              maxLength={8}
             />
-            <TouchableOpacity
-              key={`apply-${discountCode?.length}`}
-              style={[
-                styles.applyButton,
-                !_trim(discountCode) && { opacity: 0.5 },
-              ]}
-              onPress={handleApplyDiscount}
-              disabled={!_trim(discountCode)}
-            >
-              <ThemedText style={styles.applyButtonText}>Apply</ThemedText>
-            </TouchableOpacity>
           </View>
+
+          {/* Loading */}
+          {isCouponLoading && (
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+              <ActivityIndicator size="small" color={Theme.colors.foreground} />
+              <ThemedText style={{ marginLeft: 8, color: Theme.colors.muted, fontSize: 14 }}>
+                Validating coupon…
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Valid coupon — show balance and Apply button */}
+          {!isCouponLoading && debouncedCode.length === 8 && coupon && !coupon.isExhausted && !isDiscountApplied && (
+            <View style={styles.discountAppliedContainer}>
+              <View style={styles.discountAppliedContent}>
+                <ThemedText style={styles.discountAppliedText}>
+                  {`Balance: $${_toNumber(coupon.balance).toFixed(2)} ${coupon.tokenName}`}
+                </ThemedText>
+                <TouchableOpacity
+                  style={[styles.applyButton, { paddingVertical: 6, paddingHorizontal: 14 }]}
+                  onPress={handleApplyDiscount}
+                >
+                  <ThemedText style={styles.applyButtonText}>Apply Coupon</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Applied */}
           {isDiscountApplied && (
             <View style={styles.discountAppliedContainer}>
               <View style={styles.discountAppliedContent}>
@@ -571,18 +633,38 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                   onPress={handleRemoveDiscount}
                   style={styles.removeDiscountButton}
                 >
-                  <Ionicons name="close" size={16} color="#FF453A" />
+                  <Ionicons name="close" size={16} color={Theme.colors.destructive} />
                 </TouchableOpacity>
               </View>
             </View>
           )}
-          {discountError && (
+
+          {/* Exhausted coupon */}
+          {!isCouponLoading && debouncedCode.length === 8 && coupon?.isExhausted && (
+            <View style={styles.discountErrorContainer}>
+              <ThemedText style={styles.discountErrorText}>
+                This coupon has been fully used
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Invalid / not found */}
+          {!isCouponLoading && isCouponError && debouncedCode.length === 8 && (
+            <View style={styles.discountErrorContainer}>
+              <ThemedText style={styles.discountErrorText}>
+                Invalid coupon code
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Balance / other errors */}
+          {discountError ? (
             <View style={styles.discountErrorContainer}>
               <ThemedText style={styles.discountErrorText}>
                 {discountError}
               </ThemedText>
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* Top-up compatibility */}
@@ -606,7 +688,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                 <ToggleSwitch
                   isOn={applyAsTopup}
                   onToggle={setApplyAsTopup}
-                  onColor="#30D158"
+                  onColor={Theme.colors.success}
                   offColor={Theme.colors.muted}
                   size="small"
                 />
@@ -615,11 +697,36 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                 </ThemedText>
               </View>
             </View>
-            {applyAsTopup && compatibleTopUpEsimId && (
+            {applyAsTopup && compatibleEsims.length === 1 && compatibleTopUpEsimId && (
               <View style={styles.discountAppliedContainer}>
                 <ThemedText style={styles.discountAppliedText}>
-                  {`Top-up existing ${eSimItem.serviceRegionName} ${eSimItem.validity} days ${eSimItem.isUnlimited ? "Unlimited" : `${eSimItem.data} GB`} eSIM: ${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
+                  {`eSIM: ${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
                 </ThemedText>
+              </View>
+            )}
+            {applyAsTopup && compatibleEsims.length > 1 && (
+              <View style={{ marginTop: 8 }}>
+                <ThemedText style={{ color: Theme.colors.muted, fontSize: 13, marginBottom: 6 }}>
+                  Select eSIM to top up:
+                </ThemedText>
+                {compatibleEsims.map((r) => (
+                  <TouchableOpacity
+                    key={r.esimId}
+                    onPress={() => setCompatibleTopUpEsimId(r.esimId)}
+                    style={[
+                      styles.discountAppliedContainer,
+                      { marginTop: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+                      compatibleTopUpEsimId === r.esimId && { borderWidth: 1, borderColor: Theme.colors.success },
+                    ]}
+                  >
+                    <ThemedText style={styles.discountAppliedText}>
+                      {`${r.esimId.slice(0, 6)}...${r.esimId.slice(-4)}`}
+                    </ThemedText>
+                    {compatibleTopUpEsimId === r.esimId && (
+                      <Ionicons name="checkmark-circle" size={18} color={Theme.colors.success} />
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
@@ -644,7 +751,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
                     await disconnectExternalWallet();
                   }
                 }}
-                onColor="#30D158"
+                onColor={Theme.colors.success}
                 offColor={Theme.colors.muted}
                 size="small"
                 disabled={isConnecting}
@@ -690,7 +797,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             <ToggleSwitch
               isOn={fundOnDeviceWallet}
               onToggle={setFundOnDeviceWallet}
-              onColor="#30D158"
+              onColor={Theme.colors.success}
               offColor={Theme.colors.muted}
               size="small"
             />
@@ -712,7 +819,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           prefix="Pay "
           value={totalAmount}
           suffix="USD"
-          containerStyles={styles.checkoutButton}
+          containerStyles={[styles.checkoutButton, { backgroundColor: Theme.colors.secondary }]}
         />
       </TouchableOpacity>
 
@@ -761,7 +868,6 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 8 : 16,
   },
   checkoutButton: {
-    backgroundColor: Theme.colors.secondary,
     borderRadius: 32,
     paddingVertical: 12,
     flexDirection: "row",
@@ -785,7 +891,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: RADIO_WIDTH,
-    backgroundColor: "#7676803D",
+    backgroundColor: Theme.colors.inputBackground,
     paddingVertical: 16,
     paddingHorizontal: 24,
     marginHorizontal: 0,
@@ -795,13 +901,13 @@ const styles = StyleSheet.create({
   },
   walletModalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Theme.colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
   },
   walletModalContainer: {
-    backgroundColor: "#2C2C2E",
+    backgroundColor: Theme.colors.popover,
     borderRadius: 16,
     padding: 24,
     width: "100%",
@@ -815,7 +921,7 @@ const styles = StyleSheet.create({
   },
   walletModalDescription: {
     fontSize: 16,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 32,
@@ -826,7 +932,7 @@ const styles = StyleSheet.create({
   },
   laterButton: {
     flex: 1,
-    backgroundColor: "#48484A",
+    backgroundColor: Theme.colors.muted,
     paddingVertical: 16,
     alignItems: "center",
     borderTopLeftRadius: 8,
@@ -839,7 +945,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     flex: 1,
-    backgroundColor: "#FF9500",
+    backgroundColor: Theme.colors.primary,
     paddingVertical: 16,
     alignItems: "center",
     borderTopRightRadius: 8,
@@ -857,7 +963,7 @@ const styles = StyleSheet.create({
   },
   discountInput: {
     flex: 1,
-    backgroundColor: "#7676803D",
+    backgroundColor: Theme.colors.inputBackground,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -867,7 +973,6 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   applyButton: {
-    backgroundColor: Theme.colors.secondary,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 24,
@@ -875,14 +980,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   applyButtonText: {
-    color: "black",
+    color: Theme.colors.secondaryForeground,
     fontSize: 16,
     fontWeight: "600",
   },
   discountAppliedContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: "#30D15820",
+    backgroundColor: Theme.colors.successBackground,
     borderRadius: 8,
   },
   discountAppliedContent: {
@@ -891,22 +996,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   discountAppliedText: {
-    color: "#30D158",
+    color: Theme.colors.success,
     fontSize: 14,
   },
   removeDiscountButton: {
     padding: 4,
-    backgroundColor: "#FF453A20",
+    backgroundColor: Theme.colors.destructiveBackground,
     borderRadius: 32,
   },
   discountErrorContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: "#FF453A20",
+    backgroundColor: Theme.colors.destructiveBackground,
     borderRadius: 8,
   },
   discountErrorText: {
-    color: "#FF453A",
+    color: Theme.colors.destructive,
     fontSize: 14,
   },
   walletStatusRow: {
@@ -927,27 +1032,27 @@ const styles = StyleSheet.create({
   addressBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2C2C2E",
+    backgroundColor: Theme.colors.popover,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#3A3A3C",
+    borderColor: Theme.colors.muted,
   },
   greenDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#30D158",
+    backgroundColor: Theme.colors.success,
     marginRight: 6,
-    shadowColor: "#30D158",
+    shadowColor: Theme.colors.success,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
   },
   addressText: {
     fontSize: 12,
-    color: "#AEAEB2",
+    color: Theme.colors.foreground,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });

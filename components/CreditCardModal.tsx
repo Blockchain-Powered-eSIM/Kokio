@@ -128,7 +128,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({
               <ToggleSwitch
                 isOn={saveCard}
                 onToggle={setSaveCard}
-                onColor="#30D158"
+                onColor={Theme.colors.success}
                 offColor={Theme.colors.muted}
                 size="small"
               />
@@ -170,10 +170,10 @@ const styles = StyleSheet.create({
   },
   blurBackground: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.56)",
+    backgroundColor: Theme.colors.overlay,
   },
   container: {
-    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    backgroundColor: Theme.colors.modalBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 8,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     lineHeight: 26,
-    color: "#fff",
+    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 20,
     marginTop: Platform.OS === "ios" ? 40 : 16,
@@ -222,33 +222,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   saveCardText: {
-    color: "#fff",
+    color: Theme.colors.text,
     marginLeft: 8,
     fontSize: 14,
     flexShrink: 1,
   },
   securityTitle: {
-    color: "#fff",
+    color: Theme.colors.text,
     fontWeight: "700",
     marginBottom: 4,
     fontSize: 15,
     marginTop: 16,
   },
   securityText: {
-    color: "#BDBDBD",
+    color: Theme.colors.foreground,
     fontSize: 13,
     marginBottom: 8,
   },
   stripeButton: {
     borderWidth: 1,
-    borderColor: "#fff",
+    borderColor: Theme.colors.text,
     borderRadius: 8,
     padding: 6,
     alignSelf: "flex-start",
     marginBottom: 16,
   },
   stripeButtonText: {
-    color: "#fff",
+    color: Theme.colors.text,
     fontSize: 13,
   },
   placeOrderButton: {
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     marginHorizontal:16
   },
   placeOrderButtonText: {
-    color: "#191919",
+    color: Theme.colors.cardForeground,
     fontSize: 16,
   },
   stripeLogo: {

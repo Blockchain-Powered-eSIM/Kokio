@@ -1,10 +1,12 @@
 import { useContext } from "react";
-import { AuthRelayContext } from "@/providers/authProvider";
+import { AuthRelayContext, type AuthRelayProviderType } from "@/providers/authProvider";
 
-export const useAuthRelay = () => {
+export type { AuthRelayProviderType };
+
+export const useAuthRelay = (): AuthRelayProviderType => {
   const context = useContext(AuthRelayContext);
   if (!context) {
-    throw new Error("useAuthRelay must be used within a AuthRelayProvider");
+    throw new Error("useAuthRelay must be used within an AuthRelayProvider");
   }
   return context;
 };

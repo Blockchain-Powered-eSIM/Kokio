@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import _isEmpty from "lodash/isEmpty";
 import _get from "lodash/get";
 
-import { Colors } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
 import { StoredPurchasedESIM } from "@/providers/kokioProvider";
 
 import ESIMItem from "../ESIMItem";
@@ -48,11 +48,11 @@ const ActiveESIMsScroll = ({
   if (_isEmpty(purchasedESIMs)) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>eSIMs</Text>
-        <View style={styles.emptyCard}>
+        <Text style={[styles.title, { color: Theme.colors.text }]}>eSIMs</Text>
+        <View style={[styles.emptyCard, { backgroundColor: Theme.colors.card }]}>
           <Text style={styles.emptyIcon}>📶</Text>
-          <Text style={styles.emptyTitle}>No active eSIMs</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: Theme.colors.text }]}>No active eSIMs</Text>
+          <Text style={[styles.emptySubtitle, { color: Theme.colors.foreground }]}>
             Your purchased eSIMs will appear here
           </Text>
         </View>
@@ -91,10 +91,10 @@ const styles = StyleSheet.create({
   emptyCard: {
     marginHorizontal: SPACING,
     marginTop: 8,
-    backgroundColor: Colors.dark.card,        // or "#FFD700" as per yellow card style
+    backgroundColor: Theme.colors.card,
     borderRadius: 18,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -105,11 +105,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.dark.popover,
+    color: Theme.colors.text,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.dark.popover,
+    color: Theme.colors.foreground,
     textAlign: "center",
   },
   container: {
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    color: Colors.dark.accentForeground,
+    color: Theme.colors.text,
     paddingLeft: 20,
   },
   listContainer: {

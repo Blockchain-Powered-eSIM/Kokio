@@ -4,6 +4,7 @@ import { Image, Pressable, View } from 'react-native'
 import React from 'react'
 import { router, useLocalSearchParams } from 'expo-router'
 import _ from "lodash";
+import { Theme } from '@/constants/Colors';
 import { useState,useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFocusEffect } from 'expo-router'
@@ -55,11 +56,11 @@ const contactsScreen = () => {
           }, []) 
         );
     return (
-        <ThemedView darkColor='#1c1c1e' className='mx-2 py-3   rounded-3xl mt-5 w-auto'>
-            <ThemedView darkColor='#1c1c1e' className='gap-y-4 justify-start items-center gap-x-1 flex-wrap bg-slate-50 flex-row mt-7 mb-3'>
+        <ThemedView darkColor={Theme.colors.itemBackground} className='mx-2 py-3   rounded-3xl mt-5 w-auto'>
+            <ThemedView darkColor={Theme.colors.itemBackground} className='gap-y-4 justify-start items-center gap-x-1 flex-wrap bg-slate-50 flex-row mt-7 mb-3'>
                 {/* add contact btn  */}
                 <Pressable onPress={() => router.push("/(tabs)/(wallet)/(contacts)/addContactScreen")} className='ml-[-10] justify-center mt-[-19] mr-4 '>
-                    <View className=' ml-8  h-16 items-center justify-center  w-16 rounded-full bg-[#FF9500]'>
+                    <View className='ml-8 h-16 items-center justify-center w-16 rounded-full' style={{ backgroundColor: Theme.colors.warning }}>
                         <Image source={require("../../../../assets/images/wallet/add_contact.png")} className='h-[32] w-[38]' />
                     </View>
                     <ThemedText className='ml-8 mt-2'>Add new</ThemedText>

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   StyleSheet,
+  Text,
   View,
 } from "react-native";
 import BottomSheet, {
@@ -13,27 +13,21 @@ import BottomSheet, {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
-import { User, useTurnkey } from "@turnkey/sdk-react-native";
 import { ThemedText } from "./ThemedText";
-import { useRouter } from "expo-router";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
-import { Theme } from "@/constants/Colors";
+import { Theme, isDarkTheme } from "@/constants/Colors";
 
 export function AuthenticationModal() {
   const [loading, setLoading] = useState<boolean>(false);
   const sheetRef = useRef<BottomSheet>(null);
 
-  const { state, loginWithPasskey, signUpWithPasskey } = useAuthRelay();
+  const { state, loginWithPasskey, signUpWithPasskey, clearError } = useAuthRelay();
   const {
     kokio,
-    setupKokioDeviceUID,
-    setupKokioUserData,
-    setupKokioUserPasskey,
+    setupKokioRegistration,
   } = useKokio();
-  const { clearAllSessions } = useTurnkey();
-  const router = useRouter();
 
   // renders
   const renderBackdrop = useCallback(
@@ -46,7 +40,7 @@ export function AuthenticationModal() {
       >
         <BlurView
           intensity={100}
-          tint="systemChromeMaterialDark"
+          tint={isDarkTheme ? "systemChromeMaterialDark" : "systemChromeMaterial"}
           experimentalBlurMethod="none"
           style={{
             flex: 1,
@@ -59,75 +53,33 @@ export function AuthenticationModal() {
   );
 
   const loginOrSignUpWithPasskey = useCallback(async () => {
+    clearError();
     setLoading(true);
-    if (kokio.deviceUID) {
-      try {
-        await loginWithPasskey().then(() => {
-          setLoading(false);
-          sheetRef.current?.close({
-            duration: 250,
-            easing: Easing.out(Easing.quad),
-          });
-        });
-      } catch (e) {
-        console.error("Error signing in", e);
-        Alert.alert("Error signing in");
-        sheetRef.current?.close({
-          duration: 250,
-          easing: Easing.out(Easing.quad),
-        });
+    try {
+      if (kokio.deviceWalletAddress) {
+        const success = await loginWithPasskey();
+        if (success) {
+          sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        }
+      } else {
+        const data = await signUpWithPasskey({});
+        if (data) {
+          await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY, data.rawSalt ?? '');
+          sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        }
       }
-    } else {
-      try {
-        await signUpWithPasskey({})
-          .then((data) => {
-            if (data) {
-              setupKokioDeviceUID(data.deviceUID);
-              setupKokioUserData(data.deviceUID, data.user as User);
-              setupKokioUserPasskey(data.deviceUID, {
-                x:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.x || "",
-                y:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.y || "",
-                credentialId:
-                  data.decodedAttestationObject?.decodedAttestationObjectCbor
-                    ?.credentialId || "",
-                attestationObject:
-                  data.authenticatorParams?.attestation.attestationObject || "",
-                clientDataJson:
-                  data.authenticatorParams.attestation.clientDataJson,
-              });
-            }
-          })
-          .finally(() => {
-            setLoading(false);
-            sheetRef.current?.close({
-              duration: 250,
-              easing: Easing.out(Easing.quad),
-            });
-          });
-      } catch (e) {
-        console.error("Error signing in", e);
-        setLoading(false);
-        Alert.alert("Error signing up");
-        sheetRef.current?.close({
-          duration: 250,
-          easing: Easing.out(Easing.quad),
-        });
-      }
+    } catch (e) {
+      console.error("Passkey flow error", e);
+    } finally {
+      setLoading(false);
     }
-  }, [signUpWithPasskey, loginWithPasskey, kokio]);
+  }, [signUpWithPasskey, loginWithPasskey, kokio, setupKokioRegistration, clearError]);
 
   useEffect(() => {
-    // Show the modal if not authenticated and we have user data (meaning user has set up passkey)
-    if (!state.authenticated) {
-      clearAllSessions();
-      sheetRef.current?.expand({
-        duration: 250,
-        easing: Easing.in(Easing.quad),
-      });
+    if (state.authenticated) {
+      sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+    } else {
+      sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
     }
   }, [state.authenticated]);
 
@@ -139,7 +91,7 @@ export function AuthenticationModal() {
           style={styles.contentImage}
           color={Theme.colors.highlight}
         />
-        <ThemedText style={styles.loadingText}>Authenticating...</ThemedText>
+        <ThemedText style={[styles.loadingText, { color: Theme.colors.foreground }]}>Authenticating...</ThemedText>
       </View>
     ),
     []
@@ -154,17 +106,17 @@ export function AuthenticationModal() {
       enablePanDownToClose={false}
       animateOnMount={true}
       style={{ borderRadius: 25, flex: 1 }}
-      backgroundStyle={{ backgroundColor: "rgba(24, 24, 27, 0.97)" }}
+      backgroundStyle={{ backgroundColor: Theme.colors.modalBackground }}
     >
       <BottomSheetView style={{ alignItems: "center", flex: 1, padding: 20 }}>
         <Image
           source={require("@/assets/images/kokio-text.png")}
           style={styles.kokioImage}
         />
-        <ThemedText style={styles.authRequiredText}>
+        <ThemedText style={[styles.authRequiredText, { color: Theme.colors.text }]}>
           Authentication Required
         </ThemedText>
-        <ThemedText style={styles.authSubtext}>
+        <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
           Secure your account using your fingerprint
         </ThemedText>
         {loading ? (
@@ -175,10 +127,13 @@ export function AuthenticationModal() {
               source={require("@/assets/images/fingerprint.png")}
               style={styles.contentImage}
             />
-            <ThemedText style={styles.authTouchText}>
+            <ThemedText style={[styles.authTouchText, { color: Theme.colors.foreground }]}>
               Touch the fingerprint sensor
             </ThemedText>
           </Pressable>
+        )}
+        {!!state.error && !loading && (
+          <Text style={styles.errorText}>{state.error}</Text>
         )}
         <Pressable
           disabled={loading}
@@ -190,7 +145,7 @@ export function AuthenticationModal() {
           }
           style={{ alignSelf: "flex-start", marginTop: 64, marginBottom: 32 }}
         >
-          <ThemedText style={styles.cancelText}>Cancel</ThemedText>
+          <ThemedText style={[styles.cancelText, { color: Theme.colors.link }]}>Cancel</ThemedText>
         </Pressable>
       </BottomSheetView>
     </BottomSheet>
@@ -206,7 +161,6 @@ const styles = StyleSheet.create({
   authRequiredText: {
     fontSize: 24,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
     marginTop: 32,
   },
@@ -214,13 +168,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 12,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
   },
   authTouchText: {
     fontSize: 13,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
   },
   loadingContainer: {
@@ -230,7 +182,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 13,
     fontWeight: "300",
-    color: "white",
     fontFamily: "Lexend-Light",
   },
   contentImage: {
@@ -243,6 +194,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "300",
     fontFamily: "Lexend-Light",
-    color: "#64D2FF",
+  },
+  errorText: {
+    fontSize: 13,
+    color: Theme.colors.destructive,
+    fontFamily: "Lexend-Light",
+    textAlign: "center",
+    marginTop: 12,
+    paddingHorizontal: 24,
   },
 });

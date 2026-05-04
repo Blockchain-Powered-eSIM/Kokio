@@ -1,33 +1,35 @@
-import { ReactNode, createContext, useEffect, useReducer } from "react";
-import {
-  isSupported,
-  PasskeyStamper,
-} from "@turnkey/react-native-passkey-stamper";
-import { TurnkeyClient } from "@turnkey/sdk-react-native";
-import { LoginMethod } from "@/utils/types";
-import {
-  PASSKEY_CONFIG,
-  TURNKEY_API_URL,
-  TURNKEY_PARENT_ORG_ID,
-} from "@/constants/passkey.constants";
-import { useTurnkey, User } from "@turnkey/sdk-react-native";
-import { decodeAttestationObj, onPasskeyCreate } from "@/utils/passkey";
-import { decodeAttestationObject } from "@simplewebauthn/server/helpers";
-
+import { ReactNode, createContext, useCallback, useEffect, useReducer, useState } from "react";
+import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
-import { createSubOrganization, handleInitEmailOtpAuth, handleOtpAuth } from "@/utils/api";
-import { base64UrlToBuffer } from "@/helpers/converters";
-import { toHex } from "@/helpers/iso/isoUint8Array";
+import { LoginMethod } from "@/utils/types";
+import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
+import { registerPasskey } from "@/utils/auth/passkeyRegister";
+import type { RegisterResult } from "@/utils/auth/passkeyRegister";
+import { loginWithKokioPasskey } from "@/utils/auth/passkeyLogin";
+import { performStepUp } from "@/utils/auth/stepUp";
+import { StepUpCancelledError } from "@/utils/auth/errors";
+import {
+  setStepUpHandler,
+  resolveStepUp,
+  rejectStepUp,
+  clearBffNonceCache,
+  type StepUpHint,
+} from "@/services/httpService";
+import { useAuthStore } from "@/stores/authStore";
+import { clearUsedHashes } from "@/utils/orderTracking";
 
-type AuthActionType =
-  | { type: "PASSKEY"; payload: User | undefined }
-  | { type: "INIT_EMAIL_AUTH" }
-  | { type: "COMPLETE_EMAIL_AUTH"; payload: User | undefined }
-  | { type: "LOADING"; payload: LoginMethod | null }
-  | { type: "ERROR"; payload: string }
-  | { type: "CLEAR_ERROR" }
-  | { type: "AUTHENTICATE"; payload: boolean }
-  | { type: "REAUTHENTICATE" };
+// ─── Error formatting ─────────────────────────────────────────────────────────
+
+function formatError(error: any): string {
+  const code: string | undefined = error?.code;
+  const status: number | undefined = error?.httpStatus;
+  const msg: string = error?.message ?? error?.userMessage ?? 'Unknown error';
+  if (!code) return msg;
+  return status ? `[${code} ${status}] ${msg}` : `[${code}] ${msg}`;
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
 interface AuthState {
   authenticated: boolean;
   loading: LoginMethod | null;
@@ -40,18 +42,22 @@ const initialState: AuthState = {
   error: "",
 };
 
+type AuthActionType =
+  | { type: "PASSKEY" }
+  | { type: "LOADING"; payload: LoginMethod | null }
+  | { type: "ERROR"; payload: string }
+  | { type: "CLEAR_ERROR" }
+  | { type: "AUTHENTICATE"; payload: boolean }
+  | { type: "REAUTHENTICATE" };
+
 function authReducer(state: AuthState, action: AuthActionType): AuthState {
   switch (action.type) {
     case "LOADING":
-      return { ...state, loading: action.payload ? action.payload : null };
+      return { ...state, loading: action.payload ?? null };
     case "ERROR":
       return { ...state, error: action.payload, loading: null };
     case "CLEAR_ERROR":
       return { ...state, error: "" };
-    case "INIT_EMAIL_AUTH":
-      return { ...state, loading: null, error: "" };
-    case "COMPLETE_EMAIL_AUTH":
-      return { ...state, authenticated: true };
     case "PASSKEY":
       return { ...state, authenticated: true };
     case "REAUTHENTICATE":
@@ -63,76 +69,41 @@ function authReducer(state: AuthState, action: AuthActionType): AuthState {
   }
 }
 
+// ─── Context type ─────────────────────────────────────────────────────────────
+
 export interface AuthRelayProviderType {
   state: AuthState;
-  initEmailLogin: (email: string) => Promise<void>;
-  completeEmailAuth: (params: {
-    otpId: string;
-    otpCode: string;
-    organizationId: string;
-  }) => Promise<void>;
-  signUpWithPasskey: (user: { username?: string; email?: string }) => Promise<
-    | {
-        authenticatorParams: {
-          attestation: {
-            clientDataJson: string;
-            attestationObject: string;
-            credentialId: string;
-          };
-        };
-        decodedAttestationObject:
-          | {
-              decodedAttestationObjectCbor:
-                | {
-                    x: string;
-                    y: string;
-                    credentialId: string;
-                  }
-                | undefined;
-              decodedAttestationObjectSimpleWebAuthnHex: string;
-            }
-          | undefined;
-        user: User | undefined;
-        deviceUID: string;
-      }
-    | undefined
-    | null
-  >;
-  loginWithPasskey: () => Promise<void>;
+  signUpWithPasskey: (user: {
+    username?: string;
+    email?: string;
+  }) => Promise<RegisterResult | null | undefined>;
+  loginWithPasskey: () => Promise<boolean>;
   reauthenticate: () => void;
-  authenticate: () => Promise<void>;
   clearError: () => void;
+  logout: () => Promise<void>;
+  // Step-up (AUTH-602)
+  stepUpVisible: boolean;
+  stepUpHint: StepUpHint | null;
+  stepUpError: string;
+  stepUp: () => Promise<void>;
+  dismissStepUp: () => void;
 }
 
 export const AuthRelayContext = createContext<AuthRelayProviderType>({
   state: initialState,
-  initEmailLogin: async () => Promise.resolve(),
-  completeEmailAuth: async () => Promise.resolve(),
-  signUpWithPasskey: async () =>
-    Promise.resolve({
-      authenticatorParams: {
-        attestation: {
-          clientDataJson: "",
-          attestationObject: "",
-          credentialId: "",
-        },
-      },
-      decodedAttestationObject: {
-        decodedAttestationObjectCbor: {
-          x: "",
-          y: "",
-          credentialId: "",
-        },
-        decodedAttestationObjectSimpleWebAuthnHex: "",
-      },
-      user: undefined,
-      deviceUID: "",
-    }),
-  loginWithPasskey: async () => Promise.resolve(),
+  signUpWithPasskey: async () => null,
+  loginWithPasskey: async () => false,
   reauthenticate: () => {},
-  authenticate: async () => Promise.resolve(),
   clearError: () => {},
+  logout: async () => {},
+  stepUpVisible: false,
+  stepUpHint: null,
+  stepUpError: '',
+  stepUp: async () => {},
+  dismissStepUp: () => {},
 });
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
 
 interface AuthRelayProviderProps {
   children: ReactNode;
@@ -141,296 +112,153 @@ interface AuthRelayProviderProps {
 export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   children,
 }) => {
-  const now = new Date().getTime();
-
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const { session, createEmbeddedKey, createSessionFromEmbeddedKey, createSession, clearSession } =
-    useTurnkey();
+  const [stepUpVisible, setStepUpVisible] = useState(false);
+  const [stepUpHint, setStepUpHint] = useState<StepUpHint | null>(null);
+  const [stepUpError, setStepUpError] = useState('');
   const router = useRouter();
 
+  // Wire httpService step-up handler — fires whenever a BFF request returns
+  // 401 STEP_UP_REQUIRED. The modal reads stepUpVisible / stepUpHint.
   useEffect(() => {
-    if (session && session.expiry < now) {
-      console.log("Session expired");
-      clearSession();
-      reauthenticate();
-    }
-  }, [session]);
+    setStepUpHandler((hint: StepUpHint) => {
+      setStepUpHint(hint);
+      setStepUpVisible(true);
+    });
+  }, []);
 
-  const initEmailLogin = async (email: string) => {
-    dispatch({ type: "LOADING", payload: LoginMethod.Email });
-    try {
-      const response = await handleInitEmailOtpAuth({
-        email,
-      });
-
-      console.log(await response?.result.otpId);
-
-      if (response) {
-        dispatch({ type: "INIT_EMAIL_AUTH" });
-        router.setParams({
-          otpId: response.result.otpId,
-          organizationId: response.organizationId,
-        });
-        router.push({
-          pathname: "/otp-modal",
-          params: {
-            otpId: response.result.otpId,
-            organizationId: response.organizationId,
-          },
-        });
+  // Re-auth gate: only drop to unauthenticated when a live session is
+  // invalidated (token refresh failure, logout). Loading persisted tokens on
+  // cold launch does NOT set authenticated — the user must always pass the
+  // biometric prompt on every cold launch.
+  useEffect(() => {
+    const unsub = useAuthStore.subscribe((next, prev) => {
+      if (prev.isAuthenticated && !next.isAuthenticated) {
+        dispatch({ type: "AUTHENTICATE", payload: false });
       }
-    } catch (error: any) {
-      dispatch({ type: "ERROR", payload: error.message });
-    } finally {
-      dispatch({ type: "LOADING", payload: null });
-    }
-  };
+    });
+    return unsub;
+  }, []);
 
-  const completeEmailAuth = async ({
-    otpId,
-    otpCode,
-    organizationId,
-  }: {
-    otpId: string;
-    otpCode: string;
-    organizationId: string;
-  }) => {
-    if (otpCode) {
-      dispatch({ type: "LOADING", payload: LoginMethod.Email });
-      try {
-        const targetPublicKey = await createEmbeddedKey();
-
-        const response = await handleOtpAuth({
-          otpId: otpId,
-          otpCode: otpCode,
-          organizationId: organizationId,
-          targetPublicKey,
-          invalidateExisting: true,
-          expirationSeconds: "600",
-        });
-
-        if (response?.activity.result.otpAuthResult?.credentialBundle) {
-          const session = await createSession({
-            bundle: response?.activity.result.otpAuthResult?.credentialBundle,
-            expirationSeconds: 3600,
-          });
-          dispatch({
-            type: "COMPLETE_EMAIL_AUTH",
-            payload: session.user,
-          });
-        }
-      } catch (error: any) {
-        dispatch({ type: "ERROR", payload: error.message });
-      } finally {
-        dispatch({ type: "LOADING", payload: null });
-      }
-    }
-  };
-
-  // User will be prompted twice for passkey, once for account creation and once for login
   const signUpWithPasskey = async (user: {
     username?: string;
     email?: string;
   }) => {
-    if (!isSupported()) {
+    if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
 
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const data = await onPasskeyCreate(user);
+      const result = await registerPasskey(user.username ?? user.email ?? "Kokio User");
 
-      if (!data) {
-        throw new Error("Failed to create passkey");
-      }
+      // Google Password Manager commits the passkey to local storage asynchronously
+      // after Passkey.create returns. Calling Passkey.get immediately finds the
+      // credential in the cloud but not yet locally, triggering "Choose which device /
+      // Use another device" with no local option. A short pause lets the local store
+      // catch up before the authentication request.
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
 
-      console.log("passkey registration succeeded: ", data.authenticatorParams);
+      // Pass credentialId so Android skips the full discoverable-credential sweep
+      // and targets the just-created credential directly.
+      await loginWithKokioPasskey(result.credentialId);
 
-      if (data.authenticatorParams) {
-        const authenticatorParams = data.authenticatorParams;
-        // Successfully created sub-organization, proceed with the login flow
-
-        const targetPublicKey = await createEmbeddedKey({ isCompressed: true });
-
-        const userInfo = {
-          userId: data.deviceUID,
-          email: user.email ?? ""
-        };
-        const passkey = {
-          challenge: authenticatorParams.challenge,
-          attestation: authenticatorParams.attestation,
-        };
-        const apiKeys = [{
-            apiKeyName: "Passkey API Key",
-            publicKey: targetPublicKey,
-            curveType: "API_KEY_CURVE_P256",
-        }];
-        const response = await createSubOrganization(
-          userInfo, passkey, apiKeys
-        );
-
-        const decodedAttestationObjectCbor = await decodeAttestationObj({
-          rawId: authenticatorParams.attestation.credentialId,
-          response: {
-            clientDataJson: authenticatorParams.attestation.clientDataJson,
-            attestationObject:
-              authenticatorParams.attestation.attestationObject,
-          },
-        });
-        const decodedAttestationObjSimpleWebAuthn = await decodeAttestationObject(
-          base64UrlToBuffer(
-            authenticatorParams.attestation.attestationObject
-          )
-        );
-
-        console.log(
-          "decoded attestation object cbor: ",
-          decodedAttestationObjectCbor
-        );
-        console.log(
-          "decoded attestation object simpleWebAuthn: ",
-          toHex(decodedAttestationObjSimpleWebAuthn.get("authData"))
-        );
-
-        const subOrganizationId = response.subOrganizationId;
-
-        if(subOrganizationId) {
-          const session = await createSessionFromEmbeddedKey({ 
-            subOrganizationId,
-            expirationSeconds: 3600
-          });
-          
-          dispatch({
-            type: "PASSKEY",
-            payload: session.user,
-          });
-
-          return {
-            authenticatorParams: authenticatorParams,
-            decodedAttestationObject: {
-              decodedAttestationObjectCbor,
-              decodedAttestationObjectSimpleWebAuthnHex: toHex(
-                decodedAttestationObjSimpleWebAuthn.get("authData")
-              ),
-            },
-            user: session?.user,
-            deviceUID: data.deviceUID,
-          };
-        }
-      }
+      dispatch({ type: "PASSKEY" });
+      return result;
     } catch (error: any) {
-      dispatch({ type: "ERROR", payload: error.message });
+      dispatch({ type: "ERROR", payload: formatError(error) });
       return null;
     } finally {
       dispatch({ type: "LOADING", payload: null });
     }
   };
 
-  const loginWithPasskey = async () => {
-    if (!isSupported()) {
+  const loginWithPasskey = async (): Promise<boolean> => {
+    if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
 
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const stamper = new PasskeyStamper({
-        rpId: PASSKEY_CONFIG.RP_ID,
-      });
-
-      const httpClient = new TurnkeyClient(
-        { baseUrl: TURNKEY_API_URL },
-        stamper
-      );
-
-      const targetPublicKey = await createEmbeddedKey();
-
-      const sessionResponse = await httpClient.createReadWriteSession({
-        type: "ACTIVITY_TYPE_CREATE_READ_WRITE_SESSION_V2",
-        timestampMs: Date.now().toString(),
-        organizationId: TURNKEY_PARENT_ORG_ID,
-        parameters: {
-          targetPublicKey,
-        },
-      });
-
-      console.log("Session response", sessionResponse);
-
-      const credentialBundle =
-        sessionResponse.activity.result.createReadWriteSessionResultV2
-          ?.credentialBundle;
-
-      console.log(credentialBundle);
-
-      if (credentialBundle) {
-        const session = await createSession({
-          bundle: credentialBundle,
-          expirationSeconds: 3600,
-        });
-        dispatch({
-          type: "PASSKEY",
-          payload: session.user,
-        });
-      }
+      // Reads deviceWalletAddress from SecureStore (stored at registration).
+      // Retries once on AUTH_TIME_RECENCY_VIOLATION (biometric timeout >120s).
+      await loginWithKokioPasskey();
+      dispatch({ type: "PASSKEY" });
+      return true;
     } catch (error: any) {
-      dispatch({ type: "ERROR", payload: error.message });
+      dispatch({ type: "ERROR", payload: formatError(error) });
+      return false;
     } finally {
       dispatch({ type: "LOADING", payload: null });
     }
   };
 
-  const reauthenticate = async () => {
+  const reauthenticate = () => {
     dispatch({ type: "REAUTHENTICATE" });
   };
 
-  const authenticate = async () => {
-    if (!isSupported()) {
-      throw new Error("Passkeys are not supported on this device");
-    }
-
-    dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
-
-    try {
-      const stamper = new PasskeyStamper({
-        rpId: PASSKEY_CONFIG.RP_ID,
-      });
-
-      const httpClient = new TurnkeyClient(
-        { baseUrl: TURNKEY_API_URL },
-        stamper
-      );
-
-      const stamp = await stamper.stamp("AUTHENTICATE");
-
-      if (stamp) {
-        dispatch({
-          type: "AUTHENTICATE",
-          payload: true,
+  const logout = async () => {
+    // Revoke the refresh token server-side (RFC 7009).
+    // Server always returns 200; clear locally regardless of network errors.
+    const tokens = useAuthStore.getState().tokens;
+    if (tokens?.refresh_token) {
+      try {
+        await kokioAuthClient.revokeToken({
+          token: tokens.refresh_token,
+          token_type_hint: "refresh_token",
         });
+      } catch {
+        // Best-effort revocation — proceed unconditionally.
       }
-    } catch (error: any) {
-      dispatch({ type: "ERROR", payload: error.message });
-    } finally {
-      dispatch({ type: "LOADING", payload: null });
     }
+
+    await useAuthStore.getState().clearTokens();
+    clearBffNonceCache();
+    await clearUsedHashes();
+    dispatch({ type: "REAUTHENTICATE" });
+    router.replace("/");
   };
 
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });
   };
 
+  const stepUp = useCallback(async () => {
+    setStepUpError('');
+    try {
+      await performStepUp();
+      resolveStepUp();
+      setStepUpVisible(false);
+      setStepUpHint(null);
+    } catch (err: any) {
+      setStepUpError(formatError(err));
+    }
+  }, []);
+
+  const dismissStepUp = useCallback(() => {
+    if (__DEV__) console.log('[stepup] stepup.cancelled');
+    rejectStepUp(new StepUpCancelledError());
+    setStepUpVisible(false);
+    setStepUpHint(null);
+    setStepUpError('');
+  }, []);
+
   return (
     <AuthRelayContext.Provider
       value={{
         state,
-        initEmailLogin,
-        completeEmailAuth,
         signUpWithPasskey,
         loginWithPasskey,
         reauthenticate,
-        authenticate,
         clearError,
+        logout,
+        stepUpVisible,
+        stepUpHint,
+        stepUpError,
+        stepUp,
+        dismissStepUp,
       }}
     >
       {children}

@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
+import { Theme } from '@/constants/Colors';
 
 const addContactScreen = () => {
     const [firstName, setFirstName] = useState("");
@@ -137,8 +138,8 @@ const addContactScreen = () => {
 
                     </View>
                     <View className='flex-1 gap-y-3 mt-[50]'>
-                        <ThemedView darkColor='#1c1c1e' className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor='#AEAEB2' className=' ml-6'>First Name</ThemedText>
+                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>First Name</ThemedText>
                             <TextInput
                                 value={firstName}
                                 placeholder='Enter first name'
@@ -147,8 +148,8 @@ const addContactScreen = () => {
                                 onChangeText={(text) => setFirstName(text)}
                             />
                         </ThemedView>
-                        <ThemedView darkColor='#1c1c1e' className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor='#AEAEB2' className=' ml-6'>Last Name</ThemedText>
+                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Last Name</ThemedText>
                             <TextInput
                                 value={lastName}
                                 placeholder='Enter last name'
@@ -157,8 +158,8 @@ const addContactScreen = () => {
                                 onChangeText={(text) => setLastName(text)}
                             />
                         </ThemedView>
-                        <ThemedView darkColor='#1c1c1e' className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor='#AEAEB2' className=' ml-6'>Wallet Address</ThemedText>
+                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
                             <TextInput
                                 value={walletAddress}
                                 placeholder='Enter wallet address or scan QR code'

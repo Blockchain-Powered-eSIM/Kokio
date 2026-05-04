@@ -20,7 +20,7 @@ import _size from "lodash/size";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Colors, Theme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import appBootstrap from "@/utils/appBootstrap";
@@ -95,10 +95,10 @@ const RegionItemRender = ({
     <TouchableOpacity onPress={navigateToESIMsByRegion(item?.code)}>
       <ThemedView
         style={styles.regionItem}
-        darkColor={Colors.dark.secondaryBackground}
+        darkColor={Theme.colors.secondaryBackground}
       >
         <ThemedView
-          darkColor={Colors.dark.secondaryBackground}
+          darkColor={Theme.colors.secondaryBackground}
           style={{ flexDirection: "row", alignItems: "center" }}
         >
           <Ionicons
@@ -203,7 +203,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
       {_size(countries) ? (
         <ThemedView style={styles.countrySectionWrapper}>
           <View style={styles.carouselRow}>
-            <Ionicons name="chevron-back" size={15} color={Colors.dark.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+            <Ionicons name="chevron-back" size={15} color={Theme.colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
               <FlatList
                 data={_chunk(countries, 2)}
                 renderItem={CountryItemRender}
@@ -217,7 +217,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
                 onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.x)}
                 scrollEventThrottle={16}
               />
-            <Ionicons name="chevron-forward" size={15} color={Colors.dark.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+            <Ionicons name="chevron-forward" size={15} color={Theme.colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
           </View>
         </ThemedView>
       ) : null}
@@ -243,7 +243,6 @@ const styles = StyleSheet.create({
     paddingRight: Theme.spacing.sm,
     paddingLeft: Theme.spacing.sm,
     flex: 1,
-    backgroundColor: Colors.dark.background,
   },
   countrySectionWrapper: { marginTop: 12, marginHorizontal: 24 },
   regionSectionWrapper: {
@@ -256,12 +255,12 @@ const styles = StyleSheet.create({
   regionItem: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: Colors.dark.secondaryBackground,
     justifyContent: "space-between",
     flexDirection: "row",
   },
   flag: {
     borderRadius: Theme.borderRadius.large,
+    backgroundColor: "transparent",
   },
   countryListContainer: {
     paddingHorizontal: SPACING,
@@ -272,7 +271,6 @@ const styles = StyleSheet.create({
     color: useThemeColor({}, "foreground"),
   },
   regionListContainer: {
-    backgroundColor: Colors.dark.secondaryBackground,
     borderWidth: 1,
     borderRadius: 16,
     marginLeft: 20,

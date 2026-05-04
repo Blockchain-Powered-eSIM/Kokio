@@ -1,33 +1,63 @@
 import { useLocalSearchParams } from "expo-router";
-import { StyleSheet } from "react-native";
-
-import _get from "lodash/get";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { Theme } from "@/constants/Colors";
-import { useEsimsByRegion } from "@/queries/e-sims";
-import appBootstrap from "@/utils/appBootstrap";
-
+import { useCatalogueByRegion } from "@/hooks/useCatalogue";
+import { formatBffError } from "@/utils/bff/errors";
+import { ThemedText } from "@/components/ThemedText";
 import DataPackTabGroup from "@/components/DataPackTabGroup";
 
 export default function EsimsByRegion() {
   const params = useLocalSearchParams();
-  const regionConfig = appBootstrap.getRegionConfig;
-  const region = _get(regionConfig, [params?.id, "code"]) || params?.id;
-  const { data: esims, isFetching } = useEsimsByRegion(region, {
-    enabled: !!region,
-  });
+  const region = params?.id as string;
+  const { data, isLoading, error, refetch } = useCatalogueByRegion(region);
+
+  if (isLoading) {
+    return <ActivityIndicator style={styles.center} />;
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <ThemedText>{formatBffError(error)}</ThemedText>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retry}>
+          <ThemedText style={styles.retryLabel}>Try again</ThemedText>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!data?.plans.length) {
+    return (
+      <View style={styles.center}>
+        <ThemedText>No plans available</ThemedText>
+      </View>
+    );
+  }
 
   return (
     <DataPackTabGroup
-      esims={esims}
-      containerStyle={styles.containerStyle}
-      isLoading={isFetching}
+      esims={data.plans}
+      containerStyle={styles.container}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  containerStyle: {
+  container: {
     paddingHorizontal: Theme.spacing.sm,
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  retry: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  retryLabel: {
+    textDecorationLine: "underline",
   },
 });
