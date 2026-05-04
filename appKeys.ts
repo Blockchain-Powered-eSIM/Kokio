@@ -8,6 +8,9 @@ export interface AppExtraConfig {
     alchemyApiKey?: string;
     pimlicoApiKey?: string;
     gasManagerPolicyId?: string;
+    chainId?: string;
+    chainRpcUrl?: string;
+    usdcAddress?: string;
 }
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
@@ -20,6 +23,9 @@ export const Config = {
     ALCHEMY_API_KEY: extra?.alchemyApiKey,
     PIMLICO_API_KEY: extra?.pimlicoApiKey,
     GAS_MANAGER_POLICY_ID: extra?.gasManagerPolicyId,
+    CHAIN_ID: extra?.chainId ? Number(extra.chainId) : undefined,
+    CHAIN_RPC_URL: extra?.chainRpcUrl,
+    USDC_ADDRESS: extra?.usdcAddress,
 
     // Utility function for validation
     validateSecrets: () => {

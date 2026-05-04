@@ -9,6 +9,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     alchemyApiKey: process.env.ALCHEMY_API_KEY,
     pimlicoApiKey: process.env.PIMLICO_API_KEY,
     gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
+    chainId: process.env.CHAIN_ID,
+    chainRpcUrl: process.env.CHAIN_RPC_URL,
+    usdcAddress: process.env.USDC_ADDRESS,
   };
 
   return {

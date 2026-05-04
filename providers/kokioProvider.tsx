@@ -4,9 +4,9 @@ import _get from "lodash/get";
 import { Kokio } from "kokio-sdk";
 import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
 import { createWalletClient, http, type Hex } from "viem";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
-import { AppExtraConfig } from "@/appKeys";
+import { AppExtraConfig, Config } from "@/appKeys";
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
 import { SmartContractAccount } from "@aa-sdk/core";
@@ -472,18 +472,27 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     // The SDK requires client.account to be set — it uses client.account.address as
     // the `signWith` arg in signTypedData (a TODO stub). Real signing happens via
     // Passkey.get() inside _stamp(), so the address value is irrelevant for deployment.
-    const signerAddress = (
+    const resolvedAddress =
       kokio.deviceWalletAddress ||
-      await SecureStore.getItemAsync('deviceWalletAddress') ||
-      '0x0000000000000000000000000000000000000000'
-    ) as `0x${string}`;
+      await SecureStore.getItemAsync('deviceWalletAddress');
+
+    if (!resolvedAddress) {
+      dispatch({ type: "ERROR", payload: "Device wallet address not found" });
+      return;
+    }
+
+    const signerAddress = resolvedAddress as `0x${string}`;
+
+    const chainId = Config.CHAIN_ID ?? baseSepolia.id;
+    const chain = chainId === base.id ? base : baseSepolia;
+    const alchemySubdomain = chainId === base.id ? 'base-mainnet' : 'base-sepolia';
 
     const rpcUrl = extra.alchemyApiKey
-      ? `https://base-sepolia.g.alchemy.com/v2/${extra.alchemyApiKey}`
-      : 'https://sepolia.base.org';
+      ? `https://${alchemySubdomain}.g.alchemy.com/v2/${extra.alchemyApiKey}`
+      : (Config.CHAIN_RPC_URL ?? chain.rpcUrls.default.http[0]);
 
     const viemClient = createWalletClient({
-      chain: baseSepolia,
+      chain,
       transport: http(rpcUrl),
       account: signerAddress,
     });
