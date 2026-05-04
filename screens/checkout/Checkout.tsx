@@ -30,7 +30,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { eSimOderCheckout } from "@/services/esims";
+import { createOrder } from "@/utils/bff/order";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
@@ -209,34 +209,30 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       console.log({ eSimItem });
       console.log("Order Api Payload", { ...payload, payeeAddress: deviceWalletId });
 
-      const response = await eSimOderCheckout({
+      const orderData = await createOrder(({
         ...payload,
         payeeAddress: deviceWalletId,
-      });
+      }) as any);
 
-      console.log("Order Api Response", response);
+      console.log("Order Api Response", orderData);
 
-      if (response?.success && response?.data) {
-        setOrderResponse(response.data);
+      setOrderResponse(orderData);
 
-        // Store purchased eSIM in SecureStore and reducer
-        if (kokio.deviceUID) {
-          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
-        }
-      } else {
-        console.error("Checkout failed:", response?.message);
-        setShowSuccessModal(false);
+      // Store purchased eSIM in SecureStore and reducer
+      if (kokio.deviceUID) {
+        await savePurchasedESIM(kokio.deviceUID, eSimItem, orderData);
       }
 
       setIsCheckoutLoading(false);
     } catch (err) {
       console.error("Checkout error:", err);
-      const { data } = (err as any) || {};
-      if (data?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+      const errCode = (err as any)?.code;
+      const errMessage = (err as any)?.message;
+      if (errCode === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
-      } else if (data?.message) {
-        console.error("Checkout failed:", data.message);
+      } else if (errMessage) {
+        console.error("Checkout failed:", errMessage);
       }
       setIsCheckoutLoading(false);
       setShowSuccessModal(false);
@@ -372,32 +368,27 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         paymentVia: "USDC",
       })
 
-      const response = await eSimOderCheckout({
+      const orderData = await createOrder(({
         ...payload,
-        paymentMethod: "external_wallet", // NEEDED ?
+        paymentMethod: "external_wallet",
         payeeAddress: externalAddress,
-        txnHash, // Pass hash to backend
-        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
+        txnHash,
+        paymentVia: "USDC",
         tokenName: "USDC",
-        network: "BASE"
-      });
+        network: "BASE",
+      }) as any);
 
-      if (response?.success && response?.data) {
-        setOrderResponse(response.data);
-        await markHashUsed(txnHash);
+      setOrderResponse(orderData);
+      await markHashUsed(txnHash);
 
-        // Store purchased eSIM so it appears on the Home screen
-        if (kokio.deviceUID) {
-          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
-        }
-      } else {
-        console.error("Backend validation failed:", response?.message);
+      // Store purchased eSIM so it appears on the Home screen
+      if (kokio.deviceUID) {
+        await savePurchasedESIM(kokio.deviceUID, eSimItem, orderData);
       }
 
     } catch (err: any) {
       console.log("Full Error Object:", JSON.stringify(err, null, 2));
-      const errData = err?.data || {};
-      if (errData?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+      if (err?.code === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
       }
