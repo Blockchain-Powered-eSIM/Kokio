@@ -2,8 +2,6 @@ import React, { useCallback, useMemo } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import _get from "lodash/get";
-
 import { Theme } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";

@@ -28,7 +28,7 @@ export default function ShopStack() {
       />
       <Stack.Screen
         name={ROUTE_NAMES.BY_COUNTRY}
-        options={({ route, navigation }: any) => {
+        options={({ route }: any) => {
           const countryConfig = appBootstrap.getCountryConfig;
           const countryLabel =
             _get(countryConfig, [route?.params?.id, "name"]) || "";
@@ -47,7 +47,7 @@ export default function ShopStack() {
       />
       <Stack.Screen
         name={ROUTE_NAMES.BY_REGION}
-        options={({ route, navigation }: any) => {
+        options={({ route }: any) => {
           const regionConfig = appBootstrap.getRegionConfig;
           const regionLabel =
             _get(regionConfig, [route?.params?.id, "name"]) || "";

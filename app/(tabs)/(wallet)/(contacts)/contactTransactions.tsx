@@ -1,4 +1,4 @@
-import { View, Text, Image, Pressable } from 'react-native';
+import { View, Image, Pressable } from 'react-native';
 import React, { useEffect ,useState} from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -23,11 +23,6 @@ interface Transaction {
 
 
 
-const shortenId = (address: string | undefined, startLength = 3, endLength = 6) => {
-    if (!address) return "";
-    return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
-};
-
 const contactTransactions = () => {
     const router = useRouter();
     const { transactions } = useLocalSearchParams();
@@ -36,7 +31,7 @@ const contactTransactions = () => {
     : [];
 
   // Optional: Use state if you need to manipulate transactions later
-  const [transactionList, setTransactionList] = useState<Transaction[]>(parsedTransactions);
+  const [transactionList] = useState<Transaction[]>(parsedTransactions);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>(
     parsedTransactions.filter((tx) => tx.status === "pending")
   );

@@ -4,8 +4,8 @@ import {
   StyleSheet,
 } from "react-native";
 
-import { ThemedText, ThemedTextProps } from "@/components/ThemedText";
-import { ThemedView, ThemedViewProps } from "@/components/ThemedView";
+import type { ThemedTextProps } from "@/components/ThemedText";
+import type { ThemedViewProps } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 
@@ -26,7 +26,7 @@ function Card(props: ThemedViewProps) {
 }
 
 function CardHeader(props: ThemedViewProps) {
-  const { style, lightColor, darkColor, children, ...otherProps } = props;
+  const { style, lightColor: _lightColor, darkColor: _darkColor, children, ...otherProps } = props;
   return (
     <DefaultView style={[styles.cardHeader, style]} {...otherProps}>
       {children}
@@ -47,7 +47,7 @@ function CardTitle(props: ThemedTextProps) {
 }
 
 function CardContent(props: ThemedViewProps) {
-  const { style, lightColor, darkColor, children, ...otherProps } = props;
+  const { style, lightColor: _lightColor, darkColor: _darkColor, children, ...otherProps } = props;
   return (
     <DefaultView style={[styles.cardContent, style]} {...otherProps}>
       {children}
@@ -56,7 +56,7 @@ function CardContent(props: ThemedViewProps) {
 }
 
 function CardFooter(props: ThemedViewProps) {
-  const { style, lightColor, darkColor, children, ...otherProps } = props;
+  const { style, lightColor: _lightColor, darkColor: _darkColor, children, ...otherProps } = props;
   return (
     <DefaultView style={[styles.cardFooter, style]} {...otherProps}>
       {children}

@@ -14,7 +14,6 @@ import { useLocalSearchParams, router } from "expo-router";
 import { RadioButtonProps, RadioGroup } from "react-native-radio-buttons-group";
 import ToggleSwitch from "toggle-switch-react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import _sum from "lodash/sum";
 import _trim from "lodash/trim";
 import _subtract from "lodash/subtract";
 import _toNumber from "lodash/toNumber";
@@ -25,7 +24,6 @@ import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
-import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
 import { createOrder } from "@/utils/bff/order";
@@ -46,11 +44,7 @@ import type { CreateOrderResponse } from "@/utils/bff/order";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
 
-interface CheckoutProps {
-  currentBalance?: number;
-}
-
-const Checkout = ({ currentBalance = 25 }: CheckoutProps) => {
+const Checkout = () => {
   const { item: eSimDetails } = useLocalSearchParams();
 
   const eSimItem: Esim = React.useMemo(() => {
@@ -68,8 +62,6 @@ const Checkout = ({ currentBalance = 25 }: CheckoutProps) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     string | undefined
   >();
-  const [fundOnDeviceWallet, setFundOnDeviceWallet] = useState<boolean>(false);
-  const [amount, setAmount] = useState<number | null>(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
@@ -122,44 +114,6 @@ const Checkout = ({ currentBalance = 25 }: CheckoutProps) => {
       setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
     }
   }, [compatibleEsims]);
-
-  const addAmountSection = useMemo(() => {
-    return (
-      <View>
-        <View style={{ flexDirection: "row", marginBottom: 4 }}>
-          <ThemedText
-            style={{ color: Theme.colors.foreground, marginRight: 4 }}
-          >
-            Add this amount to my device wallet
-          </ThemedText>
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            (1USD=1USDC)
-          </ThemedText>
-        </View>
-        <AmountInput value={amount} onChangeValue={setAmount} />
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 4,
-          }}
-        >
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            Current Balance
-          </ThemedText>
-          <ThemedText>{`${(currentBalance || 0).toFixed(2)}  USDC`}</ThemedText>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            Balance after
-          </ThemedText>
-          <ThemedText>
-            {_sum([amount, currentBalance]).toFixed(2)} USDC
-          </ThemedText>
-        </View>
-      </View>
-    );
-  }, [amount, currentBalance, setAmount]);
 
   const handleEsimCheckout = useCallback(async () => {
     try {
@@ -279,14 +233,7 @@ const Checkout = ({ currentBalance = 25 }: CheckoutProps) => {
   }, []);
 
   const handleCreditCardSubmit = useCallback(
-    (cardData: {
-      cardName: string;
-      nameOnCard: string;
-      cardNumber: string;
-      expiration: string;
-      cvv: string;
-      saveCard: boolean;
-    }) => {
+    () => {
       // TODO: Handle credit card submission
       setShowCreditCardModal(false);
 

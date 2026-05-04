@@ -6,7 +6,6 @@ import {
   View,
   ScrollView,
   Text,
-  Switch,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
 import { Theme, THEME_STORAGE_KEY } from "@/constants/Colors";
@@ -19,7 +18,6 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Updates from "expo-updates";
 
 // Feature flags for menu item availability
 // Set to true to enable the menu item, false to disable (but keep visible)
@@ -124,25 +122,19 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function MenuScreen() {
-  const { loginWithPasskey, signUpWithPasskey, reauthenticate, logout } =
+  const { loginWithPasskey, logout } =
     useAuthRelay();
   const { clearKokioUser, kokio } = useKokio();
   const router = useRouter();
 
   const [showAbout, setShowAbout] = useState(false);
-  const [isDark, setIsDark] = useState(true);
+  const [, setIsDark] = useState(true);
   const bg = useThemeColor({}, "background");
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
       setIsDark(val !== "light");
     });
-  }, []);
-
-  const handleThemeToggle = useCallback(async (value: boolean) => {
-    setIsDark(value);
-    await AsyncStorage.setItem(THEME_STORAGE_KEY, value ? "dark" : "light");
-    await Updates.reloadAsync();
   }, []);
 
   const menuItems = [

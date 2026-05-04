@@ -1,5 +1,5 @@
 import 'react-native-get-random-values';
-import { View, Text, Image, TextInput, Button, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
+import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -9,9 +9,8 @@ import { Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
-import { useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
-import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
+import { useNavigation, useLocalSearchParams } from 'expo-router';
 import { Theme } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 

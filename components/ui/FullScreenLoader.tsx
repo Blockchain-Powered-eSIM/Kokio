@@ -1,6 +1,5 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Colors, Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 
 interface FullScreenLoaderProps {

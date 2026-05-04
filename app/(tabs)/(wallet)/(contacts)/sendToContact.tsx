@@ -1,4 +1,4 @@
-import { View, Text, Image, Pressable, Platform, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { KeyboardAvoidingView } from 'react-native'

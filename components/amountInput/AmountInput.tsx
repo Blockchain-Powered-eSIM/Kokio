@@ -1,5 +1,5 @@
 import React from "react";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, StyleSheet, View } from "react-native";
 import CurrencyInput from "react-native-currency-input";
 
 import { ThemedText } from "../ThemedText";

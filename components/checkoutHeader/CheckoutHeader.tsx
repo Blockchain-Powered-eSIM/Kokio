@@ -58,7 +58,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     if (typeof eSimDetails === "string") {
       try {
         return JSON.parse(eSimDetails);
-      } catch (error) {
+      } catch {
         return null;
       }
     }

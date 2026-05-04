@@ -1,5 +1,4 @@
 import { StyleSheet, View, TouchableOpacity, FlatList, Dimensions } from "react-native";
-import { router } from "expo-router";
 
 import _map from "lodash/map";
 

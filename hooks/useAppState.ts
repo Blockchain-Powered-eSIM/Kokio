@@ -1,9 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { AppState } from "react-native";
-import { useAuthRelay } from "./useAuthRelayer";
 
 export function useAppState(reauth?: boolean) {
-  const { reauthenticate } = useAuthRelay();
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
   
