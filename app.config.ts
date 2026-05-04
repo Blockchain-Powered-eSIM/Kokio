@@ -1,5 +1,6 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 import { AppExtraConfig } from "./appKeys.js";
+import { version } from "./package.json";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const privateConfig: AppExtraConfig = {
@@ -21,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     newArchEnabled: true,
     name: "Kokio",
     slug: "Kokio",
-    version: "1.0.0",
+    version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "kokio",
@@ -38,8 +39,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       config: {
         usesNonExemptEncryption: false,
       },
-      runtimeVersion: "1.0.0",
-      version: "1.0.0",
+      // runtimeVersion floats with version so each app release gets its own OTA channel.
+      runtimeVersion: { policy: "appVersion" },
+      version,
       buildNumber: "1",
       infoPlist: {
         NSPhotoLibraryUsageDescription: "This app may access your photo library when selecting or sharing images."
@@ -52,8 +54,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       package: "app.kokio",
       edgeToEdgeEnabled: true,
-      version: "1.0.0",
-      runtimeVersion: "1.0.0",
+      version,
+      // runtimeVersion floats with version so each app release gets its own OTA channel.
+      runtimeVersion: { policy: "appVersion" },
       intentFilters: [
         {
           action: "VIEW",
