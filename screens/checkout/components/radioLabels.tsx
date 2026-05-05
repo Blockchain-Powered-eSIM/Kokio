@@ -46,7 +46,19 @@ const ApplePay = () => {
   );
 };
 
-export { ESimWallet, ApplePay, CreditCard };
+const MoonPay = () => {
+  return (
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>MoonPay</ThemedText>
+      <Image
+        source={require("@/assets/images/usdc.png")}
+        style={[styles.logoImage, { marginLeft: 8 }]}
+      />
+    </View>
+  );
+};
+
+export { ESimWallet, ApplePay, CreditCard, MoonPay };
 
 const styles = StyleSheet.create({
   labelContainer: {

@@ -32,10 +32,10 @@ import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
+import * as WebBrowser from "expo-web-browser";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
-import CreditCardModal from "@/components/CreditCardModal";
-
+import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
@@ -43,6 +43,34 @@ import type { CreateOrderResponse } from "@/utils/bff/order";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
+
+// PAY-009: replace with signed URL from BFF
+const MOONPAY_SANDBOX_URL = "https://buy-sandbox.moonpay.com/";
+const MOONPAY_RETURN_URL = "kokio://moonpay-return";
+
+// PAY-008: replace with real Stripe PaymentSheet call; flip to 'cancelled' to test cancel path
+const _DEV_FIAT_STUB_OUTCOME: "success" | "cancelled" = "success";
+
+function presentStripePaymentSheetStub(): Promise<{ status: "success" | "cancelled" }> {
+  return new Promise((resolve) =>
+    setTimeout(() => resolve({ status: _DEV_FIAT_STUB_OUTCOME }), 1500)
+  );
+}
+
+const FIAT_MOCK_ORDER_RESPONSE = {
+  orderId: "stub-fiat-order",
+  planId: "",
+  deviceId: "",
+  esimId: "",
+  iccid: "stub-iccid",
+  vendor: "STUB",
+  isNewESim: true,
+  orderStatus: "COMPLETED" as const,
+  paymentStatus: "SUCCESS" as const,
+  paymentMethod: "FIAT" as const,
+  topupPlanResolved: false,
+  installationDetails: { qrcode: "", appleInstallationUrl: "" },
+};
 
 const Checkout = () => {
   const { item: eSimDetails } = useLocalSearchParams();
@@ -65,7 +93,6 @@ const Checkout = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
-  const [showCreditCardModal, setShowCreditCardModal] = useState(false);
   const { kokio, savePurchasedESIM } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
   const [debouncedCode, setDebouncedCode] = useState<string>("");
@@ -188,8 +215,33 @@ const Checkout = () => {
   ]);
 
   const handleCheckout = useCallback(async () => {
-    if (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD) {
-      setShowCreditCardModal(true);
+    if (
+      selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD ||
+      selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
+    ) {
+      setIsCheckoutLoading(true);
+      const { status } = await presentStripePaymentSheetStub();
+      if (status === "cancelled") {
+        setIsCheckoutLoading(false);
+        return;
+      }
+      setOrderResponse(FIAT_MOCK_ORDER_RESPONSE);
+      setIsCheckoutLoading(false);
+      setShowSuccessModal(true);
+      return;
+    }
+    if (selectedPaymentMethod === RADIO_KEYS.MOONPAY) {
+      setIsCheckoutLoading(true);
+      setSkipNextOfflineRedirect(true);
+      const result = await WebBrowser.openAuthSessionAsync(MOONPAY_SANDBOX_URL, MOONPAY_RETURN_URL);
+      setSkipNextOfflineRedirect(false);
+      if (result.type !== "success") {
+        setIsCheckoutLoading(false);
+        return;
+      }
+      setOrderResponse(FIAT_MOCK_ORDER_RESPONSE);
+      setIsCheckoutLoading(false);
+      setShowSuccessModal(true);
       return;
     }
     handleEsimCheckout();
@@ -226,21 +278,6 @@ const Checkout = () => {
       }
     },
     [kokio?.userWallet]
-  );
-
-  const handleCreditModalClose = useCallback(() => {
-    setShowCreditCardModal(false);
-  }, []);
-
-  const handleCreditCardSubmit = useCallback(
-    () => {
-      // TODO: Handle credit card submission
-      setShowCreditCardModal(false);
-
-      // Now proceed with the actual checkout process
-      handleEsimCheckout();
-    },
-    [handleEsimCheckout]
   );
 
   const handleDiscountCodeChange = useCallback((text: string) => {
@@ -293,9 +330,12 @@ const Checkout = () => {
   // );
 
   const canCheckout = useMemo(() => {
-    if (!isESimEnabled || isCheckoutLoading) return false;
-    return !!kokio.userWallet && isDiscountApplied;
-  }, [isESimEnabled, isCheckoutLoading, kokio.userWallet, isDiscountApplied]);
+    if (!isESimEnabled || isCheckoutLoading || !selectedPaymentMethod) return false;
+    if (selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET) {
+      return !!kokio.userWallet && isDiscountApplied;
+    }
+    return true;
+  }, [isESimEnabled, isCheckoutLoading, selectedPaymentMethod, kokio.userWallet, isDiscountApplied]);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -533,11 +573,6 @@ const Checkout = () => {
         }}
       />
 
-      <CreditCardModal
-        visible={showCreditCardModal}
-        onClose={handleCreditModalClose}
-        onSubmit={handleCreditCardSubmit}
-      />
     </View>
   );
 };

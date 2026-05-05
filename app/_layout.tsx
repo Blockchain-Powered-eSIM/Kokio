@@ -141,6 +141,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
           <Stack.Screen name="Offline" options={{ headerShown: false }} />
+          <Stack.Screen name="moonpay-return" options={{ headerShown: false }} />
         </Stack>
       </View>
       <AuthenticationModal />

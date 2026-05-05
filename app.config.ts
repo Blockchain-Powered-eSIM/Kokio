@@ -59,7 +59,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           action: "VIEW",
           autoVerify: true,
-          data: [{ "scheme": "https", "host": "kokio.app", "pathPrefix": "/callback" }],
+          data: [{ scheme: "https", host: "kokio.app", pathPrefix: "/callback" }],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+        {
+          // kokio://moonpay-return — MoonPay widget return deep link (PAY-009: signed URL)
+          action: "VIEW",
+          data: [{ scheme: "kokio", host: "moonpay-return" }],
           category: ["BROWSABLE", "DEFAULT"],
         },
       ],
