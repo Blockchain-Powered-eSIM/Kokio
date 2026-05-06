@@ -13,6 +13,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     chainId: process.env.CHAIN_ID,
     chainRpcUrl: process.env.CHAIN_RPC_URL,
     usdcAddress: process.env.USDC_ADDRESS,
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+    stripeMerchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER,
+    moonpayReturnUrl: process.env.MOONPAY_RETURN_URL,
+    walletConnectProjectId: process.env.WALLETCONNECT_PROJECT_ID,
   };
 
   return {
@@ -35,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
-      associatedDomains: ["webcredentials:kokio.app"],
+      associatedDomains: ["webcredentials:kokio.app", "applinks:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
       },
@@ -59,13 +63,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           action: "VIEW",
           autoVerify: true,
-          data: [{ scheme: "https", host: "kokio.app", pathPrefix: "/callback" }],
+          data: [
+            { scheme: "https", host: "kokio.app", pathPrefix: "/callback" },
+            { scheme: "https", host: "kokio.app", pathPrefix: "/moonpay-return" },
+          ],
           category: ["BROWSABLE", "DEFAULT"],
         },
         {
-          // kokio://moonpay-return — MoonPay widget return deep link (PAY-009: signed URL)
+          // kokio://wc-connect?uri=wc%3A... — WalletConnect pairing URI (PAY-011)
           action: "VIEW",
-          data: [{ scheme: "kokio", host: "moonpay-return" }],
+          data: [{ scheme: "kokio", host: "wc-connect" }],
           category: ["BROWSABLE", "DEFAULT"],
         },
       ],
@@ -113,6 +120,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
       "expo-asset",
       "expo-web-browser",
+      [
+        "@stripe/stripe-react-native",
+        {
+          merchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
+          enableGooglePay: true,
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,

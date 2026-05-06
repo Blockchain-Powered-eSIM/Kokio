@@ -1,5 +1,6 @@
-import { ReactNode, createContext, useEffect, useReducer } from "react";
+import { ReactNode, createContext, useEffect, useReducer, useRef } from "react";
 import _pick from "lodash/pick";
+import { router } from "expo-router";
 import { Kokio } from "kokio-sdk";
 import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
 import { createWalletClient, http, type Hex } from "viem";
@@ -14,6 +15,10 @@ import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Esim } from "@/components/ESIMItem";
 import { CreateOrderResponse } from "@/utils/bff/order";
+import {
+  getWcSignClient,
+  setPendingProposal,
+} from "@/utils/walletconnect/signClient";
 
 export interface StoredTransactionData {
   orderId: string;
@@ -367,6 +372,49 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       setupKokio();
     }
   }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk]);
+
+  const wcInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!kokio.sdk || !kokio.userWallet || wcInitialized.current) return;
+    wcInitialized.current = true;
+
+    const walletAddress = (kokio.userWallet as any).address ?? "";
+
+    getWcSignClient().then((client) => {
+      client.on("session_proposal", (proposal) => {
+        setPendingProposal(proposal);
+        router.push("/wc-session" as any);
+      });
+
+      client.on("session_request", async (event) => {
+        const { topic, params, id } = event;
+        const { request } = params;
+        try {
+          // TODO PAY-011: route eth_sendTransaction / eth_signTypedData_v4
+          // through kokio-sdk signer + Pimlico bundler once SDK exposes signing API.
+          void walletAddress;
+          throw new Error(`Method not yet implemented: ${request.method}`);
+        } catch (err) {
+          await client.respond({
+            topic,
+            response: {
+              id,
+              jsonrpc: "2.0",
+              error: { code: 4001, message: (err as Error).message },
+            },
+          });
+        }
+      });
+
+      client.on("session_delete", ({ topic }) => {
+        if (__DEV__) console.log("[WC] session deleted:", topic);
+      });
+    }).catch((err) => {
+      wcInitialized.current = false;
+      if (__DEV__) console.error("[WC] init failed:", err);
+    });
+  }, [kokio.sdk, kokio.userWallet]);
 
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });

@@ -11,6 +11,10 @@ export interface AppExtraConfig {
     chainId?: string;
     chainRpcUrl?: string;
     usdcAddress?: string;
+    stripePublishableKey?: string;
+    stripeMerchantIdentifier?: string;
+    moonpayReturnUrl?: string;
+    walletConnectProjectId?: string;
 }
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
@@ -26,6 +30,10 @@ export const Config = {
     CHAIN_ID: extra?.chainId ? Number(extra.chainId) : undefined,
     CHAIN_RPC_URL: extra?.chainRpcUrl,
     USDC_ADDRESS: extra?.usdcAddress,
+    STRIPE_PUBLISHABLE_KEY: extra?.stripePublishableKey,
+    STRIPE_MERCHANT_IDENTIFIER: extra?.stripeMerchantIdentifier,
+    MOONPAY_RETURN_URL: extra?.moonpayReturnUrl ?? "https://kokio.app/moonpay-return",
+    WALLETCONNECT_PROJECT_ID: extra?.walletConnectProjectId,
 
     // Utility function for validation
     validateSecrets: () => {
@@ -37,6 +45,12 @@ export const Config = {
         }
         if (!extra?.apiBaseUrl) {
             console.error("Critical Error: API_BASE_URL is missing. Check your EAS Secrets configuration.");
+        }
+        if (!extra?.stripePublishableKey) {
+            console.warn("Warning: STRIPE_PUBLISHABLE_KEY is not set. Stripe payments (PAY-008) will not work.");
+        }
+        if (!extra?.walletConnectProjectId) {
+            console.warn("Warning: WALLETCONNECT_PROJECT_ID is not set. WalletConnect sessions (PAY-011) will not work.");
         }
     }
 };

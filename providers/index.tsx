@@ -11,6 +11,8 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { StripeProvider } from "@stripe/stripe-react-native";
+import { Config } from "@/appKeys";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,11 +30,16 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
       <SafeAreaProvider>
         <GestureHandlerRootView>
           <QueryClientProvider client={queryClient}>
-            <AuthRelayProvider>
-              <KokioProvider>
-                <ToastProvider>{children}</ToastProvider>
-              </KokioProvider>
-            </AuthRelayProvider>
+            <StripeProvider
+              publishableKey={Config.STRIPE_PUBLISHABLE_KEY ?? ""}
+              merchantIdentifier={Config.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio"}
+            >
+              <AuthRelayProvider>
+                <KokioProvider>
+                  <ToastProvider>{children}</ToastProvider>
+                </KokioProvider>
+              </AuthRelayProvider>
+            </StripeProvider>
           </QueryClientProvider>
         </GestureHandlerRootView>
       </SafeAreaProvider>

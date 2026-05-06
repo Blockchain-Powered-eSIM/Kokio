@@ -1,5 +1,6 @@
 // Add global shims
 import "react-native-get-random-values";
+import "@walletconnect/react-native-compat";
 import "@ethersproject/shims";
 import { install as installQuickCrypto } from "react-native-quick-crypto";
 
@@ -142,6 +143,8 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
           <Stack.Screen name="Offline" options={{ headerShown: false }} />
           <Stack.Screen name="moonpay-return" options={{ headerShown: false }} />
+          <Stack.Screen name="wc-connect" options={{ headerShown: false }} />
+          <Stack.Screen name="wc-session" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
       </View>
       <AuthenticationModal />

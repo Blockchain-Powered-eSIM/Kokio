@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  // Switch,
   Text,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
@@ -127,13 +128,20 @@ export default function MenuScreen() {
   const router = useRouter();
 
   const [showAbout, setShowAbout] = useState(false);
-  const [, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(true);
   const bg = useThemeColor({}, "background");
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
       setIsDark(val !== "light");
     });
+  }, []);
+
+  const handleThemeToggle = useCallback(async (value: boolean) => {
+    const { applyTheme } = await import("@/constants/Colors");
+    applyTheme(value);
+    await AsyncStorage.setItem(THEME_STORAGE_KEY, value ? "dark" : "light");
+    setIsDark(value);
   }, []);
 
   const menuItems = [

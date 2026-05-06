@@ -26,7 +26,8 @@ import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { createOrder } from "@/utils/bff/order";
+import { createOrder, createFiatOrder, createMoonpayOrder, pollOrderStatus } from "@/utils/bff/order";
+import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
@@ -36,41 +37,15 @@ import * as WebBrowser from "expo-web-browser";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
+import { useStripePaymentSheet } from "@/hooks/useStripePaymentSheet";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
+import { Config } from "@/appKeys";
 import type { CreateOrderResponse } from "@/utils/bff/order";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
-
-// PAY-009: replace with signed URL from BFF
-const MOONPAY_SANDBOX_URL = "https://buy-sandbox.moonpay.com/";
-const MOONPAY_RETURN_URL = "kokio://moonpay-return";
-
-// PAY-008: replace with real Stripe PaymentSheet call; flip to 'cancelled' to test cancel path
-const _DEV_FIAT_STUB_OUTCOME: "success" | "cancelled" = "success";
-
-function presentStripePaymentSheetStub(): Promise<{ status: "success" | "cancelled" }> {
-  return new Promise((resolve) =>
-    setTimeout(() => resolve({ status: _DEV_FIAT_STUB_OUTCOME }), 1500)
-  );
-}
-
-const FIAT_MOCK_ORDER_RESPONSE = {
-  orderId: "stub-fiat-order",
-  planId: "",
-  deviceId: "",
-  esimId: "",
-  iccid: "stub-iccid",
-  vendor: "STUB",
-  isNewESim: true,
-  orderStatus: "COMPLETED" as const,
-  paymentStatus: "SUCCESS" as const,
-  paymentMethod: "FIAT" as const,
-  topupPlanResolved: false,
-  installationDetails: { qrcode: "", appleInstallationUrl: "" },
-};
 
 const Checkout = () => {
   const { item: eSimDetails } = useLocalSearchParams();
@@ -93,6 +68,8 @@ const Checkout = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
+  const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
+    useStripePaymentSheet();
   const { kokio, savePurchasedESIM } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
   const [debouncedCode, setDebouncedCode] = useState<string>("");
@@ -220,32 +197,115 @@ const Checkout = () => {
       selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
     ) {
       setIsCheckoutLoading(true);
-      const { status } = await presentStripePaymentSheetStub();
-      if (status === "cancelled") {
+      try {
+        const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
+        const { data: orderInit, correlationId } = await createFiatOrder({
+          catalogueId: base.catalogueId,
+          currency: "USD",
+          isNewESim: base.isNewESim,
+          eSimId: base.eSimId,
+          coupon: base.coupon,
+          isCryptoPayment: false,
+        });
+
+        const { error: initError } = await initPaymentSheet({
+          merchantDisplayName: "Kokio",
+          paymentIntentClientSecret: orderInit.clientSecret,
+          customFlow: true,
+          applePay: { merchantCountryCode: "US" },
+          googlePay: { merchantCountryCode: "US", testEnv: __DEV__ },
+          style: "alwaysDark",
+        });
+        if (initError) {
+          showMessage(initError.message, "info");
+          setIsCheckoutLoading(false);
+          return;
+        }
+
+        const { error: presentError } = await presentPaymentSheet();
+        if (presentError) {
+          setIsCheckoutLoading(false);
+          return;
+        }
+
+        const { error: confirmError } = await confirmPaymentSheetPayment();
+        if (confirmError) {
+          if (__DEV__) console.error("[Stripe] confirmPaymentSheetPayment error:", confirmError);
+          showMessage(confirmError.message, "info");
+          setIsCheckoutLoading(false);
+          return;
+        }
+
+        const finalOrder = correlationId
+          ? await pollOrderStatus(correlationId).catch(() => orderInit)
+          : orderInit;
+        if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder);
+        setOrderResponse(finalOrder);
         setIsCheckoutLoading(false);
-        return;
+        setShowSuccessModal(true);
+      } catch (err) {
+        if (__DEV__) console.error("[Stripe] checkout error:", err);
+        showMessage(formatBffError(err), "info");
+        setIsCheckoutLoading(false);
       }
-      setOrderResponse(FIAT_MOCK_ORDER_RESPONSE);
-      setIsCheckoutLoading(false);
-      setShowSuccessModal(true);
       return;
     }
+
     if (selectedPaymentMethod === RADIO_KEYS.MOONPAY) {
       setIsCheckoutLoading(true);
-      setSkipNextOfflineRedirect(true);
-      const result = await WebBrowser.openAuthSessionAsync(MOONPAY_SANDBOX_URL, MOONPAY_RETURN_URL);
-      setSkipNextOfflineRedirect(false);
-      if (result.type !== "success") {
+      try {
+        const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
+        const { data: orderInit, correlationId } = await createMoonpayOrder({
+          catalogueId: base.catalogueId,
+          currency: "USD",
+          isNewESim: base.isNewESim,
+          eSimId: base.eSimId,
+          coupon: base.coupon,
+          isCryptoPayment: true,
+          payeeAddress: kokio.userWallet?.address,
+          returnUrl: Config.MOONPAY_RETURN_URL,
+        });
+
+        setSkipNextOfflineRedirect(true);
+        const result = await WebBrowser.openAuthSessionAsync(orderInit.moonpayPaymentPageUrl, Config.MOONPAY_RETURN_URL);
+        setSkipNextOfflineRedirect(false);
+
+        if (result.type !== "success") {
+          setIsCheckoutLoading(false);
+          return;
+        }
+
+        const finalOrder = correlationId
+          ? await pollOrderStatus(correlationId).catch(() => orderInit)
+          : orderInit;
+        if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder);
+        setOrderResponse(finalOrder);
         setIsCheckoutLoading(false);
-        return;
+        setShowSuccessModal(true);
+      } catch (err) {
+        if (__DEV__) console.error("[MoonPay] checkout error:", err);
+        showMessage(formatBffError(err), "info");
+        setIsCheckoutLoading(false);
       }
-      setOrderResponse(FIAT_MOCK_ORDER_RESPONSE);
-      setIsCheckoutLoading(false);
-      setShowSuccessModal(true);
       return;
     }
+
     handleEsimCheckout();
-  }, [selectedPaymentMethod, handleEsimCheckout]);
+  }, [
+    selectedPaymentMethod,
+    eSimItem,
+    discountCode,
+    applyAsTopup,
+    compatibleTopUpEsimId,
+    kokio.userWallet,
+    kokio.deviceUID,
+    savePurchasedESIM,
+    initPaymentSheet,
+    presentPaymentSheet,
+    confirmPaymentSheetPayment,
+    showMessage,
+    handleEsimCheckout,
+  ]);
 
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);

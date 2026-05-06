@@ -45,3 +45,23 @@ export async function unwrapBffResponse<T>(promise: Promise<unknown>): Promise<T
   }
   return envelope.data;
 }
+
+export async function unwrapBffResponseWithCorrelation<T>(
+  promise: Promise<unknown>,
+): Promise<{ data: T; correlationId: string | null }> {
+  let envelope: BffEnvelope<T>;
+  try {
+    envelope = (await promise) as BffEnvelope<T>;
+  } catch (rejection) {
+    const resp = rejection as { data?: unknown; status?: number } | null;
+    const body = resp?.data as BffErrorEnvelope | undefined;
+    if (body?.success === false && typeof body.code === 'string') {
+      throw new BffError(body.code, resp?.status, body.message);
+    }
+    throw rejection;
+  }
+  if (!envelope.success) {
+    throw new BffError(envelope.code, undefined, envelope.message);
+  }
+  return { data: envelope.data, correlationId: envelope.correlationId };
+}
