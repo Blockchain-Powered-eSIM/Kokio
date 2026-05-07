@@ -46,10 +46,10 @@ const ApplePay = () => {
   );
 };
 
-const MoonPay = () => {
+const ExternalWallet = () => {
   return (
     <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>MoonPay</ThemedText>
+      <ThemedText style={styles.textContent}>External Wallet</ThemedText>
       <Image
         source={require("@/assets/images/usdc.png")}
         style={[styles.logoImage, { marginLeft: 8 }]}
@@ -58,7 +58,7 @@ const MoonPay = () => {
   );
 };
 
-export { ESimWallet, ApplePay, CreditCard, MoonPay };
+export { ESimWallet, ApplePay, CreditCard, ExternalWallet };
 
 const styles = StyleSheet.create({
   labelContainer: {

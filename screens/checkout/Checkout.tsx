@@ -26,23 +26,26 @@ import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { createOrder, createFiatOrder, createMoonpayOrder, pollOrderStatus } from "@/utils/bff/order";
+import { createOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus } from "@/utils/bff/order";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
-import * as WebBrowser from "expo-web-browser";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
-import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 import { useStripePaymentSheet } from "@/hooks/useStripePaymentSheet";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { Config } from "@/appKeys";
 import type { CreateOrderResponse } from "@/utils/bff/order";
+import {
+  MoonpayCommerceProvider,
+  PaymentDrawer,
+  WalletButtons,
+} from "@heliofi/checkout-react-native";
+import type { TransactionResult } from "@heliofi/checkout-react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
@@ -67,7 +70,11 @@ const Checkout = () => {
   >();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
+  const [helioChargeToken, setHelioChargeToken] = useState<string | null>(null);
+  const [helioCorrelationId, setHelioCorrelationId] = useState<string | null>(null);
+  const [pendingHelioOrder, setPendingHelioOrder] = useState<CreateOrderResponse | null>(null);
   const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
     useStripePaymentSheet();
   const { kokio, savePurchasedESIM } = useKokio();
@@ -151,10 +158,9 @@ const Checkout = () => {
         applyAsTopup,
         compatibleTopUpEsimId
       });
-      const orderData = await createOrder({
-        ...payload,
-        payeeAddress: deviceWalletId,
-      });
+      const esimBody = { ...payload, payeeAddress: deviceWalletId };
+      if (__DEV__) console.log('[Order] eSIM wallet body:', JSON.stringify(esimBody, null, 2));
+      const orderData = await createOrder(esimBody);
 
       setOrderResponse(orderData);
 
@@ -197,16 +203,20 @@ const Checkout = () => {
       selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
     ) {
       setIsCheckoutLoading(true);
+      setLoadingMessage('Preparing your payment...');
       try {
         const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
-        const { data: orderInit, correlationId } = await createFiatOrder({
+        const fiatBody = {
           catalogueId: base.catalogueId,
-          currency: "USD",
+          currency: "USD" as const,
           isNewESim: base.isNewESim,
           eSimId: base.eSimId,
           coupon: base.coupon,
-          isCryptoPayment: false,
-        });
+          isCryptoPayment: false as const,
+        };
+        if (__DEV__) console.log('[Order] fiat body:', JSON.stringify(fiatBody, null, 2));
+        const { data: orderInit, correlationId } = await createFiatOrder(fiatBody);
+        if (__DEV__) console.log('[Order] fiat correlationId:', correlationId);
 
         const { error: initError } = await initPaymentSheet({
           merchantDisplayName: "Kokio",
@@ -222,6 +232,7 @@ const Checkout = () => {
           return;
         }
 
+        setLoadingMessage('');
         const { error: presentError } = await presentPaymentSheet();
         if (presentError) {
           setIsCheckoutLoading(false);
@@ -236,54 +247,56 @@ const Checkout = () => {
           return;
         }
 
+        setLoadingMessage('Processing your order...');
         const finalOrder = correlationId
-          ? await pollOrderStatus(correlationId).catch(() => orderInit)
+          ? await pollOrderStatus(correlationId, 15, 2000, (s) =>
+              setLoadingMessage(s.replace(/_/g, ' ')),
+            ).catch(() => orderInit)
           : orderInit;
         if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder);
         setOrderResponse(finalOrder);
         setIsCheckoutLoading(false);
         setShowSuccessModal(true);
       } catch (err) {
-        if (__DEV__) console.error("[Stripe] checkout error:", err);
+        if (__DEV__) {
+          const bffErr = err as { correlationId?: string | null };
+          console.error("[Stripe] checkout error:", err);
+          if (bffErr?.correlationId) console.log('[Order] fiat correlationId (error):', bffErr.correlationId);
+        }
         showMessage(formatBffError(err), "info");
         setIsCheckoutLoading(false);
       }
       return;
     }
 
-    if (selectedPaymentMethod === RADIO_KEYS.MOONPAY) {
+    if (selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET) {
       setIsCheckoutLoading(true);
+      setLoadingMessage('Preparing your payment...');
       try {
         const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
-        const { data: orderInit, correlationId } = await createMoonpayOrder({
+        const extBody = {
           catalogueId: base.catalogueId,
-          currency: "USD",
+          currency: "USD" as const,
           isNewESim: base.isNewESim,
           eSimId: base.eSimId,
           coupon: base.coupon,
-          isCryptoPayment: true,
+          isCryptoPayment: true as const,
           payeeAddress: kokio.userWallet?.address,
-          returnUrl: Config.MOONPAY_RETURN_URL,
-        });
-
-        setSkipNextOfflineRedirect(true);
-        const result = await WebBrowser.openAuthSessionAsync(orderInit.moonpayPaymentPageUrl, Config.MOONPAY_RETURN_URL);
-        setSkipNextOfflineRedirect(false);
-
-        if (result.type !== "success") {
-          setIsCheckoutLoading(false);
-          return;
-        }
-
-        const finalOrder = correlationId
-          ? await pollOrderStatus(correlationId).catch(() => orderInit)
-          : orderInit;
-        if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder);
-        setOrderResponse(finalOrder);
+        };
+        if (__DEV__) console.log('[Order] external wallet body:', JSON.stringify(extBody, null, 2));
+        const { data: orderInit, correlationId } = await createExternalWalletOrder(extBody);
+        if (__DEV__) console.log('[Order] external wallet correlationId:', correlationId);
+        setPendingHelioOrder(orderInit);
+        setHelioCorrelationId(correlationId);
+        setHelioChargeToken(orderInit.moonpayChargeId);
         setIsCheckoutLoading(false);
-        setShowSuccessModal(true);
+        setLoadingMessage('');
       } catch (err) {
-        if (__DEV__) console.error("[MoonPay] checkout error:", err);
+        if (__DEV__) {
+          const bffErr = err as { correlationId?: string | null };
+          console.error("[Helio] checkout error:", err);
+          if (bffErr?.correlationId) console.log('[Order] external wallet correlationId (error):', bffErr.correlationId);
+        }
         showMessage(formatBffError(err), "info");
         setIsCheckoutLoading(false);
       }
@@ -306,6 +319,38 @@ const Checkout = () => {
     showMessage,
     handleEsimCheckout,
   ]);
+
+  const handleHelioSuccess = useCallback(async (result: TransactionResult) => {
+    if (__DEV__) console.log("[Helio] payment success:", result.transactionSignature);
+    setHelioChargeToken(null);
+    setIsCheckoutLoading(true);
+    setLoadingMessage('Processing your order...');
+    const finalOrder = helioCorrelationId
+      ? await pollOrderStatus(helioCorrelationId, 15, 2000, (s) =>
+          setLoadingMessage(s.replace(/_/g, ' ')),
+        ).catch(() => pendingHelioOrder)
+      : pendingHelioOrder;
+    if (finalOrder) {
+      if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder);
+      setOrderResponse(finalOrder);
+      setIsCheckoutLoading(false);
+      setShowSuccessModal(true);
+    }
+  }, [helioCorrelationId, pendingHelioOrder, kokio.deviceUID, eSimItem, savePurchasedESIM]);
+
+  const handleHelioCancel = useCallback(() => {
+    setHelioChargeToken(null);
+    setPendingHelioOrder(null);
+    setHelioCorrelationId(null);
+  }, []);
+
+  const handleHelioError = useCallback((result: TransactionResult) => {
+    if (__DEV__) console.error("[Helio] payment error:", result);
+    setHelioChargeToken(null);
+    setPendingHelioOrder(null);
+    setHelioCorrelationId(null);
+    showMessage("Payment failed. Please try again.", "info");
+  }, [showMessage]);
 
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);
@@ -617,6 +662,13 @@ const Checkout = () => {
         />
       </TouchableOpacity>
 
+      {isCheckoutLoading && !!loadingMessage && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={Theme.colors.secondary} />
+          <Text style={styles.loadingText}>{loadingMessage}</Text>
+        </View>
+      )}
+
       <CheckoutSuccessModal
         visible={showSuccessModal}
         loading={isCheckoutLoading}
@@ -632,6 +684,20 @@ const Checkout = () => {
           setSelectedPaymentMethod(RADIO_KEYS.E_SIM_WALLET);
         }}
       />
+
+      {helioChargeToken && (
+        <MoonpayCommerceProvider
+          chargeToken={helioChargeToken}
+          network={__DEV__ ? "test" : "main"}
+          theme="dark"
+          onSuccess={handleHelioSuccess}
+          onError={handleHelioError}
+        >
+          <PaymentDrawer visible onClose={handleHelioCancel}>
+            <WalletButtons />
+          </PaymentDrawer>
+        </MoonpayCommerceProvider>
+      )}
 
     </View>
   );
@@ -802,6 +868,19 @@ const styles = StyleSheet.create({
   discountErrorText: {
     color: Theme.colors.destructive,
     fontSize: 14,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Theme.colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 10,
+  },
+  loadingText: {
+    color: Theme.colors.foreground,
+    fontSize: 15,
+    fontWeight: '500',
   },
   walletStatusRow: {
     flexDirection: "row",

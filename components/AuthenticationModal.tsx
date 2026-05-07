@@ -41,7 +41,7 @@ export function AuthenticationModal() {
         <BlurView
           intensity={100}
           tint={isDarkTheme ? "systemChromeMaterialDark" : "systemChromeMaterial"}
-          experimentalBlurMethod="none"
+          blurMethod="none"
           style={{
             flex: 1,
             overflow: "hidden",

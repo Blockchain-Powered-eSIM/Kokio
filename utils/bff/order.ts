@@ -9,14 +9,14 @@ export type InstallationDetails = components['schemas']['InstallationDetails'];
 
 export type { CreateOrderRequest, CreateOrderResponse };
 
-// ─── Extended response types for async fiat/moonpay payments ─────────────────
+// ─── Extended response types ──────────────────────────────────────────────────
 
 export type FiatOrderResponse = CreateOrderResponse & {
   stripeInvoiceId: string;
   clientSecret: string;
 };
 
-export type MoonpayOrderResponse = CreateOrderResponse & {
+export type ExternalWalletOrderResponse = CreateOrderResponse & {
   moonpayChargeId: string;
   moonpayPaymentPageUrl: string;
 };
@@ -32,7 +32,7 @@ type FiatOrderRequest = {
   isCryptoPayment: false;
 };
 
-type MoonpayOrderRequest = {
+type ExternalWalletOrderRequest = {
   catalogueId: string;
   currency: 'USD';
   isNewESim: boolean;
@@ -40,7 +40,6 @@ type MoonpayOrderRequest = {
   coupon?: string | null;
   isCryptoPayment: true;
   payeeAddress?: string;
-  returnUrl: string;
 };
 
 // ─── Order functions ──────────────────────────────────────────────────────────
@@ -57,10 +56,10 @@ export function createFiatOrder(
   );
 }
 
-export function createMoonpayOrder(
-  body: MoonpayOrderRequest,
-): Promise<{ data: MoonpayOrderResponse; correlationId: string | null }> {
-  return unwrapBffResponseWithCorrelation<MoonpayOrderResponse>(
+export function createExternalWalletOrder(
+  body: ExternalWalletOrderRequest,
+): Promise<{ data: ExternalWalletOrderResponse; correlationId: string | null }> {
+  return unwrapBffResponseWithCorrelation<ExternalWalletOrderResponse>(
     api.post('/v1/order', body as Record<string, unknown>),
   );
 }
@@ -73,10 +72,13 @@ export async function pollOrderStatus(
   correlationId: string,
   maxAttempts = 15,
   intervalMs = 2000,
+  onStatusUpdate?: (orderStatus: string) => void,
 ): Promise<CreateOrderResponse> {
   for (let i = 0; i < maxAttempts; i++) {
     if (i > 0) await new Promise<void>(r => setTimeout(r, intervalMs));
     const status = await getOrderStatus(correlationId);
+    if (__DEV__) console.log(`[eSIM] poll #${i + 1} orderStatus=${status.orderStatus} paymentStatus=${status.paymentStatus}`);
+    onStatusUpdate?.(status.orderStatus);
     if (status.orderStatus === 'COMPLETED') return status;
     if (status.paymentStatus === 'FAILED') throw new Error('Payment failed');
   }

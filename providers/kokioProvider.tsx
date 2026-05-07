@@ -477,6 +477,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     eSimItem: Esim,
     transactionData: CreateOrderResponse
   ) => {
+    if (__DEV__) console.log('[eSIM] order response:', JSON.stringify(transactionData, null, 2));
+
     const existingESIMs = await getValueForPurchasedESIMs(
       `purchasedESIMs-${deviceUID}`
     );
@@ -486,6 +488,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       eSimItem,
       transactionData
     );
+    if (__DEV__) console.log('[eSIM] stored record:', JSON.stringify(reducedPurchasedESIM, null, 2));
 
     const updatedESIMs = [...currentESIMs, reducedPurchasedESIM];
 

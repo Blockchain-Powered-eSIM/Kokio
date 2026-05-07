@@ -107,10 +107,13 @@ const instance: AxiosInstance = axios.create({
 // 1. Proactive refresh if expires_at - now < 60 s.
 // 2. Attach Authorization: DPoP <AT> and DPoP: <proof> (with ath).
 instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-  config.headers['x-correlation-id'] = uuidv4();
   config.baseURL ??= Config.API_BASE_URL;
 
-  if (config.skipAuth) return config; // public endpoint — skip auth entirely
+  if (config.skipAuth) return config; // public endpoint — skip auth + correlation id
+
+  const correlationId = uuidv4();
+  config.headers['x-correlation-id'] = correlationId;
+  if (__DEV__) console.log(`[http] ${(config.method ?? 'GET').toUpperCase()} ${config.url} | correlationId: ${correlationId}`);
 
   const stored = useAuthStore.getState().tokens;
   if (!stored) return config; // unauthenticated request — no auth headers

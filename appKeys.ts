@@ -13,7 +13,6 @@ export interface AppExtraConfig {
     usdcAddress?: string;
     stripePublishableKey?: string;
     stripeMerchantIdentifier?: string;
-    moonpayReturnUrl?: string;
     walletConnectProjectId?: string;
 }
 
@@ -32,7 +31,6 @@ export const Config = {
     USDC_ADDRESS: extra?.usdcAddress,
     STRIPE_PUBLISHABLE_KEY: extra?.stripePublishableKey,
     STRIPE_MERCHANT_IDENTIFIER: extra?.stripeMerchantIdentifier,
-    MOONPAY_RETURN_URL: extra?.moonpayReturnUrl ?? "https://kokio.app/moonpay-return",
     WALLETCONNECT_PROJECT_ID: extra?.walletConnectProjectId,
 
     // Utility function for validation

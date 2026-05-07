@@ -71,14 +71,16 @@ export class BffError extends Error {
   readonly code: string;
   readonly httpStatus?: number;
   readonly userMessage: string;
+  readonly correlationId?: string | null;
 
-  constructor(code: string, httpStatus?: number, serverMessage?: string) {
+  constructor(code: string, httpStatus?: number, serverMessage?: string, correlationId?: string | null) {
     const userMessage = resolveBffErrorMessage(code, httpStatus);
     super(serverMessage ?? userMessage);
     this.name = 'BffError';
     this.code = code;
     this.httpStatus = httpStatus;
     this.userMessage = userMessage;
+    this.correlationId = correlationId;
   }
 }
 
