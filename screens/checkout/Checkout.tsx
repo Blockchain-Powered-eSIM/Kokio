@@ -77,7 +77,7 @@ const Checkout = () => {
   const [pendingHelioOrder, setPendingHelioOrder] = useState<CreateOrderResponse | null>(null);
   const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
     useStripePaymentSheet();
-  const { kokio, savePurchasedESIM } = useKokio();
+  const { kokio, savePurchasedESIM, upsertOrderRecord } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
   const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
@@ -204,6 +204,7 @@ const Checkout = () => {
     ) {
       setIsCheckoutLoading(true);
       setLoadingMessage('Preparing your payment...');
+      let fiatCorrelationId: string | null = null;
       try {
         const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
         const fiatBody = {
@@ -216,7 +217,12 @@ const Checkout = () => {
         };
         if (__DEV__) console.log('[Order] fiat body:', JSON.stringify(fiatBody, null, 2));
         const { data: orderInit, correlationId } = await createFiatOrder(fiatBody);
+        fiatCorrelationId = correlationId;
         if (__DEV__) console.log('[Order] fiat correlationId:', correlationId);
+
+        if (kokio.deviceUID && correlationId) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
+        }
 
         const { error: initError } = await initPaymentSheet({
           merchantDisplayName: "Kokio",
@@ -253,15 +259,19 @@ const Checkout = () => {
               setLoadingMessage(s.replace(/_/g, ' ')),
             ).catch(() => orderInit)
           : orderInit;
-        if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder);
+        if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder, correlationId);
         setOrderResponse(finalOrder);
         setIsCheckoutLoading(false);
         setShowSuccessModal(true);
       } catch (err) {
+        const bffErr = err as { correlationId?: string | null };
+        const errCid = fiatCorrelationId ?? bffErr?.correlationId;
         if (__DEV__) {
-          const bffErr = err as { correlationId?: string | null };
           console.error("[Stripe] checkout error:", err);
-          if (bffErr?.correlationId) console.log('[Order] fiat correlationId (error):', bffErr.correlationId);
+          if (errCid) console.log('[Order] fiat correlationId (error):', errCid);
+        }
+        if (kokio.deviceUID && errCid) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
         }
         showMessage(formatBffError(err), "info");
         setIsCheckoutLoading(false);
@@ -272,6 +282,7 @@ const Checkout = () => {
     if (selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET) {
       setIsCheckoutLoading(true);
       setLoadingMessage('Preparing your payment...');
+      let extCorrelationId: string | null = null;
       try {
         const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
         const extBody = {
@@ -285,17 +296,27 @@ const Checkout = () => {
         };
         if (__DEV__) console.log('[Order] external wallet body:', JSON.stringify(extBody, null, 2));
         const { data: orderInit, correlationId } = await createExternalWalletOrder(extBody);
+        extCorrelationId = correlationId;
         if (__DEV__) console.log('[Order] external wallet correlationId:', correlationId);
+
+        if (kokio.deviceUID && correlationId) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
+        }
+
         setPendingHelioOrder(orderInit);
         setHelioCorrelationId(correlationId);
         setHelioChargeToken(orderInit.moonpayChargeId);
         setIsCheckoutLoading(false);
         setLoadingMessage('');
       } catch (err) {
+        const bffErr = err as { correlationId?: string | null };
+        const errCid = extCorrelationId ?? bffErr?.correlationId;
         if (__DEV__) {
-          const bffErr = err as { correlationId?: string | null };
           console.error("[Helio] checkout error:", err);
-          if (bffErr?.correlationId) console.log('[Order] external wallet correlationId (error):', bffErr.correlationId);
+          if (errCid) console.log('[Order] external wallet correlationId (error):', errCid);
+        }
+        if (kokio.deviceUID && errCid) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
         }
         showMessage(formatBffError(err), "info");
         setIsCheckoutLoading(false);
@@ -313,6 +334,7 @@ const Checkout = () => {
     kokio.userWallet,
     kokio.deviceUID,
     savePurchasedESIM,
+    upsertOrderRecord,
     initPaymentSheet,
     presentPaymentSheet,
     confirmPaymentSheetPayment,
@@ -331,7 +353,7 @@ const Checkout = () => {
         ).catch(() => pendingHelioOrder)
       : pendingHelioOrder;
     if (finalOrder) {
-      if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder);
+      if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder, helioCorrelationId);
       setOrderResponse(finalOrder);
       setIsCheckoutLoading(false);
       setShowSuccessModal(true);

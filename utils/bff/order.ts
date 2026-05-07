@@ -77,9 +77,9 @@ export async function pollOrderStatus(
   for (let i = 0; i < maxAttempts; i++) {
     if (i > 0) await new Promise<void>(r => setTimeout(r, intervalMs));
     const status = await getOrderStatus(correlationId);
-    if (__DEV__) console.log(`[eSIM] poll #${i + 1} orderStatus=${status.orderStatus} paymentStatus=${status.paymentStatus}`);
+    if (__DEV__) console.log(`[eSIM] poll #${i + 1}:`, JSON.stringify(status, null, 2));
     onStatusUpdate?.(status.orderStatus);
-    if (status.orderStatus === 'COMPLETED') return status;
+    if (status.orderStatus === 'COMPLETED' || status.installationDetails?.qrcode) return status;
     if (status.paymentStatus === 'FAILED') throw new Error('Payment failed');
   }
   throw new Error('Order confirmation timed out');

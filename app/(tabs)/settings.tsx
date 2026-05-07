@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  ActivityIndicator,
   // Switch,
   Text,
 } from "react-native";
@@ -19,11 +20,16 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { StoredPurchasedESIM } from "@/providers/kokioProvider";
+import { getAllEsims, getEsim } from "@/utils/bff/esim";
+import type { EsimDetails } from "@/utils/bff/esim";
+import { getOrderStatus } from "@/utils/bff/order";
+import ESIMItem from "@/components/ESIMItem";
 
 // Feature flags for menu item availability
 // Set to true to enable the menu item, false to disable (but keep visible)
 const MENU_ITEM_ENABLED = {
-  PROFILE: false, // Change to true to enable Profile
+  PROFILE: true, // Orders list
   NOTIFICATIONS: false, // Change to true to enable Notifications
   PRIVACY: false, // Change to true to enable Privacy
   GENERAL: false, // Change to true to enable General
@@ -77,6 +83,138 @@ const MenuItem = ({
   </TouchableOpacity>
 );
 
+const orderStatusColor = (status?: string) => {
+  if (!status) return Theme.colors.muted;
+  if (status === 'COMPLETED' || status.startsWith('ESIM_PROVISIONED')) return Theme.colors.success;
+  if (status.includes('FAILED')) return Theme.colors.destructive;
+  return Theme.colors.goldenYellow;
+};
+
+const OrderCard = ({ order }: { order: StoredPurchasedESIM }) => {
+  const { eSimItem, transactionData } = order;
+  const statusColor = orderStatusColor(transactionData.orderStatus);
+  return (
+    <View style={styles.orderCardWrapper}>
+      <ESIMItem item={eSimItem} showBuyButton={false} />
+      <View style={styles.orderMeta}>
+        {transactionData.orderStatus ? (
+          <View style={[styles.orderStatusBadge, { backgroundColor: statusColor + '22' }]}>
+            <Text style={[styles.orderStatusText, { color: statusColor }]}>
+              {transactionData.orderStatus.replace(/_/g, ' ')}
+            </Text>
+          </View>
+        ) : null}
+        {transactionData.iccid ? (
+          <Text style={styles.orderMetaText}>ICCID: {transactionData.iccid}</Text>
+        ) : null}
+        {transactionData.paymentMethod ? (
+          <Text style={styles.orderMetaText}>{transactionData.paymentMethod}</Text>
+        ) : null}
+        {!transactionData.iccid && transactionData.correlationId ? (
+          <Text style={styles.orderMetaText}>Ref: {transactionData.correlationId.slice(0, 8)}…</Text>
+        ) : null}
+      </View>
+    </View>
+  );
+};
+
+const OrdersContent = ({ orders, onClose }: { orders: StoredPurchasedESIM[]; onClose: () => void }) => {
+  const [enrichedOrders, setEnrichedOrders] = useState<StoredPurchasedESIM[]>(orders);
+  const [isFetching, setIsFetching] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchLive = async () => {
+      setIsFetching(true);
+      try {
+        const liveEsims = await getAllEsims();
+        const liveMap: Record<string, EsimDetails> = {};
+        liveEsims.forEach(e => { liveMap[e.esimId] = e; });
+
+        const merged = await Promise.all(orders.map(async (order) => {
+          const { transactionData } = order;
+
+          // For completed orders with esimId, use live data
+          if (transactionData.esimId && liveMap[transactionData.esimId]) {
+            const live = liveMap[transactionData.esimId];
+            return {
+              ...order,
+              transactionData: {
+                ...transactionData,
+                iccid: live.iccid ?? transactionData.iccid,
+                orderStatus: live.orderStatus ?? transactionData.orderStatus,
+                planId: live.planId ?? transactionData.planId,
+                installationDetails: live.installationDetails ?? transactionData.installationDetails,
+              },
+            };
+          }
+
+          // For pending/failed orders with correlationId, re-fetch status
+          if (transactionData.correlationId && !transactionData.installationDetails?.qrcode) {
+            try {
+              const latest = await getOrderStatus(transactionData.correlationId);
+              const esimDetails = latest.esimId
+                ? liveMap[latest.esimId] ?? (latest.esimId ? await getEsim(latest.esimId).catch(() => null) : null)
+                : null;
+              return {
+                ...order,
+                transactionData: {
+                  ...transactionData,
+                  orderId: latest.orderId || transactionData.orderId,
+                  iccid: latest.iccid ?? transactionData.iccid,
+                  orderStatus: latest.orderStatus ?? transactionData.orderStatus,
+                  esimId: (latest as any).esimId ?? transactionData.esimId,
+                  installationDetails: esimDetails?.installationDetails ?? latest.installationDetails ?? transactionData.installationDetails,
+                },
+              };
+            } catch {
+              return order;
+            }
+          }
+
+          return order;
+        }));
+
+        if (!cancelled) setEnrichedOrders(merged);
+      } catch {
+        // live fetch failed — fall back to stored data
+      } finally {
+        if (!cancelled) setIsFetching(false);
+      }
+    };
+    fetchLive();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <View style={styles.aboutContainer}>
+      <View style={styles.aboutHeader}>
+        <ThemedText style={styles.aboutTitle}>Orders</ThemedText>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <Ionicons name="close-outline" size={28} color="white" />
+        </TouchableOpacity>
+      </View>
+      {isFetching ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Theme.colors.secondary} />
+        </View>
+      ) : enrichedOrders.length === 0 ? (
+        <ThemedText style={[styles.aboutText, { textAlign: 'center', marginTop: 32 }]}>
+          No orders yet.
+        </ThemedText>
+      ) : (
+        <FlatList
+          data={enrichedOrders}
+          keyExtractor={(_, i) => i.toString()}
+          renderItem={({ item }) => <OrderCard order={item} />}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 8 }}
+        />
+      )}
+    </View>
+  );
+};
+
 const AboutContent = ({ onClose }: { onClose: () => void }) => {
   const handleLinkPress = useCallback(async () => {
     try {
@@ -124,10 +262,11 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 
 export default function MenuScreen() {
   const { logout } = useAuthRelay();
-  const { clearKokioUser } = useKokio();
+  const { kokio, clearKokioUser } = useKokio();
   const router = useRouter();
 
   const [showAbout, setShowAbout] = useState(false);
+  const [showOrders, setShowOrders] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const bg = useThemeColor({}, "background");
 
@@ -147,10 +286,11 @@ export default function MenuScreen() {
   const menuItems = [
     {
       id: "1",
-      title: "Profile",
-      iconLeft: "person-outline",
+      title: "Orders",
+      iconLeft: "receipt-outline",
       iconRight: "chevron-forward-outline",
       disabled: !MENU_ITEM_ENABLED.PROFILE,
+      action: () => setShowOrders(true),
     },
     {
       id: "2",
@@ -202,7 +342,9 @@ export default function MenuScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
       <ThemedView style={styles.container}>
-        {showAbout ? (
+        {showOrders ? (
+          <OrdersContent orders={kokio.purchasedESIMs} onClose={() => setShowOrders(false)} />
+        ) : showAbout ? (
           <AboutContent onClose={() => setShowAbout(false)} />
         ) : (
           <>
@@ -250,7 +392,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     paddingTop: 20,
-    paddingBottom: 40,
+    paddingBottom: 0,
   },
   list: {
     borderRadius: 25,
@@ -278,10 +420,36 @@ const styles = StyleSheet.create({
   iconRight: {
     marginLeft: 16,
   },
+  orderCardWrapper: {
+    marginBottom: 4,
+  },
+  orderMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+  },
+  orderStatusBadge: {
+    borderRadius: 8,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  orderStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  orderMetaText: {
+    fontSize: 12,
+    color: Theme.colors.muted,
+  },
   aboutContainer: {
     borderRadius: 25,
     flex: 1,
     padding: 20,
+    paddingBottom: 8,
   },
   aboutHeader: {
     flexDirection: "row",

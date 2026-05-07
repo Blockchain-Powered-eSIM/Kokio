@@ -22,7 +22,14 @@ import {
 
 export interface StoredTransactionData {
   orderId: string;
-  iccid: string;
+  correlationId?: string;
+  iccid?: string;
+  planId?: string;
+  orderStatus?: string;
+  paymentMethod?: string;
+  vendor?: string;
+  esimId?: string;
+  isNewESim?: boolean;
   installationDetails: {
     qrcode: string;
     appleInstallationUrl: string;
@@ -36,7 +43,8 @@ export interface StoredPurchasedESIM {
 
 const reduceESimDataForStorage = (
   eSimItem: Esim,
-  transactionData: CreateOrderResponse
+  transactionData: CreateOrderResponse,
+  correlationId?: string | null,
 ): StoredPurchasedESIM => {
   const reducedESimItem = _pick(eSimItem, [
     "catalogueId",
@@ -53,7 +61,14 @@ const reduceESimDataForStorage = (
 
   const reducedTransactionData: StoredTransactionData = {
     orderId: transactionData.orderId,
+    correlationId: correlationId ?? undefined,
     iccid: transactionData.iccid,
+    planId: (transactionData as any).planId,
+    orderStatus: transactionData.orderStatus,
+    paymentMethod: (transactionData as any).paymentMethod,
+    vendor: (transactionData as any).vendor,
+    esimId: (transactionData as any).esimId,
+    isNewESim: (transactionData as any).isNewESim,
     installationDetails: {
       qrcode: transactionData.installationDetails?.qrcode ?? "",
       appleInstallationUrl: transactionData.installationDetails?.appleInstallationUrl ?? "",
@@ -172,7 +187,14 @@ export interface KokioProviderType {
   savePurchasedESIM: (
     deviceUID: string,
     eSimItem: Esim,
-    transactionData: CreateOrderResponse
+    transactionData: CreateOrderResponse,
+    correlationId?: string | null,
+  ) => Promise<void>;
+  upsertOrderRecord: (
+    deviceUID: string,
+    eSimItem: Esim,
+    correlationId: string,
+    orderStatus?: string,
   ) => Promise<void>;
   setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex, rawSalt: string) => Promise<void>;
   clearKokio: () => void;
@@ -186,6 +208,7 @@ export const KokioContext = createContext<KokioProviderType>({
   setupKokioDeviceUID: async () => Promise.resolve(),
   setupKokioUserWallet: async () => Promise.resolve(),
   savePurchasedESIM: async () => Promise.resolve(),
+  upsertOrderRecord: async () => Promise.resolve(),
   setupKokioRegistration: async (_a, _b, _c, _d, _e, _f) => Promise.resolve(),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
@@ -475,32 +498,66 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   const savePurchasedESIM = async (
     deviceUID: string,
     eSimItem: Esim,
-    transactionData: CreateOrderResponse
+    transactionData: CreateOrderResponse,
+    correlationId?: string | null,
   ) => {
     if (__DEV__) console.log('[eSIM] order response:', JSON.stringify(transactionData, null, 2));
 
-    const existingESIMs = await getValueForPurchasedESIMs(
-      `purchasedESIMs-${deviceUID}`
-    );
+    const existingESIMs = await getValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`);
     const currentESIMs = existingESIMs || [];
 
-    const reducedPurchasedESIM = reduceESimDataForStorage(
-      eSimItem,
-      transactionData
-    );
+    const reducedPurchasedESIM = reduceESimDataForStorage(eSimItem, transactionData, correlationId);
     if (__DEV__) console.log('[eSIM] stored record:', JSON.stringify(reducedPurchasedESIM, null, 2));
 
-    const updatedESIMs = [...currentESIMs, reducedPurchasedESIM];
+    const existingIdx = correlationId
+      ? currentESIMs.findIndex(e => e.transactionData.correlationId === correlationId)
+      : -1;
 
-    await saveValueForPurchasedESIMs(
-      `purchasedESIMs-${deviceUID}`,
-      updatedESIMs
-    );
+    const updatedESIMs = existingIdx >= 0
+      ? currentESIMs.map((e, i) => i === existingIdx ? reducedPurchasedESIM : e)
+      : [...currentESIMs, reducedPurchasedESIM];
 
-    dispatch({
-      type: "SET_PURCHASED_ESIMS",
-      payload: updatedESIMs,
-    });
+    await saveValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`, updatedESIMs);
+    dispatch({ type: "SET_PURCHASED_ESIMS", payload: updatedESIMs });
+  };
+
+  const upsertOrderRecord = async (
+    deviceUID: string,
+    eSimItem: Esim,
+    correlationId: string,
+    orderStatus?: string,
+  ) => {
+    const existingESIMs = await getValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`);
+    const currentESIMs = existingESIMs || [];
+
+    const existingIdx = currentESIMs.findIndex(e => e.transactionData.correlationId === correlationId);
+
+    let updatedESIMs: StoredPurchasedESIM[];
+    if (existingIdx >= 0) {
+      updatedESIMs = currentESIMs.map((e, i) =>
+        i === existingIdx
+          ? { ...e, transactionData: { ...e.transactionData, orderStatus: orderStatus ?? e.transactionData.orderStatus } }
+          : e
+      );
+    } else {
+      const reducedESimItem = _pick(eSimItem, [
+        "catalogueId", "data", "sms", "voice", "validity", "isUnlimited",
+        "coverageType", "serviceRegionCode", "serviceRegionName", "serviceRegionFlag",
+      ]) as Esim;
+      const newRecord: StoredPurchasedESIM = {
+        eSimItem: reducedESimItem,
+        transactionData: {
+          orderId: '',
+          correlationId,
+          orderStatus: orderStatus ?? 'PAYMENT_PENDING',
+          installationDetails: { qrcode: '', appleInstallationUrl: '' },
+        },
+      };
+      updatedESIMs = [...currentESIMs, newRecord];
+    }
+
+    await saveValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`, updatedESIMs);
+    dispatch({ type: "SET_PURCHASED_ESIMS", payload: updatedESIMs });
   };
 
   const setupKokio = async () => {
@@ -585,6 +642,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         setupKokioDeviceUID,
         setupKokioUserWallet,
         savePurchasedESIM,
+        upsertOrderRecord,
         setupKokioRegistration,
         clearKokio,
         clearKokioUser,
