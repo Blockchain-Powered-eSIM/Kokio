@@ -58,7 +58,19 @@ const ExternalWallet = () => {
   );
 };
 
-export { ESimWallet, ApplePay, CreditCard, ExternalWallet };
+const ExternalWalletBrowser = () => {
+  return (
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>External Wallet (Browser)</ThemedText>
+      <Image
+        source={require("@/assets/images/usdc.png")}
+        style={[styles.logoImage, { marginLeft: 8 }]}
+      />
+    </View>
+  );
+};
+
+export { ESimWallet, ApplePay, CreditCard, ExternalWallet, ExternalWalletBrowser };
 
 const styles = StyleSheet.create({
   labelContainer: {

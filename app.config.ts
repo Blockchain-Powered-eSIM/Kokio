@@ -16,6 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     stripeMerchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER,
     walletConnectProjectId: process.env.WALLETCONNECT_PROJECT_ID,
+    externalWalletCallback: process.env.EXTERNAL_WALLET_CALLBACK,
   };
 
   return {
@@ -64,6 +65,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           autoVerify: true,
           data: [
             { scheme: "https", host: "kokio.app", pathPrefix: "/callback" },
+            { scheme: "https", host: "kokio.app", pathPrefix: "/moonpay-return" },
           ],
           category: ["BROWSABLE", "DEFAULT"],
         },

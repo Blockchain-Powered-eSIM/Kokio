@@ -40,6 +40,7 @@ type ExternalWalletOrderRequest = {
   coupon?: string | null;
   isCryptoPayment: true;
   payeeAddress?: string;
+  successRedirectUrl?: string;
 };
 
 // ─── Order functions ──────────────────────────────────────────────────────────

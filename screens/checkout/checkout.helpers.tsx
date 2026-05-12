@@ -4,13 +4,14 @@ import { RadioButtonProps } from "react-native-radio-buttons-group";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { Theme } from "@/constants/Colors";
 
-import { ApplePay, CreditCard, ESimWallet, ExternalWallet } from "./components/radioLabels";
+import { ApplePay, CreditCard, ESimWallet, ExternalWallet, ExternalWalletBrowser } from "./components/radioLabels";
 
 const radioButtonComponents: Record<string, JSX.Element> = {
   [RADIO_KEYS.E_SIM_WALLET]: <ESimWallet />,
   [RADIO_KEYS.CREDIT_CARD]: <CreditCard />,
   [RADIO_KEYS.APPLE_PAY]: <ApplePay />,
   [RADIO_KEYS.EXTERNAL_WALLET]: <ExternalWallet />,
+  [RADIO_KEYS.EXTERNAL_WALLET_BROWSER]: <ExternalWalletBrowser />,
 };
 
 export const createRadioButtons = (

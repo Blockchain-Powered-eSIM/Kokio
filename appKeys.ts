@@ -14,6 +14,7 @@ export interface AppExtraConfig {
     stripePublishableKey?: string;
     stripeMerchantIdentifier?: string;
     walletConnectProjectId?: string;
+    externalWalletCallback?: string;
 }
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
@@ -32,6 +33,7 @@ export const Config = {
     STRIPE_PUBLISHABLE_KEY: extra?.stripePublishableKey,
     STRIPE_MERCHANT_IDENTIFIER: extra?.stripeMerchantIdentifier,
     WALLETCONNECT_PROJECT_ID: extra?.walletConnectProjectId,
+    EXTERNAL_WALLET_CALLBACK: extra?.externalWalletCallback,
 
     // Utility function for validation
     validateSecrets: () => {

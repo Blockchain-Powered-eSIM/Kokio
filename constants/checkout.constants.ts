@@ -3,6 +3,7 @@ export const RADIO_KEYS = {
   CREDIT_CARD: "CREDIT_CARD",
   APPLE_PAY: "APPLE_PAY",
   EXTERNAL_WALLET: "EXTERNAL_WALLET",
+  EXTERNAL_WALLET_BROWSER: "EXTERNAL_WALLET_BROWSER",
 } as const;
 
 export type RadioKey = (typeof RADIO_KEYS)[keyof typeof RADIO_KEYS];
