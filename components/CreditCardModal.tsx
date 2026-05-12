@@ -3,13 +3,10 @@ import {
   Modal,
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Switch,
   Image,
   Dimensions,
-  StatusBar,
   Platform,
 } from "react-native";
 import { BlurView } from "expo-blur";

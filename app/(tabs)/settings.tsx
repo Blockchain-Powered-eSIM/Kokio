@@ -6,7 +6,6 @@ import {
   View,
   ScrollView,
   Text,
-  Switch,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
 import { Theme, THEME_STORAGE_KEY } from "@/constants/Colors";
@@ -19,7 +18,6 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Updates from "expo-updates";
 
 // Feature flags for menu item availability
 // Set to true to enable the menu item, false to disable (but keep visible)
@@ -124,25 +122,18 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function MenuScreen() {
-  const { loginWithPasskey, signUpWithPasskey, reauthenticate, logout } =
-    useAuthRelay();
-  const { clearKokioUser, kokio } = useKokio();
+  const { logout } = useAuthRelay();
+  const { clearKokioUser } = useKokio();
   const router = useRouter();
 
   const [showAbout, setShowAbout] = useState(false);
-  const [isDark, setIsDark] = useState(true);
+  const [, setIsDark] = useState(true);
   const bg = useThemeColor({}, "background");
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
       setIsDark(val !== "light");
     });
-  }, []);
-
-  const handleThemeToggle = useCallback(async (value: boolean) => {
-    setIsDark(value);
-    await AsyncStorage.setItem(THEME_STORAGE_KEY, value ? "dark" : "light");
-    await Updates.reloadAsync();
   }, []);
 
   const menuItems = [
@@ -183,29 +174,17 @@ export default function MenuScreen() {
     },
     {
       id: "6",
-      title: "Login",
-      iconLeft: "log-in-outline",
+      title: "Logout",
+      iconLeft: "log-out-outline",
       iconRight: "chevron-forward-outline",
-      action: async () => {
-        if (kokio.deviceWalletAddress) {
-          // Device is registered — run the ceremony first, then navigate.
-          // Errors land in authProvider state and surface in AuthenticationModal
-          // on "/", which opens automatically when !state.authenticated.
-          await loginWithPasskey();
-        }
-        // No registration on this device (new phone, post-logout, etc.):
-        // go to "/" so AuthenticationModal handles sign-up naturally.
-        router.replace("/");
-      },
+      action: logout,
     },
     {
       id: "7",
       title: "Logout and Clear Data",
-      iconLeft: "log-out-outline",
+      iconLeft: "trash-outline",
       iconRight: "chevron-forward-outline",
       action: async () => {
-        // Clear Kokio SDK + passkey / wallet / eSIM state from SecureStore first,
-        // then revoke the refresh token and wipe the auth token store.
         await clearKokioUser();
         await logout();
       },

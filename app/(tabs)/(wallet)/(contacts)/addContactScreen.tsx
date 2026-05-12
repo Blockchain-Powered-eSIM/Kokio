@@ -1,5 +1,5 @@
 import 'react-native-get-random-values';
-import { View, Text, Image, TextInput, Button, KeyboardAvoidingView, ActivityIndicator, Alert } from 'react-native'
+import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -9,12 +9,13 @@ import { Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
-import { useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
-import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
+import { useNavigation, useLocalSearchParams } from 'expo-router';
 import { Theme } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
 
 const addContactScreen = () => {
+    const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [walletAddress, setWalletAddress] = useState("");
@@ -72,7 +73,7 @@ const addContactScreen = () => {
 
     const handleAdd = async () => {
         if (firstName === "" || walletAddress === "") {
-            Alert.alert("Please fill the first Name and Address to Proceed")
+            showMessage("Please fill in first name and address to proceed", "error");
             return;
         }
 
@@ -105,14 +106,14 @@ const addContactScreen = () => {
             await AsyncStorage.setItem('contactIds', JSON.stringify(contactIds));
 
             // Optional: Show success message
-            Alert.alert("Success", "Contact added successfully");
+            showMessage("Contact added successfully", "info");
             router.replace({pathname:'/(tabs)/(wallet)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
             console.log(contactObj);
             
 
         } catch (error) {
             console.log("Error saving contact:", error);
-            Alert.alert("Error", "Failed to add contact");
+            showMessage("Failed to add contact", "error");
         } finally {
             setIsLoading(false);
             setFirstName("");

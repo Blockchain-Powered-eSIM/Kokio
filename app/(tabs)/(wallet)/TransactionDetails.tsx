@@ -1,8 +1,8 @@
-import { View, Text, Image } from 'react-native'
-import React, { useEffect } from 'react'
+import { View, Image } from 'react-native'
+import React from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
 import { Theme } from '@/constants/Colors';
 

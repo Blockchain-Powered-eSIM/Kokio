@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   StyleSheet,
   View,
   Platform,
@@ -15,8 +14,6 @@ import { useLocalSearchParams, router } from "expo-router";
 import { RadioButtonProps, RadioGroup } from "react-native-radio-buttons-group";
 import ToggleSwitch from "toggle-switch-react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { WalletConnectModal } from "@walletconnect/modal-react-native";
-import _sum from "lodash/sum";
 import _trim from "lodash/trim";
 import _subtract from "lodash/subtract";
 import _toNumber from "lodash/toNumber";
@@ -27,44 +24,28 @@ import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
-import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { eSimOderCheckout } from "@/services/esims";
+import { createOrder } from "@/utils/bff/order";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
-import { isHashUsed, markHashUsed } from "@/utils/orderTracking";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import CreditCardModal from "@/components/CreditCardModal";
 
-import * as Linking from "expo-linking";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { getSignClient } from "@/lib/reownWallet";
-import { useWalletConnect } from "@/hooks/useWalletConnect";
-import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
-import { AppExtraConfig } from "@/appKeys";
-import Constants from "expo-constants";
-import { keccak256 } from "viem";
+import type { CreateOrderResponse } from "@/utils/bff/order";
 
-const extra = Constants.expoConfig?.extra as AppExtraConfig;
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
 
-const Checkout = ({ currentBalance = 25 }: any) => {
+const Checkout = () => {
   const { item: eSimDetails } = useLocalSearchParams();
-  const {
-    isConnecting,
-    externalAddress,
-    payViaExternalWallet,
-    connectExternalWallet,
-    disconnectExternalWallet
-  } = useWalletConnect();
 
   const eSimItem: Esim = React.useMemo(() => {
     if (typeof eSimDetails === "string") {
@@ -81,8 +62,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     string | undefined
   >();
-  const [fundOnDeviceWallet, setFundOnDeviceWallet] = useState<boolean>(false);
-  const [amount, setAmount] = useState<number | null>(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
@@ -92,7 +71,7 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
-  const [orderResponse, setOrderResponse] = useState<any>(null);
+  const [orderResponse, setOrderResponse] = useState<CreateOrderResponse | null>(null);
   const [discountError, setDiscountError] = useState<string>("");
 
   const radioButtons: RadioButtonProps[] = useMemo(
@@ -136,44 +115,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     }
   }, [compatibleEsims]);
 
-  const addAmountSection = useMemo(() => {
-    return (
-      <View>
-        <View style={{ flexDirection: "row", marginBottom: 4 }}>
-          <ThemedText
-            style={{ color: Theme.colors.foreground, marginRight: 4 }}
-          >
-            Add this amount to my device wallet
-          </ThemedText>
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            (1USD=1USDC)
-          </ThemedText>
-        </View>
-        <AmountInput value={amount} onChangeValue={setAmount} />
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 4,
-          }}
-        >
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            Current Balance
-          </ThemedText>
-          <ThemedText>{`${(currentBalance || 0).toFixed(2)}  USDC`}</ThemedText>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            Balance after
-          </ThemedText>
-          <ThemedText>
-            {_sum([amount, currentBalance]).toFixed(2)} USDC
-          </ThemedText>
-        </View>
-      </View>
-    );
-  }, [amount, currentBalance, setAmount]);
-
   const handleEsimCheckout = useCallback(async () => {
     try {
       setIsCheckoutLoading(true);
@@ -206,37 +147,29 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         applyAsTopup,
         compatibleTopUpEsimId
       });
-      console.log({ eSimItem });
-      console.log("Order Api Payload", { ...payload, payeeAddress: deviceWalletId });
-
-      const response = await eSimOderCheckout({
+      const orderData = await createOrder({
         ...payload,
         payeeAddress: deviceWalletId,
       });
 
-      console.log("Order Api Response", response);
+      setOrderResponse(orderData);
 
-      if (response?.success && response?.data) {
-        setOrderResponse(response.data);
-
-        // Store purchased eSIM in SecureStore and reducer
-        if (kokio.deviceUID) {
-          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
-        }
-      } else {
-        console.error("Checkout failed:", response?.message);
-        setShowSuccessModal(false);
+      // Store purchased eSIM in SecureStore and reducer
+      if (kokio.deviceUID) {
+        await savePurchasedESIM(kokio.deviceUID, eSimItem, orderData);
       }
 
       setIsCheckoutLoading(false);
     } catch (err) {
-      console.error("Checkout error:", err);
-      const { data } = (err as any) || {};
-      if (data?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+      if (__DEV__) console.error("Checkout error:", err);
+      const e = err as { code?: string; message?: string };
+      const errCode = e.code;
+      const errMessage = e.message;
+      if (errCode === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
-      } else if (data?.message) {
-        console.error("Checkout failed:", data.message);
+      } else if (errMessage) {
+        if (__DEV__) console.error("Checkout failed:", errMessage);
       }
       setIsCheckoutLoading(false);
       setShowSuccessModal(false);
@@ -254,176 +187,13 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     handleRemoveDiscount,
   ]);
 
-  const payWithUSDC = async (params: {
-    amountInUsd: number;
-    fromAddress: string;
-    topic: string;
-  }) => {
-    // TODO: Update to mainnet during production
-    const BASE_SEPOLIA_USDC_ADDRESS = "0x6Ac3aB54Dc5019A2e57eCcb214337FF5bbD52897";
-    const toAddress = extra.kokioVaultAddress || "0x";
-    const chainId = WC_BASE_SEPOLIA;
-    const { amountInUsd, fromAddress, topic } = params;
-    const signClient = await getSignClient();
-
-    // Converting to USDC Units (6 decimals)
-    // Eg: 10.50 USD -> 10,500,000 units
-    const usdcAmount = BigInt(Math.floor(amountInUsd * 1e6));
-
-    // Encode ERC-20 Data
-    // Padding address to 64 chars and amount to 64 chars
-    const formattedAddress = toAddress.replace("0x", "").toLowerCase().padStart(64, "0");
-    const cleanAmount = usdcAmount.toString(16).padStart(64, "0");
-    const transferFunc = "transfer(address,uint256)";
-    const functionHash = (keccak256(Buffer.from(transferFunc))).slice(0, 10);
-    
-    const transactionData = `${functionHash}${formattedAddress}${cleanAmount}`;
-
-    console.log("--- Initiating External Transaction ---");
-    console.log("Wallet Address:", fromAddress);
-    console.log("To (Kokio vault): ", extra.kokioVaultAddress);
-    console.log(`${amountInUsd}USD ==>${cleanAmount}`);
-
-    // 3. Request Transaction
-    return await signClient.request({
-      topic,
-      chainId,
-      request: {
-        method: "eth_sendTransaction",
-        params: [{
-          from: fromAddress,
-          to: BASE_SEPOLIA_USDC_ADDRESS, 
-          data: transactionData,
-          value: "0x0", 
-        }],
-      },
-    });
-  };
-
-  const handleExternalWalletCheckout = useCallback(async () => {
-    try {
-      setIsCheckoutLoading(true);
-
-      const signClient = await getSignClient();
-      const sessions = signClient.session.getAll();
-      if (sessions.length === 0 || !externalAddress) {
-        // TODO: remove alert
-        alert("No active wallet session. Please reconnect your wallet.");
-        return;
-      }
-
-      const activeSession = sessions[0];
-      // Trigger deeplink to the wallet app
-      const redirect = activeSession.peer.metadata.redirect?.native;
-      if (redirect) {
-        await Linking.openURL(redirect);
-      }
-
-      const transactionHash = await payWithUSDC({
-        amountInUsd: totalAmount as number,
-        fromAddress: externalAddress,
-        topic: activeSession.topic
-      });
-
-      console.log("--- Transaction Successful ---");
-      console.log("Transaction Hash:", transactionHash);
-
-      const txnHash = transactionHash as string;
-      if (await isHashUsed(txnHash)) {
-        Alert.alert('Payment Already Used', 'This transaction has already been used. Please use a different payment.');
-        return;
-      }
-
-      if (applyAsTopup && compatibleTopUpEsimId) {
-        await createTopupOrder.mutateAsync({
-          request: {
-            catalogueId: eSimItem.catalogueId,
-            currency: "USD",
-            isNewESim: false,
-            eSimId: compatibleTopUpEsimId,
-            isCryptoPayment: true,
-            txnHash,
-            tokenName: "USDC",
-            network: "BASE",
-            payeeAddress: externalAddress,
-          },
-          eSimItem,
-        });
-        await markHashUsed(txnHash);
-        showMessage('eSIM topped up successfully!', 'info');
-        return;
-      }
-
-      setShowSuccessModal(true);
-
-      const payload = getEsimOrderPayload({
-        eSimItem,
-        deviceWalletId: kokio.userWallet?.address,
-        discountCode: "",
-        applyAsTopup,
-        compatibleTopUpEsimId
-      });
-
-      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{
-        ...payload,
-        paymentMethod: "external_wallet",
-        payeeAddress: externalAddress,
-        txnHash,
-        paymentVia: "USDC",
-      })
-
-      const response = await eSimOderCheckout({
-        ...payload,
-        paymentMethod: "external_wallet", // NEEDED ?
-        payeeAddress: externalAddress,
-        txnHash, // Pass hash to backend
-        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
-        tokenName: "USDC",
-        network: "BASE"
-      });
-
-      if (response?.success && response?.data) {
-        setOrderResponse(response.data);
-        await markHashUsed(txnHash);
-
-        // Store purchased eSIM so it appears on the Home screen
-        if (kokio.deviceUID) {
-          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
-        }
-      } else {
-        console.error("Backend validation failed:", response?.message);
-      }
-
-    } catch (err: any) {
-      console.log("Full Error Object:", JSON.stringify(err, null, 2));
-      const errData = err?.data || {};
-      if (errData?.code === 'COUPON_INSUFFICIENT_BALANCE') {
-        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
-        handleRemoveDiscount();
-      }
-    } finally {
-      setIsCheckoutLoading(false);
-    }
-  }, [totalAmount, externalAddress, kokio.userWallet, kokio.deviceUID, savePurchasedESIM, discountCode, applyAsTopup, compatibleTopUpEsimId, eSimItem, createTopupOrder, showMessage, handleRemoveDiscount]);
-
   const handleCheckout = useCallback(async () => {
-    console.log("handleCheckout triggered");
-
-    // If credit card is selected, open the credit card modal instead of proceeding with checkout
     if (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD) {
       setShowCreditCardModal(true);
       return;
     }
-
-    if (payViaExternalWallet) {
-      console.log("Pay via external wallet selected");
-      await handleExternalWalletCheckout();
-      return;
-    }
-
-    console.log("Standard eSIM checkout");
     handleEsimCheckout();
-  }, [payViaExternalWallet, handleExternalWalletCheckout, handleEsimCheckout]);
+  }, [selectedPaymentMethod, handleEsimCheckout]);
 
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);
@@ -446,7 +216,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const handlePaymentMethodChange = useCallback(
     (value: string) => {
       if (value === RADIO_KEYS.E_SIM_WALLET) {
-        console.log(kokio.userWallet?.address);
         if (kokio.userWallet) {
           setSelectedPaymentMethod(value);
         } else {
@@ -464,16 +233,8 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   }, []);
 
   const handleCreditCardSubmit = useCallback(
-    (cardData: {
-      cardName: string;
-      nameOnCard: string;
-      cardNumber: string;
-      expiration: string;
-      cvv: string;
-      saveCard: boolean;
-    }) => {
+    () => {
       // TODO: Handle credit card submission
-      console.log("Credit card data:", cardData);
       setShowCreditCardModal(false);
 
       // Now proceed with the actual checkout process
@@ -532,21 +293,9 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   // );
 
   const canCheckout = useMemo(() => {
-    if (!isESimEnabled || isCheckoutLoading || isConnecting) return false;
-
-    const hasDeviceWallet = !!kokio.userWallet;
-    const hasDiscountOrExternal = isDiscountApplied || payViaExternalWallet;
-
-    // Require device wallet and either a discount applied or external wallet toggle
-    return hasDeviceWallet && hasDiscountOrExternal;
-  }, [
-    isESimEnabled,
-    isCheckoutLoading,
-    isConnecting,
-    kokio.userWallet,
-    isDiscountApplied,
-    payViaExternalWallet,
-  ]);
+    if (!isESimEnabled || isCheckoutLoading) return false;
+    return !!kokio.userWallet && isDiscountApplied;
+  }, [isESimEnabled, isCheckoutLoading, kokio.userWallet, isDiscountApplied]);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -731,61 +480,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
             )}
           </View>
         )}
-
-        {/* External Wallet Toggle */}
-        <View style={{ marginTop: 16 }}>
-          <ThemedText>Pay directly via external wallet</ThemedText>
-          <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
-            In alpha, use it to pay directly via external wallet.
-          </Text>
-          
-          <View style={styles.walletStatusRow}>
-            {/* This container ensures the toggle and label stay left-aligned */}
-            <View style={styles.toggleLeftSide}>
-              <ToggleSwitch
-                isOn={payViaExternalWallet}
-                onToggle={async (isOn) => {
-                  if (isOn) {
-                    await connectExternalWallet();
-                  } else {
-                    await disconnectExternalWallet();
-                  }
-                }}
-                onColor={Theme.colors.success}
-                offColor={Theme.colors.muted}
-                size="small"
-                disabled={isConnecting}
-              />
-              {isConnecting ? (
-                <ActivityIndicator
-                size="small"
-                color={Theme.colors.secondary}
-                style={{ marginLeft: 8 }}
-                />
-              ) : (
-              <ThemedText style={{ marginLeft: 8 }}>
-                Pay via external wallet
-              </ThemedText>
-              )}
-            </View>
-
-            {/* The Badge remains on the far right */}
-            {payViaExternalWallet && externalAddress ? (
-              <View style={styles.addressBadge}>
-                <View style={styles.greenDot} />
-                <ThemedText style={styles.addressText}>
-                  {`${externalAddress.slice(0, 6)}...${externalAddress.slice(-4)}`}
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
-          
-          {payViaExternalWallet && (
-            <Text style={{ color: Theme.colors.muted, marginTop: 8, fontSize: 12 }}>
-              On placing order, you will be prompted to pay via your external wallet.
-            </Text>
-          )}
-        </View>
 
         {/* <View style={{ marginTop: 16 }}>
           <ThemedText>Fund Device Wallet</ThemedText>
@@ -1024,35 +718,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-  },
-  toggleWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  addressBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Theme.colors.popover,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Theme.colors.muted,
-  },
-  greenDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Theme.colors.success,
-    marginRight: 6,
-    shadowColor: Theme.colors.success,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
-  addressText: {
-    fontSize: 12,
-    color: Theme.colors.foreground,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });

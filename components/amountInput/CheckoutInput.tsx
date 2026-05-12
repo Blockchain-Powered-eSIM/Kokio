@@ -3,7 +3,6 @@ import {
   TextInput,
   StyleSheet,
   View,
-  Text,
   TextInputProps,
   StyleProp,
   ViewStyle,
@@ -23,7 +22,7 @@ const CheckoutInput: React.FC<CheckoutInputProps> = ({
   ...props
 }) => {
   return (
-    <View style={styles.inner}>
+    <View style={[styles.inner, style]}>
       <ThemedText light style={styles.label}>{label}</ThemedText>
       <TextInput
         {...props}

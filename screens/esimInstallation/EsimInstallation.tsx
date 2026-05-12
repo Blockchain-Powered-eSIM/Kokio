@@ -47,8 +47,7 @@ const TextWithCopy = ({ label, text }) => {
 };
 
 const EsimInstallation = () => {
-  const { qrcode, appleInstallationUrl, iccid, orderId } =
-    useLocalSearchParams();
+  const { qrcode } = useLocalSearchParams();
   const qrData =
     (Array.isArray(qrcode) ? _head(qrcode) : qrcode) ||
     "LPA:1$activation.airalo.com$sample-qr-data";

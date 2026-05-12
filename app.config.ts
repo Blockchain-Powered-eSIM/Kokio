@@ -1,5 +1,6 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 import { AppExtraConfig } from "./appKeys.js";
+import { version } from "./package.json";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const privateConfig: AppExtraConfig = {
@@ -9,6 +10,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     alchemyApiKey: process.env.ALCHEMY_API_KEY,
     pimlicoApiKey: process.env.PIMLICO_API_KEY,
     gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
+    chainId: process.env.CHAIN_ID,
+    chainRpcUrl: process.env.CHAIN_RPC_URL,
+    usdcAddress: process.env.USDC_ADDRESS,
   };
 
   return {
@@ -18,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     newArchEnabled: true,
     name: "Kokio",
     slug: "Kokio",
-    version: "1.0.0",
+    version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "kokio",
@@ -35,8 +39,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       config: {
         usesNonExemptEncryption: false,
       },
-      runtimeVersion: "1.0.0",
-      version: "1.0.0",
+      runtimeVersion: version,
+      version,
       buildNumber: "1",
       infoPlist: {
         NSPhotoLibraryUsageDescription: "This app may access your photo library when selecting or sharing images."
@@ -49,8 +53,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       package: "app.kokio",
       edgeToEdgeEnabled: true,
-      version: "1.0.0",
-      runtimeVersion: "1.0.0",
+      version,
+      runtimeVersion: version,
       intentFilters: [
         {
           action: "VIEW",

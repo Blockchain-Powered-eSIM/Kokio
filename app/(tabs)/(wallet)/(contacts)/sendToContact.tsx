@@ -1,4 +1,4 @@
-import { View, Text, Image, Pressable, Platform, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { KeyboardAvoidingView } from 'react-native'
@@ -11,7 +11,6 @@ import { useRef, useMemo } from 'react'
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Alert } from 'react-native'
 import { useToast } from '@/contexts/ToastContext'
 import { Theme } from '@/constants/Colors'
 
@@ -51,7 +50,7 @@ const sendToContact = () => {
     const [token, setToken] = useState<Token | null>(null);
     const [tokens, setTokens] = useState<Token[]>([]);
     const [isLoading,setIsLoading] = useState(false);
-    const {showToast} = useToast();
+    const { showToast, showMessage } = useToast();
 
 
     const sheetRef = useRef(null);
@@ -106,7 +105,7 @@ const sendToContact = () => {
           showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',params?.firstName,params.monogramUrl)
         } catch (error) {
           console.error("Error adding transaction:", error);
-          Alert.alert("Error", "Failed to send transaction");
+          showMessage("Failed to send transaction", "error");
         } finally {
           setIsLoading(false);
           setAmount('0');

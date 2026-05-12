@@ -2,8 +2,6 @@ import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { MaterialTopTabBarProps } from "@react-navigation/material-top-tabs";
 
-import _debounce from "lodash/debounce";
-
 import { Theme } from "@/constants/Colors";
 
 const TabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {

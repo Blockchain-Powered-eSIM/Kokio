@@ -1,19 +1,15 @@
 import { ThemedText } from '@/components/ThemedText';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, Alert, Linking, Pressable, StatusBar } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
+import { StyleSheet, View, Linking, Pressable, StatusBar } from 'react-native';
 import { Theme } from '@/constants/Colors';
 
 export default function QrCodeScreen() {
-  const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [scanned, setScanned] = useState(false);
   const {firstName,lastName,isEdit,monogramUrl,id} = useLocalSearchParams();
-  const navigation = useNavigation();
 
   const handleBarCodeScanned = ({ data }:{data:string}) => {
     if (scanned) return;
@@ -54,10 +50,6 @@ export default function QrCodeScreen() {
       setPermissionDenied(true);
     }
   }, [permission]);
-
-  function toggleCameraFacing() {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
-  }
 
   if (!permission) {
     // Camera permissions are still loading

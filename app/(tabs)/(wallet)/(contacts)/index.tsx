@@ -2,7 +2,7 @@ import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import { Image, Pressable, View } from 'react-native'
 import React from 'react'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router } from 'expo-router'
 import _ from "lodash";
 import { Theme } from '@/constants/Colors';
 import { useState,useCallback } from 'react'

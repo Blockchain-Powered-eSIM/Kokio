@@ -3,7 +3,7 @@ import { Theme } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { Image, Pressable, View } from "react-native";
 import React from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import _ from "lodash";
 import { useState, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
