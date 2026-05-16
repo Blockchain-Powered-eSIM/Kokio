@@ -74,7 +74,9 @@ const ActiveESIMsScroll = ({
             />
           </View>
         )}
-        keyExtractor={(item) => item?.transactionData?.orderId}
+        keyExtractor={(item, index) =>
+          item?.transactionData?.orderId ?? String(index)
+        }
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}

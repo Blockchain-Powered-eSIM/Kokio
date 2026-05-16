@@ -39,7 +39,7 @@ const Hero = () => {
         </View>
         <TouchableOpacity
           style={[styles.heroButton, {
-            backgroundColor: isDarkTheme ? Theme.colors.text : Theme.colors.secondary,
+            backgroundColor: isDarkTheme ? Theme.colors.text : Theme.colors.shopCta,
           }]}
           onPress={handleShopCTAClick}
         >

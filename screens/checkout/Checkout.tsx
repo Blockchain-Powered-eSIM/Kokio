@@ -795,7 +795,7 @@ const Checkout = () => {
           prefix="Pay "
           value={totalAmount}
           suffix="USD"
-          containerStyles={[styles.checkoutButton, { backgroundColor: Theme.colors.secondary }]}
+          containerStyles={[styles.checkoutButton, { backgroundColor: Theme.colors.payButton }]}
         />
       </TouchableOpacity>
 

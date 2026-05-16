@@ -85,7 +85,7 @@ const ESIMItem = ({
           </View>
           {showBuyButton && (
             <TouchableOpacity
-              style={[styles.buyButton, { backgroundColor: Theme.colors.goldenYellow }]}
+              style={[styles.buyButton, { backgroundColor: Theme.colors.shopCta }]}
               onPress={handleBuyCTAClick(item.catalogueId)}
             >
               <DetailItem

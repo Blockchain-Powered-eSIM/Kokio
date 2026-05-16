@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   // Switch,
   Text,
+  Switch,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
 import { Theme, THEME_STORAGE_KEY } from "@/constants/Colors";
@@ -363,7 +364,7 @@ export default function MenuScreen() {
               style={styles.list}
             />
             {/* THEME SWITCH : TODO interate to improve*/}
-            {/* <View style={styles.themeRow}>
+            { <View style={styles.themeRow}>
               <Ionicons
                 name={isDark ? "moon-outline" : "sunny-outline"}
                 size={24}
@@ -379,7 +380,7 @@ export default function MenuScreen() {
                 trackColor={{ false: Theme.colors.muted, true: Theme.colors.primary }}
                 thumbColor={Theme.colors.text}
               />
-            </View> */}
+            </View> }
           </>
         )}
       </ThemedView>

@@ -10,6 +10,7 @@ import _get from "lodash/get";
 import _map from "lodash/map";
 
 import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import { REGION_CONFIG } from "@/constants/general.constants";
 import appBootstrap from "@/utils/appBootstrap";
@@ -37,14 +38,14 @@ export default function Regions() {
   };
 
   return (
-    <View style={styles.tabWrapper}>
+    <ThemedView style={styles.tabWrapper}>
       <FlatList
         data={list}
         renderItem={renderItem}
         style={{ width: "100%", backgroundColor: "transparent" }}
         keyExtractor={(item, index) => item?.code || index}
       />
-    </View>
+    </ThemedView>
   );
 }
 
@@ -55,7 +56,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: Theme.spacing.xl,
     width: "100%",
-    backgroundColor: "transparent",
   },
   region: {
     display: "flex",

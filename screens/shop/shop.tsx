@@ -5,7 +5,7 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import _debounce from "lodash/debounce";
 
 import { ThemedView } from "@/components/ThemedView";
-import { Theme } from "@/constants/Colors";
+import { Theme, isDarkTheme } from "@/constants/Colors";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
 
@@ -21,7 +21,7 @@ const TabsNavigator = () => {
   return (
     <Tab.Navigator
       tabBar={(props) => <TabBar {...props} />}
-      sceneContainerStyle={{ backgroundColor: "transparent" }}
+      sceneContainerStyle={{ backgroundColor: isDarkTheme ? "transparent" : Theme.colors.background }}
     >
       <Tab.Screen
         name="Countries"

@@ -15,6 +15,7 @@ import { openBrowserAsync } from "expo-web-browser";
 import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
@@ -51,6 +52,9 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const modalRef = React.useRef<Modal>(null);
   const { kokio, setupKokioUserWallet } = useKokio();
   const { showMessage } = useToast();
+  const textColor = useThemeColor({}, "text");
+  const foregroundColor = useThemeColor({}, "foreground");
+  const mutedColor = useThemeColor({}, "muted");
 
   const handleAddressPress = useCallback(async () => {
     if (walletAddress) {
@@ -163,24 +167,24 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const initialContent = useMemo(
     () => (
       <>
-        <ThemedText bold style={styles.title}>
+        <ThemedText bold style={[styles.title, { color: textColor }]}>
           Device Wallet
         </ThemedText>
 
-        <Text style={styles.description}>
+        <Text style={[styles.description, { color: foregroundColor }]}>
           Press "Continue" to setup your device wallet.
         </Text>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.laterButton} onPress={handleClose}>
-            <Text style={styles.laterButtonText}>Later</Text>
+        <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
+          <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
+            <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Later</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.continueButton}
             onPress={handleContinue}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={[styles.continueButtonText, { color: Theme.colors.primary }]}>Continue</Text>
           </TouchableOpacity>
         </View>
       </>
@@ -192,7 +196,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     () => (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size={90} color={Theme.colors.primary} />
-        <Text style={styles.loadingText}>
+        <Text style={[styles.loadingText, { color: foregroundColor }]}>
           Please wait while your wallet is being deployed...
         </Text>
       </View>
@@ -210,24 +214,24 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             color={Theme.colors.destructive}
             style={styles.errorIcon}
           />
-          <ThemedText bold style={styles.errorTitle}>
+          <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
             Wallet Creation Failed
           </ThemedText>
-          <Text style={styles.errorDescription}>
+          <Text style={[styles.errorDescription, { color: foregroundColor }]}>
             There was an error creating your wallet. Please try again.
           </Text>
         </View>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.laterButton} onPress={handleClose}>
-            <Text style={styles.laterButtonText}>Cancel</Text>
+        <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
+          <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
+            <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.continueButton}
             onPress={handleContinue}
           >
-            <Text style={styles.continueButtonText}>Retry</Text>
+            <Text style={[styles.continueButtonText, { color: Theme.colors.primary }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </>
@@ -258,32 +262,32 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const recoveryContent = useMemo(
     () => (
       <>
-        <View style={styles.warningContainer}>
+        <View style={[styles.warningContainer, { backgroundColor: Theme.colors.popover }]}>
           <MaterialCommunityIcons
             name="comment-alert"
             size={32}
             color={Theme.colors.primary}
             style={styles.warningIconTopRight}
           />
-          <Text style={styles.warningText}>
+          <Text style={[styles.warningText, { color: textColor }]}>
             If you no longer have your device, you'll need this email address or
             EOA to restore access to your wallet.
           </Text>
         </View>
 
-        <View style={styles.recoveryCard}>
+        <View style={[styles.recoveryCard, { backgroundColor: Theme.colors.popover }]}>
           <ThemedText bold style={styles.recoveryTitle}>
             Wallet Recovery
           </ThemedText>
 
           <View style={styles.addressContainer}>
-            <Text style={styles.addressText}>Address: </Text>
+            <Text style={[styles.addressText, { color: foregroundColor }]}>Address: </Text>
             <TouchableOpacity
               style={styles.clickableAddressContainer}
               onPress={handleAddressPress}
               disabled={!walletAddress}
             >
-              <Text style={styles.addressText}>
+              <Text style={[styles.addressText, { color: foregroundColor }]}>
                 {formatWalletAddress(walletAddress)}
               </Text>
               {walletAddress && (
@@ -297,13 +301,13 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.recoveryDescription}>
+          <Text style={[styles.recoveryDescription, { color: foregroundColor }]}>
             You may optionally provide an email address or EOA for recovery
             purpose and to restore access to your device wallet
           </Text>
 
           <TextInput
-            style={styles.emailInput}
+            style={[styles.emailInput, { backgroundColor: Theme.colors.inputBackground, color: textColor }]}
             placeholder="Email id"
             placeholderTextColor={Theme.colors.accentForeground}
             value={email}
@@ -315,14 +319,14 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
         <View style={styles.recoveryButtonContainer}>
           <TouchableOpacity
-            style={styles.remindLaterButton}
+            style={[styles.remindLaterButton, { borderColor: Theme.colors.primary }]}
             onPress={handleRemindLater}
           >
-            <Text style={styles.remindLaterText}>Remind me later</Text>
+            <Text style={[styles.remindLaterText, { color: Theme.colors.primary }]}>Remind me later</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-            <Text style={styles.doneButtonText}>Done</Text>
+          <TouchableOpacity style={[styles.doneButton, { backgroundColor: Theme.colors.primary }]} onPress={handleDone}>
+            <Text style={[styles.doneButtonText, { color: Theme.colors.cardForeground }]}>Done</Text>
           </TouchableOpacity>
         </View>
       </>
@@ -347,7 +351,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       ref={modalRef}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: Theme.colors.walletModalBackground }]}>
           <KeyboardAvoidingView
             style={[styles.contentContainerWrapper]}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -356,6 +360,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             <View
               style={[
                 styles.contentContainer,
+                { backgroundColor: Theme.colors.popover },
                 showRecovery && styles.expandedContainer,
               ]}
             >
@@ -375,7 +380,6 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   modalContainer: {
-    backgroundColor: Theme.colors.modalBackground,
     alignItems: "center",
     width: "100%",
     flex: 1,
@@ -386,20 +390,17 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     width: "80%",
-    backgroundColor: Theme.colors.background,
     borderRadius: 20,
     paddingTop: 32,
   },
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 16,
   },
   description: {
     fontSize: 14,
-    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 48,
@@ -407,7 +408,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: Theme.colors.muted,
     marginTop: 28,
   },
   laterButton: {
@@ -415,10 +415,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
     borderRightWidth: 1,
-    borderRightColor: Theme.colors.muted,
   },
   laterButtonText: {
-    color: Theme.colors.foreground,
     fontSize: 16,
     fontWeight: "400",
   },
@@ -428,7 +426,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   continueButtonText: {
-    color: Theme.colors.primary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -437,7 +434,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   loadingText: {
-    color: Theme.colors.foreground,
     fontSize: 16,
     textAlign: "center",
     marginTop: 16,
@@ -454,26 +450,22 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 12,
   },
   errorDescription: {
     fontSize: 14,
-    color: Theme.colors.foreground,
     textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 24,
   },
   warningContainer: {
     flexDirection: "row",
-    backgroundColor: Theme.colors.background,
     padding: 16,
     borderRadius: 16,
     marginBottom: 16,
   },
   warningText: {
-    color: Theme.colors.text,
     fontWeight: "600",
     fontSize: 14,
     lineHeight: 20,
@@ -486,14 +478,12 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   recoveryCard: {
-    backgroundColor: Theme.colors.background,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
   },
   recoveryTitle: {
     fontSize: 18,
-    color: Theme.colors.text,
     marginBottom: 12,
   },
   addressContainer: {
@@ -506,7 +496,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addressText: {
-    color: Theme.colors.foreground,
     fontSize: 14,
     marginRight: 8,
   },
@@ -514,16 +503,13 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   recoveryDescription: {
-    color: Theme.colors.foreground,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
   },
   emailInput: {
-    backgroundColor: Theme.colors.inputBackground,
     borderRadius: 8,
     padding: 12,
-    color: Theme.colors.text,
     fontSize: 16,
   },
   recoveryButtonContainer: {
@@ -534,25 +520,21 @@ const styles = StyleSheet.create({
   remindLaterButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: Theme.colors.primary,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: "center",
   },
   remindLaterText: {
-    color: Theme.colors.primary,
     fontSize: 16,
     fontWeight: "500",
   },
   doneButton: {
     flex: 1,
-    backgroundColor: Theme.colors.primary,
     borderRadius: 25,
     paddingVertical: 12,
     alignItems: "center",
   },
   doneButtonText: {
-    color: Theme.colors.cardForeground,
     fontSize: 16,
     fontWeight: "600",
   },

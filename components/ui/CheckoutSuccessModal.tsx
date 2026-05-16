@@ -99,8 +99,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
 
   const installButton = useMemo(
     () => (
-      <TouchableOpacity style={styles.installButton} onPress={onInstallESIM}>
-        <ThemedText style={styles.installButtonText}>Install eSIM</ThemedText>
+      <TouchableOpacity style={[styles.installButton, { backgroundColor: Theme.colors.shopCta }]} onPress={onInstallESIM}>
+        <ThemedText style={[styles.installButtonText, { color: Theme.colors.cardForeground }]}>Install eSIM</ThemedText>
       </TouchableOpacity>
     ),
     [onInstallESIM]
@@ -116,9 +116,9 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: Theme.colors.modalBackground }]}>
           <View style={styles.contentContainerWrapper}>
-            <View style={styles.contentContainer}>
+            <View style={[styles.contentContainer, { backgroundColor: Theme.colors.contentBackground }]}>
               {loading ? loadingContent : successContent}
             </View>
           </View>
@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   modalContainer: {
-    backgroundColor: Theme.colors.modalBackground,
     paddingHorizontal: 16,
     alignItems: "center",
     width: "100%",
@@ -149,7 +148,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     width: "80%",
-    backgroundColor: Theme.colors.contentBackground,
     borderRadius: 20,
     padding: 24,
     paddingTop: 32,
@@ -198,7 +196,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   installButton: {
-    backgroundColor: Theme.colors.highlight,
     borderRadius: 32,
     paddingVertical: 12,
     paddingHorizontal: 32,
@@ -206,7 +203,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   installButtonText: {
-    color: Theme.colors.cardForeground,
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
