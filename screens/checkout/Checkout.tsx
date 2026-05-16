@@ -30,9 +30,8 @@ import { getEsimOrderPayload } from "@/helpers/esimOrder";
 import { createOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus } from "@/utils/bff/order";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
-import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
-import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
+import { useCreateTopupOrder } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
@@ -159,13 +158,6 @@ const Checkout = () => {
   const { showMessage } = useToast();
   const createTopupOrder = useCreateTopupOrder();
 
-  // undefined = not yet read; null = read, no prior eSIM; string = prior eSIM address
-  const [storedEsimId, setStoredEsimId] = useState<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    SecureStore.getItemAsync(ESIM_ID_KEY).then(setStoredEsimId);
-  }, []);
-
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedCode(discountCode), 500);
     return () => clearTimeout(timer);
@@ -177,9 +169,10 @@ const Checkout = () => {
     isError: isCouponError,
   } = useCouponLookup(debouncedCode, debouncedCode.length === 8);
 
+  const hasPriorEsim = kokio.purchasedESIMs.length > 0;
   const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility(
-    { planId: eSimItem?.catalogueId, esimId: storedEsimId ?? undefined },
-    { enabled: !!storedEsimId },
+    { planId: eSimItem?.catalogueId },
+    { enabled: hasPriorEsim },
   );
   const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup] = useState(false);

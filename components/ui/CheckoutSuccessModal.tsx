@@ -17,6 +17,7 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 interface CheckoutSuccessModalProps {
   visible: boolean;
@@ -31,6 +32,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   onClose = () => {},
   onInstallESIM,
 }) => {
+  const textColor = useThemeColor({}, "text");
+
   const scale = useSharedValue(0);
 
   useEffect(() => {
@@ -80,11 +83,11 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
           />
         </Animated.View>
 
-        <ThemedText bold style={styles.title}>
+        <ThemedText bold style={[styles.title, { color: textColor }]}>
           Transaction Successful
         </ThemedText>
 
-        <ThemedText style={styles.subtitle}>
+        <ThemedText style={[styles.subtitle, { color: textColor }]}>
           It's now time to install your newly purchased eSIM.
         </ThemedText>
 
@@ -158,14 +161,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: Theme.colors.text,
     textAlign: "center",
     marginTop: 24,
     lineHeight: 22,
   },
   loadingSubText: {
     fontSize: 16,
-    color: Theme.colors.text,
     textAlign: "center",
     lineHeight: 22,
   },
@@ -179,13 +180,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: Theme.colors.text,
     textAlign: "center",
     marginBottom: 16,
     lineHeight: 22,
