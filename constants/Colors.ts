@@ -138,7 +138,7 @@ const LIGHT_TOKENS = {
   gradientDark: "#FFFFFF",          // wallet card gradient start: white → sky
   modalBackground: "rgba(255, 255, 255, 0.95)",
   walletModalBackground: "rgba(168, 216, 232, 0.75)",
-  contentBackground: "rgba(238, 248, 252, 0.98)",
+  contentBackground: "#FFFFFF",
   itemBackground: "#FFFFFF",
   sheetBackground: "rgba(255, 255, 255, 0.95)",
 };

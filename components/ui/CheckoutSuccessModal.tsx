@@ -16,7 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
+import { Theme, isDarkTheme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 
 interface CheckoutSuccessModalProps {
@@ -119,7 +119,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: Theme.colors.modalBackground }]}>
+        <View style={[styles.modalContainer, { backgroundColor: isDarkTheme ? Theme.colors.modalBackground : "transparent" }]}>
           <View style={styles.contentContainerWrapper}>
             <View style={[styles.contentContainer, { backgroundColor: Theme.colors.contentBackground }]}>
               {loading ? loadingContent : successContent}
