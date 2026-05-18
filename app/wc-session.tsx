@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useKokio } from "@/hooks/useKokio";
 import { Config } from "@/appKeys";
 import {
@@ -17,7 +18,86 @@ import {
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
 
+const createStyles = () => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.background,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  card: {
+    backgroundColor: Theme.colors.modalBackground,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+  },
+  dappIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  dappName: {
+    fontSize: 20,
+    color: Theme.colors.foreground,
+    marginBottom: 4,
+  },
+  dappUrl: {
+    fontSize: 13,
+    color: Theme.colors.muted,
+    marginBottom: 16,
+  },
+  divider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: Theme.colors.muted,
+    opacity: 0.2,
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 13,
+    color: Theme.colors.muted,
+    marginBottom: 4,
+  },
+  value: {
+    fontSize: 14,
+    color: Theme.colors.foreground,
+    marginBottom: 2,
+  },
+  addressPreview: {
+    fontSize: 13,
+    color: Theme.colors.muted,
+    fontFamily: "Lexend",
+    marginBottom: 24,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  button: {
+    flex: 1,
+    borderRadius: 32,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  rejectButton: {
+    backgroundColor: Theme.colors.inputBackground,
+  },
+  approveButton: {
+    backgroundColor: Theme.colors.secondary,
+  },
+  rejectText: {
+    color: Theme.colors.foreground,
+  },
+  approveText: {
+    color: Theme.colors.cardForeground,
+  },
+});
+
 export default function WcSessionScreen() {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const router = useRouter();
   const { kokio } = useKokio();
   const [loading, setLoading] = useState(false);
@@ -127,79 +207,3 @@ export default function WcSessionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  card: {
-    backgroundColor: Theme.colors.modalBackground,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: "center",
-  },
-  dappIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  dappName: {
-    fontSize: 20,
-    color: Theme.colors.foreground,
-    marginBottom: 4,
-  },
-  dappUrl: {
-    fontSize: 13,
-    color: Theme.colors.muted,
-    marginBottom: 16,
-  },
-  divider: {
-    width: "100%",
-    height: 1,
-    backgroundColor: Theme.colors.muted,
-    opacity: 0.2,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    color: Theme.colors.muted,
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 14,
-    color: Theme.colors.foreground,
-    marginBottom: 2,
-  },
-  addressPreview: {
-    fontSize: 13,
-    color: Theme.colors.muted,
-    fontFamily: "Lexend",
-    marginBottom: 24,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
-    width: "100%",
-  },
-  button: {
-    flex: 1,
-    borderRadius: 32,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  rejectButton: {
-    backgroundColor: Theme.colors.inputBackground,
-  },
-  approveButton: {
-    backgroundColor: Theme.colors.secondary,
-  },
-  rejectText: {
-    color: Theme.colors.foreground,
-  },
-  approveText: {
-    color: Theme.colors.cardForeground,
-  },
-});

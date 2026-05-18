@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,20 @@ import {
   ImageSourcePropType,
 } from "react-native";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
+
+const createStyles = () => StyleSheet.create({
+  container: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Theme.colors.success,
+    overflow: "hidden",
+  },
+  initials: {
+    color: Theme.colors.text,
+    fontWeight: "bold",
+  },
+});
 
 const Avatar = ({
   imageUri,
@@ -17,7 +31,8 @@ const Avatar = ({
   name: string;
   size?: number;
 }) => {
-  // Extract the first two letters of the name with specific casing
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const twoLetters = name
     ? name.charAt(0).toUpperCase() + (name.charAt(1) || "").toLowerCase()
     : "NA";
@@ -44,17 +59,5 @@ const Avatar = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Theme.colors.success,
-    overflow: "hidden",
-  },
-  initials: {
-    color: Theme.colors.text,
-    fontWeight: "bold",
-  },
-});
 
 export default Avatar;

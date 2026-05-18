@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   StyleSheet,
   Image,
@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
@@ -32,7 +33,109 @@ const shortenId = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
+const createStyles = () => StyleSheet.create({
+  headingText: {
+    fontSize: 16,
+    paddingLeft: 20,
+    marginBottom: 8,
+  },
+  shadowContainer: {
+    marginHorizontal: 8,
+    borderRadius: 21,
+    backgroundColor: Theme.colors.text,
+    ...Platform.select({
+      ios: {
+        shadowColor: Theme.colors.text,
+        shadowOffset: {
+          width: 0,
+          height: 5,
+        },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+        shadowColor: Theme.colors.text,
+      },
+    }),
+  },
+  gradient: {
+    borderRadius: 21,
+    padding: 24,
+    overflow: "hidden",
+  },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    marginLeft: 70,
+    width: "auto",
+  },
+  headerWithLogo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 16,
+    backgroundColor: "transparent",
+  },
+  title: {
+    paddingLeft: 16,
+    fontSize: 22,
+    fontWeight: "500",
+    color: Theme.colors.text,
+  },
+  logo: {
+    width: 32,
+    height: 32,
+  },
+  balanceContainer: {
+    backgroundColor: "transparent",
+    paddingTop: 24,
+    paddingLeft: 16,
+  },
+  balanceLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  balanceAmountContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    backgroundColor: "transparent",
+  },
+  balanceAmount: {
+    fontSize: 45,
+    fontWeight: "bold",
+    flexShrink: 1,
+    lineHeight: 44,
+  },
+  balanceCurrency: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 4,
+  },
+  address: {
+    alignSelf: "flex-end",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  walletIdContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  iconContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconButton: {
+    padding: 4,
+  },
+});
+
 const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const handleAddressPress = async () => {
     if (walletId) {
       const url = `${BASE_SEPOLIA_TESTNET}/${walletId}`;
@@ -139,103 +242,3 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
 
 export default Wallet;
 
-const styles = StyleSheet.create({
-  headingText: {
-    fontSize: 16,
-    paddingLeft: 20,
-    marginBottom: 8,
-  },
-  shadowContainer: {
-    marginHorizontal: 8,
-    borderRadius: 21,
-    backgroundColor: Theme.colors.text, // Important for shadow
-    ...Platform.select({
-      ios: {
-        shadowColor: Theme.colors.text,
-        shadowOffset: {
-          width: 0,
-          height: 5,
-        },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-        shadowColor: Theme.colors.text,
-      },
-    }),
-  },
-  gradient: {
-    borderRadius: 21,
-    padding: 24,
-    overflow: "hidden",
-  },
-  backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
-    marginLeft: 70,
-    width: "auto",
-  },
-  headerWithLogo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 4,
-    marginBottom: 16,
-    backgroundColor: "transparent",
-  },
-  title: {
-    paddingLeft: 16,
-    fontSize: 22,
-    fontWeight: "500",
-    color: Theme.colors.text,
-  },
-  logo: {
-    // Add appropriate size for your logo
-    width: 32,
-    height: 32,
-  },
-  balanceContainer: {
-    backgroundColor: "transparent",
-    paddingTop: 24,
-    paddingLeft: 16,
-  },
-  balanceLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  balanceAmountContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    backgroundColor: "transparent",
-  },
-  balanceAmount: {
-    fontSize: 45,
-    fontWeight: "bold",
-    flexShrink: 1, // Allow text to shrink if needed
-    lineHeight: 44,
-  },
-  balanceCurrency: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginLeft: 4,
-  },
-  address: {
-    alignSelf: "flex-end",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  walletIdContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 8,
-  },
-  iconContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  iconButton: {
-    padding: 4,
-  },
-});

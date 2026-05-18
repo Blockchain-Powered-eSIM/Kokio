@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import CountryFlag from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
@@ -31,6 +32,8 @@ const ESIMItem = ({
   containerStyle?: Object;
   onPress?: () => void;
 }) => {
+  const { isDark } = useTheme();
+
   const handleBuyCTAClick = useCallback(
     (id: string) => () => {
       router.navigate({
@@ -102,7 +105,7 @@ const ESIMItem = ({
         </View>
       </>
     ),
-    [item, showBuyButton, handleBuyCTAClick]
+    [item, showBuyButton, handleBuyCTAClick, isDark]
   );
 
   if (onPress) {

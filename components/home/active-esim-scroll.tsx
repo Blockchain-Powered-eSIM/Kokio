@@ -1,10 +1,11 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, FlatList, StyleSheet, Dimensions } from "react-native";
 import { router } from "expo-router";
 import _isEmpty from "lodash/isEmpty";
 import _get from "lodash/get";
 
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { StoredPurchasedESIM } from "@/providers/kokioProvider";
 
 import ESIMItem from "../ESIMItem";
@@ -13,11 +14,55 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH * 0.9;
 const SPACING = 8;
 
+const createStyles = () => StyleSheet.create({
+  emptyCard: {
+    marginHorizontal: SPACING,
+    marginTop: 8,
+    backgroundColor: Theme.colors.card,
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyIcon: {
+    fontSize: 24,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Theme.colors.text,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: Theme.colors.foreground,
+    textAlign: "center",
+  },
+  container: {
+    marginVertical: 12,
+  },
+  title: {
+    fontSize: 16,
+    color: Theme.colors.text,
+    paddingLeft: 20,
+  },
+  listContainer: {
+    paddingHorizontal: SPACING,
+  },
+  itemWrapper: {
+    width: ITEM_WIDTH,
+  },
+});
+
 const ActiveESIMsScroll = ({
   purchasedESIMs,
 }: {
   purchasedESIMs: StoredPurchasedESIM[];
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+
   const handleESIMPress = useCallback((purchasedESIM: StoredPurchasedESIM) => {
     return () => {
       router.navigate({
@@ -40,11 +85,6 @@ const ActiveESIMsScroll = ({
     };
   }, []);
 
-  // if (_isEmpty(purchasedESIMs)) {
-  //   return null;
-  // }
-
-  //empty eSIM card
   if (_isEmpty(purchasedESIMs)) {
     return (
       <View style={styles.container}>
@@ -89,47 +129,5 @@ const ActiveESIMsScroll = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  //empty eSIM card
-  emptyCard: {
-    marginHorizontal: SPACING,
-    marginTop: 8,
-    backgroundColor: Theme.colors.card,
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  emptyIcon: {
-    fontSize: 24,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Theme.colors.text,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: Theme.colors.foreground,
-    textAlign: "center",
-  },
-  container: {
-    marginVertical: 12,
-  },
-  title: {
-    fontSize: 16,
-    color: Theme.colors.text,
-    paddingLeft: 20,
-  },
-  listContainer: {
-    paddingHorizontal: SPACING,
-  },
-  itemWrapper: {
-    width: ITEM_WIDTH,
-  },
-});
 
 export default ActiveESIMsScroll;

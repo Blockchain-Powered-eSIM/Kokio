@@ -13,6 +13,7 @@ import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useToast } from '@/contexts/ToastContext'
 import { Theme } from '@/constants/Colors'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface Token {
     id: string;
@@ -44,7 +45,17 @@ interface Transaction {
     transactions: Transaction[];
   }
 
+const createStyles = () => StyleSheet.create({
+    contentContainer: {
+        backgroundColor: Theme.colors.background,
+        padding: 0,
+        elevation: 50,
+    },
+})
+
 const sendToContact = () => {
+    const { isDark } = useTheme();
+    const styles = useMemo(createStyles, [isDark]);
     const params = useLocalSearchParams();
     const [amount, setAmount] = useState("0");
     const [token, setToken] = useState<Token | null>(null);
@@ -258,12 +269,4 @@ const sendToContact = () => {
         </KeyboardAwareScrollView>
     )
 }
-const styles = StyleSheet.create({
-    contentContainer: {
-        backgroundColor: Theme.colors.background,
-        padding: 0,
-        elevation: 50,
-    },
-})
-
 export default sendToContact;

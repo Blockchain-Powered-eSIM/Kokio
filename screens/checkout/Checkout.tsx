@@ -23,6 +23,7 @@ import _toUpper from "lodash/toUpper";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
@@ -115,7 +116,199 @@ const ExternalWalletCheckout = ({
   return null;
 };
 
+const createStyles = () => StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flex: 1,
+    paddingHorizontal: 12,
+  },
+  scrollContentContainer: {
+    paddingBottom: 20,
+  },
+  bottomButtonContainer: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 8 : 16,
+  },
+  checkoutButton: {
+    borderRadius: 32,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkoutButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  logoImage: {
+    width: 24,
+    height: 24,
+    objectFit: "contain",
+  },
+  containerStyle: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  buttonStyle: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: RADIO_WIDTH,
+    backgroundColor: Theme.colors.inputBackground,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginHorizontal: 0,
+    marginVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  walletModalOverlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  walletModalContainer: {
+    backgroundColor: Theme.colors.popover,
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 320,
+  },
+  walletModalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  walletModalDescription: {
+    fontSize: 16,
+    color: Theme.colors.foreground,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  walletModalButtons: {
+    flexDirection: "row",
+    gap: 1,
+  },
+  laterButton: {
+    flex: 1,
+    backgroundColor: Theme.colors.muted,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  laterButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  continueButton: {
+    flex: 1,
+    backgroundColor: Theme.colors.primary,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  continueButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  discountContainer: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 8,
+  },
+  discountInput: {
+    flex: 1,
+    backgroundColor: Theme.colors.inputBackground,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    color: Theme.colors.foreground,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  applyButton: {
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  applyButtonText: {
+    color: Theme.colors.secondaryForeground,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  discountAppliedContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: Theme.colors.successBackground,
+    borderRadius: 8,
+  },
+  discountAppliedContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  discountAppliedText: {
+    color: Theme.colors.success,
+    fontSize: 14,
+  },
+  removeDiscountButton: {
+    padding: 4,
+    backgroundColor: Theme.colors.destructiveBackground,
+    borderRadius: 32,
+  },
+  discountErrorContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: Theme.colors.destructiveBackground,
+    borderRadius: 8,
+  },
+  discountErrorText: {
+    color: Theme.colors.destructive,
+    fontSize: 14,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Theme.colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 10,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  walletStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  toggleLeftSide: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+});
+
 const Checkout = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const { item: eSimDetails } = useLocalSearchParams();
 
   const eSimItem: Esim = React.useMemo(() => {
@@ -794,7 +987,7 @@ const Checkout = () => {
 
       {isCheckoutLoading && !!loadingMessage && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Theme.colors.secondary} />
+          <ActivityIndicator size="large" color="#FFFFFF" />
           <Text style={styles.loadingText}>{loadingMessage}</Text>
         </View>
       )}
@@ -842,192 +1035,3 @@ const Checkout = () => {
 
 export default Checkout;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flex: 1,
-    paddingHorizontal: 12,
-  },
-  scrollContentContainer: {
-    paddingBottom: 20,
-  },
-  bottomButtonContainer: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 8 : 16,
-  },
-  checkoutButton: {
-    borderRadius: 32,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkoutButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  logoImage: {
-    width: 24,
-    height: 24,
-    objectFit: "contain",
-  },
-  containerStyle: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  buttonStyle: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: RADIO_WIDTH,
-    backgroundColor: Theme.colors.inputBackground,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginHorizontal: 0,
-    marginVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  walletModalOverlay: {
-    flex: 1,
-    backgroundColor: Theme.colors.overlay,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  walletModalContainer: {
-    backgroundColor: Theme.colors.popover,
-    borderRadius: 16,
-    padding: 24,
-    width: "100%",
-    maxWidth: 320,
-  },
-  walletModalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  walletModalDescription: {
-    fontSize: 16,
-    color: Theme.colors.foreground,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  walletModalButtons: {
-    flexDirection: "row",
-    gap: 1,
-  },
-  laterButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.muted,
-    paddingVertical: 16,
-    alignItems: "center",
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-  },
-  laterButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  continueButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: 16,
-    alignItems: "center",
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  continueButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  discountContainer: {
-    flexDirection: "row",
-    marginTop: 12,
-    gap: 8,
-  },
-  discountInput: {
-    flex: 1,
-    backgroundColor: Theme.colors.inputBackground,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    color: Theme.colors.foreground,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  applyButton: {
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  applyButtonText: {
-    color: Theme.colors.secondaryForeground,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  discountAppliedContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: Theme.colors.successBackground,
-    borderRadius: 8,
-  },
-  discountAppliedContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  discountAppliedText: {
-    color: Theme.colors.success,
-    fontSize: 14,
-  },
-  removeDiscountButton: {
-    padding: 4,
-    backgroundColor: Theme.colors.destructiveBackground,
-    borderRadius: 32,
-  },
-  discountErrorContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: Theme.colors.destructiveBackground,
-    borderRadius: 8,
-  },
-  discountErrorText: {
-    color: Theme.colors.destructive,
-    fontSize: 14,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Theme.colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    zIndex: 10,
-  },
-  loadingText: {
-    color: Theme.colors.foreground,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  walletStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  toggleLeftSide: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-});

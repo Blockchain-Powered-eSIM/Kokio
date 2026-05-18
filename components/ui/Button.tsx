@@ -1,31 +1,13 @@
 import { Theme } from "@/constants/Colors";
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type PrimaryButtonProps = {
   children: React.ReactNode;
 };
 
-function Button({ children }: PrimaryButtonProps) {
-  function pressHandler() {
-    console.log("Button pressed");
-  }
-  return (
-    <View style={styles.buttonOuterContainer}>
-      <Pressable
-        style={styles.buttonInnerContainer}
-        onPress={pressHandler}
-        android_ripple={{ color: Theme.colors.primaryForeground }}
-      >
-        <Text style={styles.buttonText}>{children}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  // TODO: Add support for light and dark themes
-  // ! Dedicated pressed style for iOS not applied
+const createStyles = () => StyleSheet.create({
   buttonOuterContainer: {
     borderRadius: 40,
     margin: 4,
@@ -47,5 +29,25 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+function Button({ children }: PrimaryButtonProps) {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  function pressHandler() {
+    console.log("Button pressed");
+  }
+  return (
+    <View style={styles.buttonOuterContainer}>
+      <Pressable
+        style={styles.buttonInnerContainer}
+        onPress={pressHandler}
+        android_ripple={{ color: Theme.colors.primaryForeground }}
+      >
+        <Text style={styles.buttonText}>{children}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 
 export default Button;

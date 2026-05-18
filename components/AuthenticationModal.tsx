@@ -17,9 +17,65 @@ import { ThemedText } from "./ThemedText";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
-import { Theme, isDarkTheme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
+
+const createStyles = () => StyleSheet.create({
+  kokioImage: {
+    height: 60,
+    marginTop: 10,
+    resizeMode: "contain",
+  },
+  authRequiredText: {
+    fontSize: 24,
+    fontWeight: "300",
+    fontFamily: "Lexend-Light",
+    marginTop: 32,
+  },
+  authSubtext: {
+    fontSize: 13,
+    marginTop: 12,
+    fontWeight: "300",
+    fontFamily: "Lexend-Light",
+  },
+  authTouchText: {
+    fontSize: 13,
+    fontWeight: "300",
+    fontFamily: "Lexend-Light",
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    fontSize: 13,
+    fontWeight: "300",
+    fontFamily: "Lexend-Light",
+  },
+  contentImage: {
+    height: 80,
+    marginTop: 24,
+    marginBottom: 5,
+    resizeMode: "contain",
+  },
+  cancelText: {
+    fontSize: 16,
+    fontWeight: "300",
+    fontFamily: "Lexend-Light",
+  },
+  errorText: {
+    fontSize: 13,
+    color: Theme.colors.destructive,
+    fontFamily: "Lexend-Light",
+    textAlign: "center",
+    marginTop: 12,
+    paddingHorizontal: 24,
+  },
+});
 
 export function AuthenticationModal() {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const [loading, setLoading] = useState<boolean>(false);
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -40,7 +96,7 @@ export function AuthenticationModal() {
       >
         <BlurView
           intensity={100}
-          tint={isDarkTheme ? "systemChromeMaterialDark" : "systemChromeMaterial"}
+          tint={isDark ? "systemChromeMaterialDark" : "systemChromeMaterial"}
           blurMethod="none"
           style={{
             flex: 1,
@@ -49,7 +105,7 @@ export function AuthenticationModal() {
         />
       </BottomSheetBackdrop>
     ),
-    []
+    [isDark]
   );
 
   const loginOrSignUpWithPasskey = useCallback(async () => {
@@ -152,55 +208,3 @@ export function AuthenticationModal() {
   );
 }
 
-const styles = StyleSheet.create({
-  kokioImage: {
-    height: 60,
-    marginTop: 10,
-    resizeMode: "contain",
-  },
-  authRequiredText: {
-    fontSize: 24,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-    marginTop: 32,
-  },
-  authSubtext: {
-    fontSize: 13,
-    marginTop: 12,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  authTouchText: {
-    fontSize: 13,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  loadingContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    fontSize: 13,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  contentImage: {
-    height: 80,
-    marginTop: 24,
-    marginBottom: 5,
-    resizeMode: "contain",
-  },
-  cancelText: {
-    fontSize: 16,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  errorText: {
-    fontSize: 13,
-    color: Theme.colors.destructive,
-    fontFamily: "Lexend-Light",
-    textAlign: "center",
-    marginTop: 12,
-    paddingHorizontal: 24,
-  },
-});

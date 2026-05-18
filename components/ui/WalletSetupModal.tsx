@@ -16,6 +16,7 @@ import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
@@ -37,11 +38,184 @@ const formatWalletAddress = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
+const createStyles = () => StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay,
+    paddingTop: 0,
+  },
+  modalContainer: {
+    alignItems: "center",
+    width: "100%",
+    flex: 1,
+  },
+  contentContainerWrapper: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  contentContainer: {
+    width: "80%",
+    borderRadius: 20,
+    paddingTop: 32,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  description: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 48,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    marginTop: 28,
+  },
+  laterButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRightWidth: 1,
+  },
+  laterButtonText: {
+    fontSize: 16,
+    fontWeight: "400",
+  },
+  continueButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  loadingContainer: {
+    paddingBottom: 16,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 16,
+    lineHeight: 22,
+  },
+  errorContainer: {
+    paddingBottom: 16,
+    paddingHorizontal: 24,
+    alignItems: "center",
+  },
+  errorIcon: {
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  errorDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 24,
+  },
+  warningContainer: {
+    flexDirection: "row",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  warningText: {
+    fontWeight: "600",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  warningIconTopRight: {
+    position: "absolute",
+    top: -12,
+    right: 14,
+    zIndex: 1,
+  },
+  recoveryCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  recoveryTitle: {
+    fontSize: 18,
+    marginBottom: 12,
+  },
+  addressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  clickableAddressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addressText: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  linkIcon: {
+    marginLeft: 4,
+  },
+  recoveryDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  emailInput: {
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  recoveryButtonContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  remindLaterButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  remindLaterText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  doneButton: {
+    flex: 1,
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  expandedContainer: {
+    paddingTop: 20,
+    backgroundColor: "transparent",
+  },
+});
+
 const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   visible,
   onClose,
   onContinue,
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
@@ -307,7 +481,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <TextInput
             style={[styles.emailInput, { backgroundColor: Theme.colors.inputBackground, color: textColor }]}
             placeholder="EOA (Externally-owned Account)"
-            placeholderTextColor={Theme.colors.accentForeground}
+            placeholderTextColor={mutedColor}
             value={eoaAddress}
             onChangeText={setEoaAddress}
             keyboardType="default"
@@ -371,175 +545,5 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: Theme.colors.overlay,
-    paddingTop: 0,
-  },
-  modalContainer: {
-    alignItems: "center",
-    width: "100%",
-    flex: 1,
-  },
-  contentContainerWrapper: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  contentContainer: {
-    width: "80%",
-    borderRadius: 20,
-    paddingTop: 32,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 48,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    marginTop: 28,
-  },
-  laterButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderRightWidth: 1,
-  },
-  laterButtonText: {
-    fontSize: 16,
-    fontWeight: "400",
-  },
-  continueButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  loadingContainer: {
-    paddingBottom: 16,
-    paddingHorizontal: 24,
-  },
-  loadingText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 16,
-    lineHeight: 22,
-  },
-  errorContainer: {
-    paddingBottom: 16,
-    paddingHorizontal: 24,
-    alignItems: "center",
-  },
-  errorIcon: {
-    marginBottom: 16,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  errorDescription: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 24,
-  },
-  warningContainer: {
-    flexDirection: "row",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  warningText: {
-    fontWeight: "600",
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  warningIconTopRight: {
-    position: "absolute",
-    top: -12,
-    right: 14,
-    zIndex: 1,
-  },
-  recoveryCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-  },
-  recoveryTitle: {
-    fontSize: 18,
-    marginBottom: 12,
-  },
-  addressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  clickableAddressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  addressText: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  linkIcon: {
-    marginLeft: 4,
-  },
-  recoveryDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  emailInput: {
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  recoveryButtonContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  remindLaterButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  remindLaterText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  doneButton: {
-    flex: 1,
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  doneButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  expandedContainer: {
-    paddingTop: 20,
-    backgroundColor: "transparent",
-  },
-});
 
 export default WalletSetupModal;

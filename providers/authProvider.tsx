@@ -20,16 +20,23 @@ import { clearUsedHashes } from "@/utils/orderTracking";
 
 // ─── Error formatting ─────────────────────────────────────────────────────────
 
+const STEP_UP_ERROR_MESSAGES: Record<string, string> = {
+  DPOP_PROOF_BINDING_INVALID: 'Authentication failed. Please try again.',
+  DPOP_NONCE_REQUIRED:        'Authentication failed. Please try again.',
+  STEP_UP_FAILED:             'Verification failed. Please try again.',
+  STEP_UP_CANCELLED:          'Action was cancelled.',
+  PASSKEY_AUTH_FAILED:        'Biometric authentication failed. Please try again.',
+  INVALID_PASSKEY:            'Biometric verification failed. Please try again.',
+};
+
 function formatError(error: unknown): string {
-  if (typeof error !== 'object' || error === null) return 'Unknown error';
+  if (typeof error !== 'object' || error === null) return 'Something went wrong. Please try again.';
   const e = error as Record<string, unknown>;
   const code = typeof e.code === 'string' ? e.code : undefined;
-  const status = typeof e.httpStatus === 'number' ? e.httpStatus : undefined;
-  const msg = typeof e.message === 'string' ? e.message
-    : typeof e.userMessage === 'string' ? e.userMessage
-    : 'Unknown error';
-  if (!code) return msg;
-  return status ? `[${code} ${status}] ${msg}` : `[${code}] ${msg}`;
+  if (code && STEP_UP_ERROR_MESSAGES[code]) return STEP_UP_ERROR_MESSAGES[code];
+  return typeof e.userMessage === 'string' ? e.userMessage
+    : typeof e.message === 'string' ? e.message
+    : 'Something went wrong. Please try again.';
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
 import CountryFlag from "@/components/ui/CountryFlag";
 
@@ -24,8 +25,10 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
 const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
 
-const ExpandableContent = ({ eSimItem = {} }: any) => (
-  <View style={{ gap: 12 }}>
+const ExpandableContent = ({ eSimItem = {} }: any) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  return (<View style={{ gap: 12 }}>
     {ESIM_EXTRA_DETAILS.map((item, index) => (
       <View key={index} style={[!item.isFlexColumn && styles.expandedItem]}>
         <DetailItem
@@ -42,9 +45,73 @@ const ExpandableContent = ({ eSimItem = {} }: any) => (
       </View>
     ))}
   </View>
-);
+  );
+};
+
+const createStyles = () => StyleSheet.create({
+  header: {
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    overflow: "hidden",
+  },
+  countryFlagContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  mainContent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    flex: 1,
+    marginRight: 8,
+  },
+  countryText: {
+    fontSize: 30,
+    fontWeight: "700",
+    flex: 1,
+    flexShrink: 1,
+  },
+  flag: {
+    borderRadius: 6,
+  },
+  detailItemsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+  },
+  expandedItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  extraContentLabel: {
+    marginRight: 8,
+  },
+  expandIndicatorRow: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Platform.OS === "android" ? 8 : 10,
+    marginBottom: Platform.OS === "android" ? 4 : 6,
+  },
+  pillHandle: {
+    backgroundColor: Theme.colors.handle,
+    borderRadius: 10,
+    height: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  arrowCenter: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
 
 const CheckoutHeader = ({ eSimDetails = {} }: any) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const insets = useSafeAreaInsets();
 
   const computedHeaderHeight = useMemo(() => {
@@ -252,65 +319,5 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  header: {
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    overflow: "hidden",
-  },
-  countryFlagContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-  },
-  mainContent: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    flex: 1,
-    marginRight: 8,
-  },
-  countryText: {
-    fontSize: 30,
-    fontWeight: "700",
-    flex: 1,
-    flexShrink: 1,
-  },
-  flag: {
-    borderRadius: 6,
-  },
-  detailItemsContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
-  },
-  expandedItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  extraContentLabel: {
-    marginRight: 8,
-  },
-  expandIndicatorRow: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: Platform.OS === "android" ? 8 : 10,
-    marginBottom: Platform.OS === "android" ? 4 : 6,
-  },
-  pillHandle: {
-    backgroundColor: Theme.colors.handle,
-    borderRadius: 10,
-    height: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  arrowCenter: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
 
 export default React.memo(CheckoutHeader);

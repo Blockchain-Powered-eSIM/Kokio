@@ -1,78 +1,11 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
-const ESimWallet = () => {
-  return (
-    <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
-      <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
-        <ThemedText style={[styles.textContent, styles.smallText]}>
-          Balance
-        </ThemedText>
-        <ThemedText style={styles.textContent}>0.00</ThemedText>
-        <Image
-          source={require("@/assets/images/usdc.png")}
-          style={[styles.logoImage, { marginLeft: 8 }]}
-        />
-      </View>
-    </View>
-  );
-};
-
-const CreditCard = () => {
-  return (
-    <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>Credit Card</ThemedText>
-      <Image
-        source={require("@/assets/images/credit-cards.png")}
-        style={styles.creditCards}
-      />
-    </View>
-  );
-};
-
-const ApplePay = () => {
-  return (
-    <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>Apple Pay</ThemedText>
-      <Image
-        source={require("@/assets/images/apple-logo.png")}
-        style={styles.logoImage}
-      />
-    </View>
-  );
-};
-
-const ExternalWallet = () => {
-  return (
-    <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>External Wallet</ThemedText>
-      <Image
-        source={require("@/assets/images/usdc.png")}
-        style={[styles.logoImage, { marginLeft: 8 }]}
-      />
-    </View>
-  );
-};
-
-const ExternalWalletBrowser = () => {
-  return (
-    <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>External Wallet (Browser)</ThemedText>
-      <Image
-        source={require("@/assets/images/usdc.png")}
-        style={[styles.logoImage, { marginLeft: 8 }]}
-      />
-    </View>
-  );
-};
-
-export { ESimWallet, ApplePay, CreditCard, ExternalWallet, ExternalWalletBrowser };
-
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   labelContainer: {
     flex: 1,
     marginLeft: 8,
@@ -99,3 +32,81 @@ const styles = StyleSheet.create({
     objectFit: "contain",
   },
 });
+
+const ESimWallet = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  return (
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
+      <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+        <ThemedText style={[styles.textContent, styles.smallText]}>
+          Balance
+        </ThemedText>
+        <ThemedText style={styles.textContent}>0.00</ThemedText>
+        <Image
+          source={require("@/assets/images/usdc.png")}
+          style={[styles.logoImage, { marginLeft: 8 }]}
+        />
+      </View>
+    </View>
+  );
+};
+
+const CreditCard = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  return (
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>Credit Card</ThemedText>
+      <Image
+        source={require("@/assets/images/credit-cards.png")}
+        style={styles.creditCards}
+      />
+    </View>
+  );
+};
+
+const ApplePay = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  return (
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>Apple Pay</ThemedText>
+      <Image
+        source={require("@/assets/images/apple-logo.png")}
+        style={styles.logoImage}
+      />
+    </View>
+  );
+};
+
+const ExternalWallet = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  return (
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>External Wallet</ThemedText>
+      <Image
+        source={require("@/assets/images/usdc.png")}
+        style={[styles.logoImage, { marginLeft: 8 }]}
+      />
+    </View>
+  );
+};
+
+const ExternalWalletBrowser = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  return (
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>External Wallet (Browser)</ThemedText>
+      <Image
+        source={require("@/assets/images/usdc.png")}
+        style={[styles.logoImage, { marginLeft: 8 }]}
+      />
+    </View>
+  );
+};
+
+export { ESimWallet, ApplePay, CreditCard, ExternalWallet, ExternalWalletBrowser };
