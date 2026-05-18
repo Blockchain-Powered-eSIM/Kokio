@@ -100,7 +100,7 @@ const ExternalWalletBrowser = () => {
   const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>External Wallet (Browser)</ThemedText>
+      <ThemedText style={styles.textContent}>External Wallet (via Moonpay)</ThemedText>
       <Image
         source={require("@/assets/images/usdc.png")}
         style={[styles.logoImage, { marginLeft: 8 }]}
