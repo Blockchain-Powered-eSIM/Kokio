@@ -17,6 +17,8 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface CheckoutSuccessModalProps {
   visible: boolean;
@@ -25,12 +27,91 @@ interface CheckoutSuccessModalProps {
   onInstallESIM: () => void;
 }
 
+const createStyles = () => StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay,
+    paddingTop: 0,
+  },
+  modalContainer: {
+    paddingHorizontal: 16,
+    alignItems: "center",
+    width: "100%",
+    flex: 1,
+  },
+  contentContainerWrapper: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  contentContainer: {
+    width: "80%",
+    borderRadius: 20,
+    padding: 24,
+    paddingTop: 32,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 24,
+    lineHeight: 22,
+  },
+  loadingSubText: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  successIcon: {
+    borderRadius: 24,
+    position: "absolute",
+    top: -22,
+    right: 30,
+    zIndex: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  description: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  installButton: {
+    borderRadius: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    width: "100%",
+    marginBottom: 16,
+  },
+  installButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+});
+
 const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   visible,
   loading = false,
   onClose = () => {},
   onInstallESIM,
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  const textColor = useThemeColor({}, "text");
+
   const scale = useSharedValue(0);
 
   useEffect(() => {
@@ -80,11 +161,11 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
           />
         </Animated.View>
 
-        <ThemedText bold style={styles.title}>
+        <ThemedText bold style={[styles.title, { color: textColor }]}>
           Transaction Successful
         </ThemedText>
 
-        <ThemedText style={styles.subtitle}>
+        <ThemedText style={[styles.subtitle, { color: textColor }]}>
           It's now time to install your newly purchased eSIM.
         </ThemedText>
 
@@ -99,8 +180,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
 
   const installButton = useMemo(
     () => (
-      <TouchableOpacity style={styles.installButton} onPress={onInstallESIM}>
-        <ThemedText style={styles.installButtonText}>Install eSIM</ThemedText>
+      <TouchableOpacity style={[styles.installButton, { backgroundColor: Theme.colors.shopCta }]} onPress={onInstallESIM}>
+        <ThemedText style={[styles.installButtonText, { color: Theme.colors.cardForeground }]}>Install eSIM</ThemedText>
       </TouchableOpacity>
     ),
     [onInstallESIM]
@@ -116,9 +197,9 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: isDark ? Theme.colors.modalBackground : "transparent" }]}>
           <View style={styles.contentContainerWrapper}>
-            <View style={styles.contentContainer}>
+            <View style={[styles.contentContainer, { backgroundColor: Theme.colors.contentBackground }]}>
               {loading ? loadingContent : successContent}
             </View>
           </View>
@@ -130,87 +211,5 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: Theme.colors.overlay,
-    paddingTop: 0,
-  },
-  modalContainer: {
-    backgroundColor: Theme.colors.modalBackground,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    width: "100%",
-    flex: 1,
-  },
-  contentContainerWrapper: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  contentContainer: {
-    width: "80%",
-    backgroundColor: Theme.colors.contentBackground,
-    borderRadius: 20,
-    padding: 24,
-    paddingTop: 32,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginTop: 24,
-    lineHeight: 22,
-  },
-  loadingSubText: {
-    fontSize: 16,
-    color: Theme.colors.text,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  successIcon: {
-    borderRadius: 24,
-    position: "absolute",
-    top: -22,
-    right: 30,
-    zIndex: 10,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginBottom: 16,
-    lineHeight: 22,
-  },
-  description: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  installButton: {
-    backgroundColor: Theme.colors.highlight,
-    borderRadius: 32,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    width: "100%",
-    marginBottom: 16,
-  },
-  installButtonText: {
-    color: Theme.colors.cardForeground,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-});
 
 export default CheckoutSuccessModal;

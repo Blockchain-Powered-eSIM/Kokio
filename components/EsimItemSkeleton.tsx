@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
@@ -8,12 +8,64 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
+
+const createStyles = () => StyleSheet.create({
+  esimItemContainer: {
+    marginTop: Theme.spacing.lg,
+  },
+  esimItem: {
+    backgroundColor: Theme.colors.skeletonBase,
+    borderRadius: 21,
+    padding: 16,
+    gap: 8,
+    width: "100%",
+  },
+  flagContainer: {
+    position: "absolute",
+    top: -12,
+    right: 40,
+    zIndex: 10,
+  },
+  flag: {
+    width: 85,
+    height: 50,
+    borderRadius: 4,
+  },
+  detailsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  buyButton: {
+    height: 40,
+    borderRadius: Theme.borderRadius.large,
+    marginTop: Theme.spacing.sm,
+  },
+  skeleton: {
+    backgroundColor: Theme.colors.skeletonHighlight,
+  },
+  skeletonText: {
+    height: 20,
+    backgroundColor: Theme.colors.skeletonHighlight,
+    borderRadius: 4,
+    marginBottom: 5,
+  },
+  skeletonDetail: {
+    width: 50,
+    height: 20,
+    backgroundColor: Theme.colors.skeletonHighlight,
+    borderRadius: 4,
+  },
+});
 
 const EsimItemSkeleton = ({
   containerStyle = {},
 }: {
   containerStyle?: Object;
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const opacity = useSharedValue(0.3);
 
   // Create a pulsing animation
@@ -62,54 +114,5 @@ const EsimItemSkeleton = ({
   );
 };
 
-const styles = StyleSheet.create({
-  esimItemContainer: {
-    marginTop: Theme.spacing.lg,
-  },
-  esimItem: {
-    backgroundColor: Theme.colors.skeletonBase,
-    borderRadius: 21,
-    padding: 16,
-    gap: 8,
-    width: "100%",
-  },
-  flagContainer: {
-    position: "absolute",
-    top: -12,
-    right: 40,
-    zIndex: 10,
-  },
-  flag: {
-    width: 85,
-    height: 50,
-    borderRadius: 4,
-  },
-  detailsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  buyButton: {
-    height: 40,
-    borderRadius: Theme.borderRadius.large,
-    marginTop: Theme.spacing.sm,
-  },
-  // Skeleton styles
-  skeleton: {
-    backgroundColor: Theme.colors.skeletonHighlight,
-  },
-  skeletonText: {
-    height: 20,
-    backgroundColor: Theme.colors.skeletonHighlight,
-    borderRadius: 4,
-    marginBottom: 5,
-  },
-  skeletonDetail: {
-    width: 50,
-    height: 20,
-    backgroundColor: Theme.colors.skeletonHighlight,
-    borderRadius: 4,
-  },
-});
 
 export default EsimItemSkeleton;

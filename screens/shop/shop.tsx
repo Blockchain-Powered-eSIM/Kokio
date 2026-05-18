@@ -6,6 +6,7 @@ import _debounce from "lodash/debounce";
 
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
 
@@ -18,10 +19,11 @@ import Custom from "./tabs/custom";
 const Tab = createMaterialTopTabNavigator();
 
 const TabsNavigator = () => {
+  const { isDark } = useTheme();
   return (
     <Tab.Navigator
       tabBar={(props) => <TabBar {...props} />}
-      sceneContainerStyle={{ backgroundColor: "transparent" }}
+      sceneContainerStyle={{ backgroundColor: isDark ? "transparent" : Theme.colors.background }}
     >
       <Tab.Screen
         name="Countries"

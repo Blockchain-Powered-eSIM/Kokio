@@ -28,6 +28,8 @@ const SearchBar = ({
   containerStyle?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
 }) => {
+  const inputBg = useThemeColor({}, "input");
+  const foreground = useThemeColor({}, "foreground");
   const [searchText, setSearchText] = useState("");
 
   const handleTextChange = useCallback(
@@ -48,28 +50,20 @@ const SearchBar = ({
   }, [setSearchText, onClear]);
 
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View style={[styles.container, { backgroundColor: inputBg }, containerStyle]}>
       <View style={styles.searchIconContainer}>
-        <Ionicons
-          name="search"
-          size={ICON_SIZE}
-          color={useThemeColor({}, "foreground")}
-        />
+        <Ionicons name="search" size={ICON_SIZE} color={foreground} />
       </View>
       <TextInput
-        style={[styles.input, inputStyle]}
+        style={[styles.input, { color: foreground }, inputStyle]}
         placeholder={placeholder}
         value={searchText}
         onChangeText={handleTextChange}
-        placeholderTextColor={useThemeColor({}, "foreground")}
+        placeholderTextColor={foreground}
       />
       {searchText.length > 0 && (
         <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
-          <Ionicons
-            name="close"
-            size={ICON_SIZE}
-            color={useThemeColor({}, "foreground")}
-          />
+          <Ionicons name="close" size={ICON_SIZE} color={foreground} />
         </TouchableOpacity>
       )}
     </View>
@@ -80,7 +74,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: useThemeColor({}, "input"),
     borderRadius: Theme.spacing.sm,
     paddingVertical: 2,
     paddingHorizontal: 12,
@@ -97,7 +90,6 @@ const styles = StyleSheet.create({
   input: {
     width: "100%",
     flex: 1,
-    color: useThemeColor({}, "foreground"),
   },
   clearButton: {
     padding: Theme.spacing.xs,

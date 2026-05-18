@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -10,89 +10,9 @@ import {
 } from "react-native";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
-export function StepUpPromptModal() {
-  const { stepUpVisible, stepUpHint, stepUpError, stepUp, dismissStepUp } =
-    useAuthRelay();
-  const [loading, setLoading] = useState(false);
-
-  const biometricLabel =
-    Platform.OS === "ios" ? "Face ID" : "Fingerprint";
-
-  const operationLabel = stepUpHint?.operationName ?? "this action";
-
-  const handleConfirm = useCallback(async () => {
-    setLoading(true);
-    try {
-      await stepUp();
-    } finally {
-      setLoading(false);
-    }
-  }, [stepUp]);
-
-  const handleCancel = useCallback(() => {
-    setLoading(false);
-    dismissStepUp();
-  }, [dismissStepUp]);
-
-  return (
-    <Modal
-      visible={stepUpVisible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={handleCancel}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Confirm Identity</Text>
-
-          <Text style={styles.body}>
-            Confirm with {biometricLabel} to continue with:
-          </Text>
-          <Text style={styles.operation} numberOfLines={1}>
-            {operationLabel}
-          </Text>
-
-          {!!stepUpError && !loading && (
-            <Text style={styles.error}>{stepUpError}</Text>
-          )}
-
-          {loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={Theme.colors.highlight} />
-              <Text style={styles.loadingText}>Confirming…</Text>
-            </View>
-          ) : (
-            <View style={styles.buttonRow}>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={handleCancel}
-                accessibilityLabel="Cancel identity confirmation"
-                accessibilityRole="button"
-              >
-                <Text style={styles.cancelText}>Cancel</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.confirmBtn}
-                onPress={handleConfirm}
-                accessibilityLabel={`Confirm with ${biometricLabel}`}
-                accessibilityRole="button"
-              >
-                <Text style={styles.confirmText}>
-                  {stepUpError ? "Retry" : "Confirm"}
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: Theme.colors.overlayMedium,
@@ -183,3 +103,107 @@ const styles = StyleSheet.create({
     fontFamily: "Lexend-SemiBold",
   },
 });
+
+const OPERATION_LABELS: Record<string, string> = {
+  'POST /v1/order':          'Place Order',
+  'POST /v1/topup':          'Top Up Wallet',
+  'POST /v1/wallet':         'Set Up Wallet',
+  'GET /v1/wallet':          'Access Wallet',
+  'POST /v1/esim':           'Activate eSIM',
+  'POST /v1/auth/stepup':    'Confirm Identity',
+};
+
+function friendlyOperation(raw: string | undefined): string {
+  if (!raw) return 'this action';
+  if (OPERATION_LABELS[raw]) return OPERATION_LABELS[raw];
+  const path = raw.split(' ')[1] ?? '';
+  if (path.includes('/order'))  return 'Place Order';
+  if (path.includes('/topup'))  return 'Top Up Wallet';
+  if (path.includes('/wallet')) return 'Wallet Access';
+  if (path.includes('/esim'))   return 'Activate eSIM';
+  return 'this action';
+}
+
+export function StepUpPromptModal() {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  const { stepUpVisible, stepUpHint, stepUpError, stepUp, dismissStepUp } =
+    useAuthRelay();
+  const [loading, setLoading] = useState(false);
+
+  const biometricLabel =
+    Platform.OS === "ios" ? "Face ID" : "Fingerprint";
+
+  const operationLabel = friendlyOperation(stepUpHint?.operationName);
+
+  const handleConfirm = useCallback(async () => {
+    setLoading(true);
+    try {
+      await stepUp();
+    } finally {
+      setLoading(false);
+    }
+  }, [stepUp]);
+
+  const handleCancel = useCallback(() => {
+    setLoading(false);
+    dismissStepUp();
+  }, [dismissStepUp]);
+
+  return (
+    <Modal
+      visible={stepUpVisible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={handleCancel}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.card}>
+          <Text style={styles.title}>Confirm Identity</Text>
+
+          <Text style={styles.body}>
+            Confirm with {biometricLabel} to continue with:
+          </Text>
+          <Text style={styles.operation} numberOfLines={1}>
+            {operationLabel}
+          </Text>
+
+          {!!stepUpError && !loading && (
+            <Text style={styles.error}>{stepUpError}</Text>
+          )}
+
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={Theme.colors.highlight} />
+              <Text style={styles.loadingText}>Confirming…</Text>
+            </View>
+          ) : (
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={handleCancel}
+                accessibilityLabel="Cancel identity confirmation"
+                accessibilityRole="button"
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.confirmBtn}
+                onPress={handleConfirm}
+                accessibilityLabel={`Confirm with ${biometricLabel}`}
+                accessibilityRole="button"
+              >
+                <Text style={styles.confirmText}>
+                  {stepUpError ? "Retry" : "Confirm"}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+

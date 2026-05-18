@@ -112,6 +112,9 @@ const DARK_TOKENS = {
   surfaceElevated: "#2a2a2a",
   skeletonBase: "#5C5C61",
   skeletonHighlight: "#E0E0E0",
+  shopCta: "#FFAF01",           // dark: keeps current goldenYellow
+  payButton: "#FFD60A",         // dark: keeps current secondary
+  walletModalBackground: "rgba(60, 60, 60, 0.9)", // dark: same as modalBackground
 };
 
 const LIGHT_TOKENS = {
@@ -126,13 +129,16 @@ const LIGHT_TOKENS = {
   destructive: "#FF453A",
   secondaryBackground: "#FFFFFF",   // white tab bar
   goldenYellow: "#E8614A",          // coral — no yellow in light theme
+  shopCta: "#7ABCCC",               // light: muted sky blue
+  payButton: "#FFFFFF",             // light: white
   cardForeground: "#1A3D4F",
   highlight: "#E8614A",             // coral active tab tint
   inactive: "#7ABCCC",
   link: "#2A8FA0",
   gradientDark: "#FFFFFF",          // wallet card gradient start: white → sky
   modalBackground: "rgba(255, 255, 255, 0.95)",
-  contentBackground: "rgba(238, 248, 252, 0.98)",
+  walletModalBackground: "rgba(168, 216, 232, 0.75)",
+  contentBackground: "#FFFFFF",
   itemBackground: "#FFFFFF",
   sheetBackground: "rgba(255, 255, 255, 0.95)",
 };
