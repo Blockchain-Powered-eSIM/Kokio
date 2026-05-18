@@ -353,11 +353,9 @@ const OrdersContent = ({ orders, onClose }: { orders: StoredPurchasedESIM[]; onC
 const AboutContent = ({ onClose }: { onClose: () => void }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
-  const handleLinkPress = useCallback(async () => {
+  const handleLinkPress = useCallback(async (url: string) => {
     try {
-      await openBrowserAsync(
-        "https://github.com/Blockchain-Powered-eSIM/Smart-Contract-Suite"
-      );
+      await openBrowserAsync(url);
     } catch (error) {
       console.error("Error opening browser:", error);
     }
@@ -376,7 +374,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
         showsVerticalScrollIndicator={false}
       >
         <ThemedText style={styles.aboutText}>
-          You are using ALPHA V1 of KOKI'O,
+          You are using KOKI'O Beta v1
         </ThemedText>
         <ThemedText style={styles.aboutText}>
           A mobile app to purchase eSIM data plans and subscriptions using
@@ -384,14 +382,26 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
         </ThemedText>
         <View style={styles.linkContainer}>
           <Text style={styles.linkText}>Based on </Text>
-          <TouchableOpacity onPress={handleLinkPress}>
+          <TouchableOpacity onPress={() => handleLinkPress("https://github.com/Blockchain-Powered-eSIM/Smart-Contract-Suite")}>
             <Text style={styles.aboutLink}>Open Source eSIM Wallet Suite</Text>
           </TouchableOpacity>
         </View>
         <ThemedText style={styles.aboutText}>
-          Built with privacy first, friendly and practical design mechanism for
-          digital well being of mobile users, for freedom in their connectivity.
+          Built with privacy first, friendly and practical design for the digital
+          well-being and connectivity freedom of mobile users worldwide.
         </ThemedText>
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Website: </Text>
+          <TouchableOpacity onPress={() => handleLinkPress("https://kokio.app")}>
+            <Text style={styles.aboutLink}>kokio</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Follow us: </Text>
+          <TouchableOpacity onPress={() => handleLinkPress("https://x.com/kokiodotapp")}>
+            <Text style={styles.aboutLink}>@kokiodotapp</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -487,7 +497,6 @@ export default function MenuScreen() {
               keyExtractor={(item) => item.id}
               style={styles.list}
             />
-            {/* THEME SWITCH : TODO interate to improve*/}
             { <View style={styles.themeRow}>
               <Ionicons
                 name={isDark ? "moon-outline" : "sunny-outline"}
