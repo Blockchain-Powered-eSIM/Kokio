@@ -45,7 +45,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
-  const [email, setEmail] = useState("");
+  const [eoaAddress, setEoaAddress] = useState("");
   const [walletAddress, setWalletAddress] = useState<string | undefined>(
     undefined
   );
@@ -159,7 +159,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(false);
     setShowRecovery(false);
     setShowRetry(false);
-    setEmail("");
+    setEoaAddress("");
     setWalletAddress(undefined);
     onClose();
   }, [onClose]);
@@ -241,23 +241,22 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
   const handleRemindLater = useCallback(() => {
     setShowRecovery(false);
-    setEmail("");
+    setEoaAddress("");
     setWalletAddress(undefined);
     onClose();
   }, [onClose]);
 
-  const onChangeUserEmail = useCallback(async () => {
-    // TODO: save recovery email via Kokio API once endpoint is available
-    if (!email) return;
-  }, [email]);
+  const onSaveEOA = useCallback(async () => {
+    // TODO: save recovery EOA via Kokio API once endpoint is available
+    if (!eoaAddress) return;
+  }, [eoaAddress]);
 
   const handleDone = useCallback(() => {
-    // if email is provided, save it for recovery purpose
-    onChangeUserEmail();
+    onSaveEOA();
     setShowRecovery(false);
-    setEmail("");
+    setEoaAddress("");
     onContinue();
-  }, [onContinue]);
+  }, [onContinue, onSaveEOA]);
 
   const recoveryContent = useMemo(
     () => (
@@ -270,8 +269,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             style={styles.warningIconTopRight}
           />
           <Text style={[styles.warningText, { color: textColor }]}>
-            If you no longer have your device, you'll need this email address or
-            EOA to restore access to your wallet.
+            If you no longer have your device, you'll need this EOA to restore access to your wallet.
           </Text>
         </View>
 
@@ -302,17 +300,17 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           </View>
 
           <Text style={[styles.recoveryDescription, { color: foregroundColor }]}>
-            You may optionally provide an email address or EOA for recovery
+            You may optionally provide an EOA for recovery
             purpose and to restore access to your device wallet
           </Text>
 
           <TextInput
             style={[styles.emailInput, { backgroundColor: Theme.colors.inputBackground, color: textColor }]}
-            placeholder="Email id"
+            placeholder="EOA (Externally-owned Account)"
             placeholderTextColor={Theme.colors.accentForeground}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
+            value={eoaAddress}
+            onChangeText={setEoaAddress}
+            keyboardType="default"
             autoCapitalize="none"
           />
         </View>
@@ -331,7 +329,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
         </View>
       </>
     ),
-    [email, handleRemindLater, handleDone, walletAddress]
+    [eoaAddress, handleRemindLater, handleDone, walletAddress]
   );
 
   const renderContent = () => {
