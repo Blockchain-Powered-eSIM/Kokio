@@ -9,6 +9,7 @@ import {
   // Switch,
   Text,
   Switch,
+  Linking,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
 import { Theme } from "@/constants/Colors";
@@ -153,13 +154,9 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
-// Feature flags for menu item availability
-// Set to true to enable the menu item, false to disable (but keep visible)
 const MENU_ITEM_ENABLED = {
-  PROFILE: true, // Orders list
-  NOTIFICATIONS: false, // Change to true to enable Notifications
-  PRIVACY: false, // Change to true to enable Privacy
-  GENERAL: false, // Change to true to enable General
+  PROFILE: true,
+  PRIVACY: false, // enable once privacy policy is ready
 };
 
 // Disabled menu item styling
@@ -407,6 +404,44 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
+const ContactContent = ({ onClose }: { onClose: () => void }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+
+  return (
+    <View style={styles.aboutContainer}>
+      <View style={styles.aboutHeader}>
+        <ThemedText style={styles.aboutTitle}>Contact Support</ThemedText>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <Ionicons name="close-outline" size={28} color="white" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.aboutContent}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => Linking.openURL("mailto:contact@kokio.app")}
+        >
+          <View style={styles.menuItemContent}>
+            <Ionicons name="mail-outline" size={24} color="white" style={styles.iconLeft} />
+            <ThemedText style={styles.menuItemText}>Email Us</ThemedText>
+            <ThemedText style={{ color: Theme.colors.muted, fontSize: 13 }}>contact@kokio.app</ThemedText>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => openBrowserAsync("https://t.me/+Ru38DI2V69IyY2Y9")}
+        >
+          <View style={styles.menuItemContent}>
+            <Ionicons name="paper-plane-outline" size={24} color="white" style={styles.iconLeft} />
+            <ThemedText style={styles.menuItemText}>Telegram</ThemedText>
+            <Ionicons name="chevron-forward-outline" size={20} color="white" />
+          </View>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 export default function MenuScreen() {
   const { logout } = useAuthRelay();
   const { kokio, clearKokioUser } = useKokio();
@@ -415,6 +450,7 @@ export default function MenuScreen() {
 
   const [showAbout, setShowAbout] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
+  const [showContact, setShowContact] = useState(false);
   const bg = useThemeColor({}, "background");
   const styles = useMemo(createStyles, [isDark]);
 
@@ -428,25 +464,11 @@ export default function MenuScreen() {
       action: () => setShowOrders(true),
     },
     {
-      id: "2",
-      title: "Notifications",
-      iconLeft: "notifications-outline",
-      iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.NOTIFICATIONS,
-    },
-    {
       id: "3",
-      title: "Privacy",
+      title: "Privacy Policy",
       iconLeft: "lock-closed-outline",
       iconRight: "chevron-forward-outline",
       disabled: !MENU_ITEM_ENABLED.PRIVACY,
-    },
-    {
-      id: "4",
-      title: "General",
-      iconLeft: "settings-outline",
-      iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.GENERAL,
     },
     {
       id: "5",
@@ -456,13 +478,20 @@ export default function MenuScreen() {
       action: () => setShowAbout(true),
     },
     {
+      id: "8",
+      title: "Contact Support",
+      iconLeft: "headset-outline",
+      iconRight: "chevron-forward-outline",
+      action: () => setShowContact(true),
+    },
+    {
       id: "6",
       title: "Logout",
       iconLeft: "log-out-outline",
       iconRight: "chevron-forward-outline",
       action: logout,
     },
-    {
+    ...(__DEV__ ? [{
       id: "7",
       title: "Logout and Clear Data",
       iconLeft: "trash-outline",
@@ -471,7 +500,7 @@ export default function MenuScreen() {
         await clearKokioUser();
         await logout();
       },
-    },
+    }] : []),
   ];
 
   return (
@@ -481,6 +510,8 @@ export default function MenuScreen() {
           <OrdersContent orders={kokio.purchasedESIMs} onClose={() => setShowOrders(false)} />
         ) : showAbout ? (
           <AboutContent onClose={() => setShowAbout(false)} />
+        ) : showContact ? (
+          <ContactContent onClose={() => setShowContact(false)} />
         ) : (
           <>
             <FlatList

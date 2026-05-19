@@ -91,6 +91,7 @@ const RegionItemRender = ({
 }: {
   item: { name?: string; code: string; flag: string };
 }) => {
+  const foregroundColor = useThemeColor({}, "foreground");
   return (
     <TouchableOpacity onPress={navigateToESIMsByRegion(item?.code)}>
       <ThemedView
@@ -104,7 +105,7 @@ const RegionItemRender = ({
           <Ionicons
             name="globe-outline"
             size={16}
-            color={useThemeColor({}, "foreground")}
+            color={foregroundColor}
             style={{ marginRight: 16 }}
           />
           <ThemedText>{item?.name}</ThemedText>
@@ -112,7 +113,7 @@ const RegionItemRender = ({
         <Ionicons
           name="chevron-forward"
           size={16}
-          color={useThemeColor({}, "foreground")}
+          color={foregroundColor}
         />
       </ThemedView>
     </TouchableOpacity>
@@ -197,7 +198,6 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
   const isAtStart = scrollOffset <= 0;
   const isAtEnd = scrollOffset >= maxOffset - SNAP_INTERVAL;
 
-  const {} = useMemo;
   return (
     <ThemedView style={styles.container}>
       {_size(countries) ? (
@@ -226,7 +226,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
         <ThemedView style={styles.regionListContainer}>
           <FlatList
             data={regions}
-            renderItem={RegionItemRender}
+            renderItem={({ item }) => <RegionItemRender item={item} />}
             keyExtractor={(item, index) => item?.code || index}
             ItemSeparatorComponent={() => <View style={{ height: SPACING }} />}
             ListEmptyComponent={RegionEmptyListComponent}
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   regionTitle: {
     marginBottom: 12,
-    color: useThemeColor({}, "foreground"),
+    color: Theme.colors.text,
   },
   regionListContainer: {
     borderWidth: 1,
