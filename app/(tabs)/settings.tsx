@@ -282,7 +282,7 @@ const OrderCard = ({ order, onInstall }: { order: EnrichedOrder; onInstall?: (lp
             ) : null}
             {invoiceUrl ? (
               <TouchableOpacity onPress={() => Linking.openURL(invoiceUrl)} style={{ marginTop: 8 }}>
-                <Text style={{ color: Theme.colors.highlight, fontSize: 12 }}>View receipt →</Text>
+                <Text style={{ color: Theme.colors.highlight, fontSize: 12 }}>View invoice →</Text>
               </TouchableOpacity>
             ) : null}
             {lpa ? (
@@ -333,9 +333,13 @@ const OrdersContent = ({ orders, onClose, onInstall }: { orders: StoredPurchased
           // For orders with a known esimId, attach live ESimDocument
           if (transactionData.esimId && liveMap[transactionData.esimId]) {
             const live = liveMap[transactionData.esimId];
+            const liveStatus = transactionData.correlationId
+              ? await getOrderStatus(transactionData.correlationId).catch(() => undefined)
+              : undefined;
             return {
               ...order,
               liveEsim: live,
+              liveStatus,
               transactionData: {
                 ...transactionData,
                 iccid: live.iccid ?? transactionData.iccid,
