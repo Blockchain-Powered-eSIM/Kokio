@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/v1/health": {
+    "/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -27,7 +27,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/health/ready": {
+    "/health/ready": {
         parameters: {
             query?: never;
             header?: never;
@@ -52,7 +52,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/health/deep": {
+    "/health/deep": {
         parameters: {
             query?: never;
             header?: never;
@@ -72,7 +72,7 @@ export interface paths {
          *     When served from cache, the response `cached` field is `true` and `latencyMs` is `0`.
          *
          *     This endpoint is used for detailed diagnostics.
-         *     `GET /v1/health/ready` should be used for traffic-routing decisions as it is lighter and not cached.
+         *     `GET /health/ready` should be used for traffic-routing decisions as it is lighter and not cached.
          */
         get: operations["healthDeep"];
         put?: never;
@@ -97,7 +97,7 @@ export interface paths {
          *     **Consumers:** The BFF caches this response in memory with a 1-hour TTL (`src/utils/jwksCache.js`).
          *     JWT verification on the BFF is performed locally against the cached keys.
          *
-         *     **Key rotation:** When `POST /v1/admin/keys/rotate` is called,
+         *     **Key rotation:** When `POST /admin/keys/rotate` is called,
          *     the new public key appears in this response immediately.
          *     The retired key remains in the response until it is explicitly removed,
          *     ensuring tokens signed by the previous key continue to validate during the BFF cache window.
@@ -116,7 +116,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/register/begin": {
+    "/auth/register/begin": {
         parameters: {
             query?: never;
             header?: never;
@@ -134,7 +134,7 @@ export interface paths {
          *     `startRegistration()` helper (or supported platform library helper).
          *
          *     **Flow position:** Step 1 of the registration flow.
-         *     Follow with `POST /v1/auth/register/complete`.
+         *     Follow with `POST /auth/register/complete`.
          *
          *     **Rate limiting:** This endpoint is subject to the ceremony rate limiter.
          *     Excessive calls from the same IP will receive a 429 response.
@@ -146,7 +146,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/register/complete": {
+    "/auth/register/complete": {
         parameters: {
             query?: never;
             header?: never;
@@ -168,7 +168,7 @@ export interface paths {
          *     Sync failures are logged but do not affect this response.
          *
          *     **Flow position:** Step 2 of the registration flow.
-         *     On success, proceed to `POST /v1/auth/login/begin` to authenticate
+         *     On success, proceed to `POST /auth/login/begin` to authenticate
          *     and obtain tokens.
          *
          *     **Rate limiting:** This endpoint is subject to the ceremony rate limiter.
@@ -180,7 +180,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/login/begin": {
+    "/auth/login/begin": {
         parameters: {
             query?: never;
             header?: never;
@@ -198,7 +198,7 @@ export interface paths {
          *     `startAuthentication()` helper (or supported platform library helper).
          *
          *     **Flow position:** Step 1 of the authentication flow.
-         *     Follow with `POST /v1/auth/login/complete`.
+         *     Follow with `POST /auth/login/complete`.
          *
          *     **Rate limiting:** This endpoint is subject to the ceremony rate limiter.
          */
@@ -209,7 +209,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/login/complete": {
+    "/auth/login/complete": {
         parameters: {
             query?: never;
             header?: never;
@@ -227,7 +227,7 @@ export interface paths {
          *     and returns the authenticated `deviceWalletAddress` and `authTime`.
          *
          *     **Flow position:** Step 2 of the authentication flow.
-         *     On success, immediately proceed to `GET /v1/auth/authorize`.
+         *     On success, immediately proceed to `GET /auth/authorize`.
          *     The `authTime` value has a **120-second recency window** enforced at authorize time.
          *
          *     **Rate limiting:** This endpoint is subject to the ceremony rate limiter.
@@ -239,7 +239,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/authorize": {
+    "/auth/authorize": {
         parameters: {
             query?: never;
             header?: never;
@@ -248,15 +248,15 @@ export interface paths {
         };
         /**
          * PKCE authorization code issuance
-         * @description Issues a PKCE authorization code and redirects to `kokio://callback?code=<code>`.
+         * @description Issues a PKCE authorization code and redirects to `https://kokio.app?code=<code>`.
          *
-         *     Called immediately after a successful `POST /v1/auth/login/complete`.
+         *     Called immediately after a successful `POST /auth/login/complete`.
          *     The client generates PKCE parameters before calling `login/begin` and
          *     presents them here alongside the authentication event values.
          *
          *     **Flow position:** Step 3 of the authentication flow.
-         *     On 302 redirect, extract `code` from `kokio://callback?code=<code>`
-         *     and proceed to `POST /v1/auth/token` with the `authorization_code` grant.
+         *     On 302 redirect, extract `code` from `https://kokio.app?code=<code>`
+         *     and proceed to `POST /auth/token` with the `authorization_code` grant.
          *
          *     **`authTime` recency window:** The `auth_time` parameter must be within
          *     **120 seconds** of the current server time. Calls outside this window
@@ -265,7 +265,7 @@ export interface paths {
          *     **PKCE:** Only S256 (i.e. `code_challenge_method=S256`) is accepted.
          *     Generate a cryptographically random `code_verifier` (43–128 chars,
          *     base64url alphabet), compute `code_challenge = BASE64URL(SHA256(code_verifier))`,
-         *     and store `code_verifier` for use at `POST /v1/auth/token`.
+         *     and store `code_verifier` for use at `POST /auth/token`.
          */
         get: operations["authAuthorize"];
         put?: never;
@@ -276,7 +276,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/token": {
+    "/auth/token": {
         parameters: {
             query?: never;
             header?: never;
@@ -297,7 +297,7 @@ export interface paths {
          *     Missing or invalid proofs return a DPoP-specific error code.
          *
          *     **`authorization_code` grant:** Exchanges the PKCE authorization code
-         *     from `GET /v1/auth/authorize` for a full token set.
+         *     from `GET /auth/authorize` for a full token set.
          *     The `code_verifier` must match the corresponding `code_challenge` stored at authorize time.
          *
          *     **`refresh_token` grant:** Rotates the refresh token and issues a new
@@ -318,7 +318,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/token/revoke": {
+    "/auth/token/revoke": {
         parameters: {
             query?: never;
             header?: never;
@@ -349,7 +349,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/stepup/begin": {
+    "/auth/stepup/begin": {
         parameters: {
             query?: never;
             header?: never;
@@ -372,11 +372,11 @@ export interface paths {
          *     token is outside the required recency window.
          *
          *     **Flow position:** Step 1 of the step-up flow.
-         *     Follow with `POST /v1/auth/stepup/complete`.
+         *     Follow with `POST /auth/stepup/complete`.
          *
          *     **Cross-ceremony isolation:** The challenge issued here is typed as
          *     `stepup` server-side and cannot be used to complete a standard
-         *     `POST /v1/auth/login/complete` call.
+         *     `POST /auth/login/complete` call.
          *
          *     **Rate limiting:** This endpoint is subject to the ceremony rate limiter.
          */
@@ -387,7 +387,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/stepup/complete": {
+    "/auth/stepup/complete": {
         parameters: {
             query?: never;
             header?: never;
@@ -422,7 +422,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/keys/rotate": {
+    "/admin/keys/rotate": {
         parameters: {
             query?: never;
             header?: never;
@@ -492,7 +492,7 @@ export interface components {
              *     The exact shape is defined by each individual operation's response schema.
              *
              *     Null on operations that produce no meaningful payload
-             *     (e.g. POST /v1/auth/token/revoke).
+             *     (e.g. POST /auth/token/revoke).
              */
             data: Record<string, never> | null;
         };
@@ -724,6 +724,7 @@ export interface components {
              *     their device (e.g. "Sign in to Kokio", "Kokio's Passkey" etc).
              *
              *     This value is stored as the WebAuthn `user.displayName` field.
+             *
              *     It is cosmetic, it does not affect identity derivation and is not
              *     used as a lookup key at any point in the authentication flow.
              * @example Kokio User
@@ -732,6 +733,7 @@ export interface components {
         };
         /**
          * @description WebAuthn registration options.
+         *
          *     Pass this object directly to `navigator.credentials.create({ publicKey: <this object> })` via the
          *     `@simplewebauthn/browser` `startRegistration()` helper (or any supported platform passkey library).
          */
@@ -739,7 +741,7 @@ export interface components {
             /**
              * @description Base64url-encoded random challenge.
              *     Bound to this registration session server-side.
-             *     Consumed atomically at `POST /v1/auth/register/complete`.
+             *     Consumed atomically at `POST /auth/register/complete`.
              * @example Y2hhbGxlbmdlLWV4YW1wbGU...
              */
             challenge: string;
@@ -747,7 +749,7 @@ export interface components {
             rp: {
                 /**
                  * @description Relying Party ID, the registrable domain suffix.
-                 * @example placeholder.app
+                 * @example kokio.app
                  */
                 id: string;
                 /**
@@ -796,6 +798,7 @@ export interface components {
             timeout: number;
             /**
              * @description Always empty at register/begin time.
+             *
              *     The deviceWalletAddress is not yet known before attestation completes, so duplicate exclusion is enforced
              *     at register/complete via a uniqueness check on the derived address.
              * @example []
@@ -835,68 +838,72 @@ export interface components {
              */
             extensions: Record<string, never>;
         };
-        RegisterCompleteRequest: {
+        /**
+         * @description The `RegistrationResponseJSON` object returned by the device's WebAuthn
+         *     API after a successful `navigator.credentials.create()` call.
+         *
+         *     Obtain this via the `@simplewebauthn/browser` `startRegistration()` helper
+         *     (or supported platform passkey library helper),
+         *     passing the options received from `POST /auth/register/begin` as input.
+         *     Pass the helper's return value without modification.
+         */
+        RegistrationResponseJSON: {
             /**
-             * @description The `RegistrationResponseJSON` object returned by the device's WebAuthn
-             *     API after a successful `navigator.credentials.create()` call.
-             *
-             *     Obtain this via the `@simplewebauthn/browser` `startRegistration()` helper
-             *     (or supported library's registration helper),
-             *     passing the options received from `POST /v1/auth/register/begin` as input.
-             *     Pass the helper's return value without modification.
+             * @description Base64url-encoded credential ID assigned by the authenticator.
+             * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
              */
-            attestationResponse: {
+            id: string;
+            /**
+             * @description Base64url-encoded raw credential ID (same value as id).
+             * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
+             */
+            rawId: string;
+            /** @description Authenticator attestation response. */
+            response: {
                 /**
-                 * @description Base64url-encoded credential ID assigned by the authenticator.
-                 * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
+                 * @description Base64url-encoded client data JSON from the authenticator.
+                 * @example eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiLi4uIn0
                  */
-                id: string;
+                clientDataJSON: string;
                 /**
-                 * @description Base64url-encoded raw credential ID (same value as id).
-                 * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
+                 * @description Base64url-encoded CBOR-encoded attestation object.
+                 * @example o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVik...
                  */
-                rawId: string;
-                /** @description Authenticator attestation response. */
-                response: {
-                    /**
-                     * @description Base64url-encoded client data JSON from the authenticator.
-                     * @example eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiLi4uIn0
-                     */
-                    clientDataJSON: string;
-                    /**
-                     * @description Base64url-encoded CBOR-encoded attestation object.
-                     * @example o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVik...
-                     */
-                    attestationObject: string;
-                    /**
-                     * @description Authenticator transport hints reported by the device.
-                     *     Stored and used to populate `allowCredentials` at login/begin time.
-                     * @example [
-                     *       "internal"
-                     *     ]
-                     */
-                    transports?: ("internal" | "hybrid" | "usb" | "nfc" | "ble")[];
-                };
+                attestationObject: string;
                 /**
-                 * @example public-key
-                 * @enum {string}
+                 * @description Authenticator transport hints reported by the device.
+                 *     Stored and used to populate `allowCredentials` at login/begin time.
+                 * @example [
+                 *       "internal"
+                 *     ]
                  */
-                type: "public-key";
-                /**
-                 * @description Extension results returned by the authenticator.
-                 * @example {}
-                 */
-                clientExtensionResults?: Record<string, never>;
+                transports?: ("internal" | "hybrid" | "usb" | "nfc" | "ble")[];
             };
+            /**
+             * @example public-key
+             * @enum {string}
+             */
+            type: "public-key";
+            /**
+             * @description Extension results returned by the authenticator.
+             * @example {}
+             */
+            clientExtensionResults?: Record<string, never>;
+        };
+        RegisterCompleteRequest: {
+            attestationResponse: components["schemas"]["RegistrationResponseJSON"];
         };
         RegisterCompleteData: {
             /**
              * @description Deterministic EVM address derived from the passkey P-256 public key
              *     X/Y coordinates and a server-generated salt.
-             *
              *     This is the canonical identity primitive for this device.
+             *
              *     It is the `sub` claim on all issued JWTs and the foreign key on all Order, eSIM,
              *     and Account documents on the BFF.
+             *
+             *     Store this value — it is required as the `deviceWalletAddress` input
+             *     to `POST /auth/login/begin`.
              * @example 0xabc123def456abc123def456abc123def456abc1
              */
             deviceWalletAddress: string;
@@ -904,16 +911,17 @@ export interface components {
              * Format: uuid
              * @description The WebAuthn user handle generated at register/begin time (UUID v4).
              *     Stored by the authenticator and returned in assertion responses.
+             *
              *     Also used as the `deviceUniqueIdentifier` argument in on-chain smart contract calls.
              * @example 550e8400-e29b-41d4-a716-446655440000
              */
             deviceUniqueIdentifier: string;
             /**
              * Format: hex
-             * @description The raw salt value used in `deviceWalletAddress` calculation. Server-generated
-             *     per registration and persisted for the credential's lifetime. Use directly for
-             *     Device Wallet deployment — pass as `BigInt('0x' + rawSalt)` to the SDK.
-             * @pattern ^[0-9a-fA-F]{16}
+             * @description The raw salt value used in `deviceWalletAddress` calculation. This value is server-generated
+             *     for each passkey registration event and then persisted for the credential for it's lifetime.
+             *     `salt` cannot be modified for a credential and any subsequent usage for this value must reconcile
+             *     the with server presisted value.
              * @example 9f0f2a0f6a702b5aa90c6c1d4414a786
              */
             rawSalt?: string;
@@ -924,16 +932,30 @@ export interface components {
              */
             registered: true;
         };
-        LoginBeginRequest: Record<string, never>;
+        LoginBeginRequest: {
+            /**
+             * @description EVM address of the device initiating the authentication ceremony.
+             *     Returned as `deviceWalletAddress` from a prior successful
+             *     `POST /auth/register/complete` call.
+             *
+             *     Used server-side to look up the stored credential and scope the
+             *     WebAuthn challenge to the correct authenticator.
+             * @example 0xabc123def456abc123def456abc123def456abc1
+             */
+            deviceWalletAddress: string;
+        };
         /**
-         * @description WebAuthn authentication options. Pass this object directly to `navigator.credentials.get({ publicKey: <this object> })`
+         * @description WebAuthn authentication options.
+         *
+         *     Pass this object directly to `navigator.credentials.get({ publicKey: <this object> })`
          *     via the `@simplewebauthn/browser` `startAuthentication()` helper (or any supported platform passkey library).
          */
         AuthenticationOptionsResponse: {
             /**
-             * @description Base64url-encoded random challenge. Bound to this authentication session
-             *     server-side and scoped by ceremony type (authentication or stepup) to
-             *     prevent cross-ceremony replay. Consumed atomically at complete time.
+             * @description Base64url-encoded random challenge.
+             *     Bound to this authentication session server-side and scoped by ceremony type
+             *     (`authentication` or `stepup`) to prevent cross-ceremony replay.
+             *     Consumed atomically at complete time.
              * @example Y2hhbGxlbmdlLWV4YW1wbGU
              */
             challenge: string;
@@ -944,7 +966,7 @@ export interface components {
             timeout: number;
             /**
              * @description Relying Party ID — the registrable domain suffix.
-             * @example placeholder.app
+             * @example kokio.app
              */
             rpId: string;
             /**
@@ -977,63 +999,66 @@ export interface components {
              */
             userVerification: "required";
         };
-        LoginCompleteRequest: {
+        /**
+         * @description The `AuthenticationResponseJSON` object returned by the device's WebAuthn
+         *     API after a successful `navigator.credentials.get()` call.
+         *
+         *     Obtain this via the `@simplewebauthn/browser` `startAuthentication()` helper
+         *     (or supported platform passkey library helper),
+         *     passing the options received from the corresponding `/begin` endpoint as input.
+         *     Pass the helper's return value here without modification.
+         */
+        AuthenticationResponseJSON: {
             /**
-             * @description The `AuthenticationResponseJSON` object returned by the device's WebAuthn
-             *     API after a successful `navigator.credentials.get()` call.
-             *
-             *     Obtain this via the `@simplewebauthn/browser` `startAuthentication()` helper
-             *     (or supported library's registration helper),
-             *     passing the options received from `POST /v1/auth/login/begin` as input.
-             *     Pass the helper's return value here without modification.
+             * @description Base64url-encoded credential ID of the passkey used to authenticate.
+             * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
              */
-            assertionResponse: {
+            id: string;
+            /**
+             * @description Base64url-encoded raw credential ID (same value as id).
+             * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
+             */
+            rawId: string;
+            /** @description Authenticator assertion response. */
+            response: {
                 /**
-                 * @description Base64url-encoded credential ID of the passkey used to authenticate.
-                 * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
+                 * @description Base64url-encoded client data JSON from the authenticator.
+                 * @example eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiLi4uIn0
                  */
-                id: string;
+                clientDataJSON: string;
                 /**
-                 * @description Base64url-encoded raw credential ID (same value as id).
-                 * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
+                 * @description Base64url-encoded authenticator data.
+                 * @example SZYN5YgOjGh0NBcPZHZgW4...
                  */
-                rawId: string;
-                /** @description Authenticator assertion response. */
-                response: {
-                    /**
-                     * @description Base64url-encoded client data JSON from the authenticator.
-                     * @example eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiLi4uIn0
-                     */
-                    clientDataJSON: string;
-                    /**
-                     * @description Base64url-encoded authenticator data.
-                     * @example SZYN5YgOjGh0NBcPZHZgW4...
-                     */
-                    authenticatorData: string;
-                    /**
-                     * @description Base64url-encoded assertion signature over clientDataJSON and authenticatorData.
-                     * @example MEYCIQDexample...
-                     */
-                    signature: string;
-                    /**
-                     * @description Base64url-encoded user handle returned by the authenticator.
-                     *     Corresponds to the `user.id` set during registration (the server-generated UUID, base64url-encoded).
-                     *     May be null on authenticators that do not return it.
-                     * @example dXNlci1pZC1leGFtcGxl
-                     */
-                    userHandle?: string | null;
-                };
+                authenticatorData: string;
                 /**
-                 * @example public-key
-                 * @enum {string}
+                 * @description Base64url-encoded assertion signature over clientDataJSON
+                 *     and authenticatorData.
+                 * @example MEYCIQDexample...
                  */
-                type: "public-key";
+                signature: string;
                 /**
-                 * @description Extension results returned by the authenticator.
-                 * @example {}
+                 * @description Base64url-encoded user handle returned by the authenticator.
+                 *
+                 *     Corresponds to the `user.id` set during registration (the server-generated UUID, base64url-encoded).
+                 *     May be null on authenticators that do not return it.
+                 * @example dXNlci1pZC1leGFtcGxl
                  */
-                clientExtensionResults?: Record<string, never>;
+                userHandle?: string | null;
             };
+            /**
+             * @example public-key
+             * @enum {string}
+             */
+            type: "public-key";
+            /**
+             * @description Extension results returned by the authenticator.
+             * @example {}
+             */
+            clientExtensionResults?: Record<string, never>;
+        };
+        LoginCompleteRequest: {
+            assertionResponse: components["schemas"]["AuthenticationResponseJSON"];
         };
         LoginCompleteData: {
             /**
@@ -1041,7 +1066,7 @@ export interface components {
              *     Sourced from the stored challenge document (not from the assertion response)
              *     to prevent address substitution attacks.
              *
-             *     Pass as `device_wallet_address` to `GET /v1/auth/authorize`.
+             *     Pass as `device_wallet_address` to `GET /auth/authorize`.
              * @example 0xabc123def456abc123def456abc123def456abc1
              */
             deviceWalletAddress: string;
@@ -1049,7 +1074,8 @@ export interface components {
              * @description Unix timestamp (seconds) of this authentication event.
              *     Carried into the issued access token as the `auth_time` JWT claim.
              *
-             *     Pass as `auth_time` to `GET /v1/auth/authorize`.
+             *     Pass as `auth_time` to `GET /auth/authorize`.
+             *
              *     It MUST be passed accurately — the PKCE service validates that the timestamp is within
              *     the 120-second recency window at authorize time.
              * @example 1745064000
@@ -1064,15 +1090,15 @@ export interface components {
              */
             grant_type: "authorization_code";
             /**
-             * @description Authorization code from the `kokio://callback?code=<code>` redirect.
+             * @description Authorization code from the `https://kokio.app?code=<code>` redirect.
              *     Single-use — consumed atomically at token exchange.
              * @example SplxlOBeZQQYbYS6WxSbIA
              */
             code: string;
             /**
-             * @description Must exactly match the `redirect_uri` provided at `GET /v1/auth/authorize`.
-             *     Expected value: `kokio://callback`.
-             * @example kokio://callback
+             * @description Must exactly match the `redirect_uri` provided at `GET /auth/authorize`.
+             *     Expected value: `https://kokio.app`.
+             * @example https://kokio.app
              */
             redirect_uri: string;
             /**
@@ -1172,62 +1198,7 @@ export interface components {
             token_type_hint?: string;
         };
         StepUpCompleteRequest: {
-            /**
-             * @description The `AuthenticationResponseJSON` object returned by the device's WebAuthn
-             *     API after a successful `navigator.credentials.get()` call.
-             *
-             *     Obtain this via the `@simplewebauthn/browser` `startAuthentication()` helper
-             *     (or supported platform passkey library helper),
-             *     passing the options received from `POST /v1/auth/stepup/begin` as input.
-             *     Pass the helper's return value here without modification.
-             */
-            assertionResponse: {
-                /**
-                 * @description Base64url-encoded credential ID of the passkey used to authenticate.
-                 * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
-                 */
-                id: string;
-                /**
-                 * @description Base64url-encoded raw credential ID (same value as id).
-                 * @example Y3JlZGVudGlhbC1pZC1leGFtcGxl
-                 */
-                rawId: string;
-                /** @description Authenticator assertion response. */
-                response: {
-                    /**
-                     * @description Base64url-encoded client data JSON from the authenticator.
-                     * @example eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiLi4uIn0
-                     */
-                    clientDataJSON: string;
-                    /**
-                     * @description Base64url-encoded authenticator data.
-                     * @example SZYN5YgOjGh0NBcPZHZgW4...
-                     */
-                    authenticatorData: string;
-                    /**
-                     * @description Base64url-encoded assertion signature over clientDataJSON
-                     *     and authenticatorData.
-                     * @example MEYCIQDexample...
-                     */
-                    signature: string;
-                    /**
-                     * @description Base64url-encoded user handle returned by the authenticator.
-                     *     May be null on authenticators that do not return it.
-                     * @example dXNlci1pZC1leGFtcGxl
-                     */
-                    userHandle?: string | null;
-                };
-                /**
-                 * @example public-key
-                 * @enum {string}
-                 */
-                type: "public-key";
-                /**
-                 * @description Extension results returned by the authenticator.
-                 * @example {}
-                 */
-                clientExtensionResults?: Record<string, never>;
-            };
+            assertionResponse: components["schemas"]["AuthenticationResponseJSON"];
             /**
              * @description The client's current valid refresh token.
              *
@@ -1310,7 +1281,92 @@ export interface components {
             rotatedAt: string;
         };
     };
-    responses: never;
+    responses: {
+        /**
+         * @description DPoP validation failed or key continuity violation detected.
+         *
+         *     | Code | Meaning |
+         *     |------|---------|
+         *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+         *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+         *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+         *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm` or `htu` binding does not match this request |
+         *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
+         *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
+         *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the key bound to the session at the original grant |
+         */
+        DPoPValidationError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /**
+         * @description Admin bearer token is missing or invalid.
+         *
+         *     | Code | Meaning |
+         *     |------|---------|
+         *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token value does not match |
+         */
+        AdminTokenError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "success": false,
+                 *       "code": "ADMIN_TOKEN_INVALID",
+                 *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                 *       "message": "Invalid or missing admin token."
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Unhandled internal server error. */
+        InternalServerError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "success": false,
+                 *       "code": "INTERNAL_SERVER_ERROR",
+                 *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                 *       "message": "Something went wrong. Please try again later"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /**
+         * @description No registered passkey found for the provided device address.
+         *
+         *     | Code | Meaning |
+         *     |------|---------|
+         *     | `CREDENTIAL_NOT_FOUND` | No WebAuthn credential is registered for the given `device_wallet_address` |
+         */
+        CredentialNotFoundError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "success": false,
+                 *       "code": "CREDENTIAL_NOT_FOUND",
+                 *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                 *       "message": "No passkey found for the provided identity."
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+    };
     parameters: {
         /**
          * @description Client-generated request correlation identifier.
@@ -1319,7 +1375,6 @@ export interface components {
          *     Echoed back in the `correlationId` field of the response envelope.
          *
          *     Use a UUID v4 per request.
-         *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
          * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
          */
         CorrelationId: string;
@@ -1361,6 +1416,7 @@ export interface operations {
                     };
                 };
             };
+            500: components["responses"]["InternalServerError"];
         };
     };
     healthReadiness: {
@@ -1399,6 +1455,7 @@ export interface operations {
                     };
                 };
             };
+            500: components["responses"]["InternalServerError"];
             /**
              * @description Service is not ready. One or more dependency checks failed.
              *
@@ -1471,6 +1528,7 @@ export interface operations {
                     };
                 };
             };
+            500: components["responses"]["InternalServerError"];
             /**
              * @description One or more dependency checks failed.
              *
@@ -1528,6 +1586,7 @@ export interface operations {
                     "application/json": components["schemas"]["JwksResponse"];
                 };
             };
+            500: components["responses"]["InternalServerError"];
         };
     };
     authRegisterBegin: {
@@ -1541,7 +1600,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -1560,7 +1618,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Registration options generated. Proceed to `POST /v1/auth/register/complete`. */
+            /** @description Registration options generated. Proceed to `POST /auth/register/complete`. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1595,23 +1653,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     authRegisterComplete: {
@@ -1625,7 +1667,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -1639,7 +1680,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Passkey registered successfully. Proceed to `POST /v1/auth/login/begin`. */
+            /** @description Passkey registered successfully. Proceed to `POST /auth/login/begin`. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1653,6 +1694,7 @@ export interface operations {
                      *       "data": {
                      *         "deviceWalletAddress": "0xabc123def456abc123def456abc123def456abc1",
                      *         "deviceUniqueIdentifier": "550e8400-e29b-41d4-a716-446655440000",
+                     *         "rawSalt": "9f0f2a0f6a702b5aa90c6c1d4414a786",
                      *         "registered": true
                      *       }
                      *     }
@@ -1711,23 +1753,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
             /**
              * @description On-chain address derivation failed.
              *
@@ -1764,7 +1790,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -1774,7 +1799,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Authentication options generated. Proceed to `POST /v1/auth/login/complete`. */
+            /** @description Authentication options generated. Proceed to `POST /auth/login/complete`. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1785,23 +1810,8 @@ export interface operations {
                     };
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            404: components["responses"]["CredentialNotFoundError"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     authLoginComplete: {
@@ -1815,7 +1825,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -1830,7 +1839,7 @@ export interface operations {
         };
         responses: {
             /**
-             * @description Authentication successful. Proceed to `GET /v1/auth/authorize`
+             * @description Authentication successful. Proceed to `GET /auth/authorize`
              *     within 120 seconds.
              */
             200: {
@@ -1902,23 +1911,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     authAuthorize: {
@@ -1931,8 +1924,7 @@ export interface operations {
                 response_type: "code";
                 /**
                  * @description Redirect URI to deliver the authorization code to.
-                 *     Must be `kokio://callback` — the only permitted redirect URI.
-                 * @example kokio://callback
+                 * @example https://kokio.app
                  */
                 redirect_uri: string;
                 /**
@@ -1951,12 +1943,12 @@ export interface operations {
                  */
                 code_challenge_method: "S256";
                 /**
-                 * @description `deviceWalletAddress` from the `POST /v1/auth/login/complete` response.
+                 * @description `deviceWalletAddress` from the `POST /auth/login/complete` response.
                  * @example 0xabc123def456abc123def456abc123def456abc1
                  */
                 device_wallet_address: string;
                 /**
-                 * @description `authTime` Unix timestamp (seconds) from the `POST /v1/auth/login/complete`
+                 * @description `authTime` Unix timestamp (seconds) from the `POST /auth/login/complete`
                  *     response. Must be within 120 seconds of the current server time.
                  * @example 1745064000
                  */
@@ -1970,7 +1962,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -1981,10 +1972,10 @@ export interface operations {
         requestBody?: never;
         responses: {
             /**
-             * @description Authorization code issued. Redirects to `kokio://callback?code=<code>`.
+             * @description Authorization code issued. Redirects to `https://kokio.app?code=<code>`.
              *
              *     Extract the `code` query parameter from the redirect URI and pass it
-             *     to `POST /v1/auth/token` with the `authorization_code` grant within
+             *     to `POST /auth/token` with the `authorization_code` grant within
              *     the code TTL window.
              *
              *     No response body is returned on a successful redirect.
@@ -1993,8 +1984,8 @@ export interface operations {
                 headers: {
                     /**
                      * @description Redirect target URI containing the authorization code.
-                     *     Format: `kokio://callback?code=<authorization_code>`
-                     * @example kokio://callback?code=SplxlOBeZQQYbYS6WxSbIA
+                     *     Format: `https://kokio.app?code=<authorization_code>`
+                     * @example https://kokio.app?code=SplxlOBeZQQYbYS6WxSbIA
                      */
                     Location?: string;
                     [name: string]: unknown;
@@ -2009,7 +2000,8 @@ export interface operations {
              *     |------|---------|
              *     | `REQUIRED_FIELD` | A required query parameter is missing |
              *     | `INVALID_PAYLOAD` | A parameter value failed validation |
-             *     | `UNAUTHORIZED` | `auth_time` is outside the 120-second recency window |
+             *     | `INVALID_VALUE` | A parameter value failed format validation (e.g. invalid EVM address) |
+             *     | `INVALID_GRANT` | `auth_time` is outside the 120-second recency window |
              */
             400: {
                 headers: {
@@ -2027,23 +2019,8 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            404: components["responses"]["CredentialNotFoundError"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     authToken: {
@@ -2057,7 +2034,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -2167,23 +2143,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     authTokenRevoke: {
@@ -2197,7 +2157,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -2241,23 +2200,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     authStepUpBegin: {
@@ -2271,7 +2214,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -2283,7 +2225,7 @@ export interface operations {
         responses: {
             /**
              * @description Step-up authentication options generated.
-             *     Proceed to `POST /v1/auth/stepup/complete`.
+             *     Proceed to `POST /auth/stepup/complete`.
              */
             200: {
                 headers: {
@@ -2295,23 +2237,8 @@ export interface operations {
                     };
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            404: components["responses"]["CredentialNotFoundError"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     authStepUpComplete: {
@@ -2325,7 +2252,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -2431,44 +2357,8 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /**
-             * @description DPoP validation failed or key continuity violation detected.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
-             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
-             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
-             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm` or `htu` binding does not match this request |
-             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
-             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
-             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the key bound to the session at the original grant |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["DPoPValidationError"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     adminRotateKeys: {
@@ -2482,7 +2372,6 @@ export interface operations {
                  *     Echoed back in the `correlationId` field of the response envelope.
                  *
                  *     Use a UUID v4 per request.
-                 *     Required on all endpoints except `GET /v1/health`, `GET /v1/health/ready`, and `GET /v1/health/deep`.
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
@@ -2515,29 +2404,7 @@ export interface operations {
                     };
                 };
             };
-            /**
-             * @description Admin bearer token is missing or invalid.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token value does not match |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "ADMIN_TOKEN_INVALID",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Invalid or missing admin token."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["AdminTokenError"];
             /**
              * @description Key generation or encryption failed.
              *

@@ -28,7 +28,8 @@ import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { createOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus } from "@/utils/bff/order";
+import { createCryptoOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus } from "@/utils/bff/order";
+import { pollingLabel } from "@/utils/orderStatus";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
@@ -41,7 +42,7 @@ import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { Config } from "@/appKeys";
-import type { CreateOrderResponse, ExternalWalletOrderResponse } from "@/utils/bff/order";
+import type { CreateOrderResponse, OrderStatusResponse, ExternalWalletOrderResponse } from "@/utils/bff/order";
 import * as WebBrowser from "expo-web-browser";
 import {
   MoonpayCommerceProvider,
@@ -71,10 +72,10 @@ const ExternalWalletCheckout = ({
   pendingOrder: CreateOrderResponse | null;
   eSimItem: Esim;
   kokioDeviceUID: string | undefined;
-  savePurchasedESIM: (uid: string, item: Esim, order: CreateOrderResponse, cid?: string | null) => Promise<void>;
+  savePurchasedESIM: (uid: string, item: Esim, order: OrderStatusResponse, cid?: string | null) => Promise<void>;
   setIsCheckoutLoading: (v: boolean) => void;
   setLoadingMessage: (msg: string) => void;
-  onComplete: (order: CreateOrderResponse | null) => void;
+  onComplete: (order: OrderStatusResponse | null) => void;
   onSdkDismiss: () => void;
 }) => {
   const successFiredRef = useRef(false);
@@ -87,9 +88,9 @@ const ExternalWalletCheckout = ({
       setLoadingMessage('Processing your order...');
       const finalOrder = correlationId
         ? await pollOrderStatus(correlationId, 15, 2000, (s) =>
-            setLoadingMessage(s.replace(/_/g, ' ')),
-          ).catch(() => pendingOrder)
-        : pendingOrder;
+            setLoadingMessage(pollingLabel(s)),
+          ).catch(() => null)
+        : null;
       if (finalOrder && kokioDeviceUID) {
         await savePurchasedESIM(kokioDeviceUID, eSimItem, finalOrder, correlationId);
       }
@@ -340,7 +341,7 @@ const Checkout = () => {
   const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
-  const [orderResponse, setOrderResponse] = useState<CreateOrderResponse | null>(null);
+  const [orderResponse, setOrderResponse] = useState<OrderStatusResponse | null>(null);
   const [discountError, setDiscountError] = useState<string>("");
 
   const radioButtons: RadioButtonProps[] = useMemo(
@@ -388,20 +389,16 @@ const Checkout = () => {
         await createTopupOrder.mutateAsync({
           request: {
             catalogueId: eSimItem.catalogueId,
-            currency: "USD",
             isNewESim: false,
-            eSimId: compatibleTopUpEsimId,
+            esimId: compatibleTopUpEsimId,
             isCryptoPayment: true,
-            payeeAddress: deviceWalletId,
-            coupon: discountCode || null,
+            coupon: discountCode || undefined,
           },
           eSimItem,
         });
         showMessage('eSIM topped up successfully!', 'info');
         return;
       }
-
-      setShowSuccessModal(true);
 
       const payload = getEsimOrderPayload({
         eSimItem,
@@ -412,26 +409,35 @@ const Checkout = () => {
       });
       const esimBody = { ...payload, payeeAddress: deviceWalletId };
       if (__DEV__) console.log('[Order] eSIM wallet body:', JSON.stringify(esimBody, null, 2));
-      const orderData = await createOrder(esimBody);
+      const { correlationId } = await createCryptoOrder(esimBody);
+      if (kokio.deviceUID && correlationId) {
+        await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
+      }
+      setLoadingMessage('Processing your order...');
+      const PAYMENT_ERRORS = new Set(['PAYMENT_FAILED', 'STRIPE_INVOICE_FINALIZATION_FAILED']);
+      const orderData = correlationId
+        ? await pollOrderStatus(correlationId, 15, 2000, (s) => setLoadingMessage(pollingLabel(s)))
+            .catch((e) => { if (PAYMENT_ERRORS.has(e?.code)) throw e; return null; })
+        : null;
 
-      setOrderResponse(orderData);
+      if (orderData) setOrderResponse(orderData);
 
       // Store purchased eSIM in SecureStore and reducer
-      if (kokio.deviceUID) {
-        await savePurchasedESIM(kokio.deviceUID, eSimItem, orderData);
+      if (kokio.deviceUID && orderData) {
+        await savePurchasedESIM(kokio.deviceUID, eSimItem, orderData, correlationId);
       }
 
       setIsCheckoutLoading(false);
+      setShowSuccessModal(true);
     } catch (err) {
       if (__DEV__) console.error("Checkout error:", err);
       const e = err as { code?: string; message?: string };
       const errCode = e.code;
-      const errMessage = e.message;
       if (errCode === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
-      } else if (errMessage) {
-        if (__DEV__) console.error("Checkout failed:", errMessage);
+      } else {
+        showMessage(formatBffError(err), 'info');
       }
       setIsCheckoutLoading(false);
       setShowSuccessModal(false);
@@ -455,7 +461,7 @@ const Checkout = () => {
     setHelioCorrelationId(null);
   }, []);
 
-  const handleHelioComplete = useCallback((finalOrder: CreateOrderResponse | null) => {
+  const handleHelioComplete = useCallback((finalOrder: OrderStatusResponse | null) => {
     resetHelioState();
     setIsCheckoutLoading(false);
     setLoadingMessage('');
@@ -482,7 +488,7 @@ const Checkout = () => {
       try {
         const finalOrder = cid
           ? await pollOrderStatus(cid, 5, 3000, (s) =>
-              setLoadingMessage(s.replace(/_/g, ' ')),
+              setLoadingMessage(pollingLabel(s)),
             ).catch(() => null)
           : null;
         if (finalOrder?.installationDetails?.qrcode || finalOrder?.orderStatus === 'COMPLETED') {
@@ -532,7 +538,7 @@ const Checkout = () => {
           catalogueId: base.catalogueId,
           currency: "USD" as const,
           isNewESim: base.isNewESim,
-          eSimId: base.eSimId,
+          esimId: base.esimId,
           coupon: base.coupon,
           isCryptoPayment: false as const,
         };
@@ -577,10 +583,10 @@ const Checkout = () => {
         setLoadingMessage('Processing your order...');
         const finalOrder = correlationId
           ? await pollOrderStatus(correlationId, 15, 2000, (s) =>
-              setLoadingMessage(s.replace(/_/g, ' ')),
-            ).catch(() => orderInit)
-          : orderInit;
-        if (kokio.deviceUID) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder, correlationId);
+              setLoadingMessage(pollingLabel(s)),
+            ).catch(() => null)
+          : null;
+        if (kokio.deviceUID && finalOrder) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder, correlationId);
         setOrderResponse(finalOrder);
         setIsCheckoutLoading(false);
         setShowSuccessModal(true);
@@ -613,7 +619,7 @@ const Checkout = () => {
           catalogueId: base.catalogueId,
           currency: "USD" as const,
           isNewESim: base.isNewESim,
-          eSimId: base.eSimId,
+          esimId: base.esimId,
           coupon: base.coupon,
           isCryptoPayment: true as const,
           payeeAddress: kokio.userWallet?.address,

@@ -14,7 +14,8 @@ import { SmartContractAccount } from "@aa-sdk/core";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Esim } from "@/components/ESIMItem";
-import { CreateOrderResponse } from "@/utils/bff/order";
+import { OrderStatusResponse } from "@/utils/bff/order";
+import { getAllEsims, type ESimDocument } from "@/utils/bff/esim";
 import {
   getWcSignClient,
   setPendingProposal,
@@ -43,7 +44,7 @@ export interface StoredPurchasedESIM {
 
 const reduceESimDataForStorage = (
   eSimItem: Esim,
-  transactionData: CreateOrderResponse,
+  transactionData: OrderStatusResponse,
   correlationId?: string | null,
 ): StoredPurchasedESIM => {
   const reducedESimItem = _pick(eSimItem, [
@@ -63,12 +64,12 @@ const reduceESimDataForStorage = (
     orderId: transactionData.orderId,
     correlationId: correlationId ?? undefined,
     iccid: transactionData.iccid,
-    planId: (transactionData as any).planId,
+    planId: transactionData.planId,
     orderStatus: transactionData.orderStatus,
-    paymentMethod: (transactionData as any).paymentMethod,
-    vendor: (transactionData as any).vendor,
-    esimId: (transactionData as any).esimId,
-    isNewESim: (transactionData as any).isNewESim,
+    paymentMethod: transactionData.paymentMethod,
+    vendor: transactionData.vendor,
+    esimId: transactionData.esimId,
+    isNewESim: transactionData.isNewESim,
     installationDetails: {
       qrcode: transactionData.installationDetails?.qrcode ?? "",
       appleInstallationUrl: transactionData.installationDetails?.appleInstallationUrl ?? "",
@@ -187,7 +188,7 @@ export interface KokioProviderType {
   savePurchasedESIM: (
     deviceUID: string,
     eSimItem: Esim,
-    transactionData: CreateOrderResponse,
+    transactionData: OrderStatusResponse,
     correlationId?: string | null,
   ) => Promise<void>;
   upsertOrderRecord: (
@@ -306,14 +307,37 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   //   4. Persist merged list via saveValueForPurchasedESIMs and dispatch SET_PURCHASED_ESIMS
   //   5. lastSyncedAt (written below) lets callers detect stale local data
   const syncPurchasedEsimsWithBff = async (deviceUID: string): Promise<void> => {
-    // no-op — awaiting GET /v1/orders BFF endpoint
     try {
-      await AsyncStorage.setItem(
-        `esimLastSync-${deviceUID}`,
-        new Date().toISOString(),
-      );
+      const liveEsims = await getAllEsims();
+      const liveMap = new Map<string, ESimDocument>(liveEsims.map(e => [e.esimId, e]));
+
+      const existingESIMs = await getValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`);
+      if (!existingESIMs?.length) return;
+
+      const updated = existingESIMs.map(stored => {
+        const esimId = stored.transactionData.esimId;
+        if (!esimId) return stored;
+        const live = liveMap.get(esimId);
+        if (!live) return stored;
+        return {
+          ...stored,
+          transactionData: {
+            ...stored.transactionData,
+            iccid: live.iccid ?? stored.transactionData.iccid,
+            orderStatus: live.activationStatus ?? stored.transactionData.orderStatus,
+            installationDetails: live.installationDetails
+              ? { qrcode: live.installationDetails.qrcode, appleInstallationUrl: live.installationDetails.appleInstallationUrl }
+              : stored.transactionData.installationDetails,
+          },
+        };
+      });
+
+      await saveValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`, updated);
+      dispatch({ type: "SET_PURCHASED_ESIMS", payload: updated });
+
+      await AsyncStorage.setItem(`esimLastSync-${deviceUID}`, new Date().toISOString());
     } catch {
-      // non-critical — timestamp failure should not surface to the user
+      // non-critical — sync failure should not surface to the user
     }
   };
 
@@ -498,7 +522,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   const savePurchasedESIM = async (
     deviceUID: string,
     eSimItem: Esim,
-    transactionData: CreateOrderResponse,
+    transactionData: OrderStatusResponse,
     correlationId?: string | null,
   ) => {
     if (__DEV__) console.log('[eSIM] order response:', JSON.stringify(transactionData, null, 2));
