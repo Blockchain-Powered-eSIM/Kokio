@@ -38,13 +38,7 @@ const COMPAT_B = { esimId: ESIM_B, compatible: true,  vendorMismatch: false, che
 const INCOMPAT  = { esimId: ESIM_C, compatible: false, vendorMismatch: true,  checkError: false };
 
 const TOPUP_RESPONSE = {
-  orderId:   'ord-topup-001',
-  esimId:    ESIM_A,
-  iccid:     '89012601234567890',
-  installationDetails: {
-    qrcode:              '',
-    appleInstallationUrl: '',
-  },
+  orderId: 'ord-topup-001',
 };
 
 function compatEnvelope(results: unknown[]) {
@@ -68,7 +62,7 @@ beforeEach(() => jest.clearAllMocks());
 describe('single compatible eSIM → topup', () => {
   it('full flow: check → one compatible result → topup that eSIM', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([COMPAT_A]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
 
     const compatibleEsims = compat.results.filter((r: any) => r.compatible);
     expect(compatibleEsims).toHaveLength(1);
@@ -85,12 +79,11 @@ describe('single compatible eSIM → topup', () => {
     } as any);
 
     expect(order.orderId).toBe('ord-topup-001');
-    expect(order.esimId).toBe(ESIM_A);
   });
 
   it('topup order body has isNewESim: false and the selected eSimId', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([COMPAT_A]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
     const selectedEsim = compat.results.find((r: any) => r.compatible)!.esimId;
 
     mockPost.mockResolvedValueOnce(orderEnvelope());
@@ -124,7 +117,7 @@ describe('single compatible eSIM → topup', () => {
 describe('multiple compatible eSIMs — user selects one', () => {
   it('compatibility check returns all compatible eSIMs', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([COMPAT_A, COMPAT_B, INCOMPAT]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
 
     const compatible = compat.results.filter((r: any) => r.compatible);
     expect(compatible).toHaveLength(2);
@@ -133,12 +126,12 @@ describe('multiple compatible eSIMs — user selects one', () => {
 
   it('user selects the second compatible eSIM — that eSimId is used in the order', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([COMPAT_A, COMPAT_B]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
 
     const compatible = compat.results.filter((r: any) => r.compatible);
     const userSelection = compatible[1].esimId; // user picks second
 
-    mockPost.mockResolvedValueOnce(orderEnvelope({ ...TOPUP_RESPONSE, esimId: ESIM_B }));
+    mockPost.mockResolvedValueOnce(orderEnvelope(TOPUP_RESPONSE));
     await createOrder({
       catalogueId: PLAN_ID, currency: 'USD', isNewESim: false,
       eSimId: userSelection, isCryptoPayment: true, payeeAddress: DEVICE_WALLET,
@@ -150,7 +143,7 @@ describe('multiple compatible eSIMs — user selects one', () => {
 
   it('incompatible eSIMs (vendorMismatch) are excluded by the caller', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([COMPAT_A, INCOMPAT]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
 
     const incompatible = compat.results.filter((r: any) => !r.compatible);
     expect(incompatible).toHaveLength(1);
@@ -163,7 +156,7 @@ describe('multiple compatible eSIMs — user selects one', () => {
 describe('no compatible eSIMs → caller falls back to new eSIM purchase', () => {
   it('returns empty compatible list when no eSIM matches the plan', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([INCOMPAT]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_C });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_C);
 
     const compatible = compat.results.filter((r: any) => r.compatible);
     expect(compatible).toHaveLength(0);
@@ -173,7 +166,7 @@ describe('no compatible eSIMs → caller falls back to new eSIM purchase', () =>
 
   it('returns empty list when results array is empty', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
     expect(compat.results).toHaveLength(0);
   });
 });
@@ -225,7 +218,7 @@ describe('topup flow error handling', () => {
   it('ESIM_NOT_FOUND_FOR_DEVICE from compatibility check propagates as BffError', async () => {
     mockGet.mockResolvedValue(bffError('ESIM_NOT_FOUND_FOR_DEVICE'));
     await expect(
-      checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A }),
+      checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A),
     ).rejects.toMatchObject({
       code:        'ESIM_NOT_FOUND_FOR_DEVICE',
       userMessage: 'eSIM not found.',
@@ -235,7 +228,7 @@ describe('topup flow error handling', () => {
   it('TOPUP_COMPATIBILITY_CHECK_FAILED propagates with correct userMessage', async () => {
     mockGet.mockResolvedValue(bffError('TOPUP_COMPATIBILITY_CHECK_FAILED'));
     await expect(
-      checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A }),
+      checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A),
     ).rejects.toMatchObject({
       code:        'TOPUP_COMPATIBILITY_CHECK_FAILED',
       userMessage: 'Could not check top-up compatibility. Please try again.',
@@ -263,7 +256,7 @@ describe('topup flow error handling', () => {
   it('compatibility check error does not affect subsequent order call', async () => {
     mockGet.mockResolvedValue(bffError('TOPUP_COMPATIBILITY_CHECK_FAILED'));
     await expect(
-      checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_A }),
+      checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A),
     ).rejects.toBeInstanceOf(BffError);
 
     // User decides to buy new eSIM instead
