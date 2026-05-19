@@ -18,6 +18,10 @@ The `dev` branch is for day-to-day integration and QA builds.
 
 The `staging` branch is for release candidate testing.
 
+- Git branch: `staging`
+- EAS build profile: `staging`
+- EAS environment: `preview`
+- EAS update branch/channel: `staging`
 - Publishes OTA updates to the `staging` update branch when the native runtime is already compatible.
 - Creates new store builds when native code or native configuration changes.
 - Submits Android builds to Google Play open testing.
@@ -27,6 +31,10 @@ The `staging` branch is for release candidate testing.
 
 The `production` branch is for real app releases.
 
+- Git branch: `production`
+- EAS build profile: `production`
+- EAS environment: `production`
+- EAS update branch/channel: `production`
 - Publishes OTA updates to the `production` update branch when the native runtime is already compatible.
 - Creates new store builds when native code or native configuration changes.
 - Submits Android builds to the Google Play production track.
@@ -58,6 +66,8 @@ This workflow:
 5. Submits Android to Google Play open testing.
 6. Distributes iOS through TestFlight.
 
+The staging workflow uses the EAS `preview` environment so cloud jobs pull staging-safe environment variables instead of production values.
+
 ### `workflows/deploy-production.yml`
 
 Runs on pushes to `production`.
@@ -83,6 +93,6 @@ This workflow:
 
 - `development`: internal development-client builds for `dev`.
 - `development-simulator`: optional iOS simulator development-client builds.
-- `staging`: store builds connected to the `staging` update channel.
+- `staging`: store builds connected to the `staging` update channel and using the EAS `preview` environment.
 - `production`: store builds connected to the `production` update channel.
 - `preview`: existing internal preview profile, not currently used by these workflows.

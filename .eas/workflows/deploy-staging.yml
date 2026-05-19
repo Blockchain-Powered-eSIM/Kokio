@@ -8,7 +8,7 @@ jobs:
   fingerprint:
     name: Fingerprint
     type: fingerprint
-    environment: staging
+    environment: preview
 
   get_android_build:
     name: Check for existing Android build
@@ -52,6 +52,7 @@ jobs:
     name: Submit Android to open testing
     needs: [build_android]
     type: submit
+    environment: preview
     params:
       build_id: ${{ needs.build_android.outputs.build_id }}
       profile: staging
@@ -60,6 +61,7 @@ jobs:
     name: Distribute iOS to TestFlight
     needs: [build_ios]
     type: testflight
+    environment: preview
     params:
       build_id: ${{ needs.build_ios.outputs.build_id }}
       profile: staging
@@ -69,6 +71,7 @@ jobs:
     needs: [get_android_build]
     if: ${{ needs.get_android_build.outputs.build_id }}
     type: update
+    environment: preview
     params:
       branch: staging
       platform: android
@@ -78,6 +81,7 @@ jobs:
     needs: [get_ios_build]
     if: ${{ needs.get_ios_build.outputs.build_id }}
     type: update
+    environment: preview
     params:
       branch: staging
       platform: ios

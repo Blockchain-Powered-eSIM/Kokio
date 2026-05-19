@@ -23,7 +23,7 @@
       "channel": "development"
     },
     "staging": {
-      "environment": "staging",
+      "environment": "preview",
       "distribution": "store",
       "channel": "staging",
       "autoIncrement": true,
