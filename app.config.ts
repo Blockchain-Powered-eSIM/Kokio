@@ -1,6 +1,8 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 import { AppExtraConfig } from "./appKeys.js";
-import { version } from "./package.json";
+import packageJson from "./package.json";
+
+const { version } = packageJson;
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const privateConfig: AppExtraConfig = {
@@ -25,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
     newArchEnabled: true,
     name: "Kokio",
-    slug: "Kokio",
+    slug: "kokio",
     version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -36,6 +38,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       resizeMode: "contain",
       backgroundColor: "#242427",
     },
+    runtimeVersion: version,
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
@@ -43,7 +46,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       config: {
         usesNonExemptEncryption: false,
       },
-      runtimeVersion: version,
       version,
       buildNumber: "1",
       infoPlist: {
@@ -58,7 +60,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       package: "app.kokio",
       edgeToEdgeEnabled: true,
       version,
-      runtimeVersion: version,
       intentFilters: [
         {
           action: "VIEW",
@@ -132,11 +133,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       typedRoutes: true,
     },
     updates: {
-      url: "https://u.expo.dev/113a4624-12f1-425b-b76c-a7bedc503b5e",
+      url: "https://u.expo.dev/8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
     },
     extra: {
       eas: {
-        projectId: "113a4624-12f1-425b-b76c-a7bedc503b5e",
+        projectId: "8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
       },
       ...privateConfig,
     },
