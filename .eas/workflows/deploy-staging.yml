@@ -1,39 +1,8 @@
 name: Deploy staging
 
-on:
-  push:
-    branches: ['staging']
-
 jobs:
-  fingerprint:
-    name: Fingerprint
-    type: fingerprint
-    environment: preview
-
-  get_android_build:
-    name: Check for existing Android build
-    needs: [fingerprint]
-    type: get-build
-    params:
-      platform: android
-      profile: staging
-      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
-      wait_for_in_progress: true
-
-  get_ios_build:
-    name: Check for existing iOS build
-    needs: [fingerprint]
-    type: get-build
-    params:
-      platform: ios
-      profile: staging
-      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
-      wait_for_in_progress: true
-
   build_android:
     name: Build Android
-    needs: [get_android_build]
-    if: ${{ !needs.get_android_build.outputs.build_id }}
     type: build
     params:
       platform: android
@@ -41,8 +10,6 @@ jobs:
 
   build_ios:
     name: Build iOS
-    needs: [get_ios_build]
-    if: ${{ !needs.get_ios_build.outputs.build_id }}
     type: build
     params:
       platform: ios
@@ -67,23 +34,3 @@ jobs:
       profile: staging
       external_groups: ["Public"]
       submit_beta_review: true
-
-  publish_android_update:
-    name: Publish Android staging OTA update
-    needs: [get_android_build]
-    if: ${{ needs.get_android_build.outputs.build_id }}
-    type: update
-    environment: preview
-    params:
-      branch: staging
-      platform: android
-
-  publish_ios_update:
-    name: Publish iOS staging OTA update
-    needs: [get_ios_build]
-    if: ${{ needs.get_ios_build.outputs.build_id }}
-    type: update
-    environment: preview
-    params:
-      branch: staging
-      platform: ios
