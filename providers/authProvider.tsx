@@ -173,7 +173,9 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
 
       // Pass credentialId so Android skips the full discoverable-credential sweep
       // and targets the just-created credential directly.
-      await loginWithKokioPasskey(result.credentialId);
+      // Pass deviceWalletAddress so loginBegin doesn't have to read SecureStore
+      // (setupKokioRegistration hasn't run yet at this point).
+      await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
 
       dispatch({ type: "PASSKEY" });
       return result;

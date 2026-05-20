@@ -215,7 +215,7 @@ describe('DPoP nonce: non-nonce 401 does not trigger retry', () => {
     );
     global.fetch = mockFetch;
 
-    await kokioAuthClient.loginBegin();
+    await kokioAuthClient.loginBegin({ deviceWalletAddress: '0xDeviceWallet' });
 
     expect(mockFetch).toHaveBeenCalledTimes(1); // no retry
   });

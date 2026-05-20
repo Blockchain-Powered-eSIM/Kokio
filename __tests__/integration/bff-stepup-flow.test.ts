@@ -83,9 +83,6 @@ const TOPUP_ORDER_REQ = {
 
 const ORDER_RESPONSE = {
   orderId: 'ord-after-stepup',
-  esimId:  '0xNewESIM01',
-  iccid:   '89012601234567890',
-  installationDetails: { qrcode: 'LPA:1$...', appleInstallationUrl: 'https://...' },
 };
 
 function orderEnvelope(data = ORDER_RESPONSE) {
@@ -255,7 +252,7 @@ describe('step-up cancellation does not affect unrelated BFF operations', () => 
     mockGet.mockResolvedValueOnce(compatEnvelope([
       { esimId: ESIM_ID, compatible: true, vendorMismatch: false, checkError: false },
     ]));
-    const compat = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_ID });
+    const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_ID);
     const compatible = compat.results.filter((r: any) => r.compatible);
     expect(compatible).toHaveLength(1);
   });
@@ -269,14 +266,14 @@ describe('step-up cancellation does not affect unrelated BFF operations', () => 
     mockPost.mockRejectedValueOnce(new StepUpCancelledError());
 
     // 1. First compatibility check (no eSIM yet)
-    const first = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_ID });
+    const first = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_ID);
     expect(first.results).toHaveLength(0);
 
     // 2. Attempt order → step-up → user cancels
     await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
 
     // 3. Check compatibility again — works fine
-    const second = await checkEsimCompatibility({ planId: PLAN_ID, esimId: ESIM_ID });
+    const second = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_ID);
     expect(second.results.filter((r: any) => r.compatible)).toHaveLength(1);
   });
 });

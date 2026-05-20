@@ -79,7 +79,7 @@ export async function performStepUp(): Promise<void> {
         {
           assertionResponse: {
             id:      assertion.id,
-            rawId:   assertion.rawId,
+            rawId:   assertion.rawId ?? assertion.id,
             response: {
               clientDataJSON:    assertion.response.clientDataJSON,
               authenticatorData: assertion.response.authenticatorData,

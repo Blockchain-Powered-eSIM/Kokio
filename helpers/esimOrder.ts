@@ -9,7 +9,7 @@ type EsimOrderPayloadParams = {
   compatibleTopUpEsimId: string | undefined;
 };
 
-type OrderPayload = Omit<CreateOrderRequest, 'payeeAddress' | 'txnHash' | 'tokenName' | 'network'>;
+type OrderPayload = CreateOrderRequest;
 
 export const getEsimOrderPayload = ({
   eSimItem,
@@ -18,11 +18,10 @@ export const getEsimOrderPayload = ({
   compatibleTopUpEsimId,
 }: EsimOrderPayloadParams): OrderPayload => ({
   catalogueId: eSimItem.catalogueId,
-  currency: "USD",
   isNewESim: true,
-  coupon: discountCode || null,
+  coupon: discountCode || undefined,
   isCryptoPayment: true,
   ...(applyAsTopup && compatibleTopUpEsimId
-    ? { isNewESim: false, eSimId: compatibleTopUpEsimId }
+    ? { isNewESim: false, esimId: compatibleTopUpEsimId }
     : {}),
 });

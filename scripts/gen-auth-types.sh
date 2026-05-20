@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SPEC="auth-sever-openapi-source.json"
+SPEC="kokio-auth-server-openapi-source.json"
 OUT="utils/auth/generated/kokioAuth.d.ts"
 
 if [ ! -f "$SPEC" ]; then
