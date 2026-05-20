@@ -65,6 +65,8 @@ jobs:
     params:
       build_id: ${{ needs.build_ios.outputs.build_id }}
       profile: staging
+      external_groups: ["Public"]
+      submit_beta_review: true
 
   publish_android_update:
     name: Publish Android staging OTA update
