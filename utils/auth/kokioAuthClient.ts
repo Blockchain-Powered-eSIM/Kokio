@@ -11,6 +11,7 @@ export type RegisterBeginRequest      = components['schemas']['RegisterBeginRequ
 export type RegisterCompleteRequest   = components['schemas']['RegisterCompleteRequest'];
 export type RegisterCompleteData      = components['schemas']['RegisterCompleteData'];
 
+export type LoginBeginRequest         = components['schemas']['LoginBeginRequest'];
 export type LoginCompleteRequest      = components['schemas']['LoginCompleteRequest'];
 export type LoginCompleteData         = components['schemas']['LoginCompleteData'];
 
@@ -176,22 +177,22 @@ async function authFetch<T>(
 export const kokioAuthClient = {
 
   registerBegin(body: RegisterBeginRequest) {
-    type R = paths['/v1/auth/register/begin']['post']['responses']['200']['content']['application/json'];
+    type R = paths['/auth/register/begin']['post']['responses']['200']['content']['application/json'];
     return authFetch<R>('/v1/auth/register/begin', 'POST', body as unknown as Record<string, unknown>);
   },
 
   registerComplete(body: RegisterCompleteRequest) {
-    type R = paths['/v1/auth/register/complete']['post']['responses']['200']['content']['application/json'];
+    type R = paths['/auth/register/complete']['post']['responses']['200']['content']['application/json'];
     return authFetch<R>('/v1/auth/register/complete', 'POST', body as unknown as Record<string, unknown>);
   },
 
-  loginBegin() {
-    type R = paths['/v1/auth/login/begin']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/login/begin', 'POST');
+  loginBegin(body: LoginBeginRequest) {
+    type R = paths['/auth/login/begin']['post']['responses']['200']['content']['application/json'];
+    return authFetch<R>('/v1/auth/login/begin', 'POST', body as unknown as Record<string, unknown>);
   },
 
   loginComplete(body: LoginCompleteRequest) {
-    type R = paths['/v1/auth/login/complete']['post']['responses']['200']['content']['application/json'];
+    type R = paths['/auth/login/complete']['post']['responses']['200']['content']['application/json'];
     return authFetch<R>('/v1/auth/login/complete', 'POST', body as unknown as Record<string, unknown>);
   },
 
@@ -203,7 +204,7 @@ export const kokioAuthClient = {
    * and the request is retried once automatically.
    */
   token(params: TokenRequest, buildProof: DpopProofBuilder) {
-    type R = paths['/v1/auth/token']['post']['responses']['200']['content']['application/json'];
+    type R = paths['/auth/token']['post']['responses']['200']['content']['application/json'];
     const body = new URLSearchParams(params as unknown as Record<string, string>).toString();
     return authFetch<R>(
       '/v1/auth/token',
@@ -216,7 +217,7 @@ export const kokioAuthClient = {
   },
 
   revokeToken(body: TokenRevokeRequest) {
-    type R = paths['/v1/auth/token/revoke']['post']['responses']['200']['content']['application/json'];
+    type R = paths['/auth/token/revoke']['post']['responses']['200']['content']['application/json'];
     const encoded = new URLSearchParams(body as unknown as Record<string, string>).toString();
     return authFetch<R>(
       '/v1/auth/token/revoke',
@@ -228,7 +229,7 @@ export const kokioAuthClient = {
   },
 
   stepUpBegin() {
-    type R = paths['/v1/auth/stepup/begin']['post']['responses']['200']['content']['application/json'];
+    type R = paths['/auth/stepup/begin']['post']['responses']['200']['content']['application/json'];
     return authFetch<R>('/v1/auth/stepup/begin', 'POST');
   },
 
@@ -237,7 +238,7 @@ export const kokioAuthClient = {
    * Same nonce retry semantics as `token()`.
    */
   stepUpComplete(body: StepUpCompleteRequest, buildProof: DpopProofBuilder) {
-    type R = paths['/v1/auth/stepup/complete']['post']['responses']['200']['content']['application/json'];
+    type R = paths['/auth/stepup/complete']['post']['responses']['200']['content']['application/json'];
     return authFetch<R>(
       '/v1/auth/stepup/complete',
       'POST',

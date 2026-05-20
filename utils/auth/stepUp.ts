@@ -64,8 +64,10 @@ export async function performStepUp(): Promise<void> {
 
     // 3. Complete the ceremony; DPoP nonce retry is handled inside kokioAuthClient.
     // htu is provided by authFetch from the actual request URL — do not hardcode it here.
-    const buildProof: DpopProofBuilder = (nonce, htu) =>
-      buildDpopProof({ htu: htu!, htm: 'POST', nonce });
+    const buildProof: DpopProofBuilder = (nonce, htu) => {
+      logEvent('stepup.buildProof', { htu, nonce: !!nonce });
+      return buildDpopProof({ htu: htu!, htm: 'POST', nonce });
+    };
 
     const resp = assertData<{
       access_token: string;
@@ -77,7 +79,7 @@ export async function performStepUp(): Promise<void> {
         {
           assertionResponse: {
             id:      assertion.id,
-            rawId:   assertion.rawId,
+            rawId:   assertion.rawId ?? assertion.id,
             response: {
               clientDataJSON:    assertion.response.clientDataJSON,
               authenticatorData: assertion.response.authenticatorData,

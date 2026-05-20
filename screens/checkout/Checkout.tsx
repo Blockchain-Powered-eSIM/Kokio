@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  AppState,
   StyleSheet,
   View,
   Platform,
@@ -15,8 +15,6 @@ import { useLocalSearchParams, router } from "expo-router";
 import { RadioButtonProps, RadioGroup } from "react-native-radio-buttons-group";
 import ToggleSwitch from "toggle-switch-react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { WalletConnectModal } from "@walletconnect/modal-react-native";
-import _sum from "lodash/sum";
 import _trim from "lodash/trim";
 import _subtract from "lodash/subtract";
 import _toNumber from "lodash/toNumber";
@@ -25,46 +23,294 @@ import _toUpper from "lodash/toUpper";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
-import AmountInput from "@/components/amountInput";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { eSimOderCheckout } from "@/services/esims";
+import { createCryptoOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus } from "@/utils/bff/order";
+import { pollingLabel } from "@/utils/orderStatus";
+import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
-import * as SecureStore from "expo-secure-store";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
-import { useCreateTopupOrder, ESIM_ID_KEY } from "@/hooks/useCreateOrder";
+import { useCreateTopupOrder } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
-import { isHashUsed, markHashUsed } from "@/utils/orderTracking";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
-import CreditCardModal from "@/components/CreditCardModal";
-
-import * as Linking from "expo-linking";
+import { useStripePaymentSheet } from "@/hooks/useStripePaymentSheet";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { getSignClient } from "@/lib/reownWallet";
-import { useWalletConnect } from "@/hooks/useWalletConnect";
-import { WC_BASE_SEPOLIA } from "@/constants/general.constants";
-import { AppExtraConfig } from "@/appKeys";
-import Constants from "expo-constants";
-import { keccak256 } from "viem";
+import { Config } from "@/appKeys";
+import type { CreateOrderResponse, OrderStatusResponse, ExternalWalletOrderResponse } from "@/utils/bff/order";
+import * as WebBrowser from "expo-web-browser";
+import {
+  MoonpayCommerceProvider,
+  usePayWithCrypto,
+} from "@heliofi/checkout-react-native";
+import type { PaymentCallback } from "@heliofi/checkout-react-native";
 
-const extra = Constants.expoConfig?.extra as AppExtraConfig;
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
 
-const Checkout = ({ currentBalance = 25 }: any) => {
+// ── ExternalWalletCheckout ────────────────────────────────────────────────────
+// SDK "as is" pattern per Helio docs. Must render inside MoonpayCommerceProvider.
+// Triggers the SDK's built-in wallet selector on mount and owns nothing except
+// the BFF confirmation step after the SDK fires onSuccess.
+const ExternalWalletCheckout = ({
+  correlationId,
+  pendingOrder,
+  eSimItem,
+  kokioDeviceUID,
+  savePurchasedESIM,
+  setIsCheckoutLoading,
+  setLoadingMessage,
+  onComplete,
+  onSdkDismiss,
+}: {
+  correlationId: string | null;
+  pendingOrder: CreateOrderResponse | null;
+  eSimItem: Esim;
+  kokioDeviceUID: string | undefined;
+  savePurchasedESIM: (uid: string, item: Esim, order: OrderStatusResponse, cid?: string | null) => Promise<void>;
+  setIsCheckoutLoading: (v: boolean) => void;
+  setLoadingMessage: (msg: string) => void;
+  onComplete: (order: OrderStatusResponse | null) => void;
+  onSdkDismiss: () => void;
+}) => {
+  const successFiredRef = useRef(false);
+
+  const onSuccess = useCallback<PaymentCallback>(
+    async (result) => {
+      successFiredRef.current = true;
+      if (__DEV__) console.log('[Helio] onSuccess:', result.transactionSignature);
+      setIsCheckoutLoading(true);
+      setLoadingMessage('Processing your order...');
+      const finalOrder = correlationId
+        ? await pollOrderStatus(correlationId, 15, 2000, (s) =>
+            setLoadingMessage(pollingLabel(s)),
+          ).catch(() => null)
+        : null;
+      if (finalOrder && kokioDeviceUID) {
+        await savePurchasedESIM(kokioDeviceUID, eSimItem, finalOrder, correlationId);
+      }
+      onComplete(finalOrder);
+    },
+    [correlationId, eSimItem, kokioDeviceUID, onComplete, pendingOrder, savePurchasedESIM, setIsCheckoutLoading, setLoadingMessage],
+  );
+
+  const { payWithCrypto, drawerVisible } = usePayWithCrypto({ onSuccess });
+
+  useEffect(() => {
+    payWithCrypto();
+  }, []);
+
+  // SDK drawer closed without a confirmed payment → surface browser fallback
+  const prevVisibleRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (prevVisibleRef.current === true && !drawerVisible && !successFiredRef.current) {
+      onSdkDismiss();
+    }
+    prevVisibleRef.current = drawerVisible;
+  }, [drawerVisible, onSdkDismiss]);
+
+  return null;
+};
+
+const createStyles = () => StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flex: 1,
+    paddingHorizontal: 12,
+  },
+  scrollContentContainer: {
+    paddingBottom: 20,
+  },
+  bottomButtonContainer: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 8 : 16,
+  },
+  checkoutButton: {
+    borderRadius: 32,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkoutButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  logoImage: {
+    width: 24,
+    height: 24,
+    objectFit: "contain",
+  },
+  containerStyle: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  buttonStyle: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: RADIO_WIDTH,
+    backgroundColor: Theme.colors.inputBackground,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginHorizontal: 0,
+    marginVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  walletModalOverlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  walletModalContainer: {
+    backgroundColor: Theme.colors.popover,
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 320,
+  },
+  walletModalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  walletModalDescription: {
+    fontSize: 16,
+    color: Theme.colors.foreground,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  walletModalButtons: {
+    flexDirection: "row",
+    gap: 1,
+  },
+  laterButton: {
+    flex: 1,
+    backgroundColor: Theme.colors.muted,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  laterButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  continueButton: {
+    flex: 1,
+    backgroundColor: Theme.colors.primary,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  continueButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  discountContainer: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 8,
+  },
+  discountInput: {
+    flex: 1,
+    backgroundColor: Theme.colors.inputBackground,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    color: Theme.colors.foreground,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  applyButton: {
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  applyButtonText: {
+    color: Theme.colors.secondaryForeground,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  discountAppliedContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: Theme.colors.successBackground,
+    borderRadius: 8,
+  },
+  discountAppliedContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  discountAppliedText: {
+    color: Theme.colors.success,
+    fontSize: 14,
+  },
+  removeDiscountButton: {
+    padding: 4,
+    backgroundColor: Theme.colors.destructiveBackground,
+    borderRadius: 32,
+  },
+  discountErrorContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: Theme.colors.destructiveBackground,
+    borderRadius: 8,
+  },
+  discountErrorText: {
+    color: Theme.colors.destructive,
+    fontSize: 14,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Theme.colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 10,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  walletStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  toggleLeftSide: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+});
+
+const Checkout = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const { item: eSimDetails } = useLocalSearchParams();
-  const {
-    isConnecting,
-    externalAddress,
-    payViaExternalWallet,
-    connectExternalWallet,
-    disconnectExternalWallet
-  } = useWalletConnect();
 
   const eSimItem: Esim = React.useMemo(() => {
     if (typeof eSimDetails === "string") {
@@ -81,18 +327,21 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     string | undefined
   >();
-  const [fundOnDeviceWallet, setFundOnDeviceWallet] = useState<boolean>(false);
-  const [amount, setAmount] = useState<number | null>(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
-  const [showCreditCardModal, setShowCreditCardModal] = useState(false);
-  const { kokio, savePurchasedESIM } = useKokio();
+  const [helioChargeToken, setHelioChargeToken] = useState<string | null>(null);
+  const [helioCorrelationId, setHelioCorrelationId] = useState<string | null>(null);
+  const [pendingHelioOrder, setPendingHelioOrder] = useState<CreateOrderResponse | null>(null);
+  const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
+    useStripePaymentSheet();
+  const { kokio, savePurchasedESIM, upsertOrderRecord } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
   const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
-  const [orderResponse, setOrderResponse] = useState<any>(null);
+  const [orderResponse, setOrderResponse] = useState<OrderStatusResponse | null>(null);
   const [discountError, setDiscountError] = useState<string>("");
 
   const radioButtons: RadioButtonProps[] = useMemo(
@@ -102,13 +351,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
 
   const { showMessage } = useToast();
   const createTopupOrder = useCreateTopupOrder();
-
-  // undefined = not yet read; null = read, no prior eSIM; string = prior eSIM address
-  const [storedEsimId, setStoredEsimId] = useState<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    SecureStore.getItemAsync(ESIM_ID_KEY).then(setStoredEsimId);
-  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedCode(discountCode), 500);
@@ -121,9 +363,10 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     isError: isCouponError,
   } = useCouponLookup(debouncedCode, debouncedCode.length === 8);
 
+  const hasPriorEsim = kokio.purchasedESIMs.length > 0;
   const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility(
-    { planId: eSimItem?.catalogueId, esimId: storedEsimId ?? undefined },
-    { enabled: !!storedEsimId },
+    { planId: eSimItem?.catalogueId },
+    { enabled: hasPriorEsim },
   );
   const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup] = useState(false);
@@ -136,44 +379,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     }
   }, [compatibleEsims]);
 
-  const addAmountSection = useMemo(() => {
-    return (
-      <View>
-        <View style={{ flexDirection: "row", marginBottom: 4 }}>
-          <ThemedText
-            style={{ color: Theme.colors.foreground, marginRight: 4 }}
-          >
-            Add this amount to my device wallet
-          </ThemedText>
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            (1USD=1USDC)
-          </ThemedText>
-        </View>
-        <AmountInput value={amount} onChangeValue={setAmount} />
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 4,
-          }}
-        >
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            Current Balance
-          </ThemedText>
-          <ThemedText>{`${(currentBalance || 0).toFixed(2)}  USDC`}</ThemedText>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <ThemedText style={{ color: Theme.colors.foreground }}>
-            Balance after
-          </ThemedText>
-          <ThemedText>
-            {_sum([amount, currentBalance]).toFixed(2)} USDC
-          </ThemedText>
-        </View>
-      </View>
-    );
-  }, [amount, currentBalance, setAmount]);
-
   const handleEsimCheckout = useCallback(async () => {
     try {
       setIsCheckoutLoading(true);
@@ -184,20 +389,16 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         await createTopupOrder.mutateAsync({
           request: {
             catalogueId: eSimItem.catalogueId,
-            currency: "USD",
             isNewESim: false,
-            eSimId: compatibleTopUpEsimId,
+            esimId: compatibleTopUpEsimId,
             isCryptoPayment: true,
-            payeeAddress: deviceWalletId,
-            coupon: discountCode || null,
+            coupon: discountCode || undefined,
           },
           eSimItem,
         });
         showMessage('eSIM topped up successfully!', 'info');
         return;
       }
-
-      setShowSuccessModal(true);
 
       const payload = getEsimOrderPayload({
         eSimItem,
@@ -206,37 +407,37 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         applyAsTopup,
         compatibleTopUpEsimId
       });
-      console.log({ eSimItem });
-      console.log("Order Api Payload", { ...payload, payeeAddress: deviceWalletId });
+      const esimBody = { ...payload, payeeAddress: deviceWalletId };
+      if (__DEV__) console.log('[Order] eSIM wallet body:', JSON.stringify(esimBody, null, 2));
+      const { correlationId } = await createCryptoOrder(esimBody);
+      if (kokio.deviceUID && correlationId) {
+        await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
+      }
+      setLoadingMessage('Processing your order...');
+      const PAYMENT_ERRORS = new Set(['PAYMENT_FAILED', 'STRIPE_INVOICE_FINALIZATION_FAILED']);
+      const orderData = correlationId
+        ? await pollOrderStatus(correlationId, 15, 2000, (s) => setLoadingMessage(pollingLabel(s)))
+            .catch((e) => { if (PAYMENT_ERRORS.has(e?.code)) throw e; return null; })
+        : null;
 
-      const response = await eSimOderCheckout({
-        ...payload,
-        payeeAddress: deviceWalletId,
-      });
+      if (orderData) setOrderResponse(orderData);
 
-      console.log("Order Api Response", response);
-
-      if (response?.success && response?.data) {
-        setOrderResponse(response.data);
-
-        // Store purchased eSIM in SecureStore and reducer
-        if (kokio.deviceUID) {
-          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
-        }
-      } else {
-        console.error("Checkout failed:", response?.message);
-        setShowSuccessModal(false);
+      // Store purchased eSIM in SecureStore and reducer
+      if (kokio.deviceUID && orderData) {
+        await savePurchasedESIM(kokio.deviceUID, eSimItem, orderData, correlationId);
       }
 
       setIsCheckoutLoading(false);
+      setShowSuccessModal(true);
     } catch (err) {
-      console.error("Checkout error:", err);
-      const { data } = (err as any) || {};
-      if (data?.code === 'COUPON_INSUFFICIENT_BALANCE') {
+      if (__DEV__) console.error("Checkout error:", err);
+      const e = err as { code?: string; message?: string };
+      const errCode = e.code;
+      if (errCode === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
-      } else if (data?.message) {
-        console.error("Checkout failed:", data.message);
+      } else {
+        showMessage(formatBffError(err), 'info');
       }
       setIsCheckoutLoading(false);
       setShowSuccessModal(false);
@@ -254,176 +455,231 @@ const Checkout = ({ currentBalance = 25 }: any) => {
     handleRemoveDiscount,
   ]);
 
-  const payWithUSDC = async (params: {
-    amountInUsd: number;
-    fromAddress: string;
-    topic: string;
-  }) => {
-    // TODO: Update to mainnet during production
-    const BASE_SEPOLIA_USDC_ADDRESS = "0x6Ac3aB54Dc5019A2e57eCcb214337FF5bbD52897";
-    const toAddress = extra.kokioVaultAddress || "0x";
-    const chainId = WC_BASE_SEPOLIA;
-    const { amountInUsd, fromAddress, topic } = params;
-    const signClient = await getSignClient();
+  const resetHelioState = useCallback(() => {
+    setHelioChargeToken(null);
+    setPendingHelioOrder(null);
+    setHelioCorrelationId(null);
+  }, []);
 
-    // Converting to USDC Units (6 decimals)
-    // Eg: 10.50 USD -> 10,500,000 units
-    const usdcAmount = BigInt(Math.floor(amountInUsd * 1e6));
-
-    // Encode ERC-20 Data
-    // Padding address to 64 chars and amount to 64 chars
-    const formattedAddress = toAddress.replace("0x", "").toLowerCase().padStart(64, "0");
-    const cleanAmount = usdcAmount.toString(16).padStart(64, "0");
-    const transferFunc = "transfer(address,uint256)";
-    const functionHash = (keccak256(Buffer.from(transferFunc))).slice(0, 10);
-    
-    const transactionData = `${functionHash}${formattedAddress}${cleanAmount}`;
-
-    console.log("--- Initiating External Transaction ---");
-    console.log("Wallet Address:", fromAddress);
-    console.log("To (Kokio vault): ", extra.kokioVaultAddress);
-    console.log(`${amountInUsd}USD ==>${cleanAmount}`);
-
-    // 3. Request Transaction
-    return await signClient.request({
-      topic,
-      chainId,
-      request: {
-        method: "eth_sendTransaction",
-        params: [{
-          from: fromAddress,
-          to: BASE_SEPOLIA_USDC_ADDRESS, 
-          data: transactionData,
-          value: "0x0", 
-        }],
-      },
-    });
-  };
-
-  const handleExternalWalletCheckout = useCallback(async () => {
-    try {
-      setIsCheckoutLoading(true);
-
-      const signClient = await getSignClient();
-      const sessions = signClient.session.getAll();
-      if (sessions.length === 0 || !externalAddress) {
-        // TODO: remove alert
-        alert("No active wallet session. Please reconnect your wallet.");
-        return;
-      }
-
-      const activeSession = sessions[0];
-      // Trigger deeplink to the wallet app
-      const redirect = activeSession.peer.metadata.redirect?.native;
-      if (redirect) {
-        await Linking.openURL(redirect);
-      }
-
-      const transactionHash = await payWithUSDC({
-        amountInUsd: totalAmount as number,
-        fromAddress: externalAddress,
-        topic: activeSession.topic
-      });
-
-      console.log("--- Transaction Successful ---");
-      console.log("Transaction Hash:", transactionHash);
-
-      const txnHash = transactionHash as string;
-      if (await isHashUsed(txnHash)) {
-        Alert.alert('Payment Already Used', 'This transaction has already been used. Please use a different payment.');
-        return;
-      }
-
-      if (applyAsTopup && compatibleTopUpEsimId) {
-        await createTopupOrder.mutateAsync({
-          request: {
-            catalogueId: eSimItem.catalogueId,
-            currency: "USD",
-            isNewESim: false,
-            eSimId: compatibleTopUpEsimId,
-            isCryptoPayment: true,
-            txnHash,
-            tokenName: "USDC",
-            network: "BASE",
-            payeeAddress: externalAddress,
-          },
-          eSimItem,
-        });
-        await markHashUsed(txnHash);
-        showMessage('eSIM topped up successfully!', 'info');
-        return;
-      }
-
+  const handleHelioComplete = useCallback((finalOrder: OrderStatusResponse | null) => {
+    resetHelioState();
+    setIsCheckoutLoading(false);
+    setLoadingMessage('');
+    if (finalOrder) {
+      setOrderResponse(finalOrder);
       setShowSuccessModal(true);
-
-      const payload = getEsimOrderPayload({
-        eSimItem,
-        deviceWalletId: kokio.userWallet?.address,
-        discountCode: "",
-        applyAsTopup,
-        compatibleTopUpEsimId
-      });
-
-      console.log('handleExternalWalletCheckout > getEsimOrderPayload',{
-        ...payload,
-        paymentMethod: "external_wallet",
-        payeeAddress: externalAddress,
-        txnHash,
-        paymentVia: "USDC",
-      })
-
-      const response = await eSimOderCheckout({
-        ...payload,
-        paymentMethod: "external_wallet", // NEEDED ?
-        payeeAddress: externalAddress,
-        txnHash, // Pass hash to backend
-        paymentVia: "USDC", // change to ETH, USDC, USDT accordingly NEEDED ?
-        tokenName: "USDC",
-        network: "BASE"
-      });
-
-      if (response?.success && response?.data) {
-        setOrderResponse(response.data);
-        await markHashUsed(txnHash);
-
-        // Store purchased eSIM so it appears on the Home screen
-        if (kokio.deviceUID) {
-          await savePurchasedESIM(kokio.deviceUID, eSimItem, response.data);
-        }
-      } else {
-        console.error("Backend validation failed:", response?.message);
-      }
-
-    } catch (err: any) {
-      console.log("Full Error Object:", JSON.stringify(err, null, 2));
-      const errData = err?.data || {};
-      if (errData?.code === 'COUPON_INSUFFICIENT_BALANCE') {
-        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
-        handleRemoveDiscount();
-      }
-    } finally {
-      setIsCheckoutLoading(false);
     }
-  }, [totalAmount, externalAddress, kokio.userWallet, kokio.deviceUID, savePurchasedESIM, discountCode, applyAsTopup, compatibleTopUpEsimId, eSimItem, createTopupOrder, showMessage, handleRemoveDiscount]);
+  }, [resetHelioState]);
+
+  // Opens the payment page in SFSafariViewController / Chrome Custom Tab.
+  // url/cid are passed explicitly so they can be forwarded directly from
+  // handleCheckout without waiting for setState to flush.
+  const handleBrowserPay = useCallback(async (
+    url: string,
+    cid: string | null,
+  ) => {
+    let polled = false;
+
+    const doPoll = async () => {
+      if (polled) return;
+      polled = true;
+      setIsCheckoutLoading(true);
+      setLoadingMessage('Checking payment status...');
+      try {
+        const finalOrder = cid
+          ? await pollOrderStatus(cid, 5, 3000, (s) =>
+              setLoadingMessage(pollingLabel(s)),
+            ).catch(() => null)
+          : null;
+        if (finalOrder?.installationDetails?.qrcode || finalOrder?.orderStatus === 'COMPLETED') {
+          if (kokio.deviceUID) {
+            await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder!, cid);
+          }
+          handleHelioComplete(finalOrder);
+        } else {
+          setIsCheckoutLoading(false);
+          setLoadingMessage('');
+        }
+      } catch {
+        setIsCheckoutLoading(false);
+        setLoadingMessage('');
+      }
+    };
+
+    // When the user returns from the wallet app's browser, dismiss our browser
+    // and poll BFF for payment status.
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        appStateSub.remove();
+        WebBrowser.dismissBrowser();
+        doPoll();
+      }
+    });
+
+    await WebBrowser.openBrowserAsync(url, { dismissButtonStyle: 'cancel' });
+
+    // Reaches here when browser is dismissed (user tapped close, or
+    // dismissBrowser() was called by the AppState handler / moonpay-return).
+    appStateSub.remove();
+    doPoll();
+  }, [kokio.deviceUID, eSimItem, savePurchasedESIM, handleHelioComplete]);
 
   const handleCheckout = useCallback(async () => {
-    console.log("handleCheckout triggered");
+    if (
+      selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD ||
+      selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
+    ) {
+      setIsCheckoutLoading(true);
+      setLoadingMessage('Preparing your payment...');
+      let fiatCorrelationId: string | null = null;
+      try {
+        const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
+        const fiatBody = {
+          catalogueId: base.catalogueId,
+          currency: "USD" as const,
+          isNewESim: base.isNewESim,
+          esimId: base.esimId,
+          coupon: base.coupon,
+          isCryptoPayment: false as const,
+        };
+        if (__DEV__) console.log('[Order] fiat body:', JSON.stringify(fiatBody, null, 2));
+        const { data: orderInit, correlationId } = await createFiatOrder(fiatBody);
+        fiatCorrelationId = correlationId;
+        if (__DEV__) console.log('[Order] fiat correlationId:', correlationId);
 
-    // If credit card is selected, open the credit card modal instead of proceeding with checkout
-    if (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD) {
-      setShowCreditCardModal(true);
+        if (kokio.deviceUID && correlationId) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
+        }
+
+        const { error: initError } = await initPaymentSheet({
+          merchantDisplayName: "Kokio",
+          paymentIntentClientSecret: orderInit.clientSecret,
+          customFlow: true,
+          applePay: { merchantCountryCode: "US" },
+          googlePay: { merchantCountryCode: "US", testEnv: __DEV__ },
+          style: "alwaysDark",
+        });
+        if (initError) {
+          showMessage(initError.message, "info");
+          setIsCheckoutLoading(false);
+          return;
+        }
+
+        setLoadingMessage('');
+        const { error: presentError } = await presentPaymentSheet();
+        if (presentError) {
+          setIsCheckoutLoading(false);
+          return;
+        }
+
+        const { error: confirmError } = await confirmPaymentSheetPayment();
+        if (confirmError) {
+          if (__DEV__) console.error("[Stripe] confirmPaymentSheetPayment error:", confirmError);
+          showMessage(confirmError.message, "info");
+          setIsCheckoutLoading(false);
+          return;
+        }
+
+        setLoadingMessage('Processing your order...');
+        const finalOrder = correlationId
+          ? await pollOrderStatus(correlationId, 15, 2000, (s) =>
+              setLoadingMessage(pollingLabel(s)),
+            ).catch(() => null)
+          : null;
+        if (kokio.deviceUID && finalOrder) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder, correlationId);
+        setOrderResponse(finalOrder);
+        setIsCheckoutLoading(false);
+        setShowSuccessModal(true);
+      } catch (err) {
+        const bffErr = err as { correlationId?: string | null };
+        const errCid = fiatCorrelationId ?? bffErr?.correlationId;
+        if (__DEV__) {
+          console.error("[Stripe] checkout error:", err);
+          if (errCid) console.log('[Order] fiat correlationId (error):', errCid);
+        }
+        if (kokio.deviceUID && errCid) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
+        }
+        showMessage(formatBffError(err), "info");
+        setIsCheckoutLoading(false);
+      }
       return;
     }
 
-    if (payViaExternalWallet) {
-      console.log("Pay via external wallet selected");
-      await handleExternalWalletCheckout();
+    if (
+      selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET ||
+      selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET_BROWSER
+    ) {
+      setIsCheckoutLoading(true);
+      setLoadingMessage('Preparing your payment...');
+      let extCorrelationId: string | null = null;
+      try {
+        const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
+        const extBody = {
+          catalogueId: base.catalogueId,
+          currency: "USD" as const,
+          isNewESim: base.isNewESim,
+          esimId: base.esimId,
+          coupon: base.coupon,
+          isCryptoPayment: true as const,
+          payeeAddress: kokio.userWallet?.address,
+          successRedirectUrl: Config.EXTERNAL_WALLET_CALLBACK,
+        };
+        if (__DEV__) console.log('[Order] external wallet body:', JSON.stringify(extBody, null, 2));
+        const { data: orderInit, correlationId } = await createExternalWalletOrder(extBody);
+        extCorrelationId = correlationId;
+        if (__DEV__) console.log('[Order] external wallet correlationId:', correlationId);
+
+        if (kokio.deviceUID && correlationId) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
+        }
+
+        setIsCheckoutLoading(false);
+        setLoadingMessage('');
+
+        if (selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET_BROWSER) {
+          // Skip the SDK drawer — open browser directly with fresh values.
+          const pageUrl = (orderInit as ExternalWalletOrderResponse).moonpayPaymentPageUrl;
+          if (pageUrl) handleBrowserPay(pageUrl, correlationId);
+        } else {
+          setPendingHelioOrder(orderInit);
+          setHelioCorrelationId(correlationId);
+          setHelioChargeToken(orderInit.moonpayChargeId);
+        }
+      } catch (err) {
+        const bffErr = err as { correlationId?: string | null };
+        const errCid = extCorrelationId ?? bffErr?.correlationId;
+        if (__DEV__) {
+          console.error("[Helio] checkout error:", err);
+          if (errCid) console.log('[Order] external wallet correlationId (error):', errCid);
+        }
+        if (kokio.deviceUID && errCid) {
+          await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
+        }
+        showMessage(formatBffError(err), "info");
+        setIsCheckoutLoading(false);
+      }
       return;
     }
 
-    console.log("Standard eSIM checkout");
     handleEsimCheckout();
-  }, [payViaExternalWallet, handleExternalWalletCheckout, handleEsimCheckout]);
+  }, [
+    selectedPaymentMethod,
+    eSimItem,
+    discountCode,
+    applyAsTopup,
+    compatibleTopUpEsimId,
+    kokio.userWallet,
+    kokio.deviceUID,
+    savePurchasedESIM,
+    upsertOrderRecord,
+    initPaymentSheet,
+    presentPaymentSheet,
+    confirmPaymentSheetPayment,
+    showMessage,
+    handleEsimCheckout,
+    handleBrowserPay,
+  ]);
 
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);
@@ -446,7 +702,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   const handlePaymentMethodChange = useCallback(
     (value: string) => {
       if (value === RADIO_KEYS.E_SIM_WALLET) {
-        console.log(kokio.userWallet?.address);
         if (kokio.userWallet) {
           setSelectedPaymentMethod(value);
         } else {
@@ -457,29 +712,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
       }
     },
     [kokio?.userWallet]
-  );
-
-  const handleCreditModalClose = useCallback(() => {
-    setShowCreditCardModal(false);
-  }, []);
-
-  const handleCreditCardSubmit = useCallback(
-    (cardData: {
-      cardName: string;
-      nameOnCard: string;
-      cardNumber: string;
-      expiration: string;
-      cvv: string;
-      saveCard: boolean;
-    }) => {
-      // TODO: Handle credit card submission
-      console.log("Credit card data:", cardData);
-      setShowCreditCardModal(false);
-
-      // Now proceed with the actual checkout process
-      handleEsimCheckout();
-    },
-    [handleEsimCheckout]
   );
 
   const handleDiscountCodeChange = useCallback((text: string) => {
@@ -532,21 +764,12 @@ const Checkout = ({ currentBalance = 25 }: any) => {
   // );
 
   const canCheckout = useMemo(() => {
-    if (!isESimEnabled || isCheckoutLoading || isConnecting) return false;
-
-    const hasDeviceWallet = !!kokio.userWallet;
-    const hasDiscountOrExternal = isDiscountApplied || payViaExternalWallet;
-
-    // Require device wallet and either a discount applied or external wallet toggle
-    return hasDeviceWallet && hasDiscountOrExternal;
-  }, [
-    isESimEnabled,
-    isCheckoutLoading,
-    isConnecting,
-    kokio.userWallet,
-    isDiscountApplied,
-    payViaExternalWallet,
-  ]);
+    if (!isESimEnabled || isCheckoutLoading || !selectedPaymentMethod) return false;
+    if (selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET) {
+      return !!kokio.userWallet && isDiscountApplied;
+    }
+    return true;
+  }, [isESimEnabled, isCheckoutLoading, selectedPaymentMethod, kokio.userWallet, isDiscountApplied]);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -732,61 +955,6 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           </View>
         )}
 
-        {/* External Wallet Toggle */}
-        <View style={{ marginTop: 16 }}>
-          <ThemedText>Pay directly via external wallet</ThemedText>
-          <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
-            In alpha, use it to pay directly via external wallet.
-          </Text>
-          
-          <View style={styles.walletStatusRow}>
-            {/* This container ensures the toggle and label stay left-aligned */}
-            <View style={styles.toggleLeftSide}>
-              <ToggleSwitch
-                isOn={payViaExternalWallet}
-                onToggle={async (isOn) => {
-                  if (isOn) {
-                    await connectExternalWallet();
-                  } else {
-                    await disconnectExternalWallet();
-                  }
-                }}
-                onColor={Theme.colors.success}
-                offColor={Theme.colors.muted}
-                size="small"
-                disabled={isConnecting}
-              />
-              {isConnecting ? (
-                <ActivityIndicator
-                size="small"
-                color={Theme.colors.secondary}
-                style={{ marginLeft: 8 }}
-                />
-              ) : (
-              <ThemedText style={{ marginLeft: 8 }}>
-                Pay via external wallet
-              </ThemedText>
-              )}
-            </View>
-
-            {/* The Badge remains on the far right */}
-            {payViaExternalWallet && externalAddress ? (
-              <View style={styles.addressBadge}>
-                <View style={styles.greenDot} />
-                <ThemedText style={styles.addressText}>
-                  {`${externalAddress.slice(0, 6)}...${externalAddress.slice(-4)}`}
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
-          
-          {payViaExternalWallet && (
-            <Text style={{ color: Theme.colors.muted, marginTop: 8, fontSize: 12 }}>
-              On placing order, you will be prompted to pay via your external wallet.
-            </Text>
-          )}
-        </View>
-
         {/* <View style={{ marginTop: 16 }}>
           <ThemedText>Fund Device Wallet</ThemedText>
           <Text style={{ color: Theme.colors.foreground, marginTop: 12 }}>
@@ -819,9 +987,16 @@ const Checkout = ({ currentBalance = 25 }: any) => {
           prefix="Pay "
           value={totalAmount}
           suffix="USD"
-          containerStyles={[styles.checkoutButton, { backgroundColor: Theme.colors.secondary }]}
+          containerStyles={[styles.checkoutButton, { backgroundColor: Theme.colors.payButton }]}
         />
       </TouchableOpacity>
+
+      {isCheckoutLoading && !!loadingMessage && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>{loadingMessage}</Text>
+        </View>
+      )}
 
       <CheckoutSuccessModal
         visible={showSuccessModal}
@@ -839,220 +1014,30 @@ const Checkout = ({ currentBalance = 25 }: any) => {
         }}
       />
 
-      <CreditCardModal
-        visible={showCreditCardModal}
-        onClose={handleCreditModalClose}
-        onSubmit={handleCreditCardSubmit}
-      />
+      {/* SDK wallet-app drawer flow */}
+      {helioChargeToken && (
+        <MoonpayCommerceProvider
+          chargeToken={helioChargeToken}
+          network={__DEV__ ? "test" : "main"}
+          theme="dark"
+        >
+          <ExternalWalletCheckout
+            correlationId={helioCorrelationId}
+            pendingOrder={pendingHelioOrder}
+            eSimItem={eSimItem}
+            kokioDeviceUID={kokio.deviceUID}
+            savePurchasedESIM={savePurchasedESIM}
+            setIsCheckoutLoading={setIsCheckoutLoading}
+            setLoadingMessage={setLoadingMessage}
+            onComplete={handleHelioComplete}
+            onSdkDismiss={resetHelioState}
+          />
+        </MoonpayCommerceProvider>
+      )}
+
     </View>
   );
 };
 
 export default Checkout;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flex: 1,
-    paddingHorizontal: 12,
-  },
-  scrollContentContainer: {
-    paddingBottom: 20,
-  },
-  bottomButtonContainer: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 8 : 16,
-  },
-  checkoutButton: {
-    borderRadius: 32,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkoutButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  logoImage: {
-    width: 24,
-    height: 24,
-    objectFit: "contain",
-  },
-  containerStyle: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  buttonStyle: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: RADIO_WIDTH,
-    backgroundColor: Theme.colors.inputBackground,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginHorizontal: 0,
-    marginVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  walletModalOverlay: {
-    flex: 1,
-    backgroundColor: Theme.colors.overlay,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  walletModalContainer: {
-    backgroundColor: Theme.colors.popover,
-    borderRadius: 16,
-    padding: 24,
-    width: "100%",
-    maxWidth: 320,
-  },
-  walletModalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  walletModalDescription: {
-    fontSize: 16,
-    color: Theme.colors.foreground,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  walletModalButtons: {
-    flexDirection: "row",
-    gap: 1,
-  },
-  laterButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.muted,
-    paddingVertical: 16,
-    alignItems: "center",
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-  },
-  laterButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  continueButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.primary,
-    paddingVertical: 16,
-    alignItems: "center",
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  continueButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  discountContainer: {
-    flexDirection: "row",
-    marginTop: 12,
-    gap: 8,
-  },
-  discountInput: {
-    flex: 1,
-    backgroundColor: Theme.colors.inputBackground,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    color: Theme.colors.foreground,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  applyButton: {
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  applyButtonText: {
-    color: Theme.colors.secondaryForeground,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  discountAppliedContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: Theme.colors.successBackground,
-    borderRadius: 8,
-  },
-  discountAppliedContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  discountAppliedText: {
-    color: Theme.colors.success,
-    fontSize: 14,
-  },
-  removeDiscountButton: {
-    padding: 4,
-    backgroundColor: Theme.colors.destructiveBackground,
-    borderRadius: 32,
-  },
-  discountErrorContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: Theme.colors.destructiveBackground,
-    borderRadius: 8,
-  },
-  discountErrorText: {
-    color: Theme.colors.destructive,
-    fontSize: 14,
-  },
-  walletStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  toggleLeftSide: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  toggleWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  addressBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Theme.colors.popover,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Theme.colors.muted,
-  },
-  greenDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Theme.colors.success,
-    marginRight: 6,
-    shadowColor: Theme.colors.success,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
-  addressText: {
-    fontSize: 12,
-    color: Theme.colors.foreground,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-  },
-});

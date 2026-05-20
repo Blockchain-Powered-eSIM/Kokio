@@ -1,4 +1,4 @@
-import { View, Text, Image, Pressable } from 'react-native';
+import { View, Image, Pressable } from 'react-native';
 import React from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';

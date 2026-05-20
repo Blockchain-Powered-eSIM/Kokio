@@ -20,12 +20,23 @@ import { clearUsedHashes } from "@/utils/orderTracking";
 
 // ─── Error formatting ─────────────────────────────────────────────────────────
 
-function formatError(error: any): string {
-  const code: string | undefined = error?.code;
-  const status: number | undefined = error?.httpStatus;
-  const msg: string = error?.message ?? error?.userMessage ?? 'Unknown error';
-  if (!code) return msg;
-  return status ? `[${code} ${status}] ${msg}` : `[${code}] ${msg}`;
+const STEP_UP_ERROR_MESSAGES: Record<string, string> = {
+  DPOP_PROOF_BINDING_INVALID: 'Authentication failed. Please try again.',
+  DPOP_NONCE_REQUIRED:        'Authentication failed. Please try again.',
+  STEP_UP_FAILED:             'Verification failed. Please try again.',
+  STEP_UP_CANCELLED:          'Action was cancelled.',
+  PASSKEY_AUTH_FAILED:        'Biometric authentication failed. Please try again.',
+  INVALID_PASSKEY:            'Biometric verification failed. Please try again.',
+};
+
+function formatError(error: unknown): string {
+  if (typeof error !== 'object' || error === null) return 'Something went wrong. Please try again.';
+  const e = error as Record<string, unknown>;
+  const code = typeof e.code === 'string' ? e.code : undefined;
+  if (code && STEP_UP_ERROR_MESSAGES[code]) return STEP_UP_ERROR_MESSAGES[code];
+  return typeof e.userMessage === 'string' ? e.userMessage
+    : typeof e.message === 'string' ? e.message
+    : 'Something went wrong. Please try again.';
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -162,11 +173,13 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
 
       // Pass credentialId so Android skips the full discoverable-credential sweep
       // and targets the just-created credential directly.
-      await loginWithKokioPasskey(result.credentialId);
+      // Pass deviceWalletAddress so loginBegin doesn't have to read SecureStore
+      // (setupKokioRegistration hasn't run yet at this point).
+      await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
 
       dispatch({ type: "PASSKEY" });
       return result;
-    } catch (error: any) {
+    } catch (error) {
       dispatch({ type: "ERROR", payload: formatError(error) });
       return null;
     } finally {
@@ -187,7 +200,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       await loginWithKokioPasskey();
       dispatch({ type: "PASSKEY" });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       dispatch({ type: "ERROR", payload: formatError(error) });
       return false;
     } finally {
@@ -232,7 +245,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       resolveStepUp();
       setStepUpVisible(false);
       setStepUpHint(null);
-    } catch (err: any) {
+    } catch (err) {
       setStepUpError(formatError(err));
     }
   }, []);

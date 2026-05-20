@@ -15,7 +15,7 @@ jest.mock('@/services/httpService', () => ({
 }));
 
 import api from '@/services/httpService';
-import { createOrder } from '../order';
+import { createOrder, getOrderStatus } from '../order';
 import { BffError } from '../errors';
 
 const mockPost = api.post as jest.MockedFunction<typeof api.post>;
@@ -40,11 +40,18 @@ const TOPUP_REQUEST = {
 };
 
 const ORDER_RESPONSE = {
-  orderId:   'ord-abc-123',
-  esimId:    '0xESIM01',
-  iccid:     '8901260123456789012',
+  orderId: 'ord-abc-123',
+};
+
+const ORDER_STATUS_RESPONSE = {
+  orderId:      'ord-abc-123',
+  planId:       'plan-us-1',
+  orderStatus:  'COMPLETED' as const,
+  paymentMethod: 'CRYPTO' as const,
+  esimId:       '0xESIM01',
+  iccid:        '8901260123456789012',
   installationDetails: {
-    qrcode:              'LPA:1$...',
+    qrcode:               'LPA:1$...',
     appleInstallationUrl: 'https://esimsetup.apple.com/...',
   },
 };
@@ -113,14 +120,19 @@ describe('createOrder', () => {
       expect(result).toEqual(ORDER_RESPONSE);
     });
 
-    it('result contains orderId, esimId, iccid, and installationDetails', async () => {
+    it('result contains orderId — status fields come from getOrderStatus', async () => {
       mockPost.mockResolvedValue(successEnvelope());
+      const mockGet = api.get as jest.MockedFunction<typeof api.get>;
+      mockGet.mockResolvedValueOnce({ success: true, correlationId: null, message: '', data: ORDER_STATUS_RESPONSE });
+
       const result = await createOrder(BASE_REQUEST);
       expect(result.orderId).toBe('ord-abc-123');
-      expect(result.esimId).toBe('0xESIM01');
-      expect(result.iccid).toBe('8901260123456789012');
-      expect(result.installationDetails.qrcode).toBeTruthy();
-      expect(result.installationDetails.appleInstallationUrl).toBeTruthy();
+
+      const status = await getOrderStatus(result.orderId);
+      expect(status.esimId).toBe('0xESIM01');
+      expect(status.iccid).toBe('8901260123456789012');
+      expect(status.installationDetails?.qrcode).toBeTruthy();
+      expect(status.installationDetails?.appleInstallationUrl).toBeTruthy();
     });
   });
 

@@ -13,6 +13,11 @@ export type { GetCatalogueParams, GetPlansParams, CatalogueResponse, ServiceRegi
 
 // ─── Catalogue plans ──────────────────────────────────────────────────────────
 
+/* FOR DEVELOPMENT ONLY USE CATALOGUE WITH VENDOR1 filter*/
+// export function getCatalogue(params: GetCatalogueParams): Promise<CatalogueResponse> {
+//   return unwrapBffResponse(api.get('/v1/catalogue', { ...params, vendor: 'VENDOR1' } as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
+// }
+
 export function getCatalogue(params: GetCatalogueParams): Promise<CatalogueResponse> {
   return unwrapBffResponse(api.get('/v1/catalogue', params as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
 }

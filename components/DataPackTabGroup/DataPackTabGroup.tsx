@@ -84,10 +84,14 @@ function DataPackTabGroup({
   }, [esims]);
 
   const DataTab = () => (
-    <ESIMsFlatList esims={eSimsByData} isLoading={isLoading} />
+    <ThemedView style={styles.tabScene}>
+      <ESIMsFlatList esims={eSimsByData} isLoading={isLoading} />
+    </ThemedView>
   );
   const DataCallsSMSTab = () => (
-    <ESIMsFlatList esims={eSimsByDataCallsSMS} isLoading={isLoading} />
+    <ThemedView style={styles.tabScene}>
+      <ESIMsFlatList esims={eSimsByDataCallsSMS} isLoading={isLoading} />
+    </ThemedView>
   );
 
   const TabsNavigator = () => {
@@ -145,6 +149,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: Theme.spacing.sm,
+  },
+  tabScene: {
+    flex: 1,
   },
   flatListContainer: {
     paddingTop: Theme.spacing.xs,

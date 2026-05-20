@@ -31,9 +31,14 @@ const REDIRECT_URI = AuthSession.makeRedirectUri({ native: Config.REDIRECT_URI }
 // request instance after promptAsync resolves and passed back to the caller for
 // the token exchange.
 
-async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: string; codeVerifier: string }> {
+async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddressOverride?: string): Promise<{ code: string; codeVerifier: string }> {
   const base = Config.AUTH_SERVER_BASE_URL;
   if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
+
+  const deviceWalletAddress = deviceWalletAddressOverride ?? await SecureStore.getItemAsync('deviceWalletAddress');
+  if (!deviceWalletAddress) {
+    throw new AuthError('CREDENTIAL_NOT_FOUND', undefined, 'No registered device found. Please register first.');
+  }
 
   const beginData = assertData<{
     challenge: string;
@@ -42,7 +47,7 @@ async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: 
     allowCredentials: { id: string; type: 'public-key'; transports?: string[] }[];
     userVerification: 'required';
   }>(
-    await kokioAuthClient.loginBegin(),
+    await kokioAuthClient.loginBegin({ deviceWalletAddress }),
     'LOGIN_FAILED',
   );
 
@@ -83,7 +88,7 @@ async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: 
     await kokioAuthClient.loginComplete({
       assertionResponse: {
         id:      assertion.id,
-        rawId:   assertion.rawId,
+        rawId:   assertion.rawId ?? assertion.id,
         response: {
           clientDataJSON:    assertion.response.clientDataJSON,
           authenticatorData: assertion.response.authenticatorData,
@@ -121,9 +126,10 @@ async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: 
     );
   }
 
-  const result = await request.promptAsync({
-    authorizationEndpoint: `${base}/v1/auth/authorize`,
-  });
+  const result = await request.promptAsync(
+    { authorizationEndpoint: `${base}/v1/auth/authorize` },
+    { preferUniversalLinks: true },
+  );
 
   if (__DEV__) {
     console.log(`[authFetch] GET /v1/auth/authorize → ${result.type}\n res:`, result.type === 'success' ? { code: result.params.code, state: result.params.state } : result);
@@ -149,9 +155,10 @@ async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: 
  * Full Kokio passkey login ceremony:
  *   login/begin → Passkey.get → login/complete → authorize (AuthSession) → token
  *
- * login/begin requires no body — the server issues a discoverable-credential
- * challenge and the authenticated deviceWalletAddress is derived from
- * login/complete. This supports recovery after app data clear or reinstall.
+ * login/begin requires the stored deviceWalletAddress to scope the challenge
+ * to the device's credential. If no address is found in SecureStore (fresh
+ * install / cleared data), CREDENTIAL_NOT_FOUND is thrown and the caller
+ * should redirect to registration.
  *
  * AUTH_TIME_RECENCY_VIOLATION (user spent >120s at the biometric prompt) is
  * retried once: a fresh ceremony runs with a new PKCE pair, new passkey
@@ -160,12 +167,12 @@ async function performLoginCeremony(credentialIdHint?: string): Promise<{ code: 
  * On success the token bundle is persisted and `isAuthenticated` is set to true.
  * Throws AuthError on any ceremony or network failure.
  */
-export async function loginWithKokioPasskey(credentialIdHint?: string): Promise<void> {
+export async function loginWithKokioPasskey(credentialIdHint?: string, deviceWalletAddressOverride?: string): Promise<void> {
   let ceremony: { code: string; codeVerifier: string } | undefined;
 
   for (let attempt = 0; attempt <= 1; attempt++) {
     try {
-      ceremony = await performLoginCeremony(credentialIdHint);
+      ceremony = await performLoginCeremony(credentialIdHint, deviceWalletAddressOverride);
       break;
     } catch (err) {
       if (

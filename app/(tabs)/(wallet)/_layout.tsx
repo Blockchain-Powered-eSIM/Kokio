@@ -1,9 +1,5 @@
 import { Stack } from "expo-router";
 
-import _isFunction from "lodash/isFunction";
-import _get from "lodash/get";
-
-
 import { ROUTE_NAMES } from "@/constants/route.constants";
 
 import Header from "@/components/Header";

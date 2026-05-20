@@ -31,7 +31,9 @@ export default function TabLayout() {
         return {
           tabBarActiveTintColor: Theme.colors.highlight,
           tabBarInactiveTintColor: Theme.colors.inactive,
-          tabBarStyle: tabBarVisible ? styles.tabBar : { display: "none" },
+          tabBarStyle: tabBarVisible
+            ? [styles.tabBar, { backgroundColor: Theme.colors.secondaryBackground }]
+            : { display: "none" },
           tabBarShowLabel: false,
           headerShown: false,
         };

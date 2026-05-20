@@ -18,7 +18,7 @@ export function useEsimCompatibility(
 ) {
   const query = useQuery<CompatibilityResponse>({
     queryKey: ['esim-compatibility', params.planId, params.esimId],
-    queryFn:  () => checkEsimCompatibility(params as CheckCompatibilityParams),
+    queryFn:  () => checkEsimCompatibility({ planId: params.planId } as CheckCompatibilityParams, params.esimId),
     enabled:  !!params.planId,
     ...options,
   });
