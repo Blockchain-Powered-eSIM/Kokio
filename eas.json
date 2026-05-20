@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 3.10.2"
+    "version": ">= 3.10.2",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -23,7 +24,7 @@
       "channel": "development"
     },
     "staging": {
-      "environment": "staging",
+      "environment": "preview",
       "distribution": "store",
       "channel": "staging",
       "autoIncrement": true,

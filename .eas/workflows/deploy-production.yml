@@ -52,6 +52,7 @@ jobs:
     name: Submit Android to Play production
     needs: [build_android]
     type: submit
+    environment: production
     params:
       build_id: ${{ needs.build_android.outputs.build_id }}
       profile: production
@@ -60,6 +61,7 @@ jobs:
     name: Submit iOS to App Store Connect
     needs: [build_ios]
     type: submit
+    environment: production
     params:
       build_id: ${{ needs.build_ios.outputs.build_id }}
       profile: production
@@ -69,6 +71,7 @@ jobs:
     needs: [get_android_build]
     if: ${{ needs.get_android_build.outputs.build_id }}
     type: update
+    environment: production
     params:
       branch: production
       platform: android
@@ -78,6 +81,7 @@ jobs:
     needs: [get_ios_build]
     if: ${{ needs.get_ios_build.outputs.build_id }}
     type: update
+    environment: production
     params:
       branch: production
       platform: ios
