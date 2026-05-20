@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
     newArchEnabled: true,
     name: "Kokio",
-    slug: "Kokio",
+    slug: "kokio",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
