@@ -1,8 +1,23 @@
-import { ExpoConfig, ConfigContext } from "expo/config";
-import { AppExtraConfig } from "./appKeys.js";
+import type { ExpoConfig, ConfigContext } from "expo/config";
 import packageJson from "./package.json";
 
 const { version } = packageJson;
+
+type AppExtraConfig = {
+  authServerBaseUrl?: string;
+  redirectUri?: string;
+  apiBaseUrl?: string;
+  alchemyApiKey?: string;
+  pimlicoApiKey?: string;
+  gasManagerPolicyId?: string;
+  chainId?: string;
+  chainRpcUrl?: string;
+  usdcAddress?: string;
+  stripePublishableKey?: string;
+  stripeMerchantIdentifier?: string;
+  walletConnectProjectId?: string;
+  externalWalletCallback?: string;
+};
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const privateConfig: AppExtraConfig = {
@@ -22,7 +37,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   };
 
   return {
-    // Merge any default or existing config
     ...config,
 
     newArchEnabled: true,
@@ -39,6 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: "#242427",
     },
     runtimeVersion: version,
+
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
@@ -49,9 +64,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       version,
       buildNumber: "1",
       infoPlist: {
-        NSPhotoLibraryUsageDescription: "This app may access your photo library when selecting or sharing images."
-      }
+        NSPhotoLibraryUsageDescription:
+          "This app may access your photo library when selecting or sharing images.",
+      },
     },
+
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
@@ -66,23 +83,29 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           autoVerify: true,
           data: [
             { scheme: "https", host: "kokio.app", pathPrefix: "/callback" },
-            { scheme: "https", host: "kokio.app", pathPrefix: "/moonpay-return" },
+            {
+              scheme: "https",
+              host: "kokio.app",
+              pathPrefix: "/moonpay-return",
+            },
           ],
           category: ["BROWSABLE", "DEFAULT"],
         },
         {
-          // kokio://wc-connect?uri=wc%3A... — WalletConnect pairing URI (PAY-011)
+          /* kokio://wc-connect?uri=wc%3A... — WalletConnect pairing URI (PAY-011) */
           action: "VIEW",
           data: [{ scheme: "kokio", host: "wc-connect" }],
           category: ["BROWSABLE", "DEFAULT"],
         },
       ],
     },
+
     web: {
       bundler: "metro",
       output: "server",
       favicon: "./assets/images/favicon.png",
     },
+
     plugins: [
       [
         "expo-build-properties",
@@ -124,17 +147,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "@stripe/stripe-react-native",
         {
-          merchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
+          merchantIdentifier:
+            process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
           enableGooglePay: true,
         },
       ],
     ],
+
     experiments: {
       typedRoutes: true,
     },
+
     updates: {
       url: "https://u.expo.dev/8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
     },
+
     extra: {
       eas: {
         projectId: "8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
