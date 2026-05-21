@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { View, ScrollView, Image, Pressable } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Link, useRouter } from 'expo-router';
-import { Colors, Theme } from '@/constants/Colors';
+import { useRouter } from 'expo-router';
+import { Theme } from '@/constants/Colors';
 
 import Wallet from '@/components/home/wallet';
-import ToastNotification from '@/components/ui/ToastNotification/ToastNotification';
 import { useToast } from '@/contexts/ToastContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';

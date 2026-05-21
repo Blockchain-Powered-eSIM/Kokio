@@ -1,5 +1,6 @@
 // Add global shims
 import "react-native-get-random-values";
+import "@walletconnect/react-native-compat";
 import "@ethersproject/shims";
 import { install as installQuickCrypto } from "react-native-quick-crypto";
 
@@ -10,7 +11,6 @@ import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import "../global.css";
 import useBootstrap from "@/hooks/useBootstrap";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
@@ -26,7 +26,7 @@ import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
-import { THEME_STORAGE_KEY, applyTheme } from "@/constants/Colors";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 // Polyfill global.crypto.subtle for jose / DPoP key generation.
 // index.js is not used when "main" = "expo-router/entry", so this must live here.
@@ -40,14 +40,6 @@ export default function RootLayout() {
   const pathname = usePathname();
 
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
-  const [themeLoaded, setThemeLoaded] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
-      applyTheme(val !== "light");
-      setThemeLoaded(true);
-    });
-  }, []);
   const [loaded] = useFonts({
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
@@ -128,23 +120,26 @@ export default function RootLayout() {
     }
   }, [loaded, isLoading]);
 
-  // Wait until ready
-  if (!loaded || _isNull(isConnected) || !themeLoaded) {
-    return <FullScreenLoader />;
-  }
-
-  return (
-    <Providers>
+  const inner =
+    !loaded || _isNull(isConnected) ? (
+      <FullScreenLoader />
+    ) : (
+      <Providers>
       <ServiceStatusBanner />
       <View style={{ flex: 1 }}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
           <Stack.Screen name="Offline" options={{ headerShown: false }} />
+          <Stack.Screen name="moonpay-return" options={{ headerShown: false }} />
+          <Stack.Screen name="wc-connect" options={{ headerShown: false }} />
+          <Stack.Screen name="wc-session" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
       </View>
       <AuthenticationModal />
       <StepUpPromptModal />
     </Providers>
-  );
+    );
+
+  return <ThemeProvider>{inner}</ThemeProvider>;
 }

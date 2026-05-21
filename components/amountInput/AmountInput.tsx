@@ -1,12 +1,40 @@
-import React from "react";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import React, { useMemo } from "react";
+import { Dimensions, Image, StyleSheet, View } from "react-native";
 import CurrencyInput from "react-native-currency-input";
 
 import { ThemedText } from "../ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CONTAINER_WIDTH = SCREEN_WIDTH - 24;
+
+const createStyles = () => StyleSheet.create({
+  labelText: {
+    color: Theme.colors.foreground,
+    fontSize: 14,
+  },
+  buttonStyle: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: CONTAINER_WIDTH,
+    backgroundColor: Theme.colors.inputBackground,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginHorizontal: 0,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  input: {
+    fontSize: 18,
+    color: Theme.colors.text,
+  },
+  logoImage: {
+    width: 24,
+    height: 24,
+    objectFit: "contain",
+  },
+});
 
 const AmountInput = ({
   value,
@@ -15,6 +43,8 @@ const AmountInput = ({
   value: number | null;
   onChangeValue: (num: number | null) => void;
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.buttonStyle}>
       <View>
@@ -44,30 +74,3 @@ const AmountInput = ({
 };
 
 export default AmountInput;
-
-const styles = StyleSheet.create({
-  labelText: {
-    color: Theme.colors.foreground,
-    fontSize: 14,
-  },
-  buttonStyle: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: CONTAINER_WIDTH,
-    backgroundColor: Theme.colors.inputBackground,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginHorizontal: 0,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  input: {
-    fontSize: 18,
-    color: Theme.colors.text,
-  },
-  logoImage: {
-    width: 24,
-    height: 24,
-    objectFit: "contain",
-  },
-});

@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/v1/health": {
+    "/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -29,7 +29,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/health/ready": {
+    "/health/ready": {
         parameters: {
             query?: never;
             header?: never;
@@ -58,7 +58,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/health/deep": {
+    "/health/deep": {
         parameters: {
             query?: never;
             header?: never;
@@ -83,7 +83,7 @@ export interface paths {
          *     from cache, the response `cached` field is `true` and `latencyMs` is `0`.
          *
          *     This endpoint is used for detailed diagnostics.
-         *     `GET /v1/health/ready` should be used for traffic-routing decisions as it is lighter and not cached.
+         *     `GET /health/ready` should be used for traffic-routing decisions as it is lighter and not cached.
          */
         get: operations["bffHealthDeep"];
         put?: never;
@@ -94,7 +94,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/catalogue": {
+    "/catalogue": {
         parameters: {
             query?: never;
             header?: never;
@@ -106,14 +106,14 @@ export interface paths {
          * @description Returns a paginated list of active eSIM plans for the specified service region.
          *
          *     **Required:** `serviceRegionCode`.
-         *     Valid values shall be obtained from `GET /v1/catalogue/service-regions`.
+         *     Valid values shall be obtained from `GET /catalogue/service-regions`.
          *
          *     **Pagination:** Results are paginated.
          *     Default page size is `50`, maximum is `250`.
          *     Use `page` and `pageSize` to navigate.
          *
          *     **Plan selection for orders:** Use the `catalogueId` field from a returned
-         *     plan as the `catalogueId` parameter in `POST /v1/order`.
+         *     plan as the `catalogueId` parameter in `POST /order`.
          *
          *     **Topup plans:** By default, TOPUP-only plans are excluded from results.
          *     Pass `includeTopup=true` to include them. For topup orders, the server
@@ -133,7 +133,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/catalogue/service-regions": {
+    "/catalogue/service-regions": {
         parameters: {
             query?: never;
             header?: never;
@@ -145,7 +145,7 @@ export interface paths {
          * @description Returns all supported eSIM service regions grouped by coverage type.
          *
          *     Use the `code` field from any returned entry as the `serviceRegionCode`
-         *     query parameter on `GET /v1/catalogue`.
+         *     query parameter on `GET /catalogue`.
          *
          *     Served from in-memory constant maps — no database dependency.
          */
@@ -158,7 +158,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/catalogue/refresh": {
+    "/catalogue/refresh": {
         parameters: {
             query?: never;
             header?: never;
@@ -195,7 +195,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/order": {
+    "/order": {
         parameters: {
             query?: never;
             header?: never;
@@ -205,29 +205,42 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create eSIM order
-         * @description Creates a new eSIM purchase or topup order.
+         * Initiate eSIM order
+         * @description Initiates a new eSIM purchase or topup order (Phase 1).
          *
-         *     Runs the full order pipeline synchronously: payment verification,
-         *     vendor fulfilment, eSIM provisioning, and on-chain recording. Returns
-         *     only after all pipeline stages complete successfully.
+         *     Creates the order, sets up payment sessions with Stripe (and Moonpay for crypto),
+         *     and returns the session data the client needs to complete payment.
+         *     This endpoint is synchronous from the client's perspective — it returns once the
+         *     payment session is ready.
+         *
+         *     **Fulfilment (Phase 2) is asynchronous.** After the client completes payment
+         *     (via Stripe Payment Elements or Moonpay hosted page), the payment provider
+         *     sends a webhook to the BFF which triggers vendor fulfilment, eSIM provisioning,
+         *     and on-chain recording. Poll `GET /order/{idempotencyKey}` for order status.
          *
          *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`) and
          *     step-up authentication (`requireStepUp`). Provide both `Authorization: DPoP`
-         *     and `DPoP` headers.
+         *     and `DPoP` headers. Step-up recency window is 5 minutes.
          *
          *     **`deviceId` injection:** The authenticated device address is injected
          *     from the JWT — do not include `deviceId` in the request body.
          *
-         *     **New eSIM purchase** (`isNewESim: true`): A new eSIM wallet is deployed on-chain.
-         *     The response includes `installationDetails` for eSIM activation.
+         *     **Idempotency:** The `x-correlation-id` header value is used as the idempotency
+         *     key. If an order already exists for the same correlation ID and device, the
+         *     existing `{ orderId }` is returned without re-entering the pipeline.
+         *     Send a consistent, unique value per order attempt and reuse the same value on retries.
          *
-         *     **Topup order** (`isNewESim: false`): An existing eSIM identified by `eSimId` is topped up.
-         *     Check compatibility first via `GET /v1/esim/compatibility`.
-         *     `installationDetails` is null in the response.
+         *     **New eSIM purchase** (`isNewESim: true`): A new eSIM wallet is deployed on-chain
+         *     during fulfilment. eSIM installation details are available via the polling endpoint
+         *     once the order reaches a completed state.
          *
-         *     **Payment:** Submit the `txnHash` of a completed on-chain vault transfer.
-         *     The server independently verifies the transfer amount and destination.
+         *     **Topup order** (`isNewESim: false`): An existing eSIM identified by `esimId` is topped up.
+         *     Check compatibility first via `GET /esim/compatibility/{esimId}`.
+         *
+         *     **Payment method resolution:**
+         *     - `coupon` provided and balance covers full amount → `COUPON` (Stripe $0 invoice, auto-pays)
+         *     - `isCryptoPayment: true` (no coupon) → `CRYPTO` (Stripe invoice + Moonpay charge session)
+         *     - `isCryptoPayment: false` (no coupon) → `FIAT` (Stripe invoice with Payment Elements)
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
          *     (10 requests per minute per `deviceWalletAddress`).
@@ -239,7 +252,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/esim/compatibility": {
+    "/order/{idempotencyKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Poll order status
+         * @description Returns the current order state for the given idempotency key,
+         *     scoped to the authenticated device.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
+         *     Step-up is **not** required — this is a read-only polling endpoint.
+         *
+         *     **Polling guidance:**
+         *     - After completing payment (Stripe Payment Elements or Moonpay hosted page),
+         *       poll this endpoint at a reasonable interval (e.g. every 2–3 seconds).
+         *     - Stop polling when `orderStatus` reaches a terminal state.
+         *     - Terminal success: `COMPLETED`, `ESIM_PROVISIONED_PENDING_CHAIN` (eSIM is usable).
+         *     - Terminal failures: `PAYMENT_FAILED`, `VENDOR_FAILED`, `ESIM_PROVISION_FAILED`,
+         *       `ON_CHAIN_FAILED`, `ABANDONED`.
+         *     - For `ESIM_PROVISIONED_PENDING_CHAIN`, the eSIM is delivered and functional —
+         *       on-chain recording is deferred to a background job and does not block usage.
+         *
+         *     **Response shape varies by state.** See the `OrderStatusResponse` schema
+         *     for the conditional field presence rules.
+         *
+         *     **No order found:** If no order exists for the given idempotency key and device,
+         *     the endpoint returns HTTP 200 with the standard success envelope but all `data`
+         *     fields set to `null` (`orderId`, `planId`, `orderStatus`, `paymentMethod`).
+         *     The response message will contain `ORDER_NOT_FOUND`. This is not an error —
+         *     the client should interpret it as "no order was created with this correlation ID."
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (10 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["orderGetStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/esim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List device eSIMs
+         * @description Returns all eSIMs associated with the authenticated device.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
+         *
+         *     **Filtering:** Pass `activeOnly=true` to return only eSIMs with
+         *     `activationStatus: ACTIVE`. When omitted or any other value,
+         *     all eSIMs for the device are returned regardless of activation state.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (10 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["esimList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/esim/{esimId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get eSIM detail
+         * @description Returns a single eSIM document by wallet address, including the full
+         *     `planHistory` array.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
+         *
+         *     **Device ownership:** The eSIM must belong to the authenticated device.
+         *     If the eSIM exists but is owned by a different device,
+         *     `ESIM_NOT_FOUND_FOR_DEVICE` is returned.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (10 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["esimGetDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/esim/compatibility/{esimId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -256,19 +374,20 @@ export interface paths {
          *     **`deviceId` injection:** The authenticated device address is sourced
          *     from the JWT — do not include `deviceId` in query parameters.
          *
-         *     **Single eSIM check:** Pass `esimId` to restrict the check to one specific eSIM.
+         *     **Single eSIM check:** Include `{esimId}` in the path to restrict the check to one specific eSIM.
          *     The eSIM MUST be active and associated with the authenticated device.
          *
-         *     **All eSIMs check:** Omit `esimId` to check all active eSIMs for the device.
+         *     **All eSIMs check:** Omit `{esimId}` from the path (`GET /esim/compatibility?planId=...`)
+         *     to check all active eSIMs for the device.
          *     Results are returned concurrently, a failure on one eSIM does not abort checks on others.
          *
          *     **Plan resolution:** The server resolves the effective TOPUP plan transparently.
-         *     Submit any active `planId` from `GET /v1/catalogue` —
+         *     Submit any active `planId` from `GET /catalogue` —
          *     if the plan is SIM-type, the server finds the TOPUP equivalent automatically.
          *     The `topupPlanResolved` flag in the response indicates whether a substitution occurred.
          *
-         *     **Before ordering:** Call this endpoint before submitting a topup order via `POST /v1/order`
-         *     to confirm compatibility and identify which `eSimId` to use.
+         *     **Before ordering:** Call this endpoint before submitting a topup order via `POST /order`
+         *     to confirm compatibility and identify which `esimId` to use.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
          *     limiter (10 requests per minute per `deviceWalletAddress`).
@@ -282,7 +401,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/coupon": {
+    "/coupon": {
         parameters: {
             query?: never;
             header?: never;
@@ -311,7 +430,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/coupon/{code}": {
+    "/coupon/{code}": {
         parameters: {
             query?: never;
             header?: never;
@@ -344,7 +463,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/secrets/rotate": {
+    "/admin/secrets/rotate": {
         parameters: {
             query?: never;
             header?: never;
@@ -375,7 +494,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/secrets/status": {
+    "/admin/secrets/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -401,7 +520,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/admin/jobs/run": {
+    "/admin/jobs/run": {
         parameters: {
             query?: never;
             header?: never;
@@ -430,13 +549,218 @@ export interface paths {
          *
          *     **Available jobs:**
          *
-         *     | Job | Schedule | Description |
-         *     |-----|----------|-------------|
-         *     | `refresh_vendor1_bearer` | Every 12 hours | Rotates Vendor1 bearer token |
-         *     | `refresh_catalogue` | Every 24 hours | Refreshes eSIM plan catalogue from all vendors |
-         *     | `cleanup_abandoned_orders` | Every 1 hour | Marks stuck orders as failed |
+         *     | Job | Window | Description |
+         *     |-----|--------|-------------|
+         *     | `refresh_vendor1_bearer` | 12 hours | Rotates Vendor1 bearer token |
+         *     | `refresh_catalogue` | 24 hours | Refreshes eSIM plan catalogue from all vendors |
+         *     | `cleanup_abandoned_orders` | 24 hours | Voids Stripe invoices and marks stuck orders as `ABANDONED` |
+         *     | `retry_vendor_fulfilment` | 3 minutes | Retries transient vendor failures (`VENDOR_RETRY_PENDING`) |
+         *     | `retry_onchain_recording` | 15 minutes | Retries on-chain recording (`ESIM_PROVISIONED_PENDING_CHAIN`) |
          */
         post: operations["adminJobsRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/accounts/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync device account from Auth Server
+         * @description Upserts the BFF Account document from a sync payload pushed by the Auth Server
+         *     after a successful passkey registration ceremony.
+         *
+         *     > **Not callable by clients.** This endpoint is called exclusively by the
+         *     > Kokio Auth Server. It is documented here for backend team reference.
+         *
+         *     **Access control:** IP allowlist check (configured via `INTERNAL_ALLOWLIST` env var)
+         *     followed by `requireAdminToken(internalToken)`. The IP check runs first — requests
+         *     from non-allowlisted IPs are rejected before token validation.
+         *
+         *     **New accounts:** A Stripe customer is created before the Account document is persisted.
+         *     If Stripe customer creation fails, the sync fails entirely (no partial account state).
+         *
+         *     **Re-registration:** If an Account already exists for the `deviceWalletAddress`,
+         *     all credential fields are overwritten with the incoming values. The existing
+         *     `stripeCustomerId` is preserved. This handles both same-device re-registration
+         *     (passkey deleted and re-created) and cross-device passkey sync (iCloud Keychain,
+         *     Google Password Manager).
+         *
+         *     **Fire-and-forget on the Auth Server side.** The Auth Server calls this endpoint
+         *     without awaiting the response. Registration is not affected by sync failures.
+         *     Failed syncs can be retried via a manual call.
+         */
+        post: operations["adminAccountSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/regions/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deny service region
+         * @description Adds a service region code to the denylist.
+         *
+         *     When a region is denied:
+         *     - `GET /catalogue` excludes LOCAL plans for that region.
+         *     - `GET /catalogue/service-regions` excludes the code from the countries list.
+         *     - REGIONAL, GLOBAL, and CUSTOM_REGIONAL entries are never affected.
+         *
+         *     Idempotent — denying an already-denied region is a no-op (upsert with `$setOnInsert`).
+         *
+         *     > **Not callable by clients.** Backend team and scheduler use only.
+         *
+         *     **Access control:** Requires scheduler admin bearer token.
+         */
+        post: operations["adminRegionDeny"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/regions/deny/{regionCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Allow service region
+         * @description Removes a service region code from the denylist, re-enabling its
+         *     LOCAL plans in catalogue responses and its code in service regions.
+         *
+         *     Idempotent — allowing a region that is not currently denied is a no-op.
+         *
+         *     > **Not callable by clients.** Backend team and scheduler use only.
+         *
+         *     **Access control:** Requires scheduler admin bearer token.
+         */
+        delete: operations["adminRegionAllow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stripe payment webhook
+         * @description Receives Stripe webhook events for payment confirmation.
+         *
+         *     > **Not callable by clients.** This endpoint is called exclusively by Stripe's
+         *     > webhook delivery infrastructure. It is documented here for backend team reference.
+         *
+         *     **Authentication:** No auth middleware. Stripe HMAC signature verification is
+         *     performed inside the handler using `stripe.webhooks.constructEvent` with the
+         *     configured webhook signing secret.
+         *
+         *     **Raw body requirement:** The request body must be the raw unparsed buffer.
+         *     The BFF preserves raw bodies for paths starting with `/webhooks` via a
+         *     `verify` callback on `express.json()`.
+         *
+         *     **Handled event types:**
+         *     - `invoice.paid` — primary payment confirmation trigger.
+         *     - `invoice.overpaid` — treated identically to `invoice.paid`.
+         *
+         *     All other event types are ignored (200 returned without processing).
+         *
+         *     **FIAT / Coupon orders:** Validates `invoice.amount_paid` against
+         *     `order.amount` (in cents). Performs atomic `PAYMENT_PENDING → PAYMENT_VERIFIED`
+         *     transition. Triggers asynchronous fulfilment pipeline.
+         *
+         *     **Crypto orders** (detected by `moonpayChargeId` presence on the order):
+         *     Sets `stripeInvoiceConfirmed = true` and runs dual-confirmation check.
+         *     If Moonpay has also confirmed, advances and triggers fulfilment.
+         *     Otherwise no-op — the Moonpay webhook completes the dual confirmation.
+         *
+         *     **Error handling:** All non-signature errors are caught, logged, and return
+         *     200 to prevent Stripe retry storms. Only signature verification failures
+         *     return a non-200 status.
+         *
+         *     **Correlation ID:** This endpoint is exempt from the `x-correlation-id`
+         *     requirement. A server-generated UUID prefixed with `exempt-` is used.
+         */
+        post: operations["webhookStripe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/moonpay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Moonpay payment webhook
+         * @description Receives Moonpay webhook events for crypto payment confirmation.
+         *
+         *     > **Not callable by clients.** This endpoint is called exclusively by Moonpay's
+         *     > webhook delivery infrastructure. It is documented here for backend team reference.
+         *
+         *     **Authentication:** No auth middleware. Moonpay HMAC-SHA256 signature verification
+         *     is performed inside the handler. The raw request body is hashed with the configured
+         *     Moonpay webhook secret and compared against the `x-signature` header using
+         *     constant-time equality.
+         *
+         *     **Raw body requirement:** The request body must be the raw unparsed buffer.
+         *     The BFF preserves raw bodies for paths starting with `/webhooks` via a
+         *     `verify` callback on `express.json()`.
+         *
+         *     **Flow:**
+         *     1. Verify HMAC-SHA256 signature of the webhook request.
+         *     2. Extract `orderID` from `transactionObject.meta.customerDetails.additionalJSON`
+         *        (the correlation key embedded at charge session creation).
+         *     3. Locate the order by `orderID`.
+         *     4. Hot-path Stripe invoice status check via `stripe.invoices.retrieve`.
+         *     5. If Stripe invoice is paid: set both `moonpayConfirmed` and
+         *        `stripeInvoiceConfirmed`, run dual-confirmation check, advance and fulfil.
+         *     6. If Stripe invoice is NOT paid: set `moonpayConfirmed` only, flag order
+         *        for manual review with `HELIO_STRIPE_DISCREPANCY` reason, proceed to
+         *        fulfilment regardless (customer has paid per Moonpay).
+         *
+         *     **Error handling:** All non-signature errors are caught, logged, and return
+         *     200 to prevent Moonpay retry storms. Only signature verification failures
+         *     return a non-200 status.
+         *
+         *     **Correlation ID:** This endpoint is exempt from the `x-correlation-id`
+         *     requirement. A server-generated UUID prefixed with `exempt-` is used.
+         */
+        post: operations["webhookMoonpay"];
         delete?: never;
         options?: never;
         head?: never;
@@ -766,7 +1090,7 @@ export interface components {
             /**
              * @description MongoDB ObjectId of this catalogue entry.
              *
-             *     Use this value as `catalogueId` in `POST /v1/order` and `GET /v1/esim/compatibility` requests.
+             *     Use this value as `catalogueId` in `POST /order` and `GET /esim/compatibility` requests.
              * @example 664f1a2b3c4d5e6f7a8b9c0d
              */
             catalogueId: string;
@@ -818,7 +1142,7 @@ export interface components {
              *     When `true`, an eSIM on this plan can be used in a topup order
              *     (`isNewESim: false`).
              *
-             *     Check compatibility first via `GET /v1/esim/compatibility`.
+             *     Check compatibility first via `GET /esim/compatibility`.
              * @example true
              */
             isTopupAvailable: boolean;
@@ -830,7 +1154,7 @@ export interface components {
             isKycRequired: boolean;
             /**
              * @description Service region identifier. Pass this value as `serviceRegionCode` to
-             *     filter `GET /v1/catalogue` results.
+             *     filter `GET /catalogue` results.
              * @example GB
              */
             serviceRegionCode: string;
@@ -877,7 +1201,7 @@ export interface components {
              * @description Compression-pass status assigned by the catalogue service.
              *
              *     - `ACTIVE` — the preferred offering for its equivalence group. Returned
-             *       by default on `GET /v1/catalogue`.
+             *       by default on `GET /catalogue`.
              *     - `BACKUP` — an equivalent plan outranked by a higher-priority vendor
              *       offering. Only returned when `includeBackup=true` is passed.
              * @example ACTIVE
@@ -958,7 +1282,7 @@ export interface components {
         };
         ServiceRegion: {
             /**
-             * @description Region code used as the `serviceRegionCode` filter value on `GET /v1/catalogue`.
+             * @description Region code used as the `serviceRegionCode` filter value on `GET /catalogue`.
              * @example GB
              */
             code: string;
@@ -1088,28 +1412,31 @@ export interface components {
         CreateOrderRequest: {
             /**
              * @description MongoDB ObjectId of the catalogue entry for the plan being purchased.
-             *     Obtain this from the `catalogueId` field on a `GET /v1/catalogue` result.
+             *     Obtain this from the `catalogueId` field on a `GET /catalogue` result.
              *
-             *     For topup orders, any plan from the active catalogue may be submitted —
+             *     For topup orders, any active plan from the catalogue may be submitted —
              *     the server resolves the correct TOPUP equivalent plan automatically if
-             *     the submitted plan is a SIM-type plan. The response `topupPlanResolved`
-             *     field indicates whether a substitution occurred.
+             *     the submitted plan is a SIM-type plan.
              * @example 664f1a2b3c4d5e6f7a8b9c0d
              */
             catalogueId: string;
             /**
-             * @description Payment currency code. Currently only `USD` is supported.
-             * @example USD
-             * @enum {unknown}
-             */
-            currency: "USD";
-            /**
              * @description `true` for a new eSIM purchase (a new eSIM wallet is deployed on-chain).
              *
-             *     `false` for a topup on an existing eSIM (`eSimId` is required).
+             *     `false` for a topup on an existing eSIM (`esimId` is required).
              * @example true
              */
             isNewESim: boolean;
+            /**
+             * @description `true` to pay via Moonpay hosted crypto payment page.
+             *
+             *     `false` to pay via Stripe Payment Elements (FIAT).
+             *
+             *     Ignored when a `coupon` code is provided that covers the full order amount —
+             *     the payment method is resolved to `COUPON` server-side in that case.
+             * @example false
+             */
+            isCryptoPayment: boolean;
             /**
              * @description eSIM wallet address of the existing eSIM to top up.
              *
@@ -1117,65 +1444,23 @@ export interface components {
              *
              *     MUST be an eSIM wallet address associated with the authenticated device.
              *     Ownership is verified server-side against the JWT `sub` claim.
-             *     Providing an `esimId` belonging to a different device returns `ESIM_NOT_FOUND_FOR_DEVICE`.
              *
              *     Ignored when `isNewESim` is `true`.
              * @example 0xdef456abc123def456abc123def456abc123def4
              */
-            eSimId?: string;
+            esimId?: string;
             /**
-             * @description `true` for on-chain crypto payment via direct vault transfer.
+             * @description Optional 8-character alphanumeric coupon code.
              *
-             *     `false` is reserved for FIAT payment (not yet available).
-             * @example true
-             */
-            isCryptoPayment: boolean;
-            /**
-             * @description On-chain transaction hash of the crypto payment sent to the vault address.
+             *     When provided and the coupon balance covers the full order amount,
+             *     the payment method is resolved to `COUPON`. The resulting Stripe
+             *     invoice nets to $0 and auto-pays on finalization — no client-side
+             *     payment UI is required.
              *
-             *     **Required when `isCryptoPayment` is `true`.**
-             *
-             *     The server verifies this transaction on-chain:
-             *     - The transaction must transfer funds to the configured vault address.
-             *     - The transferred amount must meet or exceed the plan's `actualSellingPrice`.
-             *     - The hash must not have been used in a prior orders
-             *       (replay prevention enforced at both application and database layers).
-             * @example 0xabc123def456abc123def456abc123def456abc123def456abc123def456abc1
-             */
-            txnHash?: string;
-            /**
-             * @description Token identifier used in the on-chain payment transaction.
-             *     MUST be a supported token on the specified network.
-             *
-             *     **Required when `isCryptoPayment` is `true`.**
-             * @example USDC
-             * @enum {unknown}
-             */
-            tokenName?: "ETH" | "USDC" | "USDT" | "DAI";
-            /**
-             * @description Blockchain network on which the payment transaction was submitted.
-             *     MUST be a supported network.
-             *
-             *     **Required when `isCryptoPayment` is `true`.**
-             * @example BASE
-             * @enum {unknown}
-             */
-            network?: "MAINNET" | "ARBITRUM" | "OPTIMISM" | "BASE";
-            /**
-             * @description EVM address of the payment initiator (customer device/external wallet address).
-             *
-             *     **Required when `isCryptoPayment` is `true`.**
-             * @example 0x1234567890abcdef1234567890abcdef12345678
-             */
-            payeeAddress?: string;
-            /**
-             * @description Optional 8-character alphanumeric coupon code to apply to this order.
-             *
-             *     Coupon application is currently deferred — this field is accepted in
-             *     the request but coupon balance deduction is not yet active.
+             *     Insufficient balance is a hard rejection (no partial coverage in this version).
              * @example ABCD1234
              */
-            coupon?: string | null;
+            coupon?: string;
         };
         InstallationDetails: {
             /**
@@ -1200,93 +1485,157 @@ export interface components {
         CreateOrderResponse: {
             /**
              * @description MongoDB ObjectId of the created order document.
+             *
+             *     Use the `x-correlation-id` header value (which serves as the idempotency key)
+             *     to poll order status via `GET /order/{idempotencyKey}`.
              * @example 664f1a2b3c4d5e6f7a8b9c0e
              */
             orderId: string;
             /**
-             * @description Vendor-assigned plan identifier from the catalogue entry used for this order.
-             *     For topup orders where `topupPlanResolved` is `true`,
-             *     this reflects the resolved TOPUP plan ID, not the submitted plan ID.
+             * @description Stripe invoice ID. Present only on **FIAT** orders.
+             *
+             *     Not directly needed for Payment Elements rendering — use `clientSecret` instead.
+             *     Retained for client-side logging and support reference.
+             * @example in_1PxYz2ABC3def4GHI5jkl6
+             */
+            stripeInvoiceId?: string;
+            /**
+             * @description Stripe `confirmation_secret.client_secret` for the finalized invoice.
+             *     Present only on **FIAT** orders.
+             *
+             *     Pass this value to Stripe Payment Elements to render the payment form
+             *     and complete the payment client-side.
+             * @example pi_3PxYz2ABC3def4GHI5jkl6_secret_abc123def456
+             */
+            clientSecret?: string;
+            /**
+             * @description Moonpay charge session ID. Present only on **CRYPTO** orders.
+             *
+             *     Used for client-side checkout session URL construction.
+             * @example chg_abc123def456
+             */
+            moonpayChargeId?: string;
+            /**
+             * @description Moonpay hosted payment page URL. Present only on **CRYPTO** orders.
+             *
+             *     Open this URL in an in-app browser or WebView to present the
+             *     Moonpay crypto payment interface to the user.
+             * @example https://pay.moonpay.com/charge/chg_abc123def456
+             */
+            moonpayPaymentPageUrl?: string;
+        };
+        OrderStatusResponse: {
+            /**
+             * @description MongoDB ObjectId of the order document.
+             * @example 664f1a2b3c4d5e6f7a8b9c0e
+             */
+            orderId: string;
+            /**
+             * @description Vendor-assigned plan identifier. For topup orders where the server
+             *     resolved a TOPUP equivalent, this reflects the resolved plan ID.
              * @example 1GB_EU_30D
              */
             planId: string;
             /**
-             * @description EVM address of the authenticated device.
-             *     Injected server-side from the JWT `sub` claim, echoed here for client-side confirmation.
-             * @example 0xabc123def456abc123def456abc123def456abc1
-             */
-            deviceId: string;
-            /**
-             * @description eSIM wallet contract address on-chain.
+             * @description Current pipeline stage of the order.
              *
-             *     For new eSIM orders: the address of the newly deployed eSIM wallet.
-             *     Store this value, it is required as `eSimId` for future topup orders on this eSIM.
+             *     **In-progress states** — keep polling:
+             *     - `CREATED` — order document persisted, payment session not yet created.
+             *     - `PAYMENT_PENDING` — payment session returned to client, awaiting payment completion.
+             *     - `PAYMENT_VERIFIED` — payment confirmed by processor webhook(s).
+             *     - `VENDOR_PROCESSING` — vendor fulfilment API call dispatched.
+             *     - `ESIM_PROVISIONED` — vendor confirmed, eSIM record saved.
+             *     - `VENDOR_RETRY_PENDING` — vendor call failed with transient error, queued for cron retry.
+             *     - `ON_CHAIN_SUBMITTED` — on-chain transaction submitted (legacy path).
              *
-             *     For topup orders: the address of the existing eSIM wallet as provided in the request `eSimId` field.
-             * @example 0xdef456abc123def456abc123def456abc123def4
-             */
-            esimId: string;
-            /**
-             * @description Integrated Circuit Card Identifier assigned by the vendor to this eSIM.
-             *     Canonical way of identifying an eSIM on a system level on users' device.
-             * @example 8944110068000000001
-             */
-            iccid: string;
-            /**
-             * @description Canonical vendor identifier that fulfilled this order.
-             * @example VENDOR1
-             */
-            vendor: string;
-            /**
-             * @description `true` if this was a new eSIM purchase (eSIM wallet deployed on-chain).
+             *     **Terminal success** — stop polling, eSIM is usable:
+             *     - `COMPLETED` — all stages successful.
+             *     - `ESIM_PROVISIONED_PENDING_CHAIN` — eSIM delivered and usable, on-chain recording deferred to background job.
              *
-             *     `false` if this was a topup order on an existing eSIM.
-             * @example true
-             */
-            isNewESim: boolean;
-            /**
-             * @description Final order pipeline status.
-             *     Always `COMPLETED` on a successful 201 response.
+             *     **Terminal failures** — stop polling:
+             *     - `PAYMENT_FAILED` — payment not collected, prompt user to retry.
+             *     - `VENDOR_FAILED` — payment collected, vendor rejected, flagged for manual review.
+             *     - `ESIM_PROVISION_FAILED` — payment collected, eSIM delivery failed, flagged for manual review.
+             *     - `ON_CHAIN_FAILED` — payment collected, on-chain recording failed after retry exhaustion, flagged for manual review.
+             *     - `ABANDONED` — no payment received within the cleanup TTL.
              * @example COMPLETED
              * @enum {string}
              */
-            orderStatus: "CREATED" | "PAYMENT_VERIFIED" | "VENDOR_PROCESSING" | "ESIM_PROVISIONED" | "ON_CHAIN_SUBMITTED" | "COMPLETED";
+            orderStatus: "CREATED" | "PAYMENT_PENDING" | "PAYMENT_VERIFIED" | "VENDOR_PROCESSING" | "ESIM_PROVISIONED" | "ESIM_PROVISIONED_PENDING_CHAIN" | "ON_CHAIN_SUBMITTED" | "COMPLETED" | "PAYMENT_FAILED" | "VENDOR_FAILED" | "VENDOR_RETRY_PENDING" | "ESIM_PROVISION_FAILED" | "ON_CHAIN_FAILED" | "ABANDONED";
             /**
-             * @description Payment verification status. Always `SUCCESS` on a successful response.
-             * @example SUCCESS
+             * @description Payment method resolved at order initiation.
+             * @example FIAT
              * @enum {string}
              */
-            paymentStatus: "PENDING" | "SUCCESS" | "FAILED";
+            paymentMethod: "FIAT" | "CRYPTO" | "COUPON";
             /**
-             * @description Payment method used for this order.
-             * @example CRYPTO
+             * @description Canonical vendor identifier that fulfilled the order.
+             *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`.
+             * @example VENDOR1
+             */
+            vendor?: string;
+            /**
+             * @description Whether this was a new eSIM purchase or a topup.
+             *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`.
+             * @example true
+             */
+            isNewESim?: boolean;
+            /**
+             * @description Integrated Circuit Card Identifier assigned by the vendor.
+             *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`.
+             * @example 8944110068000000001
+             */
+            iccid?: string;
+            /**
+             * @description eSIM wallet contract address on-chain.
+             *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`
+             *     and the eSIM record has been persisted.
+             * @example 0xdef456abc123def456abc123def456abc123def4
+             */
+            esimId?: string;
+            /**
+             * @description eSIM installation data for device activation.
+             *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`,
+             *     `isNewESim` is `true`, and the eSIM record contains installation details.
+             *
+             *     `null` for topup orders.
+             */
+            installationDetails?: components["schemas"]["InstallationDetails"];
+            /**
+             * @description Stripe hosted invoice page URL.
+             *     Present on `COMPLETED`, `ESIM_PROVISIONED_PENDING_CHAIN`, and post-payment
+             *     terminal failure states. Provides a payment receipt reference for the user
+             *     and for support contact in failure scenarios.
+             * @example https://invoice.stripe.com/i/acct_123/test_abc456
+             */
+            stripeInvoiceUrl?: string;
+            /**
+             * @description `true` when the order failed after payment was collected and requires
+             *     manual customer support resolution.
+             *     Present only on post-payment terminal failures:
+             *     `VENDOR_FAILED`, `ESIM_PROVISION_FAILED`, `ON_CHAIN_FAILED`.
+             * @example true
+             */
+            flaggedForManualReview?: boolean;
+            /**
+             * @description Structured reason code for the manual review flag.
+             *     Present only when `flaggedForManualReview` is `true`.
+             *
+             *     Values:
+             *     - `PLAN_DEACTIVATED` — plan was deactivated between payment and fulfilment.
+             *     - `ON_CHAIN_RECORDING_FAILED` — on-chain buyDataBundle recording failed after retry exhaustion.
+             *     - `VENDOR_FULFILMENT_FAILED` — vendor API permanently rejected the order.
+             *     - `ESIM_DELIVERY_FAILED` — eSIM wallet deployment or record persistence failed.
+             *     - `WALLET_REGISTRATION_FAILED` — on-chain device wallet registration failed.
+             * @example VENDOR_FULFILMENT_FAILED
              * @enum {string}
              */
-            paymentMethod: "CRYPTO" | "FIAT" | "COUPON";
-            /**
-             * @description `true` if the server substituted the submitted `catalogueId` with an equivalent TOPUP plan.
-             *     Occurs when a SIM-type plan is submitted for a topup order.
-             *
-             *     `false` if the submitted plan was used directly.
-             * @example false
-             */
-            topupPlanResolved: boolean;
-            /**
-             * @description eSIM installation details for the newly provisioned eSIM.
-             *
-             *     Present only when `isNewESim` is `true`.
-             *     `null` for topup orders — the user's existing eSIM requires no reinstallation after a topup.
-             * @example {
-             *       "qrcode": "LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE",
-             *       "appleInstallationUrl": "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE"
-             *     }
-             */
-            installationDetails: (components["schemas"]["InstallationDetails"] | null) & components["schemas"]["InstallationDetails"];
+            manualReviewReason?: "PLAN_DEACTIVATED" | "ON_CHAIN_RECORDING_FAILED" | "VENDOR_FULFILMENT_FAILED" | "ESIM_DELIVERY_FAILED" | "WALLET_REGISTRATION_FAILED";
         };
         CompatibilityResult: {
             /**
              * @description eSIM wallet address for this result entry.
-             *     Use this value as `eSimId` in `POST /v1/order` for a topup order if `compatible` is `true`.
+             *     Use this value as `eSimId` in `POST /order` for a topup order if `compatible` is `true`.
              * @example 0xdef456abc123def456abc123def456abc123def4
              */
             esimId: string;
@@ -1347,7 +1696,7 @@ export interface components {
              * @description `true` if the submitted `planId` was a SIM-type plan and the server
              *     substituted it with its active TOPUP equivalent for the compatibility check.
              *
-             *     When `true`, submit the same original `catalogueId` to `POST /v1/order` with `isNewESim: false`.
+             *     When `true`, submit the same original `catalogueId` to `POST /order` with `isNewESim: false`.
              *     The server applies the same TOPUP plan resolution transparently during order creation.
              * @example false
              */
@@ -1370,6 +1719,124 @@ export interface components {
              *     ]
              */
             results: components["schemas"]["CompatibilityResult"][];
+        };
+        ESimDocument: {
+            /**
+             * @description Integrated Circuit Card Identifier assigned by the vendor.
+             *     Canonical identifier for the eSIM at the device/system level.
+             * @example 8944110068000000001
+             */
+            iccid: string;
+            /**
+             * @description LPA matching identifier used in the eSIM activation QR code.
+             *     Part of the SM-DP+ activation code alongside `smdpAddress`.
+             * @example QR-G-5C-12345-ABCDE
+             */
+            matchingId?: string;
+            /**
+             * @description SM-DP+ server address used for eSIM profile download.
+             *     Combined with `matchingId` to form the LPA activation string.
+             * @example rsp.truphone.com
+             */
+            smdpAddress?: string;
+            /**
+             * @description Smart contract wallet address of the deployed eSIM wallet on-chain.
+             *     Primary lookup key for topup orders. Unique per eSIM.
+             * @example 0xdef456abc123def456abc123def456abc123def4
+             */
+            esimId: string;
+            /**
+             * @description EVM wallet address of the device that owns this eSIM.
+             *     Logical foreign key to the Account collection.
+             * @example 0xabc123def456abc123def456abc123def456abc1
+             */
+            deviceId: string;
+            /**
+             * @description Canonical vendor identifier that provisioned this eSIM.
+             *     Used for routing topup compatibility checks and vendor API calls.
+             * @example VENDOR1
+             */
+            vendor: string;
+            /**
+             * @description Catalogue plan identifier at the time of provisioning.
+             *     Used as the basis for equivalence key resolution when finding
+             *     a compatible TOPUP plan.
+             * @example 1GB_EU_30D
+             */
+            planId: string;
+            /**
+             * @description Chronological record of all orders (initial purchase and subsequent topups)
+             *     applied to this eSIM. The first entry is the initial purchase.
+             * @default []
+             */
+            planHistory: components["schemas"]["PlanHistoryEntry"][];
+            /**
+             * @description Current activation lifecycle state of the eSIM.
+             * @example ACTIVE
+             * @enum {string}
+             */
+            activationStatus: "PENDING" | "ACTIVE" | "EXPIRED" | "FAILED" | "CANCELED" | "SUSPENDED" | "REVOKED";
+            /**
+             * @description eSIM installation data for device activation.
+             *     Present on new eSIM purchases that have been provisioned.
+             *     May be absent on topup-only eSIMs or if the vendor has not yet
+             *     delivered installation details.
+             */
+            installationDetails?: components["schemas"]["InstallationDetails"];
+            /**
+             * Format: uuid
+             * @description Deterministic UUID derived from `deviceWalletAddress + iccid` via
+             *     `esimUidGenerator.hashStringsToUUID`. Used as the on-chain eSIM
+             *     identifier for `buyDataBundle` smart contract calls.
+             * @example c3a1b2d4-e5f6-7890-abcd-ef1234567890
+             */
+            eSIMUniqueIdentifier?: string;
+            /**
+             * Format: date-time
+             * @description Mongoose timestamp — document creation time.
+             * @example 2026-04-15T12:30:00.000Z
+             */
+            createdAt?: string;
+            /**
+             * Format: date-time
+             * @description Mongoose timestamp — last document update time.
+             * @example 2026-04-20T08:15:00.000Z
+             */
+            updatedAt?: string;
+        };
+        PlanHistoryEntry: {
+            /**
+             * @description MongoDB ObjectId of the order that triggered this plan activation.
+             * @example 664f1a2b3c4d5e6f7a8b9c0e
+             */
+            orderId: string;
+            /**
+             * @description Vendor plan identifier at the time of purchase.
+             * @example 1GB_EU_30D
+             */
+            planId: string;
+            /**
+             * @description Plan validity in days, sourced from the catalogue document at fulfilment time.
+             *     The eSIM document is self-contained for plan history display without
+             *     cross-collection joins.
+             * @example 30
+             */
+            validity: number;
+            /**
+             * @description Vendor-confirmed purchase date from the vendor fulfilment API response.
+             * @example 2026-04-15T12:30:00Z
+             */
+            purchaseDate: string;
+        };
+        ESimListResponse: {
+            /**
+             * @description Array of eSIM documents associated with the authenticated device.
+             *     Empty array when no eSIMs exist for the device.
+             *
+             *     When `activeOnly=true` is provided, only eSIMs with
+             *     `activationStatus: ACTIVE` are included.
+             */
+            eSims: components["schemas"]["ESimDocument"][];
         };
         IssuedFromTx: {
             /**
@@ -1409,7 +1876,7 @@ export interface components {
              * @description 8-character alphanumeric coupon code.
              *     Uppercase, excluding visually ambiguous characters (I, O, 0, 1).
              *
-             *     Pass this value as the `coupon` field in `POST /v1/order` to apply
+             *     Pass this value as the `coupon` field in `POST /order` to apply
              *     the coupon to an order (currently accepted but not yet active).
              * @example ABCD2345
              */
@@ -1471,28 +1938,32 @@ export interface components {
              */
             lastRedeemedBy?: string | null;
             /**
-             * @description Array of redemption references.
+             * @description Array of redemption reference records from `redemptionRefs` on the Mongoose document.
              *     Each entry records a successful balance debit operation against this coupon.
-             *     `null` or absent if no redemptions have occurred.
-             * @example null
+             *     `null` or empty array if no redemptions have occurred.
              */
             redemptions?: {
                 /**
-                 * @description MongoDB ObjectId of the order that consumed this balance.
-                 * @example 664f1a2b3c4d5e6f7a8b9c0e
-                 */
-                orderId?: string;
-                /**
-                 * @description Amount debited in this redemption, as a decimal string.
+                 * @description Amount debited from the coupon balance, as a decimal string.
                  * @example 4.50
                  */
                 amount?: string;
                 /**
                  * Format: date-time
-                 * @description ISO-8601 UTC timestamp of this redemption event.
+                 * @description Timestamp of the redemption.
                  * @example 2026-04-19T12:00:00.000Z
                  */
-                redeemedAt?: string;
+                at?: string;
+                /**
+                 * @description `deviceWalletAddress` of the device that performed the redemption.
+                 * @example 0xabc123def456abc123def456abc123def456abc1
+                 */
+                by?: string;
+                /**
+                 * @description MongoDB ObjectId of the order that consumed this balance.
+                 * @example 664f1a2b3c4d5e6f7a8b9c0e
+                 */
+                reference?: string;
             }[] | null;
         };
         IssueCouponRequest: {
@@ -1648,17 +2119,17 @@ export interface components {
              *     Must be one of the configured job names in `src/configs/jobConfigs.js`.
              *     Unrecognised names are rejected with `INVALID_VALUE`.
              *
-             *     Canonical job name. Accepted values:
-             *
-             *     | Job name | Schedule | Description |
-             *     |----------|----------|-------------|
-             *     | `refresh_vendor1_bearer` | Every 12 hours | Rotates the Vendor1 bearer token via the vendor auth endpoint and persists the new value in the secrets store |
-             *     | `refresh_catalogue` | Every 24 hours | Fetches the latest plan catalogue from all configured vendors, upserts plan documents, and runs the compression pass |
-             *     | `cleanup_abandoned_orders` | Every 1 hour | Marks orders stuck in non-terminal pipeline states beyond the configured timeout as failed |
+             *     | Job name | Window | Description |
+             *     |----------|--------|-------------|
+             *     | `refresh_vendor1_bearer` | 12 hours | Rotates the Vendor1 bearer token via the vendor auth endpoint and persists the new value in the secrets store |
+             *     | `refresh_catalogue` | 24 hours | Fetches the latest plan catalogue from all configured vendors, upserts plan documents, and runs the compression pass |
+             *     | `cleanup_abandoned_orders` | 24 hours | Voids/deletes Stripe invoices and marks orders stuck in `CREATED` or `PAYMENT_PENDING` beyond the 24-hour TTL as `ABANDONED`. Deletes `ABANDONED` orders older than 30 days |
+             *     | `retry_vendor_fulfilment` | 3 minutes | Retries orders at `VENDOR_RETRY_PENDING` (transient vendor failures). Max 2 retries before `VENDOR_FAILED` |
+             *     | `retry_onchain_recording` | 15 minutes | Retries `buildBuyDataBundleTxn` for orders at `ESIM_PROVISIONED_PENDING_CHAIN`. Max 2 retries before `COMPLETED` + `flaggedForManualReview` |
              * @example refresh_catalogue
              * @enum {string}
              */
-            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders";
+            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording";
         };
         /**
          * @description Job execution result. Shape varies by job type.
@@ -1682,7 +2153,7 @@ export interface components {
              * @description Job-specific result payload. Shape depends on the job invoked.
              *
              *     - `refresh_catalogue`: contains `vendorRefreshResults` array
-             *       (same shape as `POST /v1/catalogue/refresh` response data).
+             *       (same shape as `POST /catalogue/refresh` response data).
              *     - `refresh_vendor1_bearer`: minimal acknowledgement object.
              *     - `cleanup_abandoned_orders`: contains count of orders updated.
              *
@@ -1704,8 +2175,170 @@ export interface components {
              */
             result?: Record<string, never> | null;
         };
+        AccountSyncRequest: {
+            /**
+             * @description Canonical device identity — EVM wallet address derived from the passkey
+             *     P-256 public key coordinates and salt.
+             *
+             *     Used as the upsert filter key on the Account collection.
+             * @example 0xabc123def456abc123def456abc123def456abc1
+             */
+            deviceWalletAddress: string;
+            /**
+             * Format: uuid
+             * @description UUID generated at `register/begin` time on the Auth Server.
+             *     Serves as the stable per-device WebAuthn user handle and as the
+             *     `deviceUniqueIdentifier` for smart contract calls.
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            userHandle: string;
+            /**
+             * @description P-256 X coordinate from the COSE key extracted during registration verification.
+             *     0x-prefixed hex string.
+             * @example 0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+             */
+            pubKeyX: string;
+            /**
+             * @description P-256 Y coordinate from the COSE key extracted during registration verification.
+             *     0x-prefixed hex string.
+             * @example 0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c
+             */
+            pubKeyY: string;
+            /**
+             * @description Hex salt used in the `deviceWalletAddress` derivation formula.
+             *     Generated server-side at `register/begin` time.
+             * @example a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
+             */
+            salt: string;
+        };
+        AccountSyncResponse: {
+            /**
+             * @description EVM wallet address of the synced account.
+             * @example 0xabc123def456abc123def456abc123def456abc1
+             */
+            deviceWalletAddress: string;
+            /**
+             * Format: uuid
+             * @description WebAuthn user handle UUID.
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            userHandle: string;
+            /**
+             * @description P-256 X coordinate, 0x-prefixed hex.
+             * @example 0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+             */
+            pubKeyX: string;
+            /**
+             * @description P-256 Y coordinate, 0x-prefixed hex.
+             * @example 0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c
+             */
+            pubKeyY: string;
+            /**
+             * @description Hex salt used in wallet address derivation.
+             * @example a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
+             */
+            salt: string;
+            /**
+             * @description Stripe customer ID created at first sync or preserved from the existing account.
+             *     All subsequent Stripe invoices for this device are issued against this customer.
+             * @example cus_PxYz2ABC3def4G
+             */
+            stripeCustomerId: string;
+        };
+        DenyRegionRequest: {
+            /**
+             * @description Service region code to add to the denylist.
+             *     Automatically uppercased server-side.
+             *
+             *     When a region is denied, its LOCAL plans are excluded from
+             *     `GET /catalogue` results and its code is excluded from
+             *     `GET /catalogue/service-regions` countries list.
+             *
+             *     REGIONAL, GLOBAL, and CUSTOM_REGIONAL entries are never affected.
+             * @example RU
+             */
+            code: string;
+        };
+        RegionActionResponse: {
+            /**
+             * @description Uppercased service region code that was acted upon.
+             * @example RU
+             */
+            code: string;
+            /**
+             * @description Action that was performed.
+             * @example denied
+             * @enum {string}
+             */
+            action: "denied" | "allowed";
+        };
     };
-    responses: never;
+    responses: {
+        /**
+         * @description Authentication or DPoP validation failed.
+         *
+         *     | Code | Meaning |
+         *     |------|---------|
+         *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+         *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+         *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+         *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+         *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+         *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+         *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm`, `htu`, or `ath` binding mismatch |
+         *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
+         *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
+         *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the `cnf.jkt` claim |
+         */
+        DPoPAuthError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /**
+         * @description Admin bearer token is missing or invalid.
+         *
+         *     | Code | Meaning |
+         *     |------|---------|
+         *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token value does not match |
+         */
+        AdminTokenError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "success": false,
+                 *       "code": "ADMIN_TOKEN_INVALID",
+                 *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                 *       "message": "Invalid or missing admin token."
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        /** @description Unhandled internal server error. */
+        InternalServerError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "success": false,
+                 *       "code": "INTERNAL_SERVER_ERROR",
+                 *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                 *       "message": "Something went wrong. Please try again later"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+    };
     parameters: {
         /**
          * @description Client-generated request correlation identifier.
@@ -1925,7 +2558,7 @@ export interface operations {
                  * @description Service region code to filter plans by.
                  *     Case-insensitive — normalised to uppercase by the server.
                  *
-                 *     Obtain valid values from `GET /v1/catalogue/service-regions`.
+                 *     Obtain valid values from `GET /catalogue/service-regions`.
                  *     Pass the `code` field from any entry in the response.
                  * @example GB
                  */
@@ -2061,7 +2694,7 @@ export interface operations {
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `NO_SERVICE_REGIONS_PROVIDED` | `serviceRegionCode` is missing or empty |
+             *     | `NO_SERVICE_REGIONS_PROVIDED` | `serviceRegionCode` query parameter is missing or empty |
              *     | `INVALID_VALUE` | A parameter value does not match the accepted enum or format |
              *     | `INVALID_PAGINATION_PARAMS` | `page` or `pageSize` is not a valid positive integer or exceeds the maximum |
              */
@@ -2081,23 +2714,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     catalogueGetServiceRegions: {
@@ -2170,23 +2787,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     catalogueRefresh: {
@@ -2269,46 +2870,8 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /**
-             * @description Scheduler admin bearer token is missing or invalid.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token does not match |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "ADMIN_TOKEN_INVALID",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Invalid or missing admin token."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["AdminTokenError"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     orderCreate: {
@@ -2359,76 +2922,57 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Order created and all pipeline stages completed successfully. */
+            /**
+             * @description Order initiated. Payment session data returned.
+             *
+             *     The response shape varies by resolved payment method:
+             *     - **FIAT:** `orderId`, `stripeInvoiceId`, `clientSecret` — render Stripe Payment Elements.
+             *     - **CRYPTO:** `orderId`, `moonpayChargeId`, `moonpayPaymentPageUrl` — open Moonpay hosted page.
+             *     - **COUPON:** `orderId` only — $0 invoice auto-pays, webhook fires immediately. Begin polling.
+             *
+             *     After payment completion, poll `GET /order/{idempotencyKey}` for fulfilment status.
+             */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "success": true,
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Created Successfully",
-                     *       "data": {
-                     *         "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
-                     *         "planId": "1GB_EU_30D",
-                     *         "deviceId": "0xabc123def456abc123def456abc123def456abc1",
-                     *         "esimId": "0xdef456abc123def456abc123def456abc123def4",
-                     *         "iccid": "8944110068000000001",
-                     *         "vendor": "VENDOR1",
-                     *         "isNewESim": true,
-                     *         "orderStatus": "COMPLETED",
-                     *         "paymentStatus": "SUCCESS",
-                     *         "paymentMethod": "CRYPTO",
-                     *         "topupPlanResolved": false,
-                     *         "installationDetails": {
-                     *           "qrcode": "LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE",
-                     *           "appleInstallationUrl": "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE"
-                     *         }
-                     *       }
-                     *     }
-                     */
                     "application/json": components["schemas"]["SuccessResponse"] & {
                         data?: components["schemas"]["CreateOrderResponse"];
                     };
                 };
             };
             /**
-             * @description Request validation failed or payment verification rejected.
+             * @description Request validation failed or coupon validation rejected.
              *
              *     | Code | Meaning |
              *     |------|---------|
              *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
-             *     | `REQUIRED_FIELD` | A required field is missing |
-             *     | `INVALID_VALUE` | A field value is invalid |
-             *     | `INVALID_OR_INSUFFICIENT_TX` | Payment amount is zero or below the plan price |
-             *     | `NOT_FOUND` | `catalogueId` does not match an active catalogue entry |
+             *     | `REQUIRED_FIELD` | A required field is missing (e.g. `esimId` for topup) |
+             *     | `INVALID_VALUE` | A field value is invalid (e.g. malformed `catalogueId` or `esimId`) |
+             *     | `INVALID_PAYMENT_METHOD` | Neither `isCryptoPayment` nor `coupon` resolved to a valid payment method |
+             *     | `COUPON_NOT_FOUND` | Coupon code does not exist |
+             *     | `COUPON_INSUFFICIENT_BALANCE` | Coupon balance does not cover the full order amount |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `esimId` is not associated with the authenticated device |
+             *     | `INVALID_ESIM_TOPUP` | A topup plan cannot be used for a new eSIM purchase |
              */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INVALID_OR_INSUFFICIENT_TX",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Transaction validation failed or amount is zero."
-                     *     }
-                     */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /**
-             * @description Authentication or DPoP validation failed.
+             * @description Authentication, DPoP validation, or step-up recency check failed.
              *
              *     | Code | Meaning |
              *     |------|---------|
              *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
              *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
              *     | `STEP_UP_REQUIRED` | Operation requires recent authentication — trigger step-up flow |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
              *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
              *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
              *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
@@ -2450,8 +2994,7 @@ export interface operations {
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `NOT_FOUND` | `catalogueId` does not reference an active catalogue entry |
-             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | `eSimId` does not reference an eSIM associated with the authenticated device |
+             *     | `NOT_FOUND` | `catalogueId` does not match an active catalogue entry |
              *     | `NO_EQUIVALENT_TOPUP_PLAN` | No active TOPUP plan equivalent exists for the submitted SIM-type `catalogueId` |
              */
             404: {
@@ -2462,22 +3005,24 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "ESIM_NOT_FOUND_FOR_DEVICE",
+                     *       "code": "NOT_FOUND",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "No eSIM found for esimId 0xdef4... associated with the corresponding device wallet address 0xabc1..."
+                     *       "message": "Catalogue not found by catalogueId: 664f1a2b3c4d5e6f7a8b9c0d"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /**
-             * @description A conflict prevented order creation.
+             * @description A downstream payment service dependency failed.
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `TXN_HASH_ALREADY_USED` | The provided `txnHash` has already been used for a prior order — each transaction hash is single-use |
+             *     | `STRIPE_INVOICE_CREATION_FAILED` | Failed to create the Stripe draft invoice |
+             *     | `STRIPE_INVOICE_FINALIZATION_FAILED` | Failed to finalize the Stripe invoice |
+             *     | `MOONPAY_CHARGE_CREATION_FAILED` | Failed to create the Moonpay charge session (crypto only) |
              */
-            409: {
+            424: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2485,15 +3030,22 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "TXN_HASH_ALREADY_USED",
+                     *       "code": "STRIPE_INVOICE_CREATION_FAILED",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Transaction hash has already been used."
+                     *       "message": "Failed to create Stripe invoice."
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
+            /**
+             * @description Order creation failed or unhandled internal server error.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_CREATION_FAILED` | A pipeline step failed after order document creation — the order is marked `PAYMENT_FAILED` |
+             *     | `INTERNAL_SERVER_ERROR` | Unhandled internal server error |
+             */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -2502,33 +3054,9 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
+                     *       "code": "ORDER_CREATION_FAILED",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /**
-             * @description An upstream dependency failed.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `VENDOR_ORDER_FAILED` | The upstream vendor purchase API call failed |
-             *     | `ORDER_CREATION_FAILED` | The on-chain `buyDataBundle` transaction failed |
-             */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "VENDOR_ORDER_FAILED",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Failed to order SIM of VENDOR1: upstream error"
+                     *       "message": "Order creation failed"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
@@ -2536,27 +3064,85 @@ export interface operations {
             };
         };
     };
-    esimCheckCompatibility: {
+    orderGetStatus: {
         parameters: {
-            query: {
+            query?: never;
+            header: {
                 /**
-                 * @description MongoDB ObjectId of the catalogue entry to check topup compatibility for.
-                 *     Obtain this from the `catalogueId` field on a `GET /v1/catalogue` result.
+                 * @description Client-generated request correlation identifier.
                  *
-                 *     Any active plan may be submitted regardless of `purchaseType`.
-                 * @example 664f1a2b3c4d5e6f7a8b9c0d
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
-                planId: string;
+                "x-correlation-id": components["parameters"]["CorrelationId"];
                 /**
-                 * @description Optional eSIM wallet address to restrict the check to a single eSIM.
+                 * @description DPoP proof JWT per RFC 9449.
                  *
-                 *     When provided, the eSIM MUST be active and associated with the
-                 *     authenticated device — a mismatch returns `ESIM_NOT_FOUND_FOR_DEVICE`.
+                 *     A compact serialised JWT with:
                  *
-                 *     When omitted, all active eSIMs for the device are checked.
-                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
                  */
-                esimId?: string;
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description The `x-correlation-id` value used when the order was created
+                 *     via `POST /order`. This is the idempotency key that uniquely
+                 *     identifies the order for the authenticated device.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                idempotencyKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description Order status returned. The response shape varies by the current `orderStatus`.
+             *     See the schema documentation for conditional field presence.
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["OrderStatusResponse"];
+                    };
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    esimList: {
+        parameters: {
+            query?: {
+                /**
+                 * @description When set to `"true"`, filters results to eSIMs with `activationStatus: ACTIVE` only.
+                 *     Any other value or omission returns all eSIMs for the device.
+                 * @example true
+                 */
+                activeOnly?: "true";
             };
             header: {
                 /**
@@ -2599,6 +3185,235 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description List of eSIMs for the authenticated device. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["ESimListResponse"];
+                    };
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    esimGetDetail: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description eSIM wallet contract address on-chain.
+                 *     This is the `esimId` value from the eSIM list or order response.
+                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 */
+                esimId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description eSIM detail returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "iccid": "8944110068000000001",
+                     *         "matchingId": "QR-G-5C-12345-ABCDE",
+                     *         "smdpAddress": "rsp.truphone.com",
+                     *         "esimId": "0xdef456abc123def456abc123def456abc123def4",
+                     *         "deviceId": "0xabc123def456abc123def456abc123def456abc1",
+                     *         "vendor": "VENDOR1",
+                     *         "planId": "1GB_EU_30D",
+                     *         "planHistory": [
+                     *           {
+                     *             "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
+                     *             "planId": "1GB_EU_30D",
+                     *             "validity": 30,
+                     *             "purchaseDate": "2026-04-15T12:30:00Z"
+                     *           },
+                     *           {
+                     *             "orderId": "664f1a2b3c4d5e6f7a8b9c0f",
+                     *             "planId": "1GB_EU_30D_TOPUP",
+                     *             "validity": 30,
+                     *             "purchaseDate": "2026-05-10T09:00:00Z"
+                     *           }
+                     *         ],
+                     *         "activationStatus": "ACTIVE",
+                     *         "installationDetails": {
+                     *           "qrcode": "LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE",
+                     *           "appleInstallationUrl": "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE"
+                     *         },
+                     *         "eSIMUniqueIdentifier": "c3a1b2d4-e5f6-7890-abcd-ef1234567890",
+                     *         "createdAt": "2026-04-15T12:30:00.000Z",
+                     *         "updatedAt": "2026-05-10T09:00:00.000Z"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["ESimDocument"];
+                    };
+                };
+            };
+            /**
+             * @description The provided `esimId` belongs to a different device.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | eSIM exists but is not associated with the authenticated device |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ESIM_NOT_FOUND_FOR_DEVICE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "No eSIM found for esimId 0xdef4... associated with device 0xabc1..."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            /**
+             * @description No eSIM exists for the provided wallet address.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `NOT_FOUND` | No eSIM record found for the given `esimId` |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "NOT_FOUND",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "ESim not found for esimId: 0xdef456abc123def456abc123def456abc123def4"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    esimCheckCompatibility: {
+        parameters: {
+            query: {
+                /**
+                 * @description MongoDB ObjectId of the catalogue entry to check topup compatibility for.
+                 *     Obtain this from the `catalogueId` field on a `GET /catalogue` result.
+                 *
+                 *     Any active plan may be submitted regardless of `purchaseType`.
+                 * @example 664f1a2b3c4d5e6f7a8b9c0d
+                 */
+                planId: string;
+            };
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description Optional eSIM wallet address to restrict the check to a single eSIM.
+                 *
+                 *     When provided, the eSIM MUST be active and associated with the
+                 *     authenticated device — a mismatch returns `ESIM_NOT_FOUND_FOR_DEVICE`.
+                 *
+                 *     When omitted, all active eSIMs for the device are checked.
+                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 */
+                esimId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
             /**
              * @description Compatibility check completed. Inspect `results` for per-eSIM outcomes.
              *     A 200 response does not guarantee any eSIM is compatible.
@@ -2619,8 +3434,9 @@ export interface operations {
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `REQUIRED_FIELD` | `planId` is missing |
-             *     | `INVALID_VALUE` | A parameter value failed format validation |
+             *     | `REQUIRED_FIELD` | `planId` query parameter is missing |
+             *     | `INVALID_VALUE` | `planId` or `esimId` failed format validation |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `esimId` is not an active eSIM for the authenticated device |
              */
             400: {
                 headers: {
@@ -2638,72 +3454,33 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /**
-             * @description Authentication or DPoP validation failed.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
-             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
-             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
-             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
-             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
-             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm`, `htu`, or `ath` binding mismatch |
-             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
-             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
-             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the `cnf.jkt` claim |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "TOKEN_EXPIRED",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Access token has expired. Refresh and retry."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["DPoPAuthError"];
             /**
              * @description A referenced entity was not found.
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `NOT_FOUND` | `planId` does not reference an active catalogue entry |
+             *     | `NOT_FOUND` | `planId` does not match an active catalogue entry |
+             *     | `NO_EQUIVALENT_TOPUP_PLAN` | No active TOPUP equivalent exists for the submitted plan |
              *     | `NO_ACTIVE_ESIMS_FOR_DEVICE` | The authenticated device has no active eSIMs |
-             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | The provided `esimId` is not an active eSIM associated with this device |
-             *     | `NO_EQUIVALENT_TOPUP_PLAN` | No active TOPUP plan equivalent exists for the submitted SIM-type `planId` |
              */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
+                     *       "code": "NOT_FOUND",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
+                     *       "message": "Catalogue not found by catalogueId: 664f1a2b3c4d5e6f7a8b9c0d"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            500: components["responses"]["InternalServerError"];
         };
     };
     couponIssue: {
@@ -2800,29 +3577,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /**
-             * @description Scheduler admin bearer token is missing or invalid.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token does not match |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "ADMIN_TOKEN_INVALID",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Invalid or missing admin token."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["AdminTokenError"];
             /**
              * @description A coupon has already been issued for this transaction hash.
              *
@@ -2954,9 +3709,10 @@ export interface operations {
                      *         "lastRedeemedBy": "0xabc123def456abc123def456abc123def456abc1",
                      *         "redemptions": [
                      *           {
-                     *             "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
                      *             "amount": "4.50",
-                     *             "redeemedAt": "2026-04-19T12:00:00.000Z"
+                     *             "at": "2026-04-19T12:00:00.000Z",
+                     *             "by": "0xabc123def456abc123def456abc123def456abc1",
+                     *             "reference": "664f1a2b3c4d5e6f7a8b9c0e"
                      *           }
                      *         ]
                      *       }
@@ -2967,37 +3723,7 @@ export interface operations {
                     };
                 };
             };
-            /**
-             * @description Authentication or DPoP validation failed.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
-             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
-             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
-             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
-             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
-             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm`, `htu`, or `ath` binding mismatch |
-             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
-             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
-             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the `cnf.jkt` claim |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "TOKEN_EXPIRED",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Access token has expired. Refresh and retry."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["DPoPAuthError"];
             /**
              * @description No coupon found for the provided code.
              *
@@ -3021,23 +3747,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     adminSecretsRotate: {
@@ -3121,29 +3831,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /**
-             * @description Scheduler admin bearer token is missing or invalid.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token does not match |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "ADMIN_TOKEN_INVALID",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Invalid or missing admin token."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["AdminTokenError"];
             /**
              * @description Rotation failed or unhandled internal server error.
              *
@@ -3234,46 +3922,8 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /**
-             * @description Scheduler admin bearer token is missing or invalid.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token does not match |
-             */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "ADMIN_TOKEN_INVALID",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Invalid or missing admin token."
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Unhandled internal server error. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            401: components["responses"]["AdminTokenError"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     adminJobsRun: {
@@ -3336,14 +3986,79 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            401: components["responses"]["AdminTokenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminAccountSync: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "deviceWalletAddress": "0xabc123def456abc123def456abc123def456abc1",
+                 *       "userHandle": "550e8400-e29b-41d4-a716-446655440000",
+                 *       "pubKeyX": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+                 *       "pubKeyY": "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c",
+                 *       "salt": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+                 *     }
+                 */
+                "application/json": components["schemas"]["AccountSyncRequest"];
+            };
+        };
+        responses: {
+            /** @description Account upserted successfully. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Created Successfully",
+                     *       "data": {
+                     *         "deviceWalletAddress": "0xabc123def456abc123def456abc123def456abc1",
+                     *         "userHandle": "550e8400-e29b-41d4-a716-446655440000",
+                     *         "pubKeyX": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+                     *         "pubKeyY": "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c",
+                     *         "salt": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+                     *         "stripeCustomerId": "cus_PxYz2ABC3def4G"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["AccountSyncResponse"];
+                    };
+                };
+            };
             /**
-             * @description Scheduler admin bearer token is missing or invalid.
+             * @description Request validation failed.
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `ADMIN_TOKEN_INVALID` | The `Authorization` header is absent, malformed, or the token does not match |
+             *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
+             *     | `REQUIRED_FIELD` | A required field is absent |
+             *     | `INVALID_VALUE` | `deviceWalletAddress` failed hex address format validation |
              */
-            401: {
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3351,16 +4066,22 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "ADMIN_TOKEN_INVALID",
+                     *       "code": "REQUIRED_FIELD",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Invalid or missing admin token."
+                     *       "message": "Required fields userHandle missing"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Unhandled internal server error. */
-            500: {
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description IP address not in the internal allowlist.
+             *
+             *     The requesting IP is not in the configured `INTERNAL_ALLOWLIST`.
+             *     This check runs before token validation.
+             */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3368,9 +4089,346 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "INTERNAL_SERVER_ERROR",
+                     *       "code": "FORBIDDEN",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Something went wrong. Please try again later"
+                     *       "message": "Access denied."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Stripe customer creation failed (new accounts only).
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `STRIPE_CUSTOMER_CREATION_FAILED` | Stripe API call to create the customer returned an error |
+             */
+            424: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "STRIPE_CUSTOMER_CREATION_FAILED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Failed to create Stripe customer for new account."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminRegionDeny: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "code": "RU"
+                 *     }
+                 */
+                "application/json": components["schemas"]["DenyRegionRequest"];
+            };
+        };
+        responses: {
+            /** @description Region added to denylist (or already present). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "code": "RU",
+                     *         "action": "denied"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["RegionActionResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `REQUIRED_FIELD` | `code` field is missing |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "REQUIRED_FIELD",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Required fields code missing"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminRegionAllow: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /**
+                 * @description Service region code to remove from the denylist.
+                 *     Automatically uppercased server-side.
+                 * @example RU
+                 */
+                regionCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Region removed from denylist (or was not present). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "code": "RU",
+                     *         "action": "allowed"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["RegionActionResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Path parameter validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `REQUIRED_FIELD` | `regionCode` path parameter is missing or empty |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "REQUIRED_FIELD",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Required fields code missing"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    webhookStripe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Stripe event payload. Must not be parsed before signature verification.
+         *     Content-Type is `application/json` but the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description Stripe event ID.
+                     * @example evt_1PxYz2ABC3def4GHI5jkl6
+                     */
+                    id?: string;
+                    /**
+                     * @description Event type.
+                     * @example invoice.paid
+                     * @enum {string}
+                     */
+                    type?: "invoice.paid" | "invoice.overpaid";
+                    /** @description Event data containing the invoice object. */
+                    data?: {
+                        /**
+                         * @description Stripe Invoice object. Key fields used by the handler:
+                         *     `id` (invoice ID for order lookup), `amount_paid` (payment amount validation).
+                         */
+                        object?: Record<string, never>;
+                    };
+                };
+            };
+        };
+        responses: {
+            /**
+             * @description Event received and acknowledged. Returned for both processed and
+             *     ignored event types, and for all non-signature business logic errors.
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "received": true
+                     *     }
+                     */
+                    "application/json": {
+                        /** @enum {boolean} */
+                        received?: true;
+                    };
+                };
+            };
+            /**
+             * @description Stripe signature verification failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `STRIPE_WEBHOOK_INVALID` | `stripe-signature` header is absent, malformed, or HMAC mismatch |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "STRIPE_WEBHOOK_INVALID",
+                     *       "correlationId": "exempt-a1b2c3d4-e5f6-7890",
+                     *       "message": "Stripe webhook signature verification failed."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    webhookMoonpay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Moonpay webhook payload. Must not be parsed before signature verification.
+         *     Content-Type is `application/json` but the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Moonpay transaction details. */
+                    transactionObject?: {
+                        meta?: {
+                            customerDetails?: {
+                                /**
+                                 * @description JSON string containing `{ customerID, orderID }` set
+                                 *     at charge session creation. `orderID` is the BFF Order `_id`
+                                 *     used for order lookup.
+                                 * @example {"customerID":"0xabc123...","orderID":"664f1a2b3c4d5e6f7a8b9c0e"}
+                                 */
+                                additionalJSON?: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        responses: {
+            /**
+             * @description Event received and acknowledged. Returned for both successfully processed
+             *     events and all non-signature business logic errors.
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "received": true
+                     *     }
+                     */
+                    "application/json": {
+                        /** @enum {boolean} */
+                        received?: true;
+                    };
+                };
+            };
+            /**
+             * @description Moonpay signature verification failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `MOONPAY_WEBHOOK_INVALID` | `x-signature` header is absent or HMAC-SHA256 mismatch |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "MOONPAY_WEBHOOK_INVALID",
+                     *       "correlationId": "exempt-a1b2c3d4-e5f6-7890",
+                     *       "message": "Moonpay webhook signature verification failed."
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];

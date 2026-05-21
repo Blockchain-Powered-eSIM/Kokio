@@ -1,39 +1,8 @@
 name: Deploy production
 
-on:
-  push:
-    branches: ['production']
-
 jobs:
-  fingerprint:
-    name: Fingerprint
-    type: fingerprint
-    environment: production
-
-  get_android_build:
-    name: Check for existing Android build
-    needs: [fingerprint]
-    type: get-build
-    params:
-      platform: android
-      profile: production
-      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
-      wait_for_in_progress: true
-
-  get_ios_build:
-    name: Check for existing iOS build
-    needs: [fingerprint]
-    type: get-build
-    params:
-      platform: ios
-      profile: production
-      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
-      wait_for_in_progress: true
-
   build_android:
     name: Build Android
-    needs: [get_android_build]
-    if: ${{ !needs.get_android_build.outputs.build_id }}
     type: build
     params:
       platform: android
@@ -41,8 +10,6 @@ jobs:
 
   build_ios:
     name: Build iOS
-    needs: [get_ios_build]
-    if: ${{ !needs.get_ios_build.outputs.build_id }}
     type: build
     params:
       platform: ios
@@ -65,23 +32,3 @@ jobs:
     params:
       build_id: ${{ needs.build_ios.outputs.build_id }}
       profile: production
-
-  publish_android_update:
-    name: Publish Android OTA update
-    needs: [get_android_build]
-    if: ${{ needs.get_android_build.outputs.build_id }}
-    type: update
-    environment: production
-    params:
-      branch: production
-      platform: android
-
-  publish_ios_update:
-    name: Publish iOS OTA update
-    needs: [get_ios_build]
-    if: ${{ needs.get_ios_build.outputs.build_id }}
-    type: update
-    environment: production
-    params:
-      branch: production
-      platform: ios

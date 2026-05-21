@@ -1,8 +1,8 @@
 import React, { useCallback } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Colors } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 interface CheckboxProps {
   checked: boolean;
@@ -10,6 +10,9 @@ interface CheckboxProps {
 }
 
 const Checkbox = ({ checked, onChange }: CheckboxProps) => {
+  const bg = useThemeColor({}, "card");
+  const border = useThemeColor({}, "mutedForeground");
+
   const handleCheckboxChange = useCallback(() => {
     console.log(onChange, !checked);
     onChange(!checked);
@@ -19,15 +22,11 @@ const Checkbox = ({ checked, onChange }: CheckboxProps) => {
     <Pressable
       role="checkbox"
       aria-checked={checked}
-      style={styles.checkboxBase}
+      style={[styles.checkboxBase, { backgroundColor: bg, borderColor: border }]}
       onPress={handleCheckboxChange}
     >
       {checked && (
-        <Ionicons
-          name="checkmark-sharp"
-          size={16}
-          color={Colors.dark.mutedForeground}
-        />
+        <Ionicons name="checkmark-sharp" size={16} color={border} />
       )}
     </Pressable>
   );
@@ -41,8 +40,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 4,
     borderWidth: 2,
-    backgroundColor: Colors.dark.background,
-    borderColor: Colors.dark.mutedForeground,
   },
   checkboxPressed: {
     opacity: 0.8, // Adds a feedback effect on press

@@ -2,9 +2,8 @@ import React, { useCallback, useMemo } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import _get from "lodash/get";
-
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import CountryFlag from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
@@ -33,6 +32,8 @@ const ESIMItem = ({
   containerStyle?: Object;
   onPress?: () => void;
 }) => {
+  const { isDark } = useTheme();
+
   const handleBuyCTAClick = useCallback(
     (id: string) => () => {
       router.navigate({
@@ -87,7 +88,7 @@ const ESIMItem = ({
           </View>
           {showBuyButton && (
             <TouchableOpacity
-              style={[styles.buyButton, { backgroundColor: Theme.colors.goldenYellow }]}
+              style={[styles.buyButton, { backgroundColor: Theme.colors.shopCta }]}
               onPress={handleBuyCTAClick(item.catalogueId)}
             >
               <DetailItem
@@ -104,7 +105,7 @@ const ESIMItem = ({
         </View>
       </>
     ),
-    [item, showBuyButton, handleBuyCTAClick]
+    [item, showBuyButton, handleBuyCTAClick, isDark]
   );
 
   if (onPress) {

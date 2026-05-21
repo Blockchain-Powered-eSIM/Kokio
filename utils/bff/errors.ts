@@ -26,14 +26,22 @@ const BFF_ERROR_MESSAGES: Record<string, string> = {
   NO_VENDORS_PROVIDED:         'Invalid request.',
   INVALID_VENDORS:             'Invalid request.',
   // Order
-  TXN_HASH_ALREADY_USED:        'Payment already processed.',
-  INVALID_OR_INSUFFICIENT_TX:   'Payment transaction invalid or insufficient.',
-  ORDER_CREATION_FAILED:        'Order could not be completed. Please try again.',
+  TXN_HASH_ALREADY_USED:             'Payment already processed.',
+  INVALID_OR_INSUFFICIENT_TX:        'Payment transaction invalid or insufficient.',
+  ORDER_CREATION_FAILED:             'Order could not be completed. Please try again.',
+  INVALID_PAYMENT_METHOD:            'Invalid payment method. Please try again.',
+  PAYMENT_FAILED:                    'Payment failed. Please try again.',
+  MOONPAY_CHARGE_CREATION_FAILED:    'Could not initiate payment. Please try again.',
+  STRIPE_CUSTOMER_CREATION_FAILED:   'Could not initiate payment. Please try again.',
+  STRIPE_INVOICE_CREATION_FAILED:    'Could not initiate payment. Please try again.',
+  STRIPE_INVOICE_FINALIZATION_FAILED: 'Payment could not be finalised. Please try again.',
   // eSIM
   ESIM_NOT_FOUND_FOR_DEVICE:        'eSIM not found.',
   NO_ACTIVE_ESIMS_FOR_DEVICE:       'No active eSIMs found.',
   TOPUP_COMPATIBILITY_CHECK_FAILED: 'Could not check top-up compatibility. Please try again.',
   NO_EQUIVALENT_TOPUP_PLAN:         'No compatible top-up plan available.',
+  INVALID_ESIM_TOPUP:               'This plan cannot be used for this order type.',
+  ACCOUNT_NOT_FOUND:                'Account not found. Please sign in again.',
   // Coupon
   COUPON_NOT_FOUND:             'Invalid coupon code.',
   COUPON_INSUFFICIENT_BALANCE:  'Coupon has insufficient balance.',
@@ -71,14 +79,16 @@ export class BffError extends Error {
   readonly code: string;
   readonly httpStatus?: number;
   readonly userMessage: string;
+  readonly correlationId?: string | null;
 
-  constructor(code: string, httpStatus?: number, serverMessage?: string) {
+  constructor(code: string, httpStatus?: number, serverMessage?: string, correlationId?: string | null) {
     const userMessage = resolveBffErrorMessage(code, httpStatus);
     super(serverMessage ?? userMessage);
     this.name = 'BffError';
     this.code = code;
     this.httpStatus = httpStatus;
     this.userMessage = userMessage;
+    this.correlationId = correlationId;
   }
 }
 

@@ -1,4 +1,5 @@
 import type { Esim } from "@/components/ESIMItem";
+import type { CreateOrderRequest } from "@/utils/bff/order";
 
 type EsimOrderPayloadParams = {
   eSimItem: Esim;
@@ -8,19 +9,17 @@ type EsimOrderPayloadParams = {
   compatibleTopUpEsimId: string | undefined;
 };
 
+type OrderPayload = CreateOrderRequest;
+
 export const getEsimOrderPayload = ({
   eSimItem,
-  deviceWalletId,
   discountCode,
   applyAsTopup,
   compatibleTopUpEsimId,
-}: EsimOrderPayloadParams) => ({
-  deviceId: deviceWalletId,
-  catalogueId: eSimItem?.catalogueId,
-  amount: eSimItem?.actualSellingPrice,
-  currency: "USD", // TODO: check if need to be dynamic
-  isNewESim: true, // True if new esim and false if topup
-  coupon: discountCode,
+}: EsimOrderPayloadParams): OrderPayload => ({
+  catalogueId: eSimItem.catalogueId,
+  isNewESim: true,
+  coupon: discountCode || undefined,
   isCryptoPayment: true,
   ...(applyAsTopup && compatibleTopUpEsimId
     ? { isNewESim: false, esimId: compatibleTopUpEsimId }

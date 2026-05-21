@@ -1,0 +1,71 @@
+name: Route EAS Release
+
+on:
+  pull_request_target:
+    branches:
+      - staging
+      - production
+    types:
+      - closed
+
+jobs:
+  route-release:
+    name: Route Release To EAS Workflow
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Checkout merged commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Verify OTA preflight
+        run: node scripts/verify-ota-preflight.mjs
+
+      - name: Select EAS workflow
+        id: select
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: node - <<'EOF'
+          const labels = JSON.parse(process.env.LABELS_JSON);
+          const hasOtaLabel = labels.includes("ota");
+          const baseBranch = process.env.BASE_BRANCH;
+
+          const workflow = baseBranch === "staging"
+            ? hasOtaLabel
+              ? ".eas/workflows/publish-staging-ota.yml"
+              : ".eas/workflows/deploy-staging.yml"
+            : hasOtaLabel
+              ? ".eas/workflows/publish-production-ota.yml"
+              : ".eas/workflows/deploy-production.yml";
+
+          require("node:fs").appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `workflow=${workflow}\n`
+          );
+        EOF
+
+      - name: Run EAS workflow
+        run: >
+          eas workflow:run ${{ steps.select.outputs.workflow }}
+          --ref ${{ github.event.pull_request.merge_commit_sha }}
+          --non-interactive

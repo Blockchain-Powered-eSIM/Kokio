@@ -8,6 +8,13 @@ export interface AppExtraConfig {
     alchemyApiKey?: string;
     pimlicoApiKey?: string;
     gasManagerPolicyId?: string;
+    chainId?: string;
+    chainRpcUrl?: string;
+    usdcAddress?: string;
+    stripePublishableKey?: string;
+    stripeMerchantIdentifier?: string;
+    walletConnectProjectId?: string;
+    externalWalletCallback?: string;
 }
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
@@ -20,6 +27,13 @@ export const Config = {
     ALCHEMY_API_KEY: extra?.alchemyApiKey,
     PIMLICO_API_KEY: extra?.pimlicoApiKey,
     GAS_MANAGER_POLICY_ID: extra?.gasManagerPolicyId,
+    CHAIN_ID: extra?.chainId ? Number(extra.chainId) : undefined,
+    CHAIN_RPC_URL: extra?.chainRpcUrl,
+    USDC_ADDRESS: extra?.usdcAddress,
+    STRIPE_PUBLISHABLE_KEY: extra?.stripePublishableKey,
+    STRIPE_MERCHANT_IDENTIFIER: extra?.stripeMerchantIdentifier,
+    WALLETCONNECT_PROJECT_ID: extra?.walletConnectProjectId,
+    EXTERNAL_WALLET_CALLBACK: extra?.externalWalletCallback,
 
     // Utility function for validation
     validateSecrets: () => {
@@ -31,6 +45,12 @@ export const Config = {
         }
         if (!extra?.apiBaseUrl) {
             console.error("Critical Error: API_BASE_URL is missing. Check your EAS Secrets configuration.");
+        }
+        if (!extra?.stripePublishableKey) {
+            console.warn("Warning: STRIPE_PUBLISHABLE_KEY is not set. Stripe payments (PAY-008) will not work.");
+        }
+        if (!extra?.walletConnectProjectId) {
+            console.warn("Warning: WALLETCONNECT_PROJECT_ID is not set. WalletConnect sessions (PAY-011) will not work.");
         }
     }
 };

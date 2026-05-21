@@ -4,7 +4,8 @@
   <dict>
     <key>com.apple.developer.associated-domains</key>
     <array>
-      <string>webcredentials:docs.kokio.app</string>
+      <string>webcredentials:kokio.app</string>
+      <string>applinks:kokio.app</string>
     </array>
   </dict>
 </plist>

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,11 +19,14 @@ import { useLocalSearchParams } from "expo-router";
 import _get from "lodash/get";
 import _split from "lodash/split";
 import { ThemedText } from "@/components/ThemedText";
-import { Theme, isDarkTheme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type TabType = "Direct" | "QR" | "Manual";
 
 const TextWithCopy = ({ label, text }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const handleCopyQRData = async () => {
     try {
       await Clipboard.setStringAsync(text);
@@ -46,9 +49,157 @@ const TextWithCopy = ({ label, text }) => {
   );
 };
 
+const createStyles = () => StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  tabBarOuterContainer: {
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: Theme.spacing.xs,
+  },
+  tabBarContainer: {
+    borderRadius: Theme.borderRadius.medium,
+    flexDirection: "row",
+    overflow: "hidden",
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 6,
+    minHeight: 30,
+  },
+  tabButtonText: {
+    textAlign: "center",
+    fontWeight: "500",
+    zIndex: 1,
+  },
+  tabIndicator: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: Theme.borderRadius.medium,
+    zIndex: 0,
+  },
+  content: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  warningCard: {
+    borderRadius: 12,
+    padding: 16,
+    position: "relative",
+    marginBottom: 16,
+    marginTop: 16,
+  },
+  warningIconTopRight: {
+    position: "absolute",
+    top: -12,
+    right: 14,
+    zIndex: 1,
+  },
+  warningContent: {
+    flex: 1,
+    paddingRight: 32,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  warningDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  installSection: {
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  qrContainer: {
+    alignItems: "center",
+    padding: 20,
+  },
+  shareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginVertical: 24,
+  },
+  shareButtonText: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  instructionsContainer: {
+    gap: 12,
+  },
+  instructionText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  manualDetailsCard: {
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  manualDetailsHeader: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  manualDetailsContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  manualDetailsTextContainer: {
+    flex: 1,
+  },
+  manualDetailsText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  copyButton: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 16,
+  },
+  manualInstructionText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  textCopyContainer: {
+    marginBottom: 12,
+  },
+});
+
 const EsimInstallation = () => {
-  const { qrcode, appleInstallationUrl, iccid, orderId } =
-    useLocalSearchParams();
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  const { qrcode } = useLocalSearchParams();
   const qrData =
     (Array.isArray(qrcode) ? _head(qrcode) : qrcode) ||
     "LPA:1$activation.airalo.com$sample-qr-data";
@@ -238,7 +389,7 @@ const EsimInstallation = () => {
     return (
       <View style={styles.tabBarOuterContainer}>
         <View style={[styles.tabBarContainer, {
-          backgroundColor: isDarkTheme ? Theme.colors.muted : Theme.colors.input,
+          backgroundColor: isDark ? Theme.colors.muted : Theme.colors.input,
         }]}>
           {tabs.map((tab) => (
             <TouchableOpacity
@@ -248,7 +399,7 @@ const EsimInstallation = () => {
               activeOpacity={0.7}
             >
               {activeTab === tab && <View style={[styles.tabIndicator, {
-                backgroundColor: isDarkTheme ? Theme.colors.secondaryBackground : Theme.colors.card,
+                backgroundColor: isDark ? Theme.colors.secondaryBackground : Theme.colors.card,
               }]} />}
               <Text
                 style={[
@@ -290,152 +441,5 @@ const EsimInstallation = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  tabBarOuterContainer: {
-    width: "100%",
-    alignSelf: "center",
-    paddingHorizontal: Theme.spacing.sm,
-    paddingVertical: Theme.spacing.xs,
-  },
-  tabBarContainer: {
-    borderRadius: Theme.borderRadius.medium,
-    flexDirection: "row",
-    overflow: "hidden",
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 6,
-    minHeight: 30,
-  },
-  tabButtonText: {
-    textAlign: "center",
-    fontWeight: "500",
-    zIndex: 1,
-  },
-  tabIndicator: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: Theme.borderRadius.medium,
-    zIndex: 0,
-  },
-  content: {
-    flex: 1,
-    paddingTop: 16,
-  },
-  warningCard: {
-    borderRadius: 12,
-    padding: 16,
-    position: "relative",
-    marginBottom: 16,
-    marginTop: 16,
-  },
-  warningIconTopRight: {
-    position: "absolute",
-    top: -12,
-    right: 14,
-    zIndex: 1,
-  },
-  warningContent: {
-    flex: 1,
-    paddingRight: 32,
-  },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  warningDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  installSection: {
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  qrContainer: {
-    alignItems: "center",
-    padding: 20,
-  },
-  shareButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginVertical: 24,
-  },
-  shareButtonText: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  instructionsContainer: {
-    gap: 12,
-  },
-  instructionText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  manualDetailsCard: {
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  },
-  manualDetailsHeader: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 12,
-    letterSpacing: 0.5,
-  },
-  manualDetailsContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  manualDetailsTextContainer: {
-    flex: 1,
-  },
-  manualDetailsText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  copyButton: {
-    padding: 8,
-    marginLeft: 12,
-  },
-  divider: {
-    height: 1,
-    marginVertical: 16,
-  },
-  manualInstructionText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  textCopyContainer: {
-    marginBottom: 12,
-  },
-});
 
 export default React.memo(EsimInstallation);

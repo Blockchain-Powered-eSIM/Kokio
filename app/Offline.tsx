@@ -1,82 +1,21 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Image,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import _isNull from "lodash/isNull";
 import NetInfo from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors, Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/contexts/ToastContext";
 import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 
-const OfflineScreen: React.FC = () => {
-  const router = useRouter();
-
-  const handleRetry = useCallback(async () => {
-    const state = await NetInfo.fetch();
-
-    // Handle null state (network status still being determined)
-    if (_isNull(state.isInternetReachable)) {
-      return;
-    }
-
-    const isOnline = !!state.isConnected && !!state.isInternetReachable;
-
-    if (isOnline) {
-      router.replace("/");
-    } else {
-      alert(
-        "Still Offline , Please check your internet connection and try again."
-      );
-    }
-  }, [router]);
-
-  const handleContinue = useCallback(() => {
-    setSkipNextOfflineRedirect(true);
-    router.replace("/");
-  }, [router]);
-
-  return (
-    <View style={styles.container}>
-      <Image
-        source={require("../assets/images/kokio.png")}
-        style={styles.logo}
-      />
-
-      <ThemedText style={styles.heading} bold>
-        You’re Offline!
-      </ThemedText>
-
-      <ThemedText style={styles.description} variant="sm">
-        A connection is needed to purchase and install an eSIM or make eSIM
-        wallet transactions, but you can still use the app with limited
-        functionalities.
-      </ThemedText>
-
-      <Image
-        source={require("../assets/images/nonetwork.png")}
-        style={styles.illustration}
-        resizeMode="contain"
-      />
-
-      <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-        <Text style={styles.retryButtonText}>Retry Connection</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-        <Text style={styles.continueButtonText}>Continue to App</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
@@ -138,5 +77,68 @@ const styles = StyleSheet.create({
     fontFamily: "Lexend",
   },
 });
+
+const OfflineScreen: React.FC = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  const router = useRouter();
+  const { showMessage } = useToast();
+
+  const handleRetry = useCallback(async () => {
+    const state = await NetInfo.fetch();
+
+    // Handle null state (network status still being determined)
+    if (_isNull(state.isInternetReachable)) {
+      return;
+    }
+
+    const isOnline = !!state.isConnected && !!state.isInternetReachable;
+
+    if (isOnline) {
+      router.replace("/");
+    } else {
+      showMessage("Still offline. Please check your internet connection.", "error");
+    }
+  }, [router, showMessage]);
+
+  const handleContinue = useCallback(() => {
+    setSkipNextOfflineRedirect(true);
+    router.replace("/");
+  }, [router]);
+
+  return (
+    <View style={styles.container}>
+      <Image
+        source={require("../assets/images/kokio.png")}
+        style={styles.logo}
+      />
+
+      <ThemedText style={styles.heading} bold>
+        You’re Offline!
+      </ThemedText>
+
+      <ThemedText style={styles.description} variant="sm">
+        A connection is needed to purchase and install an eSIM or make eSIM
+        wallet transactions, but you can still use the app with limited
+        functionalities.
+      </ThemedText>
+
+      <Image
+        source={require("../assets/images/nonetwork.png")}
+        style={styles.illustration}
+        resizeMode="contain"
+      />
+
+      <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+        <Text style={styles.retryButtonText}>Retry Connection</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+        <Text style={styles.continueButtonText}>Continue to App</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 
 export default OfflineScreen;

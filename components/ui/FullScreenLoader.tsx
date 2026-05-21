@@ -1,20 +1,25 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Colors, Theme } from "@/constants/Colors";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { Theme } from "@/constants/Colors";
 
 interface FullScreenLoaderProps {
   color?: string;
-  containerStyle?: string;
+  containerStyle?: object;
 }
 
 const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
-  color = useThemeColor({}, "highlight"),
+  color,
   containerStyle,
 }) => {
   return (
-    <View style={[styles.container, containerStyle]}>
-      <ActivityIndicator size="large" color={color} />
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: Theme.colors.background },
+        containerStyle,
+      ]}
+    >
+      <ActivityIndicator size="large" color={color ?? Theme.colors.highlight} />
     </View>
   );
 };
@@ -24,7 +29,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: useThemeColor({}, "background"),
   },
 });
 

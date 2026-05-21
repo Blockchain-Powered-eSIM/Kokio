@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,50 +9,12 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 
-import { Theme, isDarkTheme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
 import { Card, CardFooter } from "../ui/Card";
 
-const Hero = () => {
-  const handleShopCTAClick = useCallback(() => {
-    router.navigate("/(shop)");
-  }, []);
-
-  return (
-    <Card style={styles.card}>
-      <ImageBackground
-        source={require("@/assets/images/hero-background.png")}
-        resizeMode="cover"
-        style={styles.backgroundImageContainer}
-        imageStyle={styles.backgroundImage}
-      >
-        <Image
-          source={require("@/assets/images/flagsBanner.png")}
-          style={styles.flagsBanner}
-          resizeMode="cover"
-        />
-      </ImageBackground>
-      <CardFooter style={styles.cardFooter}>
-        <View>
-          <Text style={styles.header}>Plan Your Next Adventure</Text>
-          <Text style={styles.subHeader}>The world awaits you!</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.heroButton, {
-            backgroundColor: isDarkTheme ? Theme.colors.text : Theme.colors.secondary,
-          }]}
-          onPress={handleShopCTAClick}
-        >
-          <Text style={[styles.heroButtonText, {
-            color: isDarkTheme ? Theme.colors.background : Theme.colors.secondaryForeground,
-          }]}>Shop</Text>
-        </TouchableOpacity>
-      </CardFooter>
-    </Card>
-  );
-};
-
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   backgroundImageContainer: {
     overflow: "hidden",
     width: "100%",
@@ -103,5 +65,47 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+const Hero = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  const handleShopCTAClick = useCallback(() => {
+    router.navigate("/(shop)");
+  }, []);
+
+  return (
+    <Card style={styles.card}>
+      <ImageBackground
+        source={require("@/assets/images/hero-background.png")}
+        resizeMode="cover"
+        style={styles.backgroundImageContainer}
+        imageStyle={styles.backgroundImage}
+      >
+        <Image
+          source={require("@/assets/images/flagsBanner.png")}
+          style={styles.flagsBanner}
+          resizeMode="cover"
+        />
+      </ImageBackground>
+      <CardFooter style={styles.cardFooter}>
+        <View>
+          <Text style={styles.header}>Plan Your Next Adventure</Text>
+          <Text style={styles.subHeader}>The world awaits you!</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.heroButton, {
+            backgroundColor: isDark ? Theme.colors.text : Theme.colors.shopCta,
+          }]}
+          onPress={handleShopCTAClick}
+        >
+          <Text style={[styles.heroButtonText, {
+            color: isDark ? Theme.colors.background : Theme.colors.secondaryForeground,
+          }]}>Shop</Text>
+        </TouchableOpacity>
+      </CardFooter>
+    </Card>
+  );
+};
+
 
 export default Hero;

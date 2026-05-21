@@ -36,7 +36,7 @@ export type RegisterResult = RegisterCompleteData & {
  * Throws CredentialExistsError if the device already has a registered passkey
  * (server 409 CREDENTIAL_ALREADY_EXISTS).
  */
-export async function registerPasskey(username: string): Promise<RegisterResult> {
+async function _registerPasskey(username: string): Promise<RegisterResult> {
   // 1. Fetch server-generated WebAuthn creation options
   const beginResp = await kokioAuthClient.registerBegin({ username });
   const beginBody = beginResp as unknown as { success?: boolean; code?: string; message?: string; data?: typeof beginResp.data; httpStatus?: number };
@@ -91,4 +91,19 @@ export async function registerPasskey(username: string): Promise<RegisterResult>
   }
   if (!completeBody.data) throw new AuthError('REGISTRATION_FAILED');
   return { ...completeBody.data, credentialId: credential.id, publicKeyX, publicKeyY };
+}
+
+export async function registerPasskey(username: string): Promise<RegisterResult> {
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    try {
+      return await _registerPasskey(username);
+    } catch (err) {
+      // Retry once for native passkey cold-start failures (e.g. iOS simulator
+      // ASAuthorizationError Code=1004 on first ceremony). Server errors
+      // (AuthError) are never retried — they surface immediately.
+      if (attempt === 0 && !(err instanceof AuthError)) continue;
+      throw err;
+    }
+  }
+  throw new AuthError('REGISTRATION_FAILED');
 }
