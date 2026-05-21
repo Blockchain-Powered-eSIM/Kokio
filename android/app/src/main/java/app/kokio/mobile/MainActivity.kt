@@ -1,4 +1,4 @@
-package app.kokio
+package app.kokio.mobile
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
