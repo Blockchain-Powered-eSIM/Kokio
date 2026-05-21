@@ -24,6 +24,7 @@ module.exports = ({ config }) => {
     newArchEnabled: true,
     name: "Kokio",
     slug: "kokio",
+    owner: "kokio-sg",
     version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -37,7 +38,7 @@ module.exports = ({ config }) => {
     runtimeVersion: version,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "app.kokio",
+      bundleIdentifier: "app.kokio.mobile",
       associatedDomains: ["webcredentials:kokio.app", "applinks:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
@@ -54,7 +55,7 @@ module.exports = ({ config }) => {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#242427",
       },
-      package: "app.kokio",
+      package: "app.kokio.mobile",
       edgeToEdgeEnabled: true,
       version,
       intentFilters: [
