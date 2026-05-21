@@ -42,7 +42,6 @@ jobs:
       pull-requests: read
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      NODE_OPTIONS: --import tsx
     steps:
       - name: Checkout workflow branch
         uses: actions/checkout@v4
@@ -127,8 +126,6 @@ jobs:
         run: node scripts/verify-ota-preflight.mjs
 
       - name: Run EAS workflow
-        env:
-          NODE_OPTIONS: --import tsx
         run: >
           eas workflow:run ${{ steps.select.outputs.workflow }}
           --ref ${{ steps.select.outputs.target_ref }}

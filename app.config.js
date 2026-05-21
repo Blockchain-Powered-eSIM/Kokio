@@ -1,26 +1,9 @@
-import type { ExpoConfig, ConfigContext } from "expo/config";
-import packageJson from "./package.json";
+const packageJson = require("./package.json");
 
 const { version } = packageJson;
 
-type AppExtraConfig = {
-  authServerBaseUrl?: string;
-  redirectUri?: string;
-  apiBaseUrl?: string;
-  alchemyApiKey?: string;
-  pimlicoApiKey?: string;
-  gasManagerPolicyId?: string;
-  chainId?: string;
-  chainRpcUrl?: string;
-  usdcAddress?: string;
-  stripePublishableKey?: string;
-  stripeMerchantIdentifier?: string;
-  walletConnectProjectId?: string;
-  externalWalletCallback?: string;
-};
-
-export default ({ config }: ConfigContext): ExpoConfig => {
-  const privateConfig: AppExtraConfig = {
+module.exports = ({ config }) => {
+  const privateConfig = {
     authServerBaseUrl: process.env.AUTH_SERVER_BASE_URL,
     redirectUri: process.env.REDIRECT_URI,
     apiBaseUrl: process.env.API_BASE_URL,
@@ -38,7 +21,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-
     newArchEnabled: true,
     name: "Kokio",
     slug: "kokio",
@@ -53,7 +35,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: "#242427",
     },
     runtimeVersion: version,
-
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.kokio",
@@ -68,7 +49,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "This app may access your photo library when selecting or sharing images.",
       },
     },
-
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
@@ -83,29 +63,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           autoVerify: true,
           data: [
             { scheme: "https", host: "kokio.app", pathPrefix: "/callback" },
-            {
-              scheme: "https",
-              host: "kokio.app",
-              pathPrefix: "/moonpay-return",
-            },
+            { scheme: "https", host: "kokio.app", pathPrefix: "/moonpay-return" },
           ],
           category: ["BROWSABLE", "DEFAULT"],
         },
         {
-          /* kokio://wc-connect?uri=wc%3A... — WalletConnect pairing URI (PAY-011) */
           action: "VIEW",
           data: [{ scheme: "kokio", host: "wc-connect" }],
           category: ["BROWSABLE", "DEFAULT"],
         },
       ],
     },
-
     web: {
       bundler: "metro",
       output: "server",
       favicon: "./assets/images/favicon.png",
     },
-
     plugins: [
       [
         "expo-build-properties",
@@ -153,15 +126,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
     ],
-
     experiments: {
       typedRoutes: true,
     },
-
     updates: {
       url: "https://u.expo.dev/8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
     },
-
     extra: {
       eas: {
         projectId: "8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
