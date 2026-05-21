@@ -7,11 +7,35 @@ on:
       - production
     types:
       - closed
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA or ref to route to EAS
+        required: true
+        type: string
+      workflow_file:
+        description: Optional explicit EAS workflow file path
+        required: false
+        default: ""
+        type: string
+      base_branch:
+        description: Branch to route for when workflow_file is not provided
+        required: false
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      ota:
+        description: Route to OTA workflow instead of binary build workflow
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   route-release:
     name: Route Release To EAS Workflow
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,7 +46,7 @@ jobs:
       - name: Checkout merged commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
       - name: Set up Node.js
@@ -37,35 +61,61 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Verify OTA preflight
-        run: node scripts/verify-ota-preflight.mjs
-
       - name: Select EAS workflow
         id: select
         env:
+          EVENT_NAME: ${{ github.event_name }}
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
           LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
-        run: node - <<'EOF'
-          const labels = JSON.parse(process.env.LABELS_JSON);
-          const hasOtaLabel = labels.includes("ota");
-          const baseBranch = process.env.BASE_BRANCH;
+          INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
+          INPUT_OTA: ${{ inputs.ota }}
+          INPUT_WORKFLOW_FILE: ${{ inputs.workflow_file }}
+        run: |
+          node - <<'EOF'
+          const labels = JSON.parse(process.env.LABELS_JSON || "[]");
+          const isManual = process.env.EVENT_NAME === "workflow_dispatch";
+          const hasOtaLabel = isManual
+            ? process.env.INPUT_OTA === "true"
+            : labels.includes("ota");
+          const baseBranch = isManual
+            ? process.env.INPUT_BASE_BRANCH
+            : process.env.BASE_BRANCH;
+          const manualWorkflow = process.env.INPUT_WORKFLOW_FILE.trim();
 
-          const workflow = baseBranch === "staging"
-            ? hasOtaLabel
-              ? ".eas/workflows/publish-staging-ota.yml"
-              : ".eas/workflows/deploy-staging.yml"
-            : hasOtaLabel
-              ? ".eas/workflows/publish-production-ota.yml"
-              : ".eas/workflows/deploy-production.yml";
+          const workflowFromInputs = manualWorkflow
+            ? manualWorkflow
+            : baseBranch === "staging"
+              ? hasOtaLabel
+                ? ".eas/workflows/publish-staging-ota.yml"
+                : ".eas/workflows/deploy-staging.yml"
+              : hasOtaLabel
+                ? ".eas/workflows/publish-production-ota.yml"
+                : ".eas/workflows/deploy-production.yml";
 
           require("node:fs").appendFileSync(
             process.env.GITHUB_OUTPUT,
-            `workflow=${workflow}\n`
+            `base_branch=${baseBranch}\n`
           );
-        EOF
+          require("node:fs").appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `is_ota=${hasOtaLabel}\n`
+          );
+
+          require("node:fs").appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `workflow=${workflowFromInputs}\n`
+          );
+          EOF
+
+      - name: Verify OTA preflight
+        if: steps.select.outputs.is_ota == 'true'
+        env:
+          RELEASE_BASE_BRANCH: ${{ steps.select.outputs.base_branch }}
+          RELEASE_HAS_OTA_LABEL: "true"
+        run: node scripts/verify-ota-preflight.mjs
 
       - name: Run EAS workflow
         run: >
           eas workflow:run ${{ steps.select.outputs.workflow }}
-          --ref ${{ github.event.pull_request.merge_commit_sha }}
+          --ref ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.pull_request.merge_commit_sha }}
           --non-interactive

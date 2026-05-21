@@ -35,6 +35,7 @@ const baseBranch = event.pull_request?.base?.ref;
 const baseSha = event.pull_request?.base?.sha;
 const labels = (event.pull_request?.labels ?? []).map((label) => label.name);
 const hasOtaLabel = labels.includes("ota");
+const hasReleaseRetryLabel = labels.includes("release-retry");
 
 if (!baseBranch || !baseSha) {
   console.error("Could not determine pull request base branch or base SHA.");
@@ -150,13 +151,26 @@ if (hasOtaLabel) {
     );
     process.exit(1);
   }
-} else if (compareVersions(packageJson.version, basePackageJson.version) <= 0) {
+} else if (
+  !hasReleaseRetryLabel &&
+  compareVersions(packageJson.version, basePackageJson.version) <= 0
+) {
   console.error(
     `PR does not have an ota label, so package.json version must be incremented above ${basePackageJson.version}. Found ${packageJson.version}.`
+  );
+  process.exit(1);
+} else if (
+  hasReleaseRetryLabel &&
+  packageJson.version !== basePackageJson.version
+) {
+  console.error(
+    `PR has a release-retry label, so package.json version must stay at ${basePackageJson.version}. Found ${packageJson.version}.`
   );
   process.exit(1);
 }
 
 console.log(
-  `Release validation passed for ${baseBranch} using version ${packageJson.version}${hasOtaLabel ? " with ota label" : ""}.`
+  `Release validation passed for ${baseBranch} using version ${packageJson.version}${
+    hasOtaLabel ? " with ota label" : hasReleaseRetryLabel ? " with release-retry label" : ""
+  }.`
 );
