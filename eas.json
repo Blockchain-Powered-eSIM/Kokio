@@ -9,7 +9,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "credentialsSource": "local"
       },
       "ios": {},
       "channel": "development"
@@ -29,7 +30,8 @@
       "channel": "staging",
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "credentialsSource": "remote"
       },
       "ios": {}
     },
@@ -39,7 +41,7 @@
       "channel": "preview",
       "android": {
         "buildType": "apk",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       }
     },
     "production": {
@@ -49,7 +51,8 @@
       "autoIncrement": true,
       "ios": {},
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "credentialsSource": "remote"
       }
     }
   },
