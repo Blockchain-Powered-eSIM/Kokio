@@ -79,10 +79,12 @@ export function AuthenticationModal() {
   const [loading, setLoading] = useState<boolean>(false);
   const sheetRef = useRef<BottomSheet>(null);
 
-  const { state, loginWithPasskey, signUpWithPasskey, clearError } = useAuthRelay();
+  const { state, loginWithPasskey, signUpWithPasskey, recoverWithPasskey, clearError } = useAuthRelay();
   const {
     kokio,
     setupKokioRegistration,
+    setupKokioRecovery,
+    clearKokioUser,
   } = useKokio();
 
   // renders
@@ -111,14 +113,42 @@ export function AuthenticationModal() {
   const loginOrSignUpWithPasskey = useCallback(async () => {
     clearError();
     setLoading(true);
+    if (__DEV__) console.log('[auth] loginOrSignUpWithPasskey — path:', kokio.deviceWalletAddress ? 'login' : 'recover-or-register');
     try {
       if (kokio.deviceWalletAddress) {
-        const success = await loginWithPasskey();
-        if (success) {
+        // Normal login — device is already registered on this install
+        const result = await loginWithPasskey();
+        if (__DEV__) console.log('[auth] loginWithPasskey result:', result);
+        if (result === 'success') {
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        } else if (result === 'no-credential') {
+          // Passkey was deleted from the password manager — treat as a new user:
+          // clear all local device state and fall through to fresh registration.
+          if (__DEV__) console.log('[auth] passkey deleted — clearing state, re-registering');
+          await clearKokioUser();
+          clearError();
+          const data = await signUpWithPasskey({});
+          if (__DEV__) console.log('[auth] re-registration result:', data ? { deviceWalletAddress: data.deviceWalletAddress } : null);
+          if (data) {
+            await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY, data.rawSalt ?? '');
+            sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+          }
         }
+        // 'error' — error message already dispatched by loginWithPasskey, nothing to do
       } else {
+        // No local state — try to recover an existing passkey first (reinstall case).
+        // recoverWithPasskey returns null on any failure (no passkey found, user
+        // cancelled) so we fall through to fresh registration.
+        const recovered = await recoverWithPasskey();
+        if (__DEV__) console.log('[auth] recoverWithPasskey result:', recovered ? { credentialId: recovered.credentialId, deviceWalletAddress: recovered.deviceWalletAddress } : null);
+        if (recovered) {
+          await setupKokioRecovery(recovered.deviceWalletAddress, recovered.credentialId);
+          sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+          return;
+        }
+        // No existing passkey found — register a new account
         const data = await signUpWithPasskey({});
+        if (__DEV__) console.log('[auth] signUpWithPasskey result:', data ? { deviceWalletAddress: data.deviceWalletAddress, hasRawSalt: !!data.rawSalt, hasPublicKeyX: !!data.publicKeyX, hasPublicKeyY: !!data.publicKeyY } : null);
         if (data) {
           await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY, data.rawSalt ?? '');
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
@@ -129,7 +159,7 @@ export function AuthenticationModal() {
     } finally {
       setLoading(false);
     }
-  }, [signUpWithPasskey, loginWithPasskey, kokio, setupKokioRegistration, clearError]);
+  }, [signUpWithPasskey, loginWithPasskey, recoverWithPasskey, kokio, setupKokioRegistration, setupKokioRecovery, clearKokioUser, clearError]);
 
   useEffect(() => {
     if (state.authenticated) {

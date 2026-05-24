@@ -78,6 +78,23 @@ export function getOrderStatus(idempotencyKey: string): Promise<OrderStatusRespo
   return unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
 }
 
+// Terminal states — stop polling immediately on any of these.
+// In-progress states (CREATED, PAYMENT_PENDING, PAYMENT_VERIFIED, VENDOR_PROCESSING,
+// ESIM_PROVISIONED, VENDOR_RETRY_PENDING, ON_CHAIN_SUBMITTED) keep polling.
+export const TERMINAL_ORDER_STATUSES = new Set([
+  'COMPLETED',
+  'ESIM_PROVISIONED_PENDING_CHAIN',
+  'PAYMENT_FAILED',
+  'ABANDONED',
+  'VENDOR_FAILED',
+  'ESIM_PROVISION_FAILED',
+  'ON_CHAIN_FAILED',
+]);
+
+export function isOrderSuccess(status: string): boolean {
+  return status === 'COMPLETED' || status === 'ESIM_PROVISIONED_PENDING_CHAIN';
+}
+
 export async function pollOrderStatus(
   idempotencyKey: string,
   maxAttempts = 15,
@@ -89,7 +106,7 @@ export async function pollOrderStatus(
     const status = await getOrderStatus(idempotencyKey);
     if (__DEV__) console.log(`[eSIM] poll #${i + 1}:`, JSON.stringify(status, null, 2));
     onStatusUpdate?.(status.orderStatus);
-    if (status.orderStatus === 'COMPLETED' || status.installationDetails?.qrcode) return status;
+    if (TERMINAL_ORDER_STATUSES.has(status.orderStatus)) return status;
   }
   throw new Error('Order confirmation timed out');
 }

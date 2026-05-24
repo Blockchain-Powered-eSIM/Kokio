@@ -20,14 +20,19 @@ export const createRadioButtons = (
 ): RadioButtonProps[] =>
   Object.keys(RADIO_KEYS)
     .filter((key) => !(key === RADIO_KEYS.APPLE_PAY && Platform.OS !== "ios"))
-    .map((key) => ({
-      id: key,
-      label: radioButtonComponents[key],
-      value: key,
-      borderColor: Theme.colors.mutedForeground,
-      color: Theme.colors.secondary,
-      containerStyle: [
-        buttonStyles,
-        selectedId === key && { backgroundColor: Theme.colors.inputBackground },
-      ],
-    }));
+    .map((key) => {
+      const isDisabled = key === RADIO_KEYS.E_SIM_WALLET;
+      return {
+        id: key,
+        label: radioButtonComponents[key],
+        value: key,
+        borderColor: Theme.colors.mutedForeground,
+        color: Theme.colors.secondary,
+        disabled: isDisabled,
+        containerStyle: [
+          buttonStyles,
+          selectedId === key && { backgroundColor: Theme.colors.inputBackground },
+          isDisabled && { opacity: 0.4 },
+        ],
+      };
+    });

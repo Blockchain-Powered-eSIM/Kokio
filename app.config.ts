@@ -25,7 +25,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
     newArchEnabled: true,
     name: "Kokio",
-    slug: "Kokio",
+    slug: "kokio",
+    owner: "kokio-sg",
     version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -36,14 +37,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       resizeMode: "contain",
       backgroundColor: "#242427",
     },
+    runtimeVersion: version,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "app.kokio",
+      bundleIdentifier: "app.kokio.mobile",
       associatedDomains: ["webcredentials:kokio.app", "applinks:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
       },
-      runtimeVersion: version,
       version,
       buildNumber: "1",
       infoPlist: {
@@ -55,10 +56,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#242427",
       },
-      package: "app.kokio",
+      package: "app.kokio.mobile",
       edgeToEdgeEnabled: true,
       version,
-      runtimeVersion: version,
       intentFilters: [
         {
           action: "VIEW",
@@ -132,11 +132,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       typedRoutes: true,
     },
     updates: {
-      url: "https://u.expo.dev/113a4624-12f1-425b-b76c-a7bedc503b5e",
+      url: "https://u.expo.dev/8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
     },
     extra: {
       eas: {
-        projectId: "113a4624-12f1-425b-b76c-a7bedc503b5e",
+        projectId: "8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
       },
       ...privateConfig,
     },

@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 3.10.2"
+    "version": ">= 3.10.2",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -11,18 +12,28 @@
         "buildType": "apk",
         "credentialsSource": "local"
       },
+      "ios": {},
+      "channel": "development"
+    },
+    "development-simulator": {
+      "environment": "development",
+      "developmentClient": true,
+      "distribution": "internal",
       "ios": {
         "simulator": true
       },
       "channel": "development"
     },
     "staging": {
-      "environment": "staging",
-      "distribution": "internal",
+      "environment": "preview",
+      "distribution": "store",
       "channel": "staging",
+      "autoIncrement": true,
       "android": {
-        "buildType": "apk"
-      }
+        "buildType": "app-bundle",
+        "credentialsSource": "remote"
+      },
+      "ios": {}
     },
     "preview": {
       "environment": "preview",
@@ -30,23 +41,34 @@
       "channel": "preview",
       "android": {
         "buildType": "apk",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       }
     },
     "production": {
       "channel": "production",
       "environment": "production",
       "distribution": "store",
+      "autoIncrement": true,
       "ios": {},
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "credentialsSource": "remote"
       }
     }
   },
   "submit": {
+    "staging": {
+      "android": {
+        "track": "beta"
+      },
+      "ios": {
+        "ascAppId": "6755083230",
+        "appleTeamId": "XSQ2GAB4RW"
+      }
+    },
     "production": {
       "android": {
-        "track": "internal"
+        "track": "production"
       },
       "ios": {
         "ascAppId": "6755083230",

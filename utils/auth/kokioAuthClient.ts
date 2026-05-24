@@ -191,6 +191,14 @@ export const kokioAuthClient = {
     return authFetch<R>('/v1/auth/login/begin', 'POST', body as unknown as Record<string, unknown>);
   },
 
+  // Discoverable-credential flow: no deviceWalletAddress required.
+  // Server returns a challenge with empty allowCredentials so the platform
+  // credential manager can present all synced Kokio passkeys to the user.
+  loginDiscoverBegin() {
+    type R = paths['/auth/login/begin']['post']['responses']['200']['content']['application/json'];
+    return authFetch<R>('/v1/auth/login/begin', 'POST');
+  },
+
   loginComplete(body: LoginCompleteRequest) {
     type R = paths['/auth/login/complete']['post']['responses']['200']['content']['application/json'];
     return authFetch<R>('/v1/auth/login/complete', 'POST', body as unknown as Record<string, unknown>);
