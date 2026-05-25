@@ -1,11 +1,9 @@
-import { ExpoConfig, ConfigContext } from "expo/config";
-import { AppExtraConfig } from "./appKeys.js";
-import packageJson from "./package.json";
+const packageJson = require("./package.json");
 
 const { version } = packageJson;
 
-export default ({ config }: ConfigContext): ExpoConfig => {
-  const privateConfig: AppExtraConfig = {
+module.exports = ({ config }) => {
+  const privateConfig = {
     authServerBaseUrl: process.env.AUTH_SERVER_BASE_URL,
     redirectUri: process.env.REDIRECT_URI,
     apiBaseUrl: process.env.API_BASE_URL,
@@ -22,9 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   };
 
   return {
-    // Merge any default or existing config
     ...config,
-
     newArchEnabled: true,
     name: "Kokio",
     slug: "kokio",
@@ -50,8 +46,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       version,
       buildNumber: "1",
       infoPlist: {
-        NSPhotoLibraryUsageDescription: "This app may access your photo library when selecting or sharing images."
-      }
+        NSPhotoLibraryUsageDescription: "This app may access your photo library when selecting or sharing images.",
+      },
     },
     android: {
       adaptiveIcon: {
@@ -72,7 +68,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           category: ["BROWSABLE", "DEFAULT"],
         },
         {
-          // kokio://wc-connect?uri=wc%3A... — WalletConnect pairing URI (PAY-011)
           action: "VIEW",
           data: [{ scheme: "kokio", host: "wc-connect" }],
           category: ["BROWSABLE", "DEFAULT"],
