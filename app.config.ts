@@ -28,6 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     newArchEnabled: true,
     name: "Kokio",
     slug: "kokio",
+    owner: "kokio-sg",
     version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -41,7 +42,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     runtimeVersion: version,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "app.kokio",
+      bundleIdentifier: "app.kokio.mobile",
       associatedDomains: ["webcredentials:kokio.app", "applinks:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
@@ -57,7 +58,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#242427",
       },
-      package: "app.kokio",
+      package: "app.kokio.mobile",
       edgeToEdgeEnabled: true,
       version,
       intentFilters: [

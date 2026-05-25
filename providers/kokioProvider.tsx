@@ -198,6 +198,7 @@ export interface KokioProviderType {
     orderStatus?: string,
   ) => Promise<void>;
   setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex, rawSalt: string) => Promise<void>;
+  setupKokioRecovery: (deviceWalletAddress: string, credentialId: string) => Promise<void>;
   clearKokio: () => void;
   clearKokioUser: () => Promise<void>;
 }
@@ -211,6 +212,7 @@ export const KokioContext = createContext<KokioProviderType>({
   savePurchasedESIM: async () => Promise.resolve(),
   upsertOrderRecord: async () => Promise.resolve(),
   setupKokioRegistration: async (_a, _b, _c, _d, _e, _f) => Promise.resolve(),
+  setupKokioRecovery: async (_a, _b) => Promise.resolve(),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
 });
@@ -381,6 +383,14 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         const credentialId = await SecureStore.getItemAsync('credentialId');
         const publicKeyX = await SecureStore.getItemAsync('publicKeyX');
         const publicKeyY = await SecureStore.getItemAsync('publicKeyY');
+        if (__DEV__) console.log('[kokio] SecureStore hydration:', {
+          hasDeviceWalletAddress: !!storedWalletAddress,
+          hasCredentialId: !!credentialId,
+          hasPublicKeyX: !!publicKeyX,
+          hasPublicKeyY: !!publicKeyY,
+          hasRawSalt: !!(await SecureStore.getItemAsync('rawSalt')),
+          hasDeviceUID: !!deviceUID,
+        });
         if (credentialId && publicKeyX && publicKeyY) {
           dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX as Hex, y: publicKeyY as Hex } });
         }
@@ -637,6 +647,12 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     dispatch({ type: "SET_KOKIO", payload: kokioSDK });
   };
 
+  const setupKokioRecovery = async (deviceWalletAddress: string, credentialId: string) => {
+    await SecureStore.setItemAsync('deviceWalletAddress', deviceWalletAddress);
+    await SecureStore.setItemAsync('credentialId', credentialId);
+    dispatch({ type: 'SET_DEVICE_WALLET_ADDRESS', payload: deviceWalletAddress });
+  };
+
   const clearKokio = () => {
     dispatch({ type: "CLEAR_KOKIO" });
   };
@@ -668,6 +684,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         savePurchasedESIM,
         upsertOrderRecord,
         setupKokioRegistration,
+        setupKokioRecovery,
         clearKokio,
         clearKokioUser,
       }}

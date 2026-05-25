@@ -43,7 +43,6 @@ config.resolver.unstable_conditionNames = [
   "require",
   "react-native",
 ];
-
 config.transformer.getTransformOptions = async () => ({
   transform: {
     experimentalImportSupport: true,
@@ -51,4 +50,9 @@ config.transformer.getTransformOptions = async () => ({
   },
 });
 
-module.exports = withNativeWind(config, { input: "./global.css" });
+const nativeWindConfig = withNativeWind(config, { input: "./global.css" });
+nativeWindConfig.resolver.sourceExts = [
+  ...nativeWindConfig.resolver.sourceExts,
+  "mjs",
+];
+module.exports = nativeWindConfig;

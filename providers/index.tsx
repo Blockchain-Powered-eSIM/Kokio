@@ -32,7 +32,7 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
           <QueryClientProvider client={queryClient}>
             <StripeProvider
               publishableKey={Config.STRIPE_PUBLISHABLE_KEY ?? ""}
-              merchantIdentifier={Config.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio"}
+              merchantIdentifier={Config.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio.mobile"}
             >
               <AuthRelayProvider>
                 <KokioProvider>
