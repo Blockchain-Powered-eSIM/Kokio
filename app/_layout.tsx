@@ -2,7 +2,7 @@
 import "react-native-get-random-values";
 import "@walletconnect/react-native-compat";
 import "@ethersproject/shims";
-import { install as installQuickCrypto } from "react-native-quick-crypto";
+import "@/utils/nativeRuntimeSetup";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
@@ -27,10 +27,6 @@ import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-
-// Polyfill global.crypto.subtle for jose / DPoP key generation.
-// index.js is not used when "main" = "expo-router/entry", so this must live here.
-installQuickCrypto();
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
