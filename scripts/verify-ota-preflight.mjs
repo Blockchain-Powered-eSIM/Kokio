@@ -5,15 +5,19 @@ import { execFileSync } from "node:child_process";
 const repoRoot = process.cwd();
 const eventPath = process.env.GITHUB_EVENT_PATH;
 
-if (!eventPath) {
+if (!eventPath && !process.env.RELEASE_BASE_BRANCH) {
   console.error("GITHUB_EVENT_PATH is not set.");
   process.exit(1);
 }
 
-const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
-const baseBranch = event.pull_request?.base?.ref;
+const event = eventPath
+  ? JSON.parse(fs.readFileSync(eventPath, "utf8"))
+  : {};
+const baseBranch =
+  process.env.RELEASE_BASE_BRANCH ?? event.pull_request?.base?.ref;
 const labels = (event.pull_request?.labels ?? []).map((label) => label.name);
-const hasOtaLabel = labels.includes("ota");
+const hasOtaLabel =
+  process.env.RELEASE_HAS_OTA_LABEL === "true" || labels.includes("ota");
 
 if (!baseBranch) {
   console.error("Could not determine pull request base branch.");
