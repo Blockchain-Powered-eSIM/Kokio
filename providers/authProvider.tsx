@@ -180,12 +180,12 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
         await SecureStore.setItemAsync('deviceUID', JSON.stringify(result.deviceUniqueIdentifier));
       }
 
-      // Google Password Manager commits the passkey to local storage asynchronously
-      // after Passkey.create returns. Calling Passkey.get immediately finds the
-      // credential in the cloud but not yet locally, triggering "Choose which device /
-      // Use another device" with no local option. A short pause lets the local store
-      // catch up before the authentication request.
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      // Google Password Manager commits the passkey to the local device index
+      // asynchronously after Passkey.create returns. loginWithKokioPasskey uses
+      // transports: ['internal'] (device-local only) to avoid showing a credential
+      // picker dialog — but the credential won't be locally indexed for ~1s.
+      // Wait 1500ms so the first login attempt succeeds silently without dialog.
+      await new Promise<void>(resolve => setTimeout(resolve, 1500));
 
       // Pass credentialId so Android targets the just-created credential directly
       // instead of doing a full discoverable-credential sweep. Pass deviceWalletAddress
