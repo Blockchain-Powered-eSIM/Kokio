@@ -1,6 +1,7 @@
 package app.kokio
 
 import android.app.Application
+import app.kokio.mobile.BuildConfig
 import android.content.res.Configuration
 
 import com.facebook.react.PackageList

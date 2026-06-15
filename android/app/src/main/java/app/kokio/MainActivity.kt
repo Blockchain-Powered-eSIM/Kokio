@@ -2,6 +2,7 @@ package app.kokio
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
+import app.kokio.mobile.BuildConfig
 import android.os.Bundle
 
 import com.facebook.react.ReactActivity

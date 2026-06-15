@@ -1,6 +1,7 @@
 import { ReactNode, createContext, useCallback, useEffect, useReducer, useState } from "react";
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { LoginMethod } from "@/utils/types";
 import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
 import { registerPasskey } from "@/utils/auth/passkeyRegister";
@@ -166,6 +167,19 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     try {
       const result = await registerPasskey(user.username ?? user.email ?? "Kokio User");
 
+      // Persist registration data immediately. If post-registration login fails
+      // (Google PM sync delay), the next tap reads these from SecureStore and
+      // routes to loginWithPasskey() instead of re-registering.
+      await SecureStore.setItemAsync('deviceWalletAddress', result.deviceWalletAddress);
+      await SecureStore.setItemAsync('credentialId', result.credentialId);
+      await SecureStore.setItemAsync('publicKeyX', result.publicKeyX);
+      await SecureStore.setItemAsync('publicKeyY', result.publicKeyY);
+      if (result.rawSalt) await SecureStore.setItemAsync('rawSalt', result.rawSalt);
+      if (result.deviceUniqueIdentifier) {
+        // JSON.stringify to match saveValueForDeviceUID / getValueForDeviceUID format
+        await SecureStore.setItemAsync('deviceUID', JSON.stringify(result.deviceUniqueIdentifier));
+      }
+
       // Google Password Manager commits the passkey to local storage asynchronously
       // after Passkey.create returns. Calling Passkey.get immediately finds the
       // credential in the cloud but not yet locally, triggering "Choose which device /
@@ -173,16 +187,12 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       // catch up before the authentication request.
       await new Promise<void>(resolve => setTimeout(resolve, 500));
 
-      // Pass credentialId so Android skips the full discoverable-credential sweep
-      // and targets the just-created credential directly.
-      // Pass deviceWalletAddress so loginBegin doesn't have to read SecureStore
-      // (setupKokioRegistration hasn't run yet at this point).
-      //
-      // Targeted allowCredentials matches locally only. On some Android devices/
-      // versions the credential is only in the cloud (Google Password Manager sync
-      // queue) immediately after creation. Retry once with a longer delay, then
-      // fall back to the discoverable flow (empty allowCredentials) which fetches
-      // from both cloud and local and will find the just-created credential.
+      // Pass credentialId so Android targets the just-created credential directly
+      // instead of doing a full discoverable-credential sweep. Pass deviceWalletAddress
+      // so loginBegin doesn't have to read SecureStore (setupKokioRegistration hasn't
+      // run yet at this point, but we've already pre-saved above).
+      // No transports restriction: omitting it lets Google PM find the credential
+      // via cloud sync even before local on-device indexing completes.
       try {
         await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
       } catch (loginErr) {
@@ -192,9 +202,12 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
           await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
         } catch (loginErr2) {
           if (loginErr2 instanceof AuthError) throw loginErr2;
-          // Credential not yet locally indexed — discoverable flow (empty
-          // allowCredentials) lets Google Password Manager find it via cloud.
-          await discoverAndLoginWithPasskey();
+          // Still not indexed — wait longer and try once more. Do NOT fall
+          // back to discoverAndLoginWithPasskey(): an open credential picker
+          // can surface orphaned credentials from prior installs and fail
+          // with CREDENTIAL_NOT_FOUND, breaking the whole registration flow.
+          await new Promise<void>(resolve => setTimeout(resolve, 2500));
+          await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
         }
       }
 
