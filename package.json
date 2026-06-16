@@ -38,6 +38,9 @@
     "@tanstack/react-query": "^5.90.5",
     "@walletconnect/react-native-compat": "^2.23.9",
     "@walletconnect/sign-client": "^2.23.9",
+    "@simplewebauthn/server": "13.3.0",
+    "@aa-sdk/core": "4.88.3",
+    "@noble/hashes": "1.8.0",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "crypto-browserify": "^3.12.1",
@@ -101,6 +104,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@walletconnect/types": "2.23.9",
     "@babel/core": "^7.20.0",
     "@babel/plugin-syntax-import-assertions": "^7.27.1",
     "@types/jest": "^29.5.12",
