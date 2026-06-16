@@ -125,6 +125,9 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
     // via Google Password Manager, which hangs or shows "Use another device" when
     // the credential isn't yet locally indexed. Use the stored credential ID to
     // target the credential directly and skip the cloud enumeration entirely.
+    // transports: ['internal'] restricts the lookup to device-local storage, which
+    // avoids showing any dialog — failures come back as a silent NoCredentials error
+    // that the caller can retry after a delay (giving Google PM time to commit).
     const resolvedId = credentialIdHint ?? await SecureStore.getItemAsync('credentialId') ?? undefined;
     const allowCredentials = resolvedId
       ? [{ id: resolvedId, type: 'public-key' as const, transports: ['internal'] as const }]

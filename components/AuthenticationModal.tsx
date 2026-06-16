@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -113,9 +114,13 @@ export function AuthenticationModal() {
   const loginOrSignUpWithPasskey = useCallback(async () => {
     clearError();
     setLoading(true);
-    if (__DEV__) console.log('[auth] loginOrSignUpWithPasskey — path:', kokio.deviceWalletAddress ? 'login' : 'recover-or-register');
+    // Read SecureStore directly as a fallback: kokio state may not have finished
+    // hydrating yet when the user taps the fingerprint immediately on cold launch.
+    const effectiveAddress = kokio.deviceWalletAddress
+      || await SecureStore.getItemAsync('deviceWalletAddress');
+    if (__DEV__) console.log('[auth] loginOrSignUpWithPasskey — path:', effectiveAddress ? 'login' : 'recover-or-register');
     try {
-      if (kokio.deviceWalletAddress) {
+      if (effectiveAddress) {
         // Normal login — device is already registered on this install
         const result = await loginWithPasskey();
         if (__DEV__) console.log('[auth] loginWithPasskey result:', result);
