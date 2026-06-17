@@ -75,6 +75,20 @@ const styles = StyleSheet.create({
     marginTop: 32,
     gap: 12,
   },
+  loginButtonRow: {
+    width: "100%",
+    marginTop: 32,
+    alignItems: "center",
+  },
+  loginButton: {
+    width: "55%",
+    minWidth: 180,
+    height: 52,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.colors.highlight,
+  },
   primaryButton: {
     width: "100%",
     height: 52,
@@ -122,9 +136,27 @@ export function AuthenticationModal() {
   const { kokio, setupKokioRegistration, setupKokioRecovery, clearKokioUser } =
     useKokio();
 
+  // Distinguishes a fresh browser / never-registered device (show New vs.
+  // Existing choice) from a device that already completed passkey setup
+  // (show a single Log In button). SecureStore is unavailable on web, so
+  // this relies solely on the in-memory/persisted kokio context state.
+  const isReturningUser = !!kokio.deviceWalletAddress;
+
   useEffect(() => {
-    if (state.authenticated) setVisible(false);
-    else setVisible(true);
+    if (state.authenticated) {
+      setVisible(false);
+    } else {
+      // This component stays mounted for the app's lifetime — only `visible`
+      // toggles — so `mode` from a prior attempt (e.g. left at
+      // "authenticating" after a successful login) would otherwise leak into
+      // the next time the modal reopens (e.g. on logout).
+      clearError();
+      setMode("choice");
+      setVisible(true);
+    }
+    // clearError intentionally omitted: it's recreated every provider render
+    // and including it would re-trigger this effect on unrelated re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authenticated]);
 
   useEffect(() => {
@@ -219,6 +251,8 @@ export function AuthenticationModal() {
           <ThemedText style={styles.authSubtext}>
             {mode === "authenticating"
               ? "Verifying your identity…"
+              : isReturningUser
+              ? "Log in to continue"
               : "Choose how to get started"}
           </ThemedText>
 
@@ -226,6 +260,12 @@ export function AuthenticationModal() {
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Theme.colors.highlight} />
               <ThemedText style={styles.loadingText}>Authenticating...</ThemedText>
+            </View>
+          ) : isReturningUser ? (
+            <View style={styles.loginButtonRow}>
+              <Pressable style={styles.loginButton} onPress={handleExistingUser}>
+                <Text style={styles.primaryButtonText}>Log In</Text>
+              </Pressable>
             </View>
           ) : (
             <View style={styles.buttonRow}>

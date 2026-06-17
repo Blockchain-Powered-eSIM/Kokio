@@ -76,6 +76,20 @@ const createStyles = () =>
       marginTop: 32,
       gap: 12,
     },
+    loginButtonRow: {
+      width: "100%",
+      marginTop: 32,
+      alignItems: "center",
+    },
+    loginButton: {
+      width: "55%",
+      minWidth: 180,
+      height: 52,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: Theme.colors.highlight,
+    },
     primaryButton: {
       width: "100%",
       height: 52,
@@ -117,6 +131,43 @@ export function AuthenticationModal() {
     useAuthRelay();
   const { kokio, setupKokioRegistration, setupKokioRecovery, clearKokioUser } =
     useKokio();
+
+  // Distinguishes a fresh install / never-registered device (show New vs.
+  // Existing choice) from a device that already completed passkey setup
+  // (show a single Log In button — no need to ask again on every cold launch).
+  // null = not yet determined (only true before the one-off SecureStore check
+  // below resolves on cold launch).
+  const [isReturningUser, setIsReturningUser] = useState<boolean | null>(
+    kokio.deviceWalletAddress ? true : null
+  );
+  // Once we've established the truth once (cold-launch SecureStore check, or
+  // kokio context already had an address), kokio.deviceWalletAddress becoming
+  // falsy is a deliberate "Logout and Clear Data" — trust it immediately
+  // instead of re-checking SecureStore, which would briefly show the stale
+  // "Log In" button before flipping to the New/Existing choice.
+  const hasResolvedOnce = useRef(!!kokio.deviceWalletAddress);
+
+  useEffect(() => {
+    if (kokio.deviceWalletAddress) {
+      hasResolvedOnce.current = true;
+      setIsReturningUser(true);
+      return;
+    }
+    if (hasResolvedOnce.current) {
+      setIsReturningUser(false);
+      return;
+    }
+    let cancelled = false;
+    SecureStore.getItemAsync("deviceWalletAddress").then((stored) => {
+      if (!cancelled) {
+        hasResolvedOnce.current = true;
+        setIsReturningUser(!!stored);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [kokio.deviceWalletAddress]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -235,8 +286,18 @@ export function AuthenticationModal() {
     if (state.authenticated) {
       sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
     } else {
+      // This component stays mounted for the app's lifetime — the sheet is only
+      // expanded/closed, never unmounted — so `mode` from a prior attempt
+      // (e.g. left at "authenticating" after a successful login) would
+      // otherwise leak into the next time the modal reopens (e.g. on logout).
+      clearError();
+      setMode("choice");
       sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
     }
+    // clearError intentionally omitted: it's recreated every provider render
+    // and including it would re-trigger this effect (and re-animate the
+    // sheet) on unrelated re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authenticated]);
 
   useEffect(() => {
@@ -251,12 +312,14 @@ export function AuthenticationModal() {
           style={styles.loadingImage}
           color={Theme.colors.highlight}
         />
-        <ThemedText style={[styles.loadingText, { color: Theme.colors.foreground }]}>
-          Authenticating...
-        </ThemedText>
+        {mode === "authenticating" && (
+          <ThemedText style={[styles.loadingText, { color: Theme.colors.foreground }]}>
+            Authenticating...
+          </ThemedText>
+        )}
       </View>
     ),
-    [styles]
+    [styles, mode]
   );
 
   return (
@@ -281,11 +344,19 @@ export function AuthenticationModal() {
         <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
           {mode === "authenticating"
             ? "Verifying your identity…"
+            : isReturningUser
+            ? "Log in to continue"
             : "Choose how to get started"}
         </ThemedText>
 
-        {mode === "authenticating" ? (
+        {mode === "authenticating" || isReturningUser === null ? (
           loadingContent
+        ) : isReturningUser ? (
+          <View style={styles.loginButtonRow}>
+            <Pressable style={styles.loginButton} onPress={handleExistingUser}>
+              <Text style={styles.primaryButtonText}>Log In</Text>
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.buttonRow}>
             <Pressable style={styles.primaryButton} onPress={handleNewUser}>
