@@ -73,6 +73,8 @@ const styles = StyleSheet.create({
   buttonRow: {
     width: "100%",
     marginTop: 32,
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 12,
   },
   loginButtonRow: {
@@ -90,7 +92,8 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.highlight,
   },
   primaryButton: {
-    width: "100%",
+    flex: 1,
+    maxWidth: 160,
     height: 52,
     borderRadius: 14,
     alignItems: "center",
@@ -104,7 +107,8 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   secondaryButton: {
-    width: "100%",
+    flex: 1,
+    maxWidth: 160,
     height: 52,
     borderRadius: 14,
     alignItems: "center",

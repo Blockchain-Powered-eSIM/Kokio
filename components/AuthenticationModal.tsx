@@ -74,6 +74,8 @@ const createStyles = () =>
     buttonRow: {
       width: "100%",
       marginTop: 32,
+      flexDirection: "row",
+      justifyContent: "center",
       gap: 12,
     },
     loginButtonRow: {
@@ -91,7 +93,8 @@ const createStyles = () =>
       backgroundColor: Theme.colors.highlight,
     },
     primaryButton: {
-      width: "100%",
+      flex: 1,
+      maxWidth: 160,
       height: 52,
       borderRadius: 14,
       alignItems: "center",
@@ -105,7 +108,8 @@ const createStyles = () =>
       color: "#000000",
     },
     secondaryButton: {
-      width: "100%",
+      flex: 1,
+      maxWidth: 160,
       height: 52,
       borderRadius: 14,
       alignItems: "center",
