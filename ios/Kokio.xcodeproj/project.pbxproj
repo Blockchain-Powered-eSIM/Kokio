@@ -25,7 +25,7 @@
 		1B7330E5E6108410DCB5BCFD /* Pods-Kokio.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Kokio.release.xcconfig"; path = "Target Support Files/Pods-Kokio/Pods-Kokio.release.xcconfig"; sourceTree = "<group>"; };
 		1FDF4E8421A339779DC2EF6A /* Pods-Kokio.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Kokio.debug.xcconfig"; path = "Target Support Files/Pods-Kokio/Pods-Kokio.debug.xcconfig"; sourceTree = "<group>"; };
 		382D350CF4B3418DAC0C79D6 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "Kokio/noop-file.swift"; sourceTree = "<group>"; };
-		55DE4292B3A2FF6CE31630E4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Kokio/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		55DE4292B3A2FF6CE31630E4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Kokio/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5CA9FCA837CEC3E7B48A6265 /* libPods-Kokio.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Kokio.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Kokio/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -131,7 +131,6 @@
 				1FDF4E8421A339779DC2EF6A /* Pods-Kokio.debug.xcconfig */,
 				1B7330E5E6108410DCB5BCFD /* Pods-Kokio.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -170,7 +169,6 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						DevelopmentTeam = XSQ2GAB4RW;
 						LastSwiftMigration = 1250;
 						ProvisioningStyle = Automatic;
 					};
@@ -417,7 +415,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = app.kokio;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kokio.mobile;
 				PRODUCT_NAME = Kokio;
 				SWIFT_OBJC_BRIDGING_HEADER = "Kokio/Kokio-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -451,7 +449,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = app.kokio;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kokio.mobile;
 				PRODUCT_NAME = Kokio;
 				SWIFT_OBJC_BRIDGING_HEADER = "Kokio/Kokio-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
