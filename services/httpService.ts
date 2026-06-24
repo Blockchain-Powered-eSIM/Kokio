@@ -27,8 +27,6 @@ import { StepUpCancelledError } from '@/utils/auth/errors';
 export type StepUpHint = {
   /** e.g. "POST /v1/order" — for UX telemetry / copy. */
   operationName: string;
-  /** Seconds since last biometric auth that the server requires (from 401 body). */
-  requiredAuthTimeAge?: number;
 };
 
 let _onStepUpNeeded: ((hint: StepUpHint) => void) | null = null;
@@ -168,7 +166,7 @@ instance.interceptors.response.use(
   async (error: AxiosError) => {
     const cfg    = error.config as RetryableConfig | undefined;
     const status = error.response?.status;
-    const body   = error.response?.data as { code?: string; error?: string; required_auth_time_age?: number } | undefined;
+    const body   = error.response?.data as { code?: string; error?: string } | undefined;
     const wwwAuth = (error.response?.headers?.['www-authenticate'] as string | undefined) ?? '';
 
     // Cache any nonce from the error response too (RFC 9449 §8).
@@ -194,7 +192,6 @@ instance.interceptors.response.use(
     if (body?.code === 'STEP_UP_REQUIRED' || body?.error === 'STEP_UP_REQUIRED') {
       const hint: StepUpHint = {
         operationName:       `${(cfg.method ?? 'GET').toUpperCase()} ${cfg.url ?? ''}`,
-        requiredAuthTimeAge: body?.required_auth_time_age,
       };
       try {
         await waitForStepUp(hint);
