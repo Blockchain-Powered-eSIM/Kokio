@@ -158,63 +158,48 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     username?: string;
     email?: string;
   }) => {
+    clearError();
     if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
-
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const result = await registerPasskey(user.username ?? user.email ?? "Kokio User");
-
-      // Persist registration data immediately. If post-registration login fails
-      // (Google PM sync delay), the next tap reads these from SecureStore and
-      // routes to loginWithPasskey() instead of re-registering.
-      await SecureStore.setItemAsync('deviceWalletAddress', result.deviceWalletAddress);
-      await SecureStore.setItemAsync('credentialId', result.credentialId);
-      await SecureStore.setItemAsync('publicKeyX', result.publicKeyX);
-      await SecureStore.setItemAsync('publicKeyY', result.publicKeyY);
-      if (result.rawSalt) await SecureStore.setItemAsync('rawSalt', result.rawSalt);
-      if (result.deviceUniqueIdentifier) {
+      const registration = await registerPasskey(user.username ?? user.email ?? "Kokio User");
+      if (!registration) {
+        dispatch({ type: "ERROR", payload: "Registration failed. Please try again." });
+        return null;
+      }
+      // Persist registration data immediately.
+      await SecureStore.setItemAsync('deviceWalletAddress', registration.deviceWalletAddress);
+      await SecureStore.setItemAsync('credentialId', registration.credentialId);
+      await SecureStore.setItemAsync('publicKeyX', registration.publicKeyX);
+      await SecureStore.setItemAsync('publicKeyY', registration.publicKeyY);
+      if (registration.rawSalt) await SecureStore.setItemAsync('rawSalt', registration.rawSalt);
+      if (registration.deviceUniqueIdentifier) {
         // JSON.stringify to match saveValueForDeviceUID / getValueForDeviceUID format
-        await SecureStore.setItemAsync('deviceUID', JSON.stringify(result.deviceUniqueIdentifier));
+        await SecureStore.setItemAsync('deviceUID', JSON.stringify(registration.deviceUniqueIdentifier));
       }
 
-      // Google Password Manager commits the passkey to the local device index
-      // asynchronously after Passkey.create returns. loginWithKokioPasskey uses
-      // transports: ['internal'] (device-local only) to avoid showing a credential
-      // picker dialog — but the credential won't be locally indexed for ~1s.
-      // Wait 1500ms so the first login attempt succeeds silently without dialog.
+      /**
+       * Google Password Manager commits the passkey to the local device index asynchronously 
+       * after Passkey.create returns. loginWithKokioPasskey uses transports: ['internal']
+       * (device-local only) to avoid showing a credential picker dialog.
+       * The credential won't be locally indexed for ~1s. 
+       * Wait 1500ms so the first login attempt succeeds without dialog.
+       */
       await new Promise<void>(resolve => setTimeout(resolve, 1500));
 
-      // Pass credentialId so Android targets the just-created credential directly
-      // instead of doing a full discoverable-credential sweep. Pass deviceWalletAddress
-      // so loginBegin doesn't have to read SecureStore (setupKokioRegistration hasn't
-      // run yet at this point, but we've already pre-saved above).
-      // No transports restriction: omitting it lets Google PM find the credential
-      // via cloud sync even before local on-device indexing completes.
-      try {
-        await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
-      } catch (loginErr) {
-        if (loginErr instanceof AuthError) throw loginErr;
-        await new Promise<void>(resolve => setTimeout(resolve, 1500));
-        try {
-          await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
-        } catch (loginErr2) {
-          if (loginErr2 instanceof AuthError) throw loginErr2;
-          // Still not indexed — wait longer and try once more. Do NOT fall
-          // back to discoverAndLoginWithPasskey(): an open credential picker
-          // can surface orphaned credentials from prior installs and fail
-          // with CREDENTIAL_NOT_FOUND, breaking the whole registration flow.
-          await new Promise<void>(resolve => setTimeout(resolve, 2500));
-          await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
-        }
-      }
-
+      /**
+       * Registration creates the credential and derives the wallet, but does not establish a session.
+       * Log in immediately to issue and persist the token bundle. 
+       * The credential is targeted directly via credentialId, so no retry ladder is needed.
+       */
+      await loginWithKokioPasskey(registration.credentialId, registration.deviceWalletAddress);
       dispatch({ type: "PASSKEY" });
-      return result;
-    } catch (error) {
-      dispatch({ type: "ERROR", payload: formatError(error) });
+      return registration;
+    } catch (err) {
+      dispatch({ type: "ERROR", payload: formatError(err) });
       return null;
     } finally {
       dispatch({ type: "LOADING", payload: null });
