@@ -243,31 +243,11 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
  * install / cleared data), CREDENTIAL_NOT_FOUND is thrown and the caller
  * should redirect to registration.
  *
- * AUTH_TIME_RECENCY_VIOLATION (user spent >120s at the biometric prompt) is
- * retried once: a fresh ceremony runs with a new PKCE pair, new passkey
- * assertion, and a new AuthSession prompt.
- *
  * On success the token bundle is persisted and `isAuthenticated` is set to true.
  * Throws AuthError on any ceremony or network failure.
  */
 export async function loginWithKokioPasskey(credentialIdHint?: string, deviceWalletAddressOverride?: string): Promise<void> {
-  let ceremony: { code: string; codeVerifier: string } | undefined;
-
-  for (let attempt = 0; attempt <= 1; attempt++) {
-    try {
-      ceremony = await performLoginCeremony(credentialIdHint, deviceWalletAddressOverride);
-      break;
-    } catch (err) {
-      if (
-        err instanceof AuthError &&
-        err.code === 'AUTH_TIME_RECENCY_VIOLATION' &&
-        attempt === 0
-      ) {
-        continue; // retry: fresh passkey challenge + new biometric prompt + new PKCE pair
-      }
-      throw err;
-    }
-  }
+  const { code, codeVerifier } = await performLoginCeremony(credentialIdHint, deviceWalletAddressOverride);
 
   const tokenData = assertData<{
     access_token:  string;
@@ -278,9 +258,9 @@ export async function loginWithKokioPasskey(credentialIdHint?: string, deviceWal
     await kokioAuthClient.token(
       {
         grant_type:    'authorization_code',
-        code:          ceremony!.code,
+        code,
         redirect_uri:  REDIRECT_URI,
-        code_verifier: ceremony!.codeVerifier,
+        code_verifier: codeVerifier,
       },
       (nonce, htu) => buildDpopProof({ htu: htu!, htm: 'POST', nonce }),
     ),
@@ -297,114 +277,102 @@ export async function loginWithKokioPasskey(credentialIdHint?: string, deviceWal
   });
 }
 
-// ─── Discoverable-credential login (reinstall recovery) ──────────────────────
-//
-// Used when SecureStore has been wiped (e.g. app uninstall/reinstall) but the
-// passkey still exists in the platform credential manager (Google Password
-// Manager / iCloud Keychain). Calls loginBegin with no deviceWalletAddress so
-// the server returns an empty allowCredentials challenge, letting the OS
-// present all synced Kokio passkeys to the user. On success, stores
-// deviceWalletAddress and credentialId in SecureStore so future logins use the
-// normal targeted flow.
+/**
+ * ─── Discoverable-credential login (reinstall recovery) ──────────────────────
+ * 
+ * Used when SecureStore has been wiped (e.g. app uninstall/reinstall) but the
+ * passkey still exists in the platform credential manager (Google Password
+ * Manager / iCloud Keychain). Calls loginBegin with no deviceWalletAddress so
+ * the server returns an empty allowCredentials challenge, letting the OS
+ * present all synced Kokio passkeys to the user. On success, stores
+ * deviceWalletAddress and credentialId in SecureStore so future logins use the
+ * normal targeted flow.
+ */
 export async function discoverAndLoginWithPasskey(): Promise<DiscoverLoginResult> {
   const base = Config.AUTH_SERVER_BASE_URL;
   if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
 
-  for (let attempt = 0; attempt <= 1; attempt++) {
-    try {
-      const beginData = assertData<{
-        challenge:        string;
-        timeout:          number;
-        rpId:             string;
-        allowCredentials: [];
-        userVerification: 'required';
-      }>(
-        await kokioAuthClient.loginDiscoverBegin(),
-        'LOGIN_FAILED',
-      );
+  const beginData = assertData<{
+    challenge:        string;
+    timeout:          number;
+    rpId:             string;
+    allowCredentials: [];
+    userVerification: 'required';
+  }>(
+    await kokioAuthClient.loginDiscoverBegin(),
+    'LOGIN_FAILED',
+  );
 
-      const assertion = await Passkey.get({
-        challenge:        beginData.challenge,
-        rpId:             beginData.rpId,
-        timeout:          beginData.timeout,
-        allowCredentials: [],
-        userVerification: beginData.userVerification,
-      });
-      if (__DEV__) console.log('[PASSKEY] discover assertion userHandle (raw):', assertion.response.userHandle);
+  const assertion = await Passkey.get({
+    challenge:        beginData.challenge,
+    rpId:             beginData.rpId,
+    timeout:          beginData.timeout,
+    allowCredentials: [],
+    userVerification: beginData.userVerification,
+  });
+  if (__DEV__) console.log('[PASSKEY] discover assertion userHandle (raw):', assertion.response.userHandle);
 
-      const completeData = assertData<{ deviceWalletAddress: string; authTime: number }>(
-        await kokioAuthClient.loginComplete({
-          assertionResponse: {
-            id:      assertion.id,
-            rawId:   assertion.rawId ?? assertion.id,
-            response: {
-              clientDataJSON:    assertion.response.clientDataJSON,
-              authenticatorData: assertion.response.authenticatorData,
-              signature:         assertion.response.signature,
-              userHandle:        assertion.response.userHandle ?? null,
-            },
-            type:                   'public-key',
-            clientExtensionResults: {},
-          },
-        }),
-        'LOGIN_FAILED',
-      );
-
-      const correlationId = uuidv4();
-      const request = new AuthSession.AuthRequest({
-        clientId:    'kokio-bff',
-        redirectUri: REDIRECT_URI,
-        usePKCE:     true,
-        state:       correlationId,
-        extraParams: {
-          device_wallet_address: completeData.deviceWalletAddress,
-          auth_time:             String(completeData.authTime),
+  const completeData = assertData<{ deviceWalletAddress: string; authTime: number }>(
+    await kokioAuthClient.loginComplete({
+      assertionResponse: {
+        id:      assertion.id,
+        rawId:   assertion.rawId ?? assertion.id,
+        response: {
+          clientDataJSON:    assertion.response.clientDataJSON,
+          authenticatorData: assertion.response.authenticatorData,
+          signature:         assertion.response.signature,
+          userHandle:        assertion.response.userHandle ?? null,
         },
-      });
+        type:                   'public-key',
+        clientExtensionResults: {},
+      },
+    }),
+    'LOGIN_FAILED',
+  );
 
-      const { code, codeVerifier } = await captureAuthorizationCode(request, `${base}/v1/auth/authorize`, correlationId);
+  const correlationId = uuidv4();
+  const request = new AuthSession.AuthRequest({
+    clientId:    'kokio-bff',
+    redirectUri: REDIRECT_URI,
+    usePKCE:     true,
+    state:       correlationId,
+    extraParams: {
+      device_wallet_address: completeData.deviceWalletAddress,
+      auth_time:             String(completeData.authTime),
+    },
+  });
 
-      const tokenData = assertData<{
-        access_token:  string;
-        refresh_token: string;
-        id_token:      string;
-        expires_in:    number;
-      }>(
-        await kokioAuthClient.token(
-          {
-            grant_type:    'authorization_code',
-            code,
-            redirect_uri:  REDIRECT_URI,
-            code_verifier: codeVerifier,
-          },
-          (nonce, htu) => buildDpopProof({ htu: htu!, htm: 'POST', nonce }),
-        ),
-        'LOGIN_FAILED',
-      );
+  const { code, codeVerifier } = await captureAuthorizationCode(request, `${base}/v1/auth/authorize`, correlationId);
 
-      const { auth_time } = parseIdToken(tokenData.id_token);
-      await useAuthStore.getState().setTokens({
-        access_token:  tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        id_token:      tokenData.id_token,
-        expires_at:    Date.now() + tokenData.expires_in * 1000,
-        auth_time:     auth_time ?? Math.floor(Date.now() / 1000),
-      });
+  const tokenData = assertData<{
+    access_token:  string;
+    refresh_token: string;
+    id_token:      string;
+    expires_in:    number;
+  }>(
+    await kokioAuthClient.token(
+      {
+        grant_type:    'authorization_code',
+        code,
+        redirect_uri:  REDIRECT_URI,
+        code_verifier: codeVerifier,
+      },
+      (nonce, htu) => buildDpopProof({ htu: htu!, htm: 'POST', nonce }),
+    ),
+    'LOGIN_FAILED',
+  );
 
-      // Persist the minimum needed for future normal logins
-      await SecureStore.setItemAsync('deviceWalletAddress', completeData.deviceWalletAddress);
-      await SecureStore.setItemAsync('credentialId', assertion.id);
+  const { auth_time } = parseIdToken(tokenData.id_token);
+  await useAuthStore.getState().setTokens({
+    access_token:  tokenData.access_token,
+    refresh_token: tokenData.refresh_token,
+    id_token:      tokenData.id_token,
+    expires_at:    Date.now() + tokenData.expires_in * 1000,
+    auth_time:     auth_time ?? Math.floor(Date.now() / 1000),
+  });
 
-      return { credentialId: assertion.id, deviceWalletAddress: completeData.deviceWalletAddress };
-    } catch (err) {
-      // Stale auth_time at /authorize (>120s at the biometric prompt)
-      // Retry once with a fresh challenge + PKCE pair. Anything else propagates.
-      if (err instanceof AuthError && err.code === 'AUTH_TIME_RECENCY_VIOLATION' && attempt === 0) {
-        continue;
-      }
-      throw err;
-    }
-  }
+  await SecureStore.setItemAsync('deviceWalletAddress', completeData.deviceWalletAddress);
+  await SecureStore.setItemAsync('credentialId', assertion.id);
 
-  throw new AuthError('LOGIN_FAILED');
+  return { credentialId: assertion.id, deviceWalletAddress: completeData.deviceWalletAddress };
 }
