@@ -109,8 +109,10 @@ instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
 
   if (config.skipAuth) return config; // public endpoint — skip auth + correlation id
 
-  const correlationId = uuidv4();
+  // Preserve a caller-supplied idempotency key, otherwise mint one.
+  const correlationId = (config.headers['x-correlation-id'] as string | undefined) ?? uuidv4();
   config.headers['x-correlation-id'] = correlationId;
+
   if (__DEV__) console.log(`[http] ${(config.method ?? 'GET').toUpperCase()} ${config.url} | correlationId: ${correlationId}`);
 
   const stored = useAuthStore.getState().tokens;

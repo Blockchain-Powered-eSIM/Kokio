@@ -1,6 +1,7 @@
 import type { components } from './generated/koKioBff';
 import { unwrapBffResponse, unwrapBffResponseWithCorrelation } from './koKioBffClient';
 import api from '@/services/httpService';
+import { v4 as uuidv4 } from 'uuid';
 
 type CreateOrderRequest  = components['schemas']['CreateOrderRequest'];
 type CreateOrderResponse = components['schemas']['CreateOrderResponse'];
@@ -52,26 +53,35 @@ export function createOrder(body: CreateOrderRequest): Promise<CreateOrderRespon
 
 export function createCryptoOrder(
   body: CreateOrderRequest,
-): Promise<{ data: CreateOrderResponse; correlationId: string | null }> {
+): Promise<{ data: CreateOrderResponse; correlationId: string }> {
+  const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<CreateOrderResponse>(
-    api.post('/v1/order', body as Record<string, unknown>),
-  );
+    api.post('/v1/order', body as Record<string, unknown>, {
+      headers: { 'x-correlation-id': idempotencyKey },
+    }),
+  ).then((r) => ({ ...r, correlationId: idempotencyKey }));
 }
 
 export function createFiatOrder(
   body: FiatOrderRequest,
 ): Promise<{ data: FiatOrderResponse; correlationId: string | null }> {
+  const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<FiatOrderResponse>(
-    api.post('/v1/order', body as Record<string, unknown>),
-  );
+    api.post('/v1/order', body as Record<string, unknown>, {
+      headers: { 'x-correlation-id': idempotencyKey },
+    }),
+  ).then((r) => ({ ...r, correlationId: idempotencyKey }));
 }
 
 export function createExternalWalletOrder(
   body: ExternalWalletOrderRequest,
 ): Promise<{ data: ExternalWalletOrderResponse; correlationId: string | null }> {
+  const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<ExternalWalletOrderResponse>(
-    api.post('/v1/order', body as Record<string, unknown>),
-  );
+    api.post('/v1/order', body as Record<string, unknown>, {
+      headers: { 'x-correlation-id': idempotencyKey },
+    }),
+  ).then((r) => ({ ...r, correlationId: idempotencyKey }));
 }
 
 export function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
