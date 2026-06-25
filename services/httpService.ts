@@ -4,7 +4,7 @@ import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, Axi
 // Allow callers to opt out of auth header injection for public endpoints,
 // or to override the htu claim for routes with path parameters.
 declare module 'axios' {
-  interface InternalAxiosRequestConfig {
+  interface AxiosRequestConfig {
     skipAuth?: boolean;
     dpopHtu?: string;
   }
@@ -162,7 +162,7 @@ instance.interceptors.response.use(
     const origin = bffOrigin();
     if (nonce && origin) _bffNonceCache.set(origin, nonce);
 
-    return res.data as unknown;
+    return res.data;
   },
 
   async (error: AxiosError) => {
@@ -264,19 +264,19 @@ const api = {
     };
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get(url: string, params: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+  get(url: string, params: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.get(url, { ...config, params });
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  post(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+  post(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.post(url, data, config);
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+  put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.put(url, data, config);
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete(url: string, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+  delete(url: string, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.delete(url, config);
   },
 };
