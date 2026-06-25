@@ -24,7 +24,7 @@ export default function Regions() {
     return (
       <TouchableOpacity onPress={navigateToESIMsByRegion(item?.code)}>
         <View key={item?.code || index} style={styles.region}>
-          <ThemedText style={styles.regionLabel} type="subtitle">
+          <ThemedText style={styles.regionLabel} variant="xl">
             {item?.name || ""}
           </ThemedText>
           <Image
