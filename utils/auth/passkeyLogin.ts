@@ -189,6 +189,7 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
       challenge:        beginData.challenge,
       rpId:             beginData.rpId,
       timeout:          beginData.timeout,
+      // @ts-expect-error react-native-passkey does not export matched type PublicKeyCredentialDescriptor[]
       allowCredentials: allowCredentials,
       userVerification: beginData.userVerification,
     });

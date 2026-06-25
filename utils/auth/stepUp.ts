@@ -58,7 +58,8 @@ export async function performStepUp(): Promise<void> {
       challenge:        opts.challenge,
       rpId:             opts.rpId,
       timeout:          opts.timeout,
-      allowCredentials: opts.allowCredentials as { id: string; type: string }[],
+      // @ts-expect-error react-native-passkey does not export matched type PublicKeyCredentialDescriptor[]
+      allowCredentials: opts.allowCredentials,
       userVerification: opts.userVerification,
     });
 
