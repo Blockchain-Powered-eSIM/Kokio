@@ -12,13 +12,13 @@ export interface Esim {
   actualSellingPrice?: number;
   isUnlimited: boolean;
   serviceRegionCode: string;
-  serviceRegionFlag: string;
-  serviceRegionName: string;
+  serviceRegionFlag?: string | null;
+  serviceRegionName?: string | null;
   coverageType: string;
-  data: number;
-  sms: number | null;
-  validity: number;
-  voice: number | null;
+  data?: number | null;
+  sms?: number | null;
+  validity: number | null;
+  voice?: number | null;
 }
 
 const ESIMItem = ({

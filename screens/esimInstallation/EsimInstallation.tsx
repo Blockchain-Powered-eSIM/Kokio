@@ -24,7 +24,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 type TabType = "Direct" | "QR" | "Manual";
 
-const TextWithCopy = ({ label, text }) => {
+const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   const handleCopyQRData = async () => {
