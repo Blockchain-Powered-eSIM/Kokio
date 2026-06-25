@@ -20,10 +20,9 @@ interface Token {
     name: string
     symbol: string;
     value: string;
-    icon: string
-
-
+    icon: string;
 }
+
 interface Transaction {
     id: string;
     dateTime: string | Date; // Can adjust based on how you want to store it
@@ -32,7 +31,7 @@ interface Transaction {
     amount: string;
     status: "pending" | "completed"; // Union type for valid statuses
     type: "sent" | "received"; // Union type for valid types
-    icon: string;
+    icon: string | string [];
   }
   interface Contact {
     id: string;
@@ -64,7 +63,7 @@ const sendToContact = () => {
     const { showToast, showMessage } = useToast();
 
 
-    const sheetRef = useRef(null);
+    const sheetRef = useRef<BottomSheet>(null);
 
 
     const snapPoints = useMemo(() => ['96.5%', '97%'], []);
@@ -110,9 +109,7 @@ const sendToContact = () => {
           await AsyncStorage.setItem(`contact_${contactId}`, JSON.stringify(updatedContact));
     
           console.log("Transaction added successfully:", newTransaction);
-          router.push({pathname:"/(tabs)/(wallet)/transactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
-    
-          
+          router.push({pathname:"/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
           showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',params?.firstName,params.monogramUrl)
         } catch (error) {
           console.error("Error adding transaction:", error);

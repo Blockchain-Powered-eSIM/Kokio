@@ -40,7 +40,7 @@ const WalletPage = () => {
   const router = useRouter();
  
   const {showToast} = useToast();
-  const [contacts, setContacts] = useState([]);
+  const [contacts, setContacts] = useState<{ firstName: string; monogramUrl: string; [key: string]: any }[]>([]);
 
 const getAllContacts = async () => {
   try {
@@ -142,7 +142,7 @@ useFocusEffect(
 
           </ThemedView>
         </Pressable>
-        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/transactions')}>
+        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/Transactions')}>
         <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
             <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Transactions</ThemedText>
@@ -179,7 +179,7 @@ useFocusEffect(
 
         </ThemedView>
         </Pressable>
-        <Pressable className='flex-1' onPress={()=>router.push({pathname:'/(contacts)',params:{contacts:JSON.stringify(contacts)}})}>
+        <Pressable className='flex-1' onPress={()=>router.push({pathname:'/(tabs)/(wallet)/(contacts)',params:{contacts:JSON.stringify(contacts)}})}>
         <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
             <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Contacts</ThemedText>

@@ -80,7 +80,7 @@ const Transactions = () => {
       tr.status === 'pending' && (
         <Pressable
           onPress={() => router.push({
-            pathname: "(wallet)/transactionDetails",
+            pathname: "/(tabs)/(wallet)/TransactionDetails",
             params: { transaction: JSON.stringify(transactions[index]) }
           })}
           key={tr?.id}
@@ -140,7 +140,7 @@ const Transactions = () => {
               tr.status === 'completed' && (
                 <Pressable
                   onPress={() => router.push({
-                    pathname: "(wallet)/transactionDetails",
+                    pathname: "/(tabs)/(wallet)/TransactionDetails",
                     params: { transaction: JSON.stringify(transactions[index]) } // Convert object to string
                   })}
                   key={tr?.id}

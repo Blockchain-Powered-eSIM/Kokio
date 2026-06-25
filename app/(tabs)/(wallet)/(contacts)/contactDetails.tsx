@@ -67,7 +67,7 @@ const contactDetails = () => {
 
       </View>
       <View className='w-full h-auto  mt-10 gap-x-2 flex-row  mx-2 '>
-        <Pressable onPress={() => router.push({ pathname: '/(contacts)/sendToContact', params: { monogramUrl: monogramUrl, firstName: firstName, lastName: lastName, id: id } })} className='flex-1  items-center'>
+        <Pressable onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/sendToContact', params: { monogramUrl: monogramUrl, firstName: firstName, lastName: lastName, id: id } })} className='flex-1  items-center'>
           <ThemedView darkColor={Theme.colors.itemBackground} className='w-[70%] ml-[-30] rounded-3xl py-5  justify-center items-center'>
 
             <Image source={require("../../../../assets/images/wallet/sendImg.png")} className='h-[32] w-[32]' />
@@ -94,7 +94,7 @@ const contactDetails = () => {
       <Pressable
         onPress={() =>
           router.push({
-            pathname: "/(contacts)/contactTransactions",
+            pathname: "/(tabs)/(wallet)/(contacts)/contactTransactions",
             params: { transactions: JSON.stringify(transactions) }, // Stringify the array
           })
         }

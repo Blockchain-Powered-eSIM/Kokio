@@ -7,7 +7,6 @@ import _ from "lodash"
 import { Theme } from '@/constants/Colors'
 import { useCallback } from 'react';
 
-
 interface Transaction {
     id: string;
     dateTime: string | Date; // Can adjust based on how you want to store it
@@ -19,9 +18,6 @@ interface Transaction {
     icon: string;
     walletId?:string
   }
-
-
-
 
 const contactTransactions = () => {
     const router = useRouter();
@@ -44,17 +40,13 @@ const contactTransactions = () => {
     setPendingTransactions(transactionList.filter((tx) => tx.status === "pending"));
     setCompletedTransactions(transactionList.filter((tx) => tx.status === "completed"));
   }, [transactionList]);
-    
-
-
-
 
     const renderTransaction = useCallback(
         (tr: Transaction, index: number) => (
             tr.status === 'pending' && (
                 <Pressable
                     onPress={() => router.push({
-                        pathname: "/(tabs)/(wallet)/transactionDetails",
+                        pathname: "/(tabs)/(wallet)/TransactionDetails",
                         params: { transaction: JSON.stringify(pendingTransactions[index]) }
                     })}
                     key={tr?.id}
@@ -113,7 +105,7 @@ const contactTransactions = () => {
                         {_.map(completedTransactions, (tr, index) => (
                             tr?.status === "completed" && (
                                 <Pressable onPress={() => router.push({
-                                    pathname: "/(tabs)/(wallet)/transactionDetails",
+                                    pathname: "/(tabs)/(wallet)/TransactionDetails",
                                     params: { transaction: JSON.stringify(completedTransactions[index]) }
                                 })} key={index} className='flex-row items-center justify-between  mx-5 '>
                                     <View className='flex-row items-center'>

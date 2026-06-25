@@ -115,12 +115,12 @@ export default function QrCodeScreen() {
 
     if(isEdit === "true"){
       router.replace({
-        pathname: '/(contacts)/editContact',
+        pathname: '/(tabs)/(wallet)/(contacts)/editContact',
         params: { walletAddress: data,firstName:firstName,lastName:lastName,id:id,monogramUrl:monogramUrl }
       });
     }else{
       router.replace({
-        pathname: '/(contacts)/addContactScreen',
+        pathname: '/(tabs)/(wallet)/(contacts)/addContactScreen',
         params: { walletAddress: data,firstName:firstName,lastName:lastName }
       });
     }

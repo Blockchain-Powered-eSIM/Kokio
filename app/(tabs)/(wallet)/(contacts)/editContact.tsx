@@ -29,8 +29,6 @@ const editContact = () => {
         const handleSelectColor = (color:string)=>{
             setNewColor(color);
         }
-    
-    
         useEffect(() => {
             // This will capture the wallet address when returning from the QR scan
             const unsubscribe = navigation.addListener('focus', () => {
@@ -44,56 +42,38 @@ const editContact = () => {
                     setLastName(params.lastName as string);
                 }
                 if (params.monogramUrl) {
-                    const match = params.monogramUrl.match(/background=([0-9a-fA-F]+)/);
+                    const match = (params.monogramUrl as string).match(/background=([0-9a-fA-F]+)/);
                     const backgroundColor = match ? match[1] : null;
                     if (backgroundColor) {
                       setNewColor(backgroundColor);
                     }
                   }
-                  
-                  
             });
-    
             return unsubscribe;
         }, [navigation, params]);
 
         useEffect(()=>{
             console.log()
         },[])
-
-
-   
-
-    
-
     const handleScan = async () => {
-
         // if (!isPermissionGranted) {
         //   await requestPermission();
         //   return; 
         // }
-
-
         // if (!isPermissionGranted) {
         //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
         // } else {
-
-        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName, isEdit:"true",monogramUrl:params.monogramUrl,id:params.id } });
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { firstName: firstName, lastName: lastName, isEdit:"true",monogramUrl:params.monogramUrl,id:params.id } });
         // }
     };
-
-    
-
     const handleSave = async () => {
         if (firstName === "" || walletAddress === "") {
           showMessage("Please fill in first name and address to proceed", "error");
           return;
         }
-      
         setIsLoading(true);
         try {
           const contactId = params.id;
-      
           // Fetch the existing contact to preserve createdAt
           const existingContactJson = await AsyncStorage.getItem(`contact_${contactId}`);
           const existingContact = existingContactJson ? JSON.parse(existingContactJson) : null;
@@ -103,7 +83,6 @@ const editContact = () => {
           }
       
           const url =  `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=${newColor}&color=ffffff&rounded=true&size=216`;
-      
           const editedContactObj = {
             id: contactId,
             firstName: firstName,
@@ -120,13 +99,12 @@ const editContact = () => {
       
           // No need to update contactIds since this is an update, not a new contact
           // (The contactId should already exist in contactIds)
-      
           // Optional: Show success message
           showMessage("Contact updated successfully", "info");
       
           // Navigate to contactDetails with updated info
           router.replace({
-            pathname: '/(tabs)/(wallet)/contactDetails',
+            pathname: '/(tabs)/(wallet)/(contacts)/contactDetails',
             params: {
               firstName: editedContactObj.firstName,
               lastName: editedContactObj.lastName,
@@ -135,12 +113,9 @@ const editContact = () => {
               id:params.id
             },
           });
-      
           console.log("Updated contact:", editedContactObj);
       
-          // Reset form fields
-          
-      
+        // Reset form fields
         } catch (error) {
           console.log("Error updating contact:", error);
           showMessage("Failed to update contact", "error");
