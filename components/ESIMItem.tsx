@@ -9,7 +9,7 @@ import DetailItem from "./ui/DetailItem";
 
 export interface Esim {
   catalogueId: string;
-  actualSellingPrice?: number;
+  actualSellingPrice: number;
   isUnlimited: boolean;
   serviceRegionCode: string;
   serviceRegionFlag?: string | null;
@@ -57,6 +57,7 @@ const ESIMItem = ({
             <CountryFlag
               style={[showBuyButton && styles.flag]}
               isoCode={item?.serviceRegionCode}
+              //@ts-expect-error - null values are handled in the component
               flagUrl={item?.serviceRegionFlag}
               size={40}
             />
