@@ -96,7 +96,10 @@ function DataPackTabGroup({
 
   const TabsNavigator = () => {
     return (
-      <Tab.Navigator tabBar={(props) => <TabBar {...props} />} sceneContainerStyle={{ backgroundColor: "transparent" }}>
+      <Tab.Navigator
+        tabBar={(props) => <TabBar {...props} />}
+        screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
+      >
         <Tab.Screen
           name="Data"
           component={DataTab}

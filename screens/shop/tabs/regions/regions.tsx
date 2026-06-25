@@ -43,7 +43,7 @@ export default function Regions() {
         data={list}
         renderItem={renderItem}
         style={{ width: "100%", backgroundColor: "transparent" }}
-        keyExtractor={(item, index) => item?.code || index}
+        keyExtractor={(item, index) => String(item?.code || index)}
       />
     </ThemedView>
   );
