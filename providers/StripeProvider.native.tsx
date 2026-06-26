@@ -1,9 +1,9 @@
-import React, { ReactElement, ReactNode } from "react";
+import React, { ReactElement } from "react";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { Config } from "@/appKeys";
 
 type Props = {
-  children: ReactNode | ReactElement[];
+  children: ReactElement | ReactElement[];
 };
 
 export function KokioStripeProvider({ children }: Props) {

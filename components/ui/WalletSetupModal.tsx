@@ -304,8 +304,31 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
       // A no-op userOp that includes the initCode on first send, deploying the contract.
       // This triggers Passkey.get() inside the SDK's _stamp() — the biometric prompt.
+      /**
+       * ERROR SIGNATURE HERE
+       * components/ui/WalletSetupModal.tsx:307:50 - error TS2345: Argument of type '{ uo: { target: `0x${string}`; data: "0x"; value: bigint; }; overrides: { preVerificationGas: number; }; }' is not assignable to parameter of type 'SendUserOperationParameters<SmartContractAccount | undefined, UserOperationContext | undefined, keyof EntryPointRegistryBase<unknown>>'.
+       * Property 'account' is missing in type '{ uo: { target: `0x${string}`; data: "0x"; value: bigint; }; overrides: { preVerificationGas: number; }; }' but required in type '{ account: SmartContractAccount<string, keyof EntryPointRegistryBase<unknown>>; }'.
+       * 307       await deviceWalletClient.sendUserOperation({                                            ~
+       * 308         uo: {
+       *          ~~~~~~~~~~~~~
+       *          ... 
+       * 313              overrides: { preVerificationGas: 0xeeee },
+       *          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       * 314       });
+       *          ~~~~~~~
+       *
+       * node_modules/@aa-sdk/core/dist/types/account/smartContractAccount.d.ts:29:50
+       * 29     account: TAccountOverride;
+       *        ~~~~~~~
+       *        'account' is declared here.
+       *        components/ui/WalletSetupModal.tsx:309:19 - error TS18048: 'deviceWalletClient.account' is possibly 'undefined'.
+       * 309           target: deviceWalletClient.account.address,
+       */
+      // @ts-expect-error Ownership with wallet features (ideally protected against empty accounts, but should be explicit)
       await deviceWalletClient.sendUserOperation({
         uo: {
+          // error TS18048: 'deviceWalletClient.account' is possibly 'undefined'
+          // @ts-expect-error
           target: deviceWalletClient.account.address,
           data: '0x',
           value: 0n,

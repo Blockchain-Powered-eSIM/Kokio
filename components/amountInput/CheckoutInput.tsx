@@ -47,7 +47,7 @@ const createStyles = () => StyleSheet.create({
 
 const CheckoutInput: React.FC<CheckoutInputProps> = ({
   label,
-  style,
+  containerStyle,
   value,
   ...props
 }) => {

@@ -420,6 +420,13 @@ const Checkout = () => {
     showMessage(msg, 'info');
   }, [kokio.deviceUID, eSimItem, savePurchasedESIM, showMessage]);
 
+  const handleRemoveDiscount = useCallback(() => {
+    setIsDiscountApplied(false);
+    setDiscountAmount(0);
+    setDiscountCode("");
+    setDiscountError("");
+  }, []);
+
   const handleEsimCheckout = useCallback(async () => {
     try {
       setIsCheckoutLoading(true);
@@ -629,6 +636,7 @@ const Checkout = () => {
     }
 
     if (
+      //@ts-expect-error EXTERNAL_WALLET has been intentionally disable for now
       selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET ||
       selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET_BROWSER
     ) {
@@ -760,13 +768,6 @@ const Checkout = () => {
       setShowWalletSetupModal(true);
     }
   }, [coupon, eSimItem.actualSellingPrice, kokio.userWallet]);
-
-  const handleRemoveDiscount = useCallback(() => {
-    setIsDiscountApplied(false);
-    setDiscountAmount(0);
-    setDiscountCode("");
-    setDiscountError("");
-  }, []);
 
   const totalAmount = useMemo(() => {
     if (isDiscountApplied) {
