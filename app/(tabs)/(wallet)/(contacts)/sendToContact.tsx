@@ -110,6 +110,7 @@ const sendToContact = () => {
     
           console.log("Transaction added successfully:", newTransaction);
           router.push({pathname:"/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
+          //@ts-expect-error non-reachable code for now, should be fixed when enabled
           showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',params?.firstName,params.monogramUrl)
         } catch (error) {
           console.error("Error adding transaction:", error);

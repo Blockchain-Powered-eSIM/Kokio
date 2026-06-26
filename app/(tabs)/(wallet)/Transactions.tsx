@@ -105,7 +105,7 @@ const Transactions = () => {
           <View className='flex-col items-end'>
             <ThemedText variant='xl'>{tr?.amount}</ThemedText>
             <ThemedText
-              darkColor={tr?.status === 'completed' ? Theme.colors.foreground : Theme.colors.primary}
+              darkColor={Theme.colors.primary}
               variant='sm'
             >
               {tr?.status}

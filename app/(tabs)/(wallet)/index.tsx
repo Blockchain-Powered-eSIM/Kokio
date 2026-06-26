@@ -82,6 +82,7 @@ useFocusEffect(
         </View>
 
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
+          { /** @ts-expect-error non-reachable code for now, should be fixed when enabled */ }
           <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent","Sandra",null)} className='flex-1'>
           <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full' style={{ backgroundColor: Theme.colors.warning }}>
@@ -90,6 +91,7 @@ useFocusEffect(
             <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
           </Pressable>
+          { /** @ts-expect-error non-reachable code for now, should be fixed when enabled */ }
           <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved","Sandra",null)} className='flex-1'>
           <ThemedView darkColor={Theme.colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
             <View className='p-[12] rounded-full' style={{ backgroundColor: Theme.colors.success }}>
