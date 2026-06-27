@@ -166,7 +166,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
 
         <ThemedText style={[styles.subtitle, { color: textColor }]}>
-          It's now time to install your newly purchased eSIM.
+          It&#39;s now time to install your newly purchased eSIM.
         </ThemedText>
 
         <ThemedText style={styles.description}>
