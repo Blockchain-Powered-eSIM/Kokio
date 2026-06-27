@@ -65,22 +65,12 @@ const ActiveESIMsScroll = ({
 
   const handleESIMPress = useCallback((purchasedESIM: StoredPurchasedESIM) => {
     return () => {
+      const expandId =
+        _get(purchasedESIM, "transactionData.correlationId", "") ||
+        _get(purchasedESIM, "transactionData.orderId", "");
       router.navigate({
-        pathname: "/(tabs)/installation",
-        params: {
-          orderId: _get(purchasedESIM, "transactionData.orderId", ""),
-          qrcode: _get(
-            purchasedESIM,
-            "transactionData.installationDetails.qrcode",
-            ""
-          ),
-          appleInstallationUrl: _get(
-            purchasedESIM,
-            "transactionData.installationDetails.appleInstallationUrl",
-            ""
-          ),
-          iccid: _get(purchasedESIM, "transactionData.iccid", ""),
-        },
+        pathname: "/(tabs)/orders",
+        params: { expandOrderId: expandId },
       });
     };
   }, []);

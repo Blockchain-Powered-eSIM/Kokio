@@ -24,6 +24,73 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 type TabType = "Direct" | "QR" | "Manual";
 
+const WarningCards = () => (
+  <>
+    <View style={[warningStyles.warningCard, { backgroundColor: Theme.colors.surface }]}>
+      <MaterialCommunityIcons
+        name="comment-alert"
+        size={32}
+        color={Theme.colors.primary}
+        style={warningStyles.warningIconTopRight}
+      />
+      <View style={warningStyles.warningContent}>
+        <Text style={[warningStyles.warningTitle, { color: Theme.colors.text }]}>
+          Most eSIMs can only be installed once.
+        </Text>
+        <Text style={[warningStyles.warningDescription, { color: Theme.colors.inactive }]}>
+          If you remove the eSIM from your device, you cannot install it again.
+        </Text>
+      </View>
+    </View>
+
+    <View style={[warningStyles.warningCard, { backgroundColor: Theme.colors.surface }]}>
+      <MaterialCommunityIcons
+        name="comment-alert"
+        size={32}
+        color={Theme.colors.primary}
+        style={warningStyles.warningIconTopRight}
+      />
+      <View style={warningStyles.warningContent}>
+        <Text style={[warningStyles.warningTitle, { color: Theme.colors.text }]}>
+          Make sure your device has a stable internet connection before installing.
+        </Text>
+        <Text style={[warningStyles.warningDescription, { color: Theme.colors.inactive }]}>
+          Note that the eSIM installation process must not be interrupted.
+        </Text>
+      </View>
+    </View>
+  </>
+);
+
+const warningStyles = StyleSheet.create({
+  warningCard: {
+    borderRadius: 12,
+    padding: 16,
+    position: "relative",
+    marginBottom: 16,
+    marginTop: 16,
+  },
+  warningIconTopRight: {
+    position: "absolute",
+    top: -12,
+    right: 14,
+    zIndex: 1,
+  },
+  warningContent: {
+    flex: 1,
+    paddingRight: 32,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  warningDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+});
+
 const TextWithCopy = ({ label, text }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
@@ -86,32 +153,6 @@ const createStyles = () => StyleSheet.create({
   content: {
     flex: 1,
     paddingTop: 16,
-  },
-  warningCard: {
-    borderRadius: 12,
-    padding: 16,
-    position: "relative",
-    marginBottom: 16,
-    marginTop: 16,
-  },
-  warningIconTopRight: {
-    position: "absolute",
-    top: -12,
-    right: 14,
-    zIndex: 1,
-  },
-  warningContent: {
-    flex: 1,
-    paddingRight: 32,
-  },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  warningDescription: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   installSection: {
     borderRadius: 12,
@@ -239,43 +280,10 @@ const EsimInstallation = () => {
 
     return (
       <ScrollView style={styles.content}>
-        {/* Warning Cards */}
-        <View style={[styles.warningCard, { backgroundColor: Theme.colors.surface }]}>
-          <MaterialCommunityIcons
-            name="comment-alert"
-            size={32}
-            color={Theme.colors.primary}
-            style={styles.warningIconTopRight}
-          />
-          <View style={styles.warningContent}>
-            <Text style={[styles.warningTitle, { color: Theme.colors.text }]}>
-              Most eSIMs can only be installed once.
-            </Text>
-            <Text style={[styles.warningDescription, { color: Theme.colors.inactive }]}>
-              If you remove the eSIM from your device, you cannot install it
-              again.
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.warningCard, { backgroundColor: Theme.colors.surface }]}>
-          <MaterialCommunityIcons
-            name="comment-alert"
-            size={32}
-            color={Theme.colors.primary}
-            style={styles.warningIconTopRight}
-          />
-          <View style={styles.warningContent}>
-            <Text style={[styles.warningTitle, { color: Theme.colors.text }]}>
-              Make sure your device has a stable internet connection before
-              installing
-            </Text>
-          </View>
-        </View>
-
+        <WarningCards />
         {/* Install eSIM Section */}
         <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
-          <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>Install eSIM</ThemedText>
+          <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>QR Installation</ThemedText>
           <Text style={[styles.sectionDescription, { color: Theme.colors.inactive }]}>
             Scan the QR code by printing out or displaying the code on another
             device to install your eSIM.
@@ -315,6 +323,7 @@ const EsimInstallation = () => {
 
   const ManualScene = () => (
     <ScrollView style={styles.content}>
+      <WarningCards />
       <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
         <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>Manual Installation</ThemedText>
         <Text style={[styles.sectionDescription, { color: Theme.colors.inactive }]}>
@@ -347,14 +356,7 @@ const EsimInstallation = () => {
         {/* Manual Instructions */}
         <View style={styles.instructionsContainer}>
           <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
-            Steps: Go to Settings {">"} Network & internet and select the plus
-            sign ("+") next to your SIM — if this is not available, select
-            SIMs/Mobile network. Select Download a SIM instead? {">"} Next.
-            Select Use a different network if you need to confirm your network.
-            Select Need help? {">"} Enter it manually. Enter the SM-DP+ address
-            and activation code for your new eSIM. Select Continue {">"}{" "}
-            Download/Activate. Select Settings/Done when you see the Download
-            Finished screen.
+            {"Steps: Go to Settings > Network & internet and select the plus sign (\"+\") next to your SIM — if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
           </Text>
         </View>
       </View>
@@ -363,13 +365,9 @@ const EsimInstallation = () => {
 
   const DirectScene = () => (
     <ScrollView style={styles.content}>
+      <WarningCards />
       <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
         <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>Direct Installation</ThemedText>
-        <Text style={[styles.sectionDescription, { color: Theme.colors.inactive }]}>
-          *Note that the eSIM installation process must not be interrupted and
-          make sure your device has a stable internet connection before
-          installing.
-        </Text>
 
         <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
           Select Install eSIM and wait — do not close the app, installation may

@@ -53,7 +53,7 @@ export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
     iconType: "MCI",
     iconName: "signal-cellular-outline",
     key: "countryWiseNetworkCoverages",
-    label: "Network",
+    label: "Coverage",
     formatter: (value: NetworkCoverage[]) =>
       value
         .reduce<string[]>((acc, item) => {
