@@ -7,7 +7,6 @@ import { createWalletClient, http, type Hex } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
 import { AppExtraConfig, Config } from "@/appKeys";
-const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
 import { SmartContractAccount } from "@aa-sdk/core";
 
@@ -20,6 +19,7 @@ import {
   getWcSignClient,
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
+const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
 export interface StoredTransactionData {
   orderId: string;

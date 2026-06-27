@@ -5,6 +5,10 @@
  * body, excludes deviceId, and correctly propagates BffError from the server.
  */
 
+import api from '@/services/httpService';
+import { createOrder, getOrderStatus } from '../order';
+import { BffError } from '../errors';
+
 jest.mock('@/services/httpService', () => ({
   __esModule: true,
   default: {
@@ -13,10 +17,6 @@ jest.mock('@/services/httpService', () => ({
     getConfig: jest.fn(() => ({})),
   },
 }));
-
-import api from '@/services/httpService';
-import { createOrder, getOrderStatus } from '../order';
-import { BffError } from '../errors';
 
 const mockPost = api.post as jest.MockedFunction<typeof api.post>;
 

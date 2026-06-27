@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { View, ScrollView, Image, Pressable } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useRouter } from 'expo-router';
+import { useRouter , useFocusEffect } from 'expo-router';
 import { Theme } from '@/constants/Colors';
 
 import Wallet from '@/components/home/wallet';
 import { useToast } from '@/contexts/ToastContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react'; // Import useCallback for memoization
 
 

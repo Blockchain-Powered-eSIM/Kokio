@@ -1,13 +1,11 @@
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import { Image, Pressable, View } from 'react-native'
-import React from 'react'
-import { router } from 'expo-router'
+import React, { useState,useCallback } from 'react'
+import { router , useFocusEffect } from 'expo-router'
 import _ from "lodash";
 import { Theme } from '@/constants/Colors';
-import { useState,useCallback } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useFocusEffect } from 'expo-router'
 
 interface Contact {
     id: string;

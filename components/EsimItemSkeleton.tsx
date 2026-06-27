@@ -62,7 +62,7 @@ const createStyles = () => StyleSheet.create({
 const EsimItemSkeleton = ({
   containerStyle = {},
 }: {
-  containerStyle?: Object;
+  containerStyle?: object;
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);

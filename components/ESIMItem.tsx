@@ -28,8 +28,8 @@ const ESIMItem = ({
   onPress,
 }: {
   item: Esim;
-  showBuyButton: Boolean;
-  containerStyle?: Object;
+  showBuyButton: boolean;
+  containerStyle?: object;
   onPress?: () => void;
 }) => {
   const { isDark } = useTheme();

@@ -1,13 +1,11 @@
-import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator , KeyboardAvoidingView } from 'react-native'
+import React, { useEffect, useState , useRef, useMemo } from 'react'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import { KeyboardAvoidingView } from 'react-native'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { router, useLocalSearchParams } from 'expo-router'
 import { TextInput } from 'react-native-gesture-handler'
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { useRef, useMemo } from 'react'
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
