@@ -348,7 +348,7 @@ const EsimInstallation = () => {
         <View style={styles.instructionsContainer}>
           <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
             Steps: Go to Settings {">"} Network & internet and select the plus
-            sign ("+") next to your SIM — if this is not available, select
+            sign (&quot;+&quot;) next to your SIM — if this is not available, select
             SIMs/Mobile network. Select Download a SIM instead? {">"} Next.
             Select Use a different network if you need to confirm your network.
             Select Need help? {">"} Enter it manually. Enter the SM-DP+ address

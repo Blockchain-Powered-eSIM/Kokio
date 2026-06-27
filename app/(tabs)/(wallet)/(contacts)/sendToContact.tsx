@@ -228,7 +228,7 @@ const SendToContact = () => {
                     <BottomSheetScrollView contentContainerStyle={styles.contentContainer}>
                         {_.size(tokens) === 0 ? (
                             <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
-                                You don't hold any tokens yet.
+                                You don&#39;t hold any tokens yet.
                             </ThemedText>
                         ) : (
                             <ThemedView darkColor={Theme.colors.background} className='gap-y-3 mt-3 mb-3 px-4'>

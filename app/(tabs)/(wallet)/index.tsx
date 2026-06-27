@@ -119,7 +119,7 @@ useFocusEffect(
             </View>
 
             {tokens.length === 0 ?
-              <ThemedText darkColor={Theme.colors.foreground} className=' mt-5 ml-6 mb-2' >You don't hold any tokens yet.</ThemedText>
+              <ThemedText darkColor={Theme.colors.foreground} className=' mt-5 ml-6 mb-2' >You don&#39;t hold any tokens yet.</ThemedText>
               :
               <View className='flex-1 gap-y-3 mt-5 mb-3'>
                 {tokens.map((token, index) => {

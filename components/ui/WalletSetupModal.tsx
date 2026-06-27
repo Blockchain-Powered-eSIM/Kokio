@@ -369,7 +369,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
         </ThemedText>
 
         <Text style={[styles.description, { color: foregroundColor }]}>
-          Press "Continue" to setup your device wallet.
+          Press &quot;Continue&quot; to setup your device wallet.
         </Text>
 
         <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
@@ -466,7 +466,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             style={styles.warningIconTopRight}
           />
           <Text style={[styles.warningText, { color: textColor }]}>
-            If you no longer have your device, you'll need this EOA to restore access to your wallet.
+            If you no longer have your device, you&#39;ll need this EOA to restore access to your wallet.
           </Text>
         </View>
 
