@@ -3,6 +3,7 @@ import "react-native-get-random-values";
 import "@walletconnect/react-native-compat";
 import "@ethersproject/shims";
 //@ts-expect-error — utils/nativeRuntimeSetup.ts exists and exports {}, it is a bundler resolution alias edge case
+//eslint-disable-next-line import/no-unresolved
 import "@/utils/nativeRuntimeSetup";
 
 import { useFonts } from "expo-font";
