@@ -95,7 +95,8 @@ function bffOrigin(): string | null {
 type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 // ─── Axios instance ───────────────────────────────────────────────────────────
-
+// This is standard axios usage pattern
+// eslint-disable-next-line import/no-named-as-default-member
 const instance: AxiosInstance = axios.create({
   timeout: 30_000,
   paramsSerializer: (params) => qs.stringify(params),

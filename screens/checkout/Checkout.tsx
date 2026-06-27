@@ -94,6 +94,8 @@ const ExternalWalletCheckout = ({
         : null;
       onComplete(finalOrder);
     },
+    //TODO: Probably 'eSimItem', 'kokioDeviceUID', 'pendingOrder', and 'savePurchasedESIM' are not needed in the dependency array here, as they are not part of the changing values of this callback
+    //eslint-disable-next-line react-hooks/exhaustive-deps
     [correlationId, eSimItem, kokioDeviceUID, onComplete, pendingOrder, savePurchasedESIM, setIsCheckoutLoading, setLoadingMessage],
   );
 
@@ -101,7 +103,7 @@ const ExternalWalletCheckout = ({
 
   useEffect(() => {
     payWithCrypto();
-  }, []);
+  }, [payWithCrypto]);
 
   // SDK drawer closed without a confirmed payment → surface browser fallback
   const prevVisibleRef = useRef<boolean | null>(null);
@@ -351,6 +353,8 @@ const Checkout = () => {
 
   const radioButtons: RadioButtonProps[] = useMemo(
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedPaymentMethod]
   );
 
@@ -382,7 +386,7 @@ const Checkout = () => {
     if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
       setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
     }
-  }, [compatibleEsims]);
+  }, [compatibleEsims, compatibleTopUpEsimId]);
 
   const handleOrderResult = useCallback(async (
     order: OrderStatusResponse | null,
@@ -492,6 +496,7 @@ const Checkout = () => {
     showMessage,
     handleRemoveDiscount,
     handleOrderResult,
+    upsertOrderRecord,
   ]);
 
   const resetHelioState = useCallback(() => {

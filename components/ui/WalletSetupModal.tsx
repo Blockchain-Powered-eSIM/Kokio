@@ -386,7 +386,9 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
         </View>
       </>
     ),
-    [handleClose, handleContinue]
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handleClose, handleContinue, foregroundColor, textColor]
   );
 
   const loadingContent = useMemo(
@@ -398,6 +400,8 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
         </Text>
       </View>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -433,7 +437,9 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
         </View>
       </>
     ),
-    [handleClose, handleContinue]
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handleClose, handleContinue, foregroundColor, textColor]
   );
 
   const handleRemindLater = useCallback(() => {
@@ -526,7 +532,9 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
         </View>
       </>
     ),
-    [eoaAddress, handleRemindLater, handleDone, walletAddress]
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [eoaAddress, handleAddressPress, handleRemindLater, handleDone, walletAddress, foregroundColor]
   );
 
   const renderContent = () => {

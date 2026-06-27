@@ -422,12 +422,16 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       }
     };
     fetchUserData();
+  //  TODO: Visit once order list is available via BFF
+  //eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!kokio.sdk && kokio.deviceUID && kokio.userPasskey) {
       setupKokio();
     }
+    // setupKokio is a function, not a dependency to watch for changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk]);
 
   const wcInitialized = useRef(false);

@@ -20,7 +20,9 @@ export default function WcConnectScreen() {
         if (__DEV__) console.error("[WC] pair failed:", err);
         router.replace("/");
       });
-  }, []);
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uri]);
 
   return null;
 }

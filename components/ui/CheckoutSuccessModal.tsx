@@ -131,7 +131,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
     } else {
       scale.value = 0;
     }
-  }, [visible, loading]);
+  }, [visible, loading, scale]);
 
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -147,6 +147,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </View>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -175,7 +177,9 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </>
     ),
-    [animatedIconStyle]
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [animatedIconStyle, textColor]
   );
 
   const installButton = useMemo(
@@ -184,6 +188,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         <ThemedText style={[styles.installButtonText, { color: Theme.colors.cardForeground }]}>Install eSIM</ThemedText>
       </TouchableOpacity>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onInstallESIM]
   );
 

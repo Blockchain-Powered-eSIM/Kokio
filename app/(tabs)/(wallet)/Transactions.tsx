@@ -27,9 +27,7 @@ const shortenId = (address: string|undefined, startLength = 3, endLength = 6) =>
 
 const Transactions = () => {
   const router = useRouter();
-
-  
-  const transactions = [
+  const transactions = useMemo(() => [
     {
 
       name: 'Alice',
@@ -72,7 +70,7 @@ const Transactions = () => {
       type: 'received',
       icon: require('../../../assets/images/wallet/wallet.png')
     },
-  ];
+  ], []);
 
   const renderTransaction = useCallback(
     (tr: Transaction, index: number) => (

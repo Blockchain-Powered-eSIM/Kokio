@@ -38,6 +38,8 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
       cancelAnimation(translateX);
       cancelAnimation(translateY);
     };
+    // reanimated SharedValue refs don't trigger re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleToastVisible]);
 
   const animatedStyle = useAnimatedStyle(() => {

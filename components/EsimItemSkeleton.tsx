@@ -78,7 +78,7 @@ const EsimItemSkeleton = ({
       -1, // Infinite repeat
       true // Reverse
     );
-  }, []);
+  }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

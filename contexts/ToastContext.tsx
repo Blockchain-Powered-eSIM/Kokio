@@ -34,7 +34,7 @@ function MessageToast({ message, variant, onHide }: { message: string; variant: 
       Animated.delay(3000),
       Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
     ]).start(onHide);
-  }, []);
+  }, [onHide, opacity]);
 
   const bg = variant === 'error' ? Theme.colors.destructive : Theme.colors.muted;
 

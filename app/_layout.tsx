@@ -61,6 +61,8 @@ export default function RootLayout() {
   useEffect(() => {
     useAuthStore.getState().loadPersistedTokens();
     setUnauthenticatedHandler(() => router.replace("/" as any));
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Initial connectivity check
@@ -107,8 +109,9 @@ export default function RootLayout() {
         }
       }
     });
-
     return () => unsubscribe();
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hide splash screen after fonts and bootstrap complete

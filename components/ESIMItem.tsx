@@ -106,6 +106,9 @@ const ESIMItem = ({
         </View>
       </>
     ),
+    // isDark is required here, useTheme() does not change the element on regional, global and homepage
+    // It only works on the local tab of the shop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [item, showBuyButton, handleBuyCTAClick, isDark]
   );
 
