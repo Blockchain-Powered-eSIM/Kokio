@@ -52,7 +52,7 @@ const createStyles = () => StyleSheet.create({
     },
 })
 
-const sendToContact = () => {
+const SendToContact = () => {
     const { isDark } = useTheme();
     const styles = useMemo(createStyles, [isDark]);
     const params = useLocalSearchParams();
@@ -267,4 +267,4 @@ const sendToContact = () => {
         </KeyboardAwareScrollView>
     )
 }
-export default sendToContact;
+export default SendToContact;

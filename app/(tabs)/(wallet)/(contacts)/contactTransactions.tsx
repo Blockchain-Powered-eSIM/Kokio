@@ -19,7 +19,7 @@ interface Transaction {
     walletId?:string
   }
 
-const contactTransactions = () => {
+const ContactTransactions = () => {
     const router = useRouter();
     const { transactions } = useLocalSearchParams();
     const parsedTransactions: Transaction[] = transactions
@@ -141,4 +141,4 @@ const contactTransactions = () => {
     );
 };
 
-export default contactTransactions;
+export default ContactTransactions;

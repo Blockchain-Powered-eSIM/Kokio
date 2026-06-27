@@ -20,7 +20,7 @@ interface Contact {
   transactions: any[]; // Replace `any` with a more specific type if possible
 }
 
-const contactsScreen = () => {
+const ContactsScreen = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
 
   const getAllContacts = async () => {
@@ -120,4 +120,4 @@ const contactsScreen = () => {
   );
 };
 
-export default contactsScreen;
+export default ContactsScreen;

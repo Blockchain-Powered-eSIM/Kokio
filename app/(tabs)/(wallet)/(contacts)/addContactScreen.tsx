@@ -14,7 +14,7 @@ import { useNavigation, useLocalSearchParams } from 'expo-router';
 import { Theme } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 
-const addContactScreen = () => {
+const AddContactScreen = () => {
     const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -200,4 +200,4 @@ const addContactScreen = () => {
     )
 }
 
-export default addContactScreen;
+export default AddContactScreen;

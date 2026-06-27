@@ -18,7 +18,7 @@ interface Transaction {
   icon: string;
 }
 
-const contactDetails = () => {
+const ContactDetails = () => {
   const { id, monogramUrl, firstName, lastName, walletAddress } = useLocalSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -142,4 +142,4 @@ const contactDetails = () => {
   )
 }
 
-export default contactDetails;
+export default ContactDetails;

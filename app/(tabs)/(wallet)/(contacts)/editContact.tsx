@@ -14,7 +14,7 @@ import ColorPaletteModal from '@/components/ui/modals/colorPalleteModal';
 import { Theme } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 
-const editContact = () => {
+const EditContact = () => {
     const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -224,4 +224,4 @@ const editContact = () => {
     )
 }
 
-export default editContact;
+export default EditContact;

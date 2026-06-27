@@ -21,7 +21,7 @@ interface Contact {
   }
 
 
-const contactsScreen = () => {
+const ContactsScreen = () => {
     
    
 
@@ -88,4 +88,4 @@ const contactsScreen = () => {
 }
 
 
-export default contactsScreen;
+export default ContactsScreen;
