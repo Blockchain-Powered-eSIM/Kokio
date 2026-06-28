@@ -1,11 +1,10 @@
 import { View, Image, Pressable } from 'react-native';
-import React, { useCallback } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 import _ from "lodash"
 import { Theme } from '@/constants/Colors'
-
 
 interface Transaction {
   id?: string;
@@ -16,9 +15,6 @@ interface Transaction {
   type: string;
   amount: string;
 }
-
-
-
 
 const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
   if (!address) return "";

@@ -177,7 +177,7 @@ export default function CoverageScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No results for "{query}"</Text>
+          <Text style={styles.emptyText}>No results for &quot;{query}&quot;</Text>
         }
         contentContainerStyle={{ paddingBottom: 32 }}
       />
