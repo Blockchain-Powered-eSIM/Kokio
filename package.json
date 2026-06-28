@@ -13,7 +13,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint",
+    "lint": "npx eslint . --ext .ts,.tsx",
     "gen:auth-types": "bash scripts/gen-auth-types.sh",
     "gen:bff-types": "bash scripts/gen-bff-types.sh",
     "postinstall": "patch-package"
