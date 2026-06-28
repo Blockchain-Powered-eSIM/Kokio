@@ -74,6 +74,16 @@ export default function ShopStack() {
           };
         }}
       />
+      <Stack.Screen
+        name={ROUTE_NAMES.COVERAGE}
+        options={{
+          header: () => (
+            <SafeAreaView edges={["top"]}>
+              <Header title="Network Coverage" hasBack style={{ justifyContent: "center" }} />
+            </SafeAreaView>
+          ),
+        }}
+      />
     </Stack>
   );
 }

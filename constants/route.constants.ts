@@ -2,6 +2,7 @@ export const ROUTE_NAMES = {
   HOME: "index",
   SHOP: "(shop)",
   CHECKOUT: "checkout/[id]",
+  COVERAGE: "coverage",
   WALLET: "(wallet)",
   PHONE: "phone",
   ORDERS: "orders",
