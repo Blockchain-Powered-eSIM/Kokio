@@ -5,10 +5,13 @@ import api from '@/services/httpService';
 type CreateOrderRequest  = components['schemas']['CreateOrderRequest'];
 type CreateOrderResponse = components['schemas']['CreateOrderResponse'];
 type OrderStatusResponse = components['schemas']['OrderStatusResponse'];
+type OrderListItem       = components['schemas']['OrderListItem'];
+type OrderListResponse   = components['schemas']['OrderListResponse'];
 
 export type InstallationDetails = components['schemas']['InstallationDetails'];
 
-export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse };
+export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, OrderListItem, OrderListResponse };
+
 
 // ─── Extended response types ──────────────────────────────────────────────────
 
@@ -76,6 +79,12 @@ export function createExternalWalletOrder(
 
 export function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
   return unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
+}
+
+export function getOrderList(page = 1, pageSize = 25): Promise<OrderListResponse> {
+  return unwrapBffResponse<OrderListResponse>(
+    api.get('/v1/order/list', { params: { page, pageSize } }),
+  );
 }
 
 // Terminal states — stop polling immediately on any of these.

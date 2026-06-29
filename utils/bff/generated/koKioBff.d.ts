@@ -94,6 +94,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get device account recovery profile
+         * @description Returns the wallet-derivation material the client SDK needs to reconstruct the
+         *     smart account after a reinstall. Identity is resolved server-side from the JWT —
+         *     no request body or parameters are accepted.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`) **and** step-up
+         *     authentication (`requireStepUp`). Provide both `Authorization: DPoP` and `DPoP`
+         *     headers. Recovery always follows a fresh passkey assertion, so step-up adds no
+         *     additional user friction. Step-up recency window is 5 minutes.
+         *
+         *     **Excluded fields:** `stripeCustomerId` is never returned — it is an internal
+         *     billing reference with no client-side use.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["accountGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/catalogue": {
         parameters: {
             query?: never;
@@ -246,6 +279,59 @@ export interface paths {
          *     (10 requests per minute per `deviceWalletAddress`).
          */
         post: operations["orderCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/order/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List device order history
+         * @description Returns a paginated, most-recent-first list of the authenticated device's
+         *     terminal orders. Supports app-local-state recovery after a reinstall.
+         *
+         *     Distinct from `GET /order/{idempotencyKey}` (single-order status poll): this
+         *     endpoint surfaces the device's historical orders as a uniform list. Each item
+         *     carries `idempotencyKey` so the client can deep-link back to the single-order
+         *     status endpoint for full details.
+         *
+         *     `installationDetails` are intentionally not provided in the response.
+         *     Active eSIMs for a device can be obtained via the `/esim` endpoint which provides
+         *     detailed history and installation details of each esim . Only active esims need this
+         *     information, hence, the intended method of surfacing this information to the user is
+         *     cia the `/esim` endpoint.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
+         *     Step-up is **not** required — this is a read-only history endpoint.
+         *
+         *     **Scope:** Results are restricted to the authenticated device via the JWT
+         *     `deviceWalletAddress`. Orders for other devices are never returned.
+         *
+         *     **Included states:** Only terminal orders are returned —
+         *     `COMPLETED`, `ESIM_PROVISIONED_PENDING_CHAIN`, `PAYMENT_FAILED`, `VENDOR_FAILED`,
+         *     `ESIM_PROVISION_FAILED`, `ON_CHAIN_FAILED`. Abandoned and in-progress orders are
+         *     excluded. `ESIM_PROVISIONED_PENDING_CHAIN` is included because the eSIM is
+         *     delivered and usable; on-chain recording is deferred to a background job.
+         *
+         *     **Ordering:** Sorted by `createdAt` descending (most recent first).
+         *
+         *     **Pagination:** `page` is 1-based (default 1). `pageSize` defaults to 10,
+         *     maximum 25. An out-of-range `page` returns an empty `orders` array with the
+         *     true `total`. An empty history returns `orders: []` with HTTP 200, not a 404.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["orderList"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1086,6 +1172,36 @@ export interface components {
              */
             latencyMs: number;
         };
+        AccountResponse: {
+            /**
+             * @description The authenticated device's smart-account wallet address. Echoes the
+             *     identity resolved from the JWT `sub` claim.
+             * @example 0xabc123def456abc123def456abc123def456abc1
+             */
+            deviceWalletAddress: string;
+            /**
+             * @description WebAuthn user handle associated with the device account.
+             *     Set as the `deviceUniqueIdentifier` for deviceWalletAddress derivation during registration.
+             * @example c3a1b2d4-e5f6-7890-abcd-ef1234567890
+             */
+            deviceUniqueIdentifier: string;
+            /**
+             * @description Server-generated salt persisted on the account, used by the client SDK as
+             *     part of deterministic smart-account derivation.
+             * @example 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+             */
+            salt: string;
+            /**
+             * @description X coordinate of the account's public key.
+             * @example 0x1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d
+             */
+            pubKeyX: string;
+            /**
+             * @description Y coordinate of the account's public key.
+             * @example 0x2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e
+             */
+            pubKeyY: string;
+        };
         CataloguePlan: {
             /**
              * @description MongoDB ObjectId of this catalogue entry.
@@ -1631,6 +1747,119 @@ export interface components {
              * @enum {string}
              */
             manualReviewReason?: "PLAN_DEACTIVATED" | "ON_CHAIN_RECORDING_FAILED" | "VENDOR_FULFILMENT_FAILED" | "ESIM_DELIVERY_FAILED" | "WALLET_REGISTRATION_FAILED";
+        };
+        OrderListItem: {
+            /**
+             * @description MongoDB ObjectId of the order document.
+             * @example 664f1a2b3c4d5e6f7a8b9c0e
+             */
+            orderId: string;
+            /**
+             * Format: uuid
+             * @description The order's idempotency key (the `x-correlation-id` used at creation).
+             *     Use as the path parameter for `GET /order/{idempotencyKey}` to deep-link
+             *     to full order detail.
+             * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+             */
+            idempotencyKey: string;
+            /**
+             * @description Vendor-assigned plan identifier. For topup orders where the server resolved
+             *     a TOPUP equivalent, this reflects the resolved plan ID.
+             * @example 1GB_EU_30D
+             */
+            planId: string;
+            /**
+             * @description Terminal state of the order. Constrained to the states surfaced by the
+             *     history endpoint.
+             *
+             *     **Terminal success** (eSIM usable):
+             *     - `COMPLETED` — all stages successful.
+             *     - `ESIM_PROVISIONED_PENDING_CHAIN` — eSIM delivered and usable, on-chain recording deferred.
+             *
+             *     **Terminal failures:**
+             *     - `PAYMENT_FAILED` — payment not collected.
+             *     - `VENDOR_FAILED` — payment collected, vendor rejected, flagged for manual review.
+             *     - `ESIM_PROVISION_FAILED` — payment collected, eSIM delivery failed, flagged for manual review.
+             *     - `ON_CHAIN_FAILED` — payment collected, on-chain recording failed after retry exhaustion, flagged for manual review.
+             * @example COMPLETED
+             * @enum {string}
+             */
+            orderStatus: "COMPLETED" | "ESIM_PROVISIONED_PENDING_CHAIN" | "PAYMENT_FAILED" | "VENDOR_FAILED" | "ESIM_PROVISION_FAILED" | "ON_CHAIN_FAILED";
+            /**
+             * @description Payment method resolved at order initiation.
+             * @example FIAT
+             * @enum {string}
+             */
+            paymentMethod: "FIAT" | "CRYPTO" | "COUPON";
+            /**
+             * @description Canonical vendor identifier that fulfilled the order.
+             *     Null on orders that failed before vendor fulfilment (e.g. `PAYMENT_FAILED`).
+             * @example VENDOR1
+             */
+            vendor?: string | null;
+            /**
+             * @description Whether this was a new eSIM purchase (true) or a topup (false).
+             *     Null on orders that failed before fulfilment.
+             * @example true
+             */
+            isNewESim?: boolean | null;
+            /**
+             * @description ICCID of the provisioned eSIM. Null on orders that did not reach provisioning.
+             * @example 8944110068000000001
+             */
+            iccid?: string | null;
+            /**
+             * @description Wallet address of the eSIM associated with the order.
+             *     Null on orders that did not reach provisioning.
+             * @example 0xdef456abc123def456abc123def456abc123def4
+             */
+            esimId?: string | null;
+            /**
+             * Format: uri
+             * @description Hosted Stripe invoice URL for the order, where available.
+             * @example https://invoice.stripe.com/i/acct_123/test_abc
+             */
+            stripeInvoiceUrl?: string | null;
+            /**
+             * @description Whether the order was flagged for manual review (set on post-payment
+             *     fulfilment failures). Defaults to false.
+             * @example false
+             */
+            flaggedForManualReview: boolean;
+            /**
+             * @description Reason the order was flagged for manual review. Null when not flagged.
+             * @example null
+             */
+            manualReviewReason?: string | null;
+            /**
+             * Format: date-time
+             * @description Order creation timestamp. Used as the descending sort key.
+             * @example 2026-04-20T08:15:00.000Z
+             */
+            createdAt: string;
+        };
+        OrderListResponse: {
+            /**
+             * @description Paginated array of the device's terminal orders, most-recent-first.
+             *     Empty array when the device has no terminal orders, or when `page`
+             *     is beyond the available range.
+             */
+            orders: components["schemas"]["OrderListItem"][];
+            /**
+             * @description Current page number (1-indexed).
+             * @example 1
+             */
+            page: number;
+            /**
+             * @description Number of results per page as resolved by the server.
+             * @example 10
+             */
+            pageSize: number;
+            /**
+             * @description Total number of matching terminal orders across all pages.
+             * @example 2
+             */
+            total: number;
         };
         CompatibilityResult: {
             /**
@@ -2551,6 +2780,103 @@ export interface operations {
             };
         };
     };
+    accountGet: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Account recovery profile for the authenticated device. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "deviceWalletAddress": "0xabc123def456abc123def456abc123def456abc1",
+                     *         "deviceUniqueIdentifier": "c3a1b2d4-e5f6-7890-abcd-ef1234567890",
+                     *         "salt": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+                     *         "pubKeyX": "0x1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+                     *         "pubKeyY": "0x2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["AccountResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Authentication, DPoP validation, or step-up recency check failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `STEP_UP_REQUIRED` | Operation requires recent authentication — trigger step-up flow |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm`, `htu`, or `ath` binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the `cnf.jkt` claim |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     catalogueGetPlans: {
         parameters: {
             query: {
@@ -3062,6 +3388,101 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+        };
+    };
+    orderList: {
+        parameters: {
+            query?: {
+                /**
+                 * @description 1-based page number. Defaults to 1.
+                 * @example 1
+                 */
+                page?: number;
+                /**
+                 * @description Number of results per page. Defaults to 10, maximum 25.
+                 *     Values above the maximum are rejected with `INVALID_PAGINATION_PARAMS`
+                 *     (the server does not silently clamp).
+                 * @example 10
+                 */
+                pageSize?: number;
+            };
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated order history for the authenticated device. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["OrderListResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Pagination parameter validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_PAGINATION_PARAMS` | `page` or `pageSize` is not a positive integer, or `pageSize` exceeds the maximum of 25 |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "INVALID_PAGINATION_PARAMS",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Invalid pageSize, maximum is 25"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            500: components["responses"]["InternalServerError"];
         };
     };
     orderGetStatus: {

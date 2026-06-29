@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import {
-  ActivityIndicator,
   FlatList,
   Linking,
   Modal,
@@ -23,18 +22,15 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useKokio } from "@/hooks/useKokio";
-import type { StoredPurchasedESIM } from "@/providers/kokioProvider";
+import type { StoredPurchasedESIM, StoredTransactionData } from "@/providers/kokioProvider";
 import { getAllEsims, getEsim } from "@/utils/bff/esim";
 import type { ESimDocument } from "@/utils/bff/esim";
-import { getOrderStatus } from "@/utils/bff/order";
-import type { OrderStatusResponse } from "@/utils/bff/order";
 import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
 import ESIMItem from "@/components/ESIMItem";
 import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
 
 type EnrichedOrder = StoredPurchasedESIM & {
   liveEsim?: ESimDocument;
-  liveStatus?: OrderStatusResponse;
 };
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -283,7 +279,7 @@ const PurchaseDetailsModal = ({
 }: {
   visible: boolean;
   onClose: () => void;
-  transactionData: any;
+  transactionData: StoredTransactionData;
   liveEsim?: ESimDocument;
   invoiceUrl: string | null;
   lpa: string | null;
@@ -383,6 +379,7 @@ const OrderCard = ({
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
 
@@ -394,7 +391,7 @@ const OrderCard = ({
     }
   }, [expandOrderId]);
 
-  const { eSimItem, transactionData, liveEsim, liveStatus } = order;
+  const { eSimItem, transactionData, liveEsim } = order;
   const statusColor = colorForStatus(transactionData.orderStatus);
 
   const lpa =
@@ -402,15 +399,13 @@ const OrderCard = ({
       ? `LPA:1$${liveEsim.smdpAddress}$${liveEsim.matchingId}`
       : transactionData.installationDetails?.qrcode ?? null;
 
-  const invoiceUrl = liveStatus?.stripeInvoiceUrl ?? null;
-  const flagged = liveStatus?.flaggedForManualReview ?? false;
+  const invoiceUrl = transactionData.stripeInvoiceUrl ?? null;
+  const flagged = transactionData.flaggedForManualReview ?? false;
   const supportRef = transactionData.correlationId ?? transactionData.orderId;
 
   const extraDetailRows = useMemo(() => {
     return ESIM_EXTRA_DETAILS.filter((item) => {
-      if (
-        ["IP_ROUTING", "ADDITIONAL_INFORMATION", "countryWiseNetworkCoverages"].includes(item.key)
-      )
+      if (["IP_ROUTING", "ADDITIONAL_INFORMATION", "countryWiseNetworkCoverages"].includes(item.key))
         return false;
       const raw = _get(eSimItem, item.key);
       if (raw === null || raw === undefined) return false;
@@ -418,6 +413,8 @@ const OrderCard = ({
       return formatted && formatted !== "N/A";
     });
   }, [eSimItem]);
+
+  const coverageCount = eSimItem.countryWiseNetworkCoverages?.length ?? 0;
 
   return (
     <View style={styles.orderCardWrapper}>
@@ -459,7 +456,7 @@ const OrderCard = ({
 
       {expanded && (
         <View style={[styles.detailSection, { backgroundColor: Theme.colors.surface }]}>
-          {extraDetailRows.length > 0 && (
+          {(extraDetailRows.length > 0 || coverageCount > 0) && (
             <View style={styles.extraDetailsContainer}>
               {extraDetailRows.map((item, idx) => {
                 const raw = _get(eSimItem, item.key);
@@ -487,6 +484,33 @@ const OrderCard = ({
                   </View>
                 );
               })}
+              {coverageCount > 0 && (
+                <View style={styles.extraDetailRow}>
+                  <View style={styles.extraDetailLabel}>
+                    <Ionicons name="cellular-outline" size={15} color={Theme.colors.inactive} />
+                    <Text style={[styles.extraDetailLabelText, { color: Theme.colors.inactive }]}>
+                      Coverage
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(tabs)/(shop)/coverage",
+                        params: {
+                          data: JSON.stringify(eSimItem.countryWiseNetworkCoverages),
+                        },
+                      })
+                    }
+                    style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+                    hitSlop={8}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: Theme.colors.text }}>
+                      {coverageCount} {coverageCount === 1 ? "country" : "countries"}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={13} color={Theme.colors.text} />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
 
@@ -537,80 +561,50 @@ export default function OrdersScreen() {
   const { expandOrderId } = useLocalSearchParams<{ expandOrderId?: string }>();
   const orders = kokio.purchasedESIMs;
   const [enrichedOrders, setEnrichedOrders] = useState<EnrichedOrder[]>(orders);
-  const [isFetching, setIsFetching] = useState(true);
+
+  useEffect(() => {
+    setEnrichedOrders(orders);
+  }, [orders]);
 
   useEffect(() => {
     let cancelled = false;
     const fetchLive = async () => {
-      setIsFetching(true);
       try {
         const liveEsims = await getAllEsims();
-        const liveMap: Record<string, ESimDocument> = {};
-        liveEsims.forEach((e) => {
-          liveMap[e.esimId] = e;
+        const liveMap = new Map<string, ESimDocument>(liveEsims.map(e => [e.esimId, e]));
+
+        orders.forEach(async (order, i) => {
+          const { transactionData } = order;
+
+          // Resolve live eSIM doc — try the map first, fall back to direct fetch
+          let live = transactionData.esimId ? liveMap.get(transactionData.esimId) : undefined;
+          if (!live && transactionData.esimId) {
+            live = await getEsim(transactionData.esimId).catch(() => undefined);
+          }
+          if (!live) return; // nothing new to add
+
+          const enriched: EnrichedOrder = {
+            ...order,
+            liveEsim: live,
+            transactionData: {
+              ...transactionData,
+              iccid: live.iccid ?? transactionData.iccid,
+              orderStatus: live.activationStatus ?? transactionData.orderStatus,
+              planId: live.planId ?? transactionData.planId,
+              installationDetails: live.installationDetails ?? transactionData.installationDetails,
+            },
+          };
+
+          if (!cancelled) {
+            setEnrichedOrders((prev) => {
+              const next = [...prev];
+              next[i] = enriched;
+              return next;
+            });
+          }
         });
-
-        const merged = await Promise.all(
-          orders.map(async (order): Promise<EnrichedOrder> => {
-            const { transactionData } = order;
-
-            if (transactionData.esimId && liveMap[transactionData.esimId]) {
-              const live = liveMap[transactionData.esimId];
-              const liveStatus = transactionData.correlationId
-                ? await getOrderStatus(transactionData.correlationId).catch(() => undefined)
-                : undefined;
-              return {
-                ...order,
-                liveEsim: live,
-                liveStatus,
-                transactionData: {
-                  ...transactionData,
-                  iccid: live.iccid ?? transactionData.iccid,
-                  orderStatus: live.activationStatus ?? transactionData.orderStatus,
-                  planId: live.planId ?? transactionData.planId,
-                  installationDetails:
-                    live.installationDetails ?? transactionData.installationDetails,
-                },
-              };
-            }
-
-            if (transactionData.correlationId && !transactionData.installationDetails?.qrcode) {
-              try {
-                const latest = await getOrderStatus(transactionData.correlationId);
-                const liveEsim = latest.esimId
-                  ? liveMap[latest.esimId] ??
-                    (await getEsim(latest.esimId).catch(() => undefined))
-                  : undefined;
-                return {
-                  ...order,
-                  liveEsim,
-                  liveStatus: latest,
-                  transactionData: {
-                    ...transactionData,
-                    orderId: latest.orderId || transactionData.orderId,
-                    iccid: latest.iccid ?? transactionData.iccid,
-                    orderStatus: latest.orderStatus ?? transactionData.orderStatus,
-                    esimId: latest.esimId ?? transactionData.esimId,
-                    installationDetails:
-                      liveEsim?.installationDetails ??
-                      latest.installationDetails ??
-                      transactionData.installationDetails,
-                  },
-                };
-              } catch {
-                return order;
-              }
-            }
-
-            return order;
-          })
-        );
-
-        if (!cancelled) setEnrichedOrders(merged);
       } catch {
-        // live fetch failed — show stored data as-is
-      } finally {
-        if (!cancelled) setIsFetching(false);
+        // live fetch failed — stored data already shown
       }
     };
     fetchLive();
@@ -622,16 +616,18 @@ export default function OrdersScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["bottom"]}>
       <ThemedView style={styles.container}>
-        {isFetching ? (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="large" color={Theme.colors.secondary} />
-          </View>
-        ) : enrichedOrders.length === 0 ? (
+        {enrichedOrders.length === 0 ? (
           <ThemedText style={styles.emptyText}>No orders yet.</ThemedText>
         ) : (
+
           <FlatList
             data={enrichedOrders}
-            keyExtractor={(_, i) => i.toString()}
+            keyExtractor={(item) =>
+              item.transactionData.correlationId ??
+              item.transactionData.orderId ??
+              item.transactionData.iccid ??
+              Math.random().toString()
+            }
             renderItem={({ item }) => (
               <OrderCard
                 order={item}
