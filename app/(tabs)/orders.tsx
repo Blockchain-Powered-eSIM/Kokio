@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
   FlatList,
   Linking,
@@ -371,25 +371,18 @@ const PurchaseDetailsModal = ({
 const OrderCard = ({
   order,
   onInstall,
-  expandOrderId,
+  isExpanded,
+  onToggle,
 }: {
   order: EnrichedOrder;
   onInstall?: (lpa: string) => void;
-  expandOrderId?: string;
+  isExpanded: boolean;
+  onToggle: () => void;
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   const router = useRouter();
-  const [expanded, setExpanded] = useState(false);
   const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
-
-  useEffect(() => {
-    if (!expandOrderId) return;
-    const { correlationId, orderId } = order.transactionData;
-    if (expandOrderId === correlationId || expandOrderId === orderId) {
-      setExpanded(true);
-    }
-  }, [expandOrderId]);
 
   const { eSimItem, transactionData, liveEsim } = order;
   const statusColor = colorForStatus(transactionData.orderStatus);
@@ -419,7 +412,7 @@ const OrderCard = ({
   return (
     <View style={styles.orderCardWrapper}>
       <TouchableOpacity
-        onPress={() => setExpanded((e) => !e)}
+        onPress={onToggle}
         activeOpacity={0.85}
       >
         <ESIMItem item={eSimItem} showBuyButton={false} />
@@ -445,7 +438,7 @@ const OrderCard = ({
               </View>
             ) : null}
             <Ionicons
-              name={expanded ? "chevron-up" : "chevron-down"}
+              name={isExpanded ? "chevron-up" : "chevron-down"}
               size={14}
               color={Theme.colors.mutedForeground}
               style={{ marginLeft: "auto" }}
@@ -454,7 +447,7 @@ const OrderCard = ({
         </View>
       </TouchableOpacity>
 
-      {expanded && (
+      {isExpanded && (
         <View style={[styles.detailSection, { backgroundColor: Theme.colors.surface }]}>
           {(extraDetailRows.length > 0 || coverageCount > 0) && (
             <View style={styles.extraDetailsContainer}>
@@ -498,6 +491,7 @@ const OrderCard = ({
                         pathname: "/(tabs)/(shop)/coverage",
                         params: {
                           data: JSON.stringify(eSimItem.countryWiseNetworkCoverages),
+                          from: "orders",
                         },
                       })
                     }
@@ -552,6 +546,12 @@ const OrderCard = ({
 
 // ── OrdersScreen ──────────────────────────────────────────────────────────────
 
+const getOrderKey = (item: EnrichedOrder): string =>
+  item.transactionData.correlationId ??
+  item.transactionData.orderId ??
+  item.transactionData.iccid ??
+  "";
+
 export default function OrdersScreen() {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
@@ -561,6 +561,25 @@ export default function OrdersScreen() {
   const { expandOrderId } = useLocalSearchParams<{ expandOrderId?: string }>();
   const orders = kokio.purchasedESIMs;
   const [enrichedOrders, setEnrichedOrders] = useState<EnrichedOrder[]>(orders);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Collapse all when leaving the Orders tab
+  useFocusEffect(
+    useCallback(() => {
+      return () => setExpandedId(null);
+    }, [])
+  );
+
+  // Auto-expand the order referenced by the URL param (e.g. from a notification)
+  useEffect(() => {
+    if (!expandOrderId || !enrichedOrders.length) return;
+    const matched = enrichedOrders.find(
+      (o) =>
+        o.transactionData.correlationId === expandOrderId ||
+        o.transactionData.orderId === expandOrderId
+    );
+    if (matched) setExpandedId(getOrderKey(matched));
+  }, [expandOrderId, enrichedOrders]);
 
   useEffect(() => {
     setEnrichedOrders(orders);
@@ -628,15 +647,21 @@ export default function OrdersScreen() {
               item.transactionData.iccid ??
               Math.random().toString()
             }
-            renderItem={({ item }) => (
+            renderItem={({ item }) => {
+              const key = getOrderKey(item);
+              return (
               <OrderCard
                 order={item}
-                expandOrderId={expandOrderId}
+                isExpanded={expandedId === key}
+                onToggle={() => setExpandedId((prev) => (prev === key ? null : key))}
                 onInstall={(lpa) =>
-                  router.push({ pathname: "/(tabs)/installation", params: { qrcode: lpa } })
+                  router.push({
+                    pathname: "/(tabs)/installation",
+                    params: { qrcode: lpa, from: "orders" },
+                  })
                 }
               />
-            )}
+            );}}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 8 }}
           />
