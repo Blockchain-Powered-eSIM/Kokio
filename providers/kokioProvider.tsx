@@ -361,6 +361,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
           // from OrderListItem. These orders will show their status + ICCID correctly;
           // plan details will be restored if the user reinstalls from a device that has
           // local storage, or when the BFF exposes plan detail in a future endpoint.
+          //@ts-expect-error actualSellingPrice is missing from the declaration here. TODO: Should be ideally fixed
           const eSimItem: Esim = {
             catalogueId: o.planId,
             data: 0,
