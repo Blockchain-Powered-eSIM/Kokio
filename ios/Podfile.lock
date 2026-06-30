@@ -1,36 +1,4 @@
 PODS:
-  - account-kit-react-native-signer (4.88.4):
-    - Base58Swift
-    - boost
-    - DoubleConversion
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
-  - Base58Swift (2.1.10):
-    - BigInt (~> 5.0.0)
-  - BigInt (5.0.0)
   - boost (1.84.0)
   - DoubleConversion (1.1.6)
   - EASClient (55.0.5):
@@ -40,7 +8,7 @@ PODS:
   - EXConstants (55.0.16):
     - ExpoModulesCore
   - EXJSONUtils (55.0.2)
-  - EXManifests (55.0.17):
+  - EXManifests (55.0.18):
     - ExpoModulesCore
   - Expo (55.0.26):
     - boost
@@ -263,7 +231,7 @@ PODS:
     - ZXingObjC/PDF417
   - ExpoClipboard (55.0.13):
     - ExpoModulesCore
-  - ExpoCrypto (55.0.15):
+  - ExpoCrypto (55.0.16):
     - ExpoModulesCore
   - ExpoDomWebView (55.0.6):
     - ExpoModulesCore
@@ -3719,7 +3687,6 @@ PODS:
     - ZXingObjC/Core
 
 DEPENDENCIES:
-  - "account-kit-react-native-signer (from `../node_modules/@account-kit/react-native-signer`)"
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - EASClient (from `../node_modules/expo-eas-client/ios`)
@@ -3858,8 +3825,6 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - Base58Swift
-    - BigInt
     - libavif
     - libdav1d
     - libwebp
@@ -3884,8 +3849,6 @@ SPEC REPOS:
     - ZXingObjC
 
 EXTERNAL SOURCES:
-  account-kit-react-native-signer:
-    :path: "../node_modules/@account-kit/react-native-signer"
   boost:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
@@ -4155,16 +4118,13 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  account-kit-react-native-signer: 36ab9354f274cdec056ffcc619583564804cb413
-  Base58Swift: 53d551f0b33d9478fa63b3445e453a772d6b31a7
-  BigInt: 74b4d88367b0e819d9f77393549226d36faeb0d8
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   EASClient: 414b26bae592cf8db64aa60461aff9d84ebbd944
   EXApplication: c7f6775d5a64bf118b8ecaf01cf57aeaa0adef56
   EXConstants: 255fd9f72f94bfccaed1d161edac04a552baa8d9
   EXJSONUtils: 04bc3807d351331a5fe154ce1da596ec15d99169
-  EXManifests: 76895246689cf0e6eec1dcfc729a91b719d065e5
+  EXManifests: dbe9ab95b592bd75588bde030aeaba57db62e948
   Expo: 69bd54ccd2b563760d64e46cacfd962fe74e45eb
   expo-dev-client: bf9d0038fe9677508db5fefa8dbdadca489e975c
   expo-dev-launcher: fdadc389d462843e8e9775d1e998629b05566e26
@@ -4175,7 +4135,7 @@ SPEC CHECKSUMS:
   ExpoCamera: d57d24d74b97e0b6681df7f7819dd7745fd18726
   ExpoCameraBarcodeScanning: 19f441879df88c1ead280bf138e80115b6edcb21
   ExpoClipboard: 56f5dac55e9e19bb6f084ada68bfc634a36e9533
-  ExpoCrypto: 3deb1f311979766b91f8ad2e1d1feb4699688fb4
+  ExpoCrypto: 99b9a778f48350b11b514e5062e26a0ec209df6e
   ExpoDomWebView: 317a0d188cfdb850fc6fd2a43a2fc132dfd171ee
   ExpoFileSystem: ce9db64ae67e6dcc8db42365e499f9fcc4fbe8ec
   ExpoFont: 21550be2946ea5bbf50f1a20b31facd19ba4150c
