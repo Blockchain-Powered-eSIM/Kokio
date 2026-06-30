@@ -9,6 +9,65 @@ import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
 import { Config } from '@/appKeys';
 
+// ─── Shared types ────────────────────────────────────────────────────────────
+
+/*DEVICE WALLET DEPLOYEMENT FIX*/
+// type LoginCompleteExtended = {
+//   deviceWalletAddress: string;
+//   authTime: number;
+//   deviceUniqueIdentifier?: string;
+//   rawSalt?: string;
+//   publicKeyX?: string;
+//   publicKeyY?: string;
+// };
+//
+// async function hydrateCredentialStore(data: LoginCompleteExtended): Promise<void> {
+//   if (data.deviceUniqueIdentifier) {
+//     const existing = await SecureStore.getItemAsync('deviceUID');
+//     if (!existing) {
+//       await SecureStore.setItemAsync('deviceUID', JSON.stringify(data.deviceUniqueIdentifier));
+//       if (__DEV__) console.log('[passkey] hydrated deviceUID from loginComplete');
+//     }
+//   }
+//   if (data.rawSalt) {
+//     const existing = await SecureStore.getItemAsync('rawSalt');
+//     if (!existing) {
+//       await SecureStore.setItemAsync('rawSalt', data.rawSalt);
+//       if (__DEV__) console.log('[passkey] hydrated rawSalt from loginComplete');
+//     }
+//   }
+//   if (data.publicKeyX && data.publicKeyY) {
+//     const existing = await SecureStore.getItemAsync('publicKeyX');
+//     if (!existing) {
+//       await SecureStore.setItemAsync('publicKeyX', data.publicKeyX);
+//       await SecureStore.setItemAsync('publicKeyY', data.publicKeyY);
+//       if (__DEV__) console.log('[passkey] hydrated publicKeyX/Y from loginComplete');
+//     }
+//   }
+// }
+//
+// async function hydrateDeviceUIDFromUserHandle(userHandle: string | null | undefined): Promise<void> {
+//   if (!userHandle) return;
+//   try {
+//     const b64 = userHandle.replace(/-/g, '+').replace(/_/g, '/');
+//     const binary = atob(b64);
+//     let decoded = '';
+//     for (let i = 0; i < binary.length; i++) decoded += binary[i];
+//     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded)) return;
+//     const existing = await SecureStore.getItemAsync('deviceUID');
+//     if (!existing) {
+//       await SecureStore.setItemAsync('deviceUID', JSON.stringify(decoded));
+//       if (__DEV__) console.log('[passkey] hydrated deviceUID from userHandle:', decoded);
+//     }
+//   } catch { /* non-critical */ }
+// }
+/*DEVICE WALLET DEPLOYEMENT FIX*/
+
+export type DiscoverLoginResult = {
+  credentialId: string;
+  deviceWalletAddress: string;
+};
+
 // ─── Response envelope helper ─────────────────────────────────────────────────
 
 type ApiBody<T> = { success?: boolean; code?: string; message?: string; data?: T };
@@ -66,10 +125,13 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
     // via Google Password Manager, which hangs or shows "Use another device" when
     // the credential isn't yet locally indexed. Use the stored credential ID to
     // target the credential directly and skip the cloud enumeration entirely.
+    // transports: ['internal'] restricts the lookup to device-local storage, which
+    // avoids showing any dialog — failures come back as a silent NoCredentials error
+    // that the caller can retry after a delay (giving Google PM time to commit).
     const resolvedId = credentialIdHint ?? await SecureStore.getItemAsync('credentialId') ?? undefined;
     const allowCredentials = resolvedId
-      ? [{ id: resolvedId, type: 'public-key' as const }]
-      : beginData.allowCredentials as { id: string; type: string }[];
+      ? [{ id: resolvedId, type: 'public-key' as const, transports: ['internal'] as const }]
+      : (beginData.allowCredentials as { id: string; type: string }[]).map(c => ({ ...c, transports: ['internal'] as const }));
 
     assertion = await Passkey.get({
       challenge:        beginData.challenge,
@@ -79,6 +141,7 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
       userVerification: beginData.userVerification,
     });
     console.log('[PASSKEY] got assertion');
+    if (__DEV__) console.log('[PASSKEY] assertion userHandle (raw):', assertion.response.userHandle);
   } catch (e) {
     console.log('[PASSKEY] error', e);
     throw e;
@@ -210,6 +273,124 @@ export async function loginWithKokioPasskey(credentialIdHint?: string, deviceWal
     refresh_token: tokenData.refresh_token,
     id_token:      tokenData.id_token,
     expires_at:    Date.now() + tokenData.expires_in * 1000,
-    auth_time:     auth_time ?? 0,
+    auth_time:     auth_time ?? Math.floor(Date.now() / 1000),
   });
+}
+
+// ─── Discoverable-credential login (reinstall recovery) ──────────────────────
+//
+// Used when SecureStore has been wiped (e.g. app uninstall/reinstall) but the
+// passkey still exists in the platform credential manager (Google Password
+// Manager / iCloud Keychain). Calls loginBegin with no deviceWalletAddress so
+// the server returns an empty allowCredentials challenge, letting the OS
+// present all synced Kokio passkeys to the user. On success, stores
+// deviceWalletAddress and credentialId in SecureStore so future logins use the
+// normal targeted flow.
+export async function discoverAndLoginWithPasskey(): Promise<DiscoverLoginResult> {
+  const base = Config.AUTH_SERVER_BASE_URL;
+  if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
+
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    const beginData = assertData<{
+      challenge:        string;
+      timeout:          number;
+      rpId:             string;
+      allowCredentials: [];
+      userVerification: 'required';
+    }>(
+      await kokioAuthClient.loginDiscoverBegin(),
+      'LOGIN_FAILED',
+    );
+
+    const assertion = await Passkey.get({
+      challenge:        beginData.challenge,
+      rpId:             beginData.rpId,
+      timeout:          beginData.timeout,
+      allowCredentials: [],
+      userVerification: beginData.userVerification,
+    });
+    if (__DEV__) console.log('[PASSKEY] discover assertion userHandle (raw):', assertion.response.userHandle);
+
+    const completeData = assertData<{ deviceWalletAddress: string; authTime: number }>(
+      await kokioAuthClient.loginComplete({
+        assertionResponse: {
+          id:      assertion.id,
+          rawId:   assertion.rawId ?? assertion.id,
+          response: {
+            clientDataJSON:    assertion.response.clientDataJSON,
+            authenticatorData: assertion.response.authenticatorData,
+            signature:         assertion.response.signature,
+            userHandle:        assertion.response.userHandle ?? null,
+          },
+          type:                   'public-key',
+          clientExtensionResults: {},
+        },
+      }),
+      'LOGIN_FAILED',
+    );
+
+    const correlationId = uuidv4();
+    const request = new AuthSession.AuthRequest({
+      clientId:    'kokio-bff',
+      redirectUri: REDIRECT_URI,
+      usePKCE:     true,
+      state:       correlationId,
+      extraParams: {
+        device_wallet_address: completeData.deviceWalletAddress,
+        auth_time:             String(completeData.authTime),
+      },
+    });
+
+    const result = await request.promptAsync(
+      { authorizationEndpoint: `${base}/v1/auth/authorize` },
+      { preferUniversalLinks: true },
+    );
+
+    if (result.type === 'success') {
+      const { code } = result.params;
+      if (!code) throw new AuthError('AUTHORIZE_FAILED', undefined, 'No code in redirect');
+
+      const tokenData = assertData<{
+        access_token:  string;
+        refresh_token: string;
+        id_token:      string;
+        expires_in:    number;
+      }>(
+        await kokioAuthClient.token(
+          {
+            grant_type:    'authorization_code',
+            code,
+            redirect_uri:  REDIRECT_URI,
+            code_verifier: request.codeVerifier!,
+          },
+          (nonce, htu) => buildDpopProof({ htu: htu!, htm: 'POST', nonce }),
+        ),
+        'LOGIN_FAILED',
+      );
+
+      const { auth_time } = parseIdToken(tokenData.id_token);
+      await useAuthStore.getState().setTokens({
+        access_token:  tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        id_token:      tokenData.id_token,
+        expires_at:    Date.now() + tokenData.expires_in * 1000,
+        auth_time:     auth_time ?? Math.floor(Date.now() / 1000),
+      });
+
+      // Persist the minimum needed for future normal logins
+      await SecureStore.setItemAsync('deviceWalletAddress', completeData.deviceWalletAddress);
+      await SecureStore.setItemAsync('credentialId', assertion.id);
+
+      return { credentialId: assertion.id, deviceWalletAddress: completeData.deviceWalletAddress };
+    }
+
+    if (result.type === 'error') {
+      if (result.params.error === 'AUTH_TIME_RECENCY_VIOLATION' && attempt === 0) continue;
+      throw new AuthError('AUTHORIZE_FAILED', undefined, result.params.error);
+    }
+
+    throw new AuthError('AUTHORIZE_FAILED', undefined, 'Authorization was dismissed');
+  }
+
+  throw new AuthError('LOGIN_FAILED');
 }

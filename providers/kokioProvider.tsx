@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Esim } from "@/components/ESIMItem";
 import { OrderStatusResponse } from "@/utils/bff/order";
 import { getAllEsims, type ESimDocument } from "@/utils/bff/esim";
+import { getOrderList, type OrderListItem } from "@/utils/bff/order";
 import {
   getWcSignClient,
   setPendingProposal,
@@ -31,6 +32,8 @@ export interface StoredTransactionData {
   vendor?: string;
   esimId?: string;
   isNewESim?: boolean;
+  stripeInvoiceUrl?: string | null;
+  flaggedForManualReview?: boolean;
   installationDetails: {
     qrcode: string;
     appleInstallationUrl: string;
@@ -58,6 +61,11 @@ const reduceESimDataForStorage = (
     "serviceRegionCode",
     "serviceRegionName",
     "serviceRegionFlag",
+    "planType",
+    "isTopupAvailable",
+    "isAutoStart",
+    "isKycRequired",
+    "countryWiseNetworkCoverages",
   ]) as Esim;
 
   const reducedTransactionData: StoredTransactionData = {
@@ -198,6 +206,7 @@ export interface KokioProviderType {
     orderStatus?: string,
   ) => Promise<void>;
   setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex, rawSalt: string) => Promise<void>;
+  setupKokioRecovery: (deviceWalletAddress: string, credentialId: string) => Promise<void>;
   clearKokio: () => void;
   clearKokioUser: () => Promise<void>;
 }
@@ -211,6 +220,7 @@ export const KokioContext = createContext<KokioProviderType>({
   savePurchasedESIM: async () => Promise.resolve(),
   upsertOrderRecord: async () => Promise.resolve(),
   setupKokioRegistration: async (_a, _b, _c, _d, _e, _f) => Promise.resolve(),
+  setupKokioRecovery: async (_a, _b) => Promise.resolve(),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
 });
@@ -300,41 +310,94 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.deleteItemAsync(key);
   };
 
-  // TODO: BFF does not yet expose GET /v1/orders. When it does:
-  //   1. Fetch order history: await api.get('/v1/orders')
-  //   2. Map BFF orders to StoredPurchasedESIM shape
-  //   3. Merge with local list (prefer BFF as source of truth; keep local for offline access)
-  //   4. Persist merged list via saveValueForPurchasedESIMs and dispatch SET_PURCHASED_ESIMS
-  //   5. lastSyncedAt (written below) lets callers detect stale local data
   const syncPurchasedEsimsWithBff = async (deviceUID: string): Promise<void> => {
     try {
-      const liveEsims = await getAllEsims();
-      const liveMap = new Map<string, ESimDocument>(liveEsims.map(e => [e.esimId, e]));
+      const [liveEsims, orderListResult] = await Promise.all([
+        getAllEsims(),
+        getOrderList(1, 25).catch(() => null),
+      ]);
 
-      const existingESIMs = await getValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`);
-      if (!existingESIMs?.length) return;
+      const esimMap = new Map<string, ESimDocument>(liveEsims.map(e => [e.esimId, e]));
+      const bffOrders: OrderListItem[] = orderListResult?.orders ?? [];
+      const bffOrderMap = new Map<string, OrderListItem>(bffOrders.map(o => [o.idempotencyKey, o]));
 
-      const updated = existingESIMs.map(stored => {
-        const esimId = stored.transactionData.esimId;
-        if (!esimId) return stored;
-        const live = liveMap.get(esimId);
-        if (!live) return stored;
+      const existingESIMs = (await getValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`)) ?? [];
+
+      // Update locally stored orders with fresh BFF data
+      const updatedLocal = existingESIMs.map(stored => {
+        const bff = stored.transactionData.correlationId
+          ? bffOrderMap.get(stored.transactionData.correlationId)
+          : undefined;
+        const live = stored.transactionData.esimId
+          ? esimMap.get(stored.transactionData.esimId)
+          : undefined;
         return {
           ...stored,
           transactionData: {
             ...stored.transactionData,
-            iccid: live.iccid ?? stored.transactionData.iccid,
-            orderStatus: live.activationStatus ?? stored.transactionData.orderStatus,
-            installationDetails: live.installationDetails
+            iccid: live?.iccid ?? bff?.iccid ?? stored.transactionData.iccid,
+            orderStatus: live?.activationStatus ?? bff?.orderStatus ?? stored.transactionData.orderStatus,
+            esimId: bff?.esimId ?? stored.transactionData.esimId,
+            stripeInvoiceUrl: bff?.stripeInvoiceUrl ?? stored.transactionData.stripeInvoiceUrl,
+            flaggedForManualReview: bff?.flaggedForManualReview ?? stored.transactionData.flaggedForManualReview,
+            installationDetails: live?.installationDetails
               ? { qrcode: live.installationDetails.qrcode, appleInstallationUrl: live.installationDetails.appleInstallationUrl }
               : stored.transactionData.installationDetails,
           },
         };
       });
 
-      await saveValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`, updated);
-      dispatch({ type: "SET_PURCHASED_ESIMS", payload: updated });
+      // Reinstall recovery: find BFF orders not present locally
+      const localKeys = new Set(existingESIMs.map(e => e.transactionData.correlationId).filter(Boolean));
+      const orphanedOrders = bffOrders.filter(
+        o => !localKeys.has(o.idempotencyKey) && (o.orderStatus === 'COMPLETED' || o.orderStatus === 'ESIM_PROVISIONED_PENDING_CHAIN'),
+      );
 
+      let recovered: StoredPurchasedESIM[] = [];
+      if (orphanedOrders.length > 0) {
+        recovered = orphanedOrders.map(o => {
+          const live = o.esimId ? esimMap.get(o.esimId) : undefined;
+          // Stub eSimItem — plan display details (data, validity, flag) are not available
+          // from OrderListItem. These orders will show their status + ICCID correctly;
+          // plan details will be restored if the user reinstalls from a device that has
+          // local storage, or when the BFF exposes plan detail in a future endpoint.
+          const eSimItem: Esim = {
+            catalogueId: o.planId,
+            data: 0,
+            sms: null,
+            voice: null,
+            validity: 0,
+            isUnlimited: false,
+            coverageType: 'LOCAL',
+            serviceRegionCode: '',
+            serviceRegionName: o.planId,
+            serviceRegionFlag: '',
+          };
+          return {
+            eSimItem,
+            transactionData: {
+              orderId: o.orderId,
+              correlationId: o.idempotencyKey,
+              iccid: live?.iccid ?? o.iccid ?? undefined,
+              planId: o.planId,
+              orderStatus: o.orderStatus,
+              paymentMethod: o.paymentMethod,
+              vendor: o.vendor ?? undefined,
+              esimId: o.esimId ?? undefined,
+              isNewESim: o.isNewESim ?? undefined,
+              stripeInvoiceUrl: o.stripeInvoiceUrl,
+              flaggedForManualReview: o.flaggedForManualReview,
+              installationDetails: live?.installationDetails
+                ? { qrcode: live.installationDetails.qrcode, appleInstallationUrl: live.installationDetails.appleInstallationUrl }
+                : { qrcode: '', appleInstallationUrl: '' },
+            },
+          };
+        });
+      }
+
+      const merged = [...updatedLocal, ...recovered];
+      await saveValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`, merged);
+      dispatch({ type: "SET_PURCHASED_ESIMS", payload: merged });
       await AsyncStorage.setItem(`esimLastSync-${deviceUID}`, new Date().toISOString());
     } catch {
       // non-critical — sync failure should not surface to the user
@@ -381,6 +444,14 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         const credentialId = await SecureStore.getItemAsync('credentialId');
         const publicKeyX = await SecureStore.getItemAsync('publicKeyX');
         const publicKeyY = await SecureStore.getItemAsync('publicKeyY');
+        if (__DEV__) console.log('[kokio] SecureStore hydration:', {
+          hasDeviceWalletAddress: !!storedWalletAddress,
+          hasCredentialId: !!credentialId,
+          hasPublicKeyX: !!publicKeyX,
+          hasPublicKeyY: !!publicKeyY,
+          hasRawSalt: !!(await SecureStore.getItemAsync('rawSalt')),
+          hasDeviceUID: !!deviceUID,
+        });
         if (credentialId && publicKeyX && publicKeyY) {
           dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX as Hex, y: publicKeyY as Hex } });
         }
@@ -567,6 +638,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       const reducedESimItem = _pick(eSimItem, [
         "catalogueId", "data", "sms", "voice", "validity", "isUnlimited",
         "coverageType", "serviceRegionCode", "serviceRegionName", "serviceRegionFlag",
+        "planType", "isTopupAvailable", "isAutoStart", "isKycRequired",
+        "countryWiseNetworkCoverages",
       ]) as Esim;
       const newRecord: StoredPurchasedESIM = {
         eSimItem: reducedESimItem,
@@ -637,6 +710,12 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     dispatch({ type: "SET_KOKIO", payload: kokioSDK });
   };
 
+  const setupKokioRecovery = async (deviceWalletAddress: string, credentialId: string) => {
+    await SecureStore.setItemAsync('deviceWalletAddress', deviceWalletAddress);
+    await SecureStore.setItemAsync('credentialId', credentialId);
+    dispatch({ type: 'SET_DEVICE_WALLET_ADDRESS', payload: deviceWalletAddress });
+  };
+
   const clearKokio = () => {
     dispatch({ type: "CLEAR_KOKIO" });
   };
@@ -668,6 +747,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         savePurchasedESIM,
         upsertOrderRecord,
         setupKokioRegistration,
+        setupKokioRecovery,
         clearKokio,
         clearKokioUser,
       }}

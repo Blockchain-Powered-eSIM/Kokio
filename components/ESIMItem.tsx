@@ -19,6 +19,15 @@ export interface Esim {
   sms: number | null;
   validity: number;
   voice: number | null;
+  planType?: "DATA" | "DATA_CALLS_SMS";
+  isTopupAvailable?: boolean;
+  isAutoStart?: boolean;
+  isKycRequired?: boolean;
+  countryWiseNetworkCoverages?: {
+    countryCode?: string;
+    countryName?: string;
+    networks?: { name?: string; type?: string }[];
+  }[];
 }
 
 const ESIMItem = ({

@@ -16,7 +16,20 @@ export interface AppExtraConfig {
   externalWalletCallback?: string;
 }
 
-const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
+const extra =
+  (Constants.expoConfig?.extra as AppExtraConfig | undefined) ??
+  ((Constants as any).manifest?.extra as AppExtraConfig | undefined) ??
+  ((Constants as any).manifest2?.extra?.expoClient?.extra as
+    | AppExtraConfig
+    | undefined);
+
+console.log("[KOKIO CONFIG DEBUG]", {
+  extraKeys: Object.keys(extra ?? {}),
+  apiBaseUrl: extra?.apiBaseUrl,
+  authServerBaseUrl: extra?.authServerBaseUrl,
+  stripePublishableKeySet: Boolean(extra?.stripePublishableKey),
+  walletConnectProjectIdSet: Boolean(extra?.walletConnectProjectId),
+});
 
 export const Config = {
   AUTH_SERVER_BASE_URL: extra?.authServerBaseUrl,

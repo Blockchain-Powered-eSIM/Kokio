@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -20,72 +21,158 @@ import { Easing } from "react-native-reanimated";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 
-const createStyles = () => StyleSheet.create({
-  kokioImage: {
-    height: 60,
-    marginTop: 10,
-    resizeMode: "contain",
-  },
-  authRequiredText: {
-    fontSize: 24,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-    marginTop: 32,
-  },
-  authSubtext: {
-    fontSize: 13,
-    marginTop: 12,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  authTouchText: {
-    fontSize: 13,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  loadingContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    fontSize: 13,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  contentImage: {
-    height: 80,
-    marginTop: 24,
-    marginBottom: 5,
-    resizeMode: "contain",
-  },
-  cancelText: {
-    fontSize: 16,
-    fontWeight: "300",
-    fontFamily: "Lexend-Light",
-  },
-  errorText: {
-    fontSize: 13,
-    color: Theme.colors.destructive,
-    fontFamily: "Lexend-Light",
-    textAlign: "center",
-    marginTop: 12,
-    paddingHorizontal: 24,
-  },
-});
+type AuthMode = "choice" | "authenticating" | "error";
+
+const createStyles = () =>
+  StyleSheet.create({
+    kokioImage: {
+      height: 60,
+      marginTop: 10,
+      resizeMode: "contain",
+    },
+    authRequiredText: {
+      fontSize: 24,
+      fontWeight: "300",
+      fontFamily: "Lexend-Light",
+      marginTop: 32,
+    },
+    authSubtext: {
+      fontSize: 13,
+      marginTop: 12,
+      fontWeight: "300",
+      fontFamily: "Lexend-Light",
+      textAlign: "center",
+    },
+    loadingContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    loadingImage: {
+      height: 80,
+      marginTop: 24,
+      marginBottom: 5,
+      resizeMode: "contain",
+    },
+    loadingText: {
+      fontSize: 13,
+      fontWeight: "300",
+      fontFamily: "Lexend-Light",
+    },
+    cancelText: {
+      fontSize: 16,
+      fontWeight: "300",
+      fontFamily: "Lexend-Light",
+    },
+    errorText: {
+      fontSize: 13,
+      color: Theme.colors.destructive,
+      fontFamily: "Lexend-Light",
+      textAlign: "center",
+      marginTop: 12,
+      paddingHorizontal: 24,
+    },
+    buttonRow: {
+      width: "100%",
+      marginTop: 32,
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: 12,
+    },
+    loginButtonRow: {
+      width: "100%",
+      marginTop: 32,
+      alignItems: "center",
+    },
+    loginButton: {
+      width: "55%",
+      minWidth: 180,
+      height: 52,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: Theme.colors.highlight,
+    },
+    primaryButton: {
+      flex: 1,
+      maxWidth: 160,
+      height: 52,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: Theme.colors.highlight,
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontWeight: "600",
+      fontFamily: "Lexend-Light",
+      color: "#000000",
+    },
+    secondaryButton: {
+      flex: 1,
+      maxWidth: 160,
+      height: 52,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: Theme.colors.foreground,
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: "300",
+      fontFamily: "Lexend-Light",
+      color: Theme.colors.foreground,
+    },
+  });
 
 export function AuthenticationModal() {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [mode, setMode] = useState<AuthMode>("choice");
   const sheetRef = useRef<BottomSheet>(null);
 
-  const { state, loginWithPasskey, signUpWithPasskey, clearError } = useAuthRelay();
-  const {
-    kokio,
-    setupKokioRegistration,
-  } = useKokio();
+  const { state, loginWithPasskey, signUpWithPasskey, recoverWithPasskey, clearError } =
+    useAuthRelay();
+  const { kokio, setupKokioRegistration, setupKokioRecovery, clearKokioUser } =
+    useKokio();
 
-  // renders
+  // Distinguishes a fresh install / never-registered device (show New vs.
+  // Existing choice) from a device that already completed passkey setup
+  // (show a single Log In button — no need to ask again on every cold launch).
+  // null = not yet determined (only true before the one-off SecureStore check
+  // below resolves on cold launch).
+  const [isReturningUser, setIsReturningUser] = useState<boolean | null>(
+    kokio.deviceWalletAddress ? true : null
+  );
+  // Once we've established the truth once (cold-launch SecureStore check, or
+  // kokio context already had an address), kokio.deviceWalletAddress becoming
+  // falsy is a deliberate "Logout and Clear Data" — trust it immediately
+  // instead of re-checking SecureStore, which would briefly show the stale
+  // "Log In" button before flipping to the New/Existing choice.
+  const hasResolvedOnce = useRef(!!kokio.deviceWalletAddress);
+
+  useEffect(() => {
+    if (kokio.deviceWalletAddress) {
+      hasResolvedOnce.current = true;
+      setIsReturningUser(true);
+      return;
+    }
+    if (hasResolvedOnce.current) {
+      setIsReturningUser(false);
+      return;
+    }
+    let cancelled = false;
+    SecureStore.getItemAsync("deviceWalletAddress").then((stored) => {
+      if (!cancelled) {
+        hasResolvedOnce.current = true;
+        setIsReturningUser(!!stored);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [kokio.deviceWalletAddress]);
+
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop
@@ -98,59 +185,145 @@ export function AuthenticationModal() {
           intensity={100}
           tint={isDark ? "systemChromeMaterialDark" : "systemChromeMaterial"}
           blurMethod="none"
-          style={{
-            flex: 1,
-            overflow: "hidden",
-          }}
+          style={{ flex: 1, overflow: "hidden" }}
         />
       </BottomSheetBackdrop>
     ),
     [isDark]
   );
 
-  const loginOrSignUpWithPasskey = useCallback(async () => {
+  const handleNewUser = useCallback(async () => {
     clearError();
-    setLoading(true);
+    setMode("authenticating");
+    let succeeded = false;
     try {
-      if (kokio.deviceWalletAddress) {
-        const success = await loginWithPasskey();
-        if (success) {
+      const data = await signUpWithPasskey({});
+      if (__DEV__)
+        console.log(
+          "[auth] signUpWithPasskey result:",
+          data ? { deviceWalletAddress: data.deviceWalletAddress } : null
+        );
+      if (data) {
+        succeeded = true;
+        await setupKokioRegistration(
+          data.deviceWalletAddress,
+          data.deviceUniqueIdentifier,
+          data.credentialId,
+          data.publicKeyX,
+          data.publicKeyY,
+          data.rawSalt ?? ""
+        );
+        sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+      }
+    } catch (e) {
+      console.error("[auth] handleNewUser error", e);
+    } finally {
+      if (!succeeded) setMode("error");
+    }
+  }, [signUpWithPasskey, setupKokioRegistration, clearError]);
+
+  const handleExistingUser = useCallback(async () => {
+    clearError();
+    setMode("authenticating");
+    let succeeded = false;
+    try {
+      const effectiveAddress =
+        kokio.deviceWalletAddress ||
+        (await SecureStore.getItemAsync("deviceWalletAddress"));
+      if (__DEV__)
+        console.log(
+          "[auth] handleExistingUser — path:",
+          effectiveAddress ? "login" : "recover"
+        );
+
+      if (effectiveAddress) {
+        const result = await loginWithPasskey();
+        if (__DEV__) console.log("[auth] loginWithPasskey result:", result);
+        if (result === "success") {
+          succeeded = true;
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        } else if (result === "no-credential") {
+          // Passkey deleted — fall back to recovery
+          await clearKokioUser();
+          clearError();
+          const recovered = await recoverWithPasskey();
+          if (recovered) {
+            succeeded = true;
+            await setupKokioRecovery(
+              recovered.deviceWalletAddress,
+              recovered.credentialId
+            );
+            sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+          }
         }
       } else {
-        const data = await signUpWithPasskey({});
-        if (data) {
-          await setupKokioRegistration(data.deviceWalletAddress, data.deviceUniqueIdentifier, data.credentialId, data.publicKeyX, data.publicKeyY, data.rawSalt ?? '');
+        const recovered = await recoverWithPasskey();
+        if (__DEV__)
+          console.log(
+            "[auth] recoverWithPasskey result:",
+            recovered ? { credentialId: recovered.credentialId } : null
+          );
+        if (recovered) {
+          succeeded = true;
+          await setupKokioRecovery(
+            recovered.deviceWalletAddress,
+            recovered.credentialId
+          );
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
         }
       }
     } catch (e) {
-      console.error("Passkey flow error", e);
+      console.error("[auth] handleExistingUser error", e);
     } finally {
-      setLoading(false);
+      if (!succeeded) setMode("error");
     }
-  }, [signUpWithPasskey, loginWithPasskey, kokio, setupKokioRegistration, clearError]);
+  }, [
+    loginWithPasskey,
+    recoverWithPasskey,
+    kokio,
+    setupKokioRecovery,
+    clearKokioUser,
+    clearError,
+  ]);
 
   useEffect(() => {
     if (state.authenticated) {
       sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
     } else {
+      // This component stays mounted for the app's lifetime — the sheet is only
+      // expanded/closed, never unmounted — so `mode` from a prior attempt
+      // (e.g. left at "authenticating" after a successful login) would
+      // otherwise leak into the next time the modal reopens (e.g. on logout).
+      clearError();
+      setMode("choice");
       sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
     }
+    // clearError intentionally omitted: it's recreated every provider render
+    // and including it would re-trigger this effect (and re-animate the
+    // sheet) on unrelated re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.authenticated]);
+
+  useEffect(() => {
+    if (state.error) setMode("error");
+  }, [state.error]);
 
   const loadingContent = useMemo(
     () => (
       <View style={styles.loadingContainer}>
         <ActivityIndicator
           size={70}
-          style={styles.contentImage}
+          style={styles.loadingImage}
           color={Theme.colors.highlight}
         />
-        <ThemedText style={[styles.loadingText, { color: Theme.colors.foreground }]}>Authenticating...</ThemedText>
+        {mode === "authenticating" && (
+          <ThemedText style={[styles.loadingText, { color: Theme.colors.foreground }]}>
+            Authenticating...
+          </ThemedText>
+        )}
       </View>
     ),
-    []
+    [styles, mode]
   );
 
   return (
@@ -173,38 +346,53 @@ export function AuthenticationModal() {
           Authentication Required
         </ThemedText>
         <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
-          Secure your account using your fingerprint
+          {mode === "authenticating"
+            ? "Verifying your identity…"
+            : isReturningUser
+            ? "Log in to continue"
+            : "Choose how to get started"}
         </ThemedText>
-        {loading ? (
+
+        {mode === "authenticating" || isReturningUser === null ? (
           loadingContent
+        ) : isReturningUser ? (
+          <View style={styles.loginButtonRow}>
+            <Pressable style={styles.loginButton} onPress={handleExistingUser}>
+              <Text style={styles.primaryButtonText}>Log In</Text>
+            </Pressable>
+          </View>
         ) : (
-          <Pressable onPress={loginOrSignUpWithPasskey}>
-            <Image
-              source={require("@/assets/images/fingerprint.png")}
-              style={styles.contentImage}
-            />
-            <ThemedText style={[styles.authTouchText, { color: Theme.colors.foreground }]}>
-              Touch the fingerprint sensor
-            </ThemedText>
-          </Pressable>
+          <View style={styles.buttonRow}>
+            <Pressable style={styles.primaryButton} onPress={handleNewUser}>
+              <Text style={styles.primaryButtonText}>New User</Text>
+            </Pressable>
+            <Pressable style={styles.secondaryButton} onPress={handleExistingUser}>
+              <Text style={styles.secondaryButtonText}>Existing User</Text>
+            </Pressable>
+          </View>
         )}
-        {!!state.error && !loading && (
+
+        {!!state.error && mode === "error" && (
           <Text style={styles.errorText}>{state.error}</Text>
         )}
+
         <Pressable
-          disabled={loading}
-          onPress={() =>
+          disabled={mode === "authenticating"}
+          onPress={() => {
+            clearError();
+            setMode("choice");
             sheetRef.current?.close({
               duration: 250,
               easing: Easing.out(Easing.quad),
-            })
-          }
-          style={{ alignSelf: "flex-start", marginTop: 64, marginBottom: 32 }}
+            });
+          }}
+          style={{ alignSelf: "flex-start", marginTop: 32, marginBottom: 32 }}
         >
-          <ThemedText style={[styles.cancelText, { color: Theme.colors.link }]}>Cancel</ThemedText>
+          <ThemedText style={[styles.cancelText, { color: Theme.colors.link }]}>
+            Cancel
+          </ThemedText>
         </Pressable>
       </BottomSheetView>
     </BottomSheet>
   );
 }
-

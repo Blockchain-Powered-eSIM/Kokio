@@ -1,13 +1,14 @@
 import { ReactNode, createContext, useCallback, useEffect, useReducer, useState } from "react";
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { LoginMethod } from "@/utils/types";
 import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
 import { registerPasskey } from "@/utils/auth/passkeyRegister";
 import type { RegisterResult } from "@/utils/auth/passkeyRegister";
-import { loginWithKokioPasskey } from "@/utils/auth/passkeyLogin";
+import { loginWithKokioPasskey, discoverAndLoginWithPasskey, type DiscoverLoginResult } from "@/utils/auth/passkeyLogin";
 import { performStepUp } from "@/utils/auth/stepUp";
-import { StepUpCancelledError } from "@/utils/auth/errors";
+import { AuthError, StepUpCancelledError } from "@/utils/auth/errors";
 import {
   setStepUpHandler,
   resolveStepUp,
@@ -88,7 +89,8 @@ export interface AuthRelayProviderType {
     username?: string;
     email?: string;
   }) => Promise<RegisterResult | null | undefined>;
-  loginWithPasskey: () => Promise<boolean>;
+  loginWithPasskey: () => Promise<'success' | 'no-credential' | 'error'>;
+  recoverWithPasskey: () => Promise<DiscoverLoginResult | null>;
   reauthenticate: () => void;
   clearError: () => void;
   logout: () => Promise<void>;
@@ -103,7 +105,8 @@ export interface AuthRelayProviderType {
 export const AuthRelayContext = createContext<AuthRelayProviderType>({
   state: initialState,
   signUpWithPasskey: async () => null,
-  loginWithPasskey: async () => false,
+  loginWithPasskey: async () => 'error' as const,
+  recoverWithPasskey: async () => null,
   reauthenticate: () => {},
   clearError: () => {},
   logout: async () => {},
@@ -164,18 +167,49 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     try {
       const result = await registerPasskey(user.username ?? user.email ?? "Kokio User");
 
-      // Google Password Manager commits the passkey to local storage asynchronously
-      // after Passkey.create returns. Calling Passkey.get immediately finds the
-      // credential in the cloud but not yet locally, triggering "Choose which device /
-      // Use another device" with no local option. A short pause lets the local store
-      // catch up before the authentication request.
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      // Persist registration data immediately. If post-registration login fails
+      // (Google PM sync delay), the next tap reads these from SecureStore and
+      // routes to loginWithPasskey() instead of re-registering.
+      await SecureStore.setItemAsync('deviceWalletAddress', result.deviceWalletAddress);
+      await SecureStore.setItemAsync('credentialId', result.credentialId);
+      await SecureStore.setItemAsync('publicKeyX', result.publicKeyX);
+      await SecureStore.setItemAsync('publicKeyY', result.publicKeyY);
+      if (result.rawSalt) await SecureStore.setItemAsync('rawSalt', result.rawSalt);
+      if (result.deviceUniqueIdentifier) {
+        // JSON.stringify to match saveValueForDeviceUID / getValueForDeviceUID format
+        await SecureStore.setItemAsync('deviceUID', JSON.stringify(result.deviceUniqueIdentifier));
+      }
 
-      // Pass credentialId so Android skips the full discoverable-credential sweep
-      // and targets the just-created credential directly.
-      // Pass deviceWalletAddress so loginBegin doesn't have to read SecureStore
-      // (setupKokioRegistration hasn't run yet at this point).
-      await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
+      // Google Password Manager commits the passkey to the local device index
+      // asynchronously after Passkey.create returns. loginWithKokioPasskey uses
+      // transports: ['internal'] (device-local only) to avoid showing a credential
+      // picker dialog — but the credential won't be locally indexed for ~1s.
+      // Wait 1500ms so the first login attempt succeeds silently without dialog.
+      await new Promise<void>(resolve => setTimeout(resolve, 1500));
+
+      // Pass credentialId so Android targets the just-created credential directly
+      // instead of doing a full discoverable-credential sweep. Pass deviceWalletAddress
+      // so loginBegin doesn't have to read SecureStore (setupKokioRegistration hasn't
+      // run yet at this point, but we've already pre-saved above).
+      // No transports restriction: omitting it lets Google PM find the credential
+      // via cloud sync even before local on-device indexing completes.
+      try {
+        await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
+      } catch (loginErr) {
+        if (loginErr instanceof AuthError) throw loginErr;
+        await new Promise<void>(resolve => setTimeout(resolve, 1500));
+        try {
+          await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
+        } catch (loginErr2) {
+          if (loginErr2 instanceof AuthError) throw loginErr2;
+          // Still not indexed — wait longer and try once more. Do NOT fall
+          // back to discoverAndLoginWithPasskey(): an open credential picker
+          // can surface orphaned credentials from prior installs and fail
+          // with CREDENTIAL_NOT_FOUND, breaking the whole registration flow.
+          await new Promise<void>(resolve => setTimeout(resolve, 2500));
+          await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
+        }
+      }
 
       dispatch({ type: "PASSKEY" });
       return result;
@@ -187,7 +221,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     }
   };
 
-  const loginWithPasskey = async (): Promise<boolean> => {
+  const loginWithPasskey = async (): Promise<'success' | 'no-credential' | 'error'> => {
     if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
@@ -195,16 +229,35 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      // Reads deviceWalletAddress from SecureStore (stored at registration).
-      // Retries once on AUTH_TIME_RECENCY_VIOLATION (biometric timeout >120s).
       await loginWithKokioPasskey();
       dispatch({ type: "PASSKEY" });
-      return true;
+      return 'success';
     } catch (error) {
-      dispatch({ type: "ERROR", payload: formatError(error) });
-      return false;
+      const isNoCredentials = (error as Record<string, unknown>)?.error === 'NoCredentials';
+      if (!isNoCredentials) {
+        dispatch({ type: "ERROR", payload: formatError(error) });
+      }
+      return isNoCredentials ? 'no-credential' : 'error';
     } finally {
       dispatch({ type: "LOADING", payload: null });
+    }
+  };
+
+  // Recovers an existing passkey after reinstall (SecureStore wiped but passkey
+  // still in Google Password Manager / iCloud Keychain). Returns the result on
+  // success so the caller can restore kokio state; returns null on any failure
+  // so the caller can fall through to fresh registration.
+  const recoverWithPasskey = async (): Promise<DiscoverLoginResult | null> => {
+    if (!Passkey.isSupported()) return null;
+
+    dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
+    try {
+      const result = await discoverAndLoginWithPasskey();
+      dispatch({ type: "PASSKEY" });
+      return result;
+    } catch {
+      dispatch({ type: "LOADING", payload: null });
+      return null;
     }
   };
 
@@ -247,6 +300,15 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       setStepUpHint(null);
     } catch (err) {
       setStepUpError(formatError(err));
+      if (err instanceof AuthError) {
+        // Server-side failure — retrying won't help; drain the queue so parked
+        // requests get a definitive rejection rather than hanging indefinitely.
+        rejectStepUp(err);
+        setStepUpVisible(false);
+        setStepUpHint(null);
+      }
+      // Platform/biometric errors (not AuthError) leave the modal open so the
+      // user can retry without losing their queued requests.
     }
   }, []);
 
@@ -264,6 +326,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
         state,
         signUpWithPasskey,
         loginWithPasskey,
+        recoverWithPasskey,
         reauthenticate,
         clearError,
         logout,
