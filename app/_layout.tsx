@@ -1,6 +1,5 @@
 // Add global shims
 import "react-native-get-random-values";
-import "@walletconnect/react-native-compat";
 import "@ethersproject/shims";
 import "@/utils/nativeRuntimeSetup";
 
