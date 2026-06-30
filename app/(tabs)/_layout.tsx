@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, useLocalSearchParams } from "expo-router";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { StyleSheet } from "react-native";
 import { Theme, createStyles } from "@/constants/Colors";
@@ -9,6 +9,27 @@ import Header from "@/components/Header";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const styles = createStyles(StyleSheet);
+
+function InstallationHeader() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  return (
+    <SafeAreaView edges={["top"]}>
+      <Header
+        title="Install eSIM"
+        style={{ justifyContent: "center" }}
+        hasBack
+        goBackHandler={() => {
+          if (from === "orders") {
+            router.navigate("/(tabs)/orders");
+          } else {
+            router.push("/(tabs)/(shop)");
+            router.navigate("/(tabs)");
+          }
+        }}
+      />
+    </SafeAreaView>
+  );
+}
 
 // Feature flags for tab availability
 // Set to true to enable the tab, false to disable (but keep visible)
@@ -138,20 +159,7 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
-          header: () => (
-            <SafeAreaView edges={["top"]}>
-              <Header
-                title="Install eSIM"
-                style={{ justifyContent: "center" }}
-                hasBack
-                goBackHandler={() => {
-                  // Reset the Shop stack by navigating to its root, then go to Home
-                  router.push("/(tabs)/(shop)");
-                  router.navigate("/(tabs)");
-                }}
-              />
-            </SafeAreaView>
-          ),
+          header: () => <InstallationHeader />,
         }}
       />
     </Tabs>

@@ -10,6 +10,16 @@ import { StoredPurchasedESIM } from "@/providers/kokioProvider";
 
 import ESIMItem from "../ESIMItem";
 
+// Only show eSIMs that have been provisioned or are active — exclude payment/processing/failed states
+const PROVISIONED_STATUSES = new Set([
+  "ACTIVE",
+  "CREATED",
+  "SUSPENDED",
+  "ESIM_PROVISIONED",
+  "ESIM_PROVISIONED_PENDING_CHAIN",
+  "COMPLETED",
+]);
+
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH * 0.9;
 const SPACING = 8;
@@ -63,6 +73,11 @@ const ActiveESIMsScroll = ({
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
 
+  const activeESIMs = useMemo(
+    () => purchasedESIMs.filter((e) => PROVISIONED_STATUSES.has(e.transactionData?.orderStatus ?? "")),
+    [purchasedESIMs]
+  );
+
   const handleESIMPress = useCallback((purchasedESIM: StoredPurchasedESIM) => {
     return () => {
       const expandId =
@@ -75,7 +90,7 @@ const ActiveESIMsScroll = ({
     };
   }, []);
 
-  if (_isEmpty(purchasedESIMs)) {
+  if (_isEmpty(activeESIMs)) {
     return (
       <View style={styles.container}>
         <Text style={[styles.title, { color: Theme.colors.text }]}>eSIMs</Text>
@@ -94,7 +109,7 @@ const ActiveESIMsScroll = ({
     <View style={styles.container}>
       <Text style={styles.title}>eSIMs</Text>
       <FlatList
-        data={purchasedESIMs}
+        data={activeESIMs}
         renderItem={({ item }) => (
           <View style={styles.itemWrapper}>
             <ESIMItem
