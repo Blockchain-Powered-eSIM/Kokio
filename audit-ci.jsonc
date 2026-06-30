@@ -1,0 +1,24 @@
+{
+  "low": true,
+  "moderate": true,
+  "high": true,
+  "critical": true,
+  "allowlist": [
+    // GHSA-848j-6mx2-7j84 — elliptic: risky ECDSA k-value implementation.
+    // No fixed version published upstream.
+    // (Advisory trackers show "pending upstream fix", 
+    // no patched release exists as of this writing).
+    // Root cause for all 20 LOW findings in this repo, via two independent chains:
+    //   1) @ethersproject/* (ethers v5) <- alchemy-sdk <- @account-kit/infra <- kokio-sdk
+    //        alchemy-sdk deprecation is planned in a kokio-sdk migration.
+    //        Tracked separately, not actionable from this repo until that ships.
+    //   2) browserify-sign / create-ecdh <- react-native-crypto <- node-libs-react-native
+    //        crypto-browserify (the only consumer that resolved this chain at runtime) was removed.
+    //        metro/babel now alias crypto -> react-native-quick-crypto (native JSI). 
+    //        react-native-crypto remains installed only because
+    //        node-libs-react-native bundles it, it is not reachable at runtime.
+    // Remove this entry once elliptic ships a fix, or once kokio-sdk drops alchemy-sdk
+    // and node-libs-react-native drops react-native-crypto.
+    "GHSA-848j-6mx2-7j84"
+  ]
+}
