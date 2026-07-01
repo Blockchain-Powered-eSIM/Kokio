@@ -2401,7 +2401,7 @@ PODS:
     - SocketRocket
     - SwiftUIIntrospect (~> 1.0)
     - Yoga
-  - react-native-passkey (3.3.3):
+  - react-native-passkey (3.5.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -4208,7 +4208,7 @@ SPEC CHECKSUMS:
   react-native-get-random-values: 21325b2244dfa6b58878f51f9aa42821e7ba3d06
   react-native-netinfo: 5e036f49ab00a53569bcc0cbc2954b608b6532c3
   react-native-pager-view: 4cc305d9d25eda66adf44029a84a591d8b98c072
-  react-native-passkey: 71550d300740a3a09f2773e6793e36cdb257c841
+  react-native-passkey: 83c41041fcfe4b90d9b148ebb2e9be5f31e41d09
   react-native-quick-base64: 761ae4e7b7fe42f3aa45d16f86042ad31f01387e
   react-native-randombytes: ddf6edfd3fb9091af8c6ed1b35e57c308b5f5f2c
   react-native-safe-area-context: 54d812805f3c4e08a4580ad086cbde1d8780c2e4

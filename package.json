@@ -1,7 +1,7 @@
 {
   "name": "kokio",
   "main": "expo-router/entry",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "engines": {
     "node": "24.x",
     "npm": ">=11.16.0"
@@ -26,7 +26,7 @@
     ]
   },
   "dependencies": {
-    "@aa-sdk/core": "4.88.3",
+    "@aa-sdk/core": "4.88.4",
     "@ethersproject/shims": "5.8.0",
     "@expo/vector-icons": "15.1.1",
     "@gorhom/bottom-sheet": "5.2.14",
@@ -80,7 +80,7 @@
     "react-native-keyboard-aware-scroll-view": "0.9.5",
     "react-native-nitro-modules": "0.35.7",
     "react-native-pager-view": "8.0.0",
-    "react-native-passkey": "3.3.3",
+    "react-native-passkey": "3.5.0",
     "react-native-qrcode-svg": "6.3.21",
     "react-native-quick-base64": "3.0.0",
     "react-native-quick-crypto": "1.1.5",

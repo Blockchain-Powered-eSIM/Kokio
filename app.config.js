@@ -46,7 +46,8 @@ module.exports = ({ config }) => {
       version,
       buildNumber: "1",
       infoPlist: {
-        NSPhotoLibraryUsageDescription: "This app may access your photo library when selecting or sharing images.",
+        NSPhotoLibraryUsageDescription:
+          "This app may access your photo library when selecting or sharing images.",
       },
     },
     android: {
@@ -120,7 +121,8 @@ module.exports = ({ config }) => {
       [
         "@stripe/stripe-react-native",
         {
-          merchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
+          merchantIdentifier:
+            process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
           enableGooglePay: true,
         },
       ],

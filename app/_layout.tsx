@@ -1,8 +1,8 @@
 // Add global shims
 import "react-native-get-random-values";
-import "@walletconnect/react-native-compat";
 import "@ethersproject/shims";
 // utils/nativeRuntimeSetup.ts exists and exports {}, it is a bundler resolution alias edge case
+// @ts-expect-error 
 // eslint-disable-next-line import/no-unresolved
 import "@/utils/nativeRuntimeSetup";
 
