@@ -23,7 +23,7 @@ const TabsNavigator = () => {
   return (
     <Tab.Navigator
       tabBar={(props) => <TabBar {...props} />}
-      sceneContainerStyle={{ backgroundColor: isDark ? "transparent" : Theme.colors.background }}
+      screenOptions={{ sceneStyle: { backgroundColor: isDark ? "transparent" : Theme.colors.background } }}
     >
       <Tab.Screen
         name="Countries"

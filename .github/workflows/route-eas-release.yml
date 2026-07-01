@@ -43,17 +43,22 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
-      - name: Checkout merged commit
+      - name: Checkout workflow branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Upgrade npm
+        run: npm install -g npm@^11
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Set up Expo and EAS
         uses: expo/expo-github-action@v8
@@ -70,6 +75,8 @@ jobs:
           INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
           INPUT_OTA: ${{ inputs.ota }}
           INPUT_WORKFLOW_FILE: ${{ inputs.workflow_file }}
+          INPUT_REF: ${{ inputs.ref }}
+          MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           node - <<'EOF'
           const labels = JSON.parse(process.env.LABELS_JSON || "[]");
@@ -80,6 +87,9 @@ jobs:
           const baseBranch = isManual
             ? process.env.INPUT_BASE_BRANCH
             : process.env.BASE_BRANCH;
+          const targetRef = isManual
+            ? process.env.INPUT_REF
+            : process.env.MERGE_COMMIT_SHA;
           const manualWorkflow = process.env.INPUT_WORKFLOW_FILE.trim();
 
           const workflowFromInputs = manualWorkflow
@@ -105,6 +115,10 @@ jobs:
             process.env.GITHUB_OUTPUT,
             `workflow=${workflowFromInputs}\n`
           );
+          require("node:fs").appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `target_ref=${targetRef}\n`
+          );
           EOF
 
       - name: Verify OTA preflight
@@ -117,5 +131,5 @@ jobs:
       - name: Run EAS workflow
         run: >
           eas workflow:run ${{ steps.select.outputs.workflow }}
-          --ref ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.pull_request.merge_commit_sha }}
+          --ref ${{ steps.select.outputs.target_ref }}
           --non-interactive

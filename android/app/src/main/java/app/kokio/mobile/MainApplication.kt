@@ -1,4 +1,4 @@
-package app.kokio
+package app.kokio.mobile
 
 import android.app.Application
 import android.content.res.Configuration

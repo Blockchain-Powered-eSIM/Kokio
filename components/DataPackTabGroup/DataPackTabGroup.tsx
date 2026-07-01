@@ -33,36 +33,35 @@ const EmptyListComponent = () => (
   </ThemedText>
 );
 
-const ESIMsFlatList = React.memo(
-  ({ esims, isLoading }: { esims: Esim[]; isLoading: boolean }) => {
-    return isLoading ? (
-      <FlatList
-        data={[1, 2, 3, 4, 5]}
-        renderItem={() => (
-          <EsimItemSkeleton containerStyle={styles.eSimItemContainer} />
-        )}
-        keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={styles.flatListContainer}
-        style={{ backgroundColor: "transparent" }}
-      />
-    ) : (
-      <FlatList
-        data={esims}
-        renderItem={({ item }) => (
-          <ESIMItem
-            item={item}
-            showBuyButton
-            containerStyle={styles.eSimItemContainer}
-          />
-        )}
-        keyExtractor={(item, index) => item.catalogueId || index.toString()}
-        contentContainerStyle={styles.flatListContainer}
-        ListEmptyComponent={EmptyListComponent}
-        style={{ backgroundColor: "transparent" }}
-      />
-    );
-  }
-);
+const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading: boolean }) => {
+  return isLoading ? (
+    <FlatList
+      data={[1, 2, 3, 4, 5]}
+      renderItem={() => (
+        <EsimItemSkeleton containerStyle={styles.eSimItemContainer} />
+      )}
+      keyExtractor={(_, index) => index.toString()}
+      contentContainerStyle={styles.flatListContainer}
+      style={{ backgroundColor: "transparent" }}
+    />
+  ) : (
+    <FlatList
+      data={esims}
+      renderItem={({ item }) => (
+        <ESIMItem
+          item={item}
+          showBuyButton
+          containerStyle={styles.eSimItemContainer}
+        />
+      )}
+      keyExtractor={(item, index) => item.catalogueId || index.toString()}
+      contentContainerStyle={styles.flatListContainer}
+      ListEmptyComponent={EmptyListComponent}
+      style={{ backgroundColor: "transparent" }}
+    />
+  );
+};
+const ESIMsFlatList = React.memo(ESIMsFlatListComponent);
 
 function DataPackTabGroup({
   esims,
@@ -96,7 +95,10 @@ function DataPackTabGroup({
 
   const TabsNavigator = () => {
     return (
-      <Tab.Navigator tabBar={(props) => <TabBar {...props} />} sceneContainerStyle={{ backgroundColor: "transparent" }}>
+      <Tab.Navigator
+        tabBar={(props) => <TabBar {...props} />}
+        screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
+      >
         <Tab.Screen
           name="Data"
           component={DataTab}

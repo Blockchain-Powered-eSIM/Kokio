@@ -1,0 +1,65 @@
+name: PR Quality Gate
+
+# Add named branches once branching startegy is concerete
+on:
+  pull_request:
+  push:
+
+jobs:
+  quality-gate:
+    name: Sanity Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Upgrade npm
+        run: npm install -g npm@^11
+
+      - name: Install dependencies
+        run: npm ci
+      
+      # Deferred
+      # expo-doctor and expo install --check are stubbed until the SDK 56 upgrade.
+      # Current failures are:
+      #   1. Patch/minor version mismatches across 18 SDK-55 packages.
+      #      Resolvable by `npx expo install --fix` during the SDK 56 upgrade.
+      #   2. react-native-randombytes unmaintained.
+      #      Transitive from node-libs-react-native.
+      #   3. CNG/native-folder structural warning.
+      #      This is a deliberate project posture, not a quality concern.
+      #
+      # - name: Expo doctor
+      #   run: npx expo-doctor
+      #
+      # - name: Expo dependency version check
+      #   run: npx expo install --check
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Deferred
+      # The suite is not actively maintained against this PR gate yet. 
+      # Re-enable this step once test suite is up-to-date w.r.t. tooling and functionality.
+      #   - react-test-renderer (19.0.0) aligned with react (19.2.0)
+      #   - @types/node added + "node" added to tsconfig.test.json `types`
+      #   - utils/auth/__tests__/refresh.test.ts tuple-indexing bug fixed
+      #
+      # - name: Test
+      #   run: npx jest -c jest.config.js && npx tsc -p tsconfig.test.json
+
+      - name: Audit
+        run: npm run audit

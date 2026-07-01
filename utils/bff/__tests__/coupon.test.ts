@@ -6,6 +6,10 @@
  * thrown synchronously — no network involved.
  */
 
+import api from '@/services/httpService';
+import { getCoupon, issueCoupon, InvalidCouponCodeError } from '../coupon';
+import { BffError } from '../errors';
+
 jest.mock('@/services/httpService', () => ({
   __esModule: true,
   default: {
@@ -14,10 +18,6 @@ jest.mock('@/services/httpService', () => ({
     getConfig: jest.fn(() => ({})),
   },
 }));
-
-import api from '@/services/httpService';
-import { getCoupon, issueCoupon, InvalidCouponCodeError } from '../coupon';
-import { BffError } from '../errors';
 
 const mockGet  = api.get  as jest.MockedFunction<typeof api.get>;
 const mockPost = api.post as jest.MockedFunction<typeof api.post>;

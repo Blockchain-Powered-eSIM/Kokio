@@ -1,13 +1,14 @@
 import { ReactNode, createContext, useCallback, useEffect, useReducer, useState } from "react";
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { LoginMethod } from "@/utils/types";
 import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
 import { registerPasskey } from "@/utils/auth/passkeyRegister";
 import type { RegisterResult } from "@/utils/auth/passkeyRegister";
-import { loginWithKokioPasskey } from "@/utils/auth/passkeyLogin";
+import { loginWithKokioPasskey, discoverAndLoginWithPasskey, type DiscoverLoginResult } from "@/utils/auth/passkeyLogin";
 import { performStepUp } from "@/utils/auth/stepUp";
-import { StepUpCancelledError } from "@/utils/auth/errors";
+import { AuthError, StepUpCancelledError } from "@/utils/auth/errors";
 import {
   setStepUpHandler,
   resolveStepUp,
@@ -88,7 +89,8 @@ export interface AuthRelayProviderType {
     username?: string;
     email?: string;
   }) => Promise<RegisterResult | null | undefined>;
-  loginWithPasskey: () => Promise<boolean>;
+  loginWithPasskey: () => Promise<'success' | 'no-credential' | 'error'>;
+  recoverWithPasskey: () => Promise<DiscoverLoginResult | null>;
   reauthenticate: () => void;
   clearError: () => void;
   logout: () => Promise<void>;
@@ -103,7 +105,8 @@ export interface AuthRelayProviderType {
 export const AuthRelayContext = createContext<AuthRelayProviderType>({
   state: initialState,
   signUpWithPasskey: async () => null,
-  loginWithPasskey: async () => false,
+  loginWithPasskey: async () => 'error' as const,
+  recoverWithPasskey: async () => null,
   reauthenticate: () => {},
   clearError: () => {},
   logout: async () => {},
@@ -155,39 +158,55 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     username?: string;
     email?: string;
   }) => {
+    clearError();
     if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
-
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      const result = await registerPasskey(user.username ?? user.email ?? "Kokio User");
+      const registration = await registerPasskey(user.username ?? user.email ?? "Kokio User");
+      if (!registration) {
+        dispatch({ type: "ERROR", payload: "Registration failed. Please try again." });
+        return null;
+      }
+      // Persist registration data immediately.
+      await SecureStore.setItemAsync('deviceWalletAddress', registration.deviceWalletAddress);
+      await SecureStore.setItemAsync('credentialId', registration.credentialId);
+      await SecureStore.setItemAsync('publicKeyX', registration.publicKeyX);
+      await SecureStore.setItemAsync('publicKeyY', registration.publicKeyY);
+      if (registration.rawSalt) await SecureStore.setItemAsync('rawSalt', registration.rawSalt);
+      if (registration.deviceUniqueIdentifier) {
+        // JSON.stringify to match saveValueForDeviceUID / getValueForDeviceUID format
+        await SecureStore.setItemAsync('deviceUID', JSON.stringify(registration.deviceUniqueIdentifier));
+      }
 
-      // Google Password Manager commits the passkey to local storage asynchronously
-      // after Passkey.create returns. Calling Passkey.get immediately finds the
-      // credential in the cloud but not yet locally, triggering "Choose which device /
-      // Use another device" with no local option. A short pause lets the local store
-      // catch up before the authentication request.
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      /**
+       * Google Password Manager commits the passkey to the local device index asynchronously 
+       * after Passkey.create returns. loginWithKokioPasskey uses transports: ['internal']
+       * (device-local only) to avoid showing a credential picker dialog.
+       * The credential won't be locally indexed for ~1s. 
+       * Wait 1500ms so the first login attempt succeeds without dialog.
+       */
+      await new Promise<void>(resolve => setTimeout(resolve, 1500));
 
-      // Pass credentialId so Android skips the full discoverable-credential sweep
-      // and targets the just-created credential directly.
-      // Pass deviceWalletAddress so loginBegin doesn't have to read SecureStore
-      // (setupKokioRegistration hasn't run yet at this point).
-      await loginWithKokioPasskey(result.credentialId, result.deviceWalletAddress);
-
+      /**
+       * Registration creates the credential and derives the wallet, but does not establish a session.
+       * Log in immediately to issue and persist the token bundle. 
+       * The credential is targeted directly via credentialId, so no retry ladder is needed.
+       */
+      await loginWithKokioPasskey(registration.credentialId, registration.deviceWalletAddress);
       dispatch({ type: "PASSKEY" });
-      return result;
-    } catch (error) {
-      dispatch({ type: "ERROR", payload: formatError(error) });
+      return registration;
+    } catch (err) {
+      dispatch({ type: "ERROR", payload: formatError(err) });
       return null;
     } finally {
       dispatch({ type: "LOADING", payload: null });
     }
   };
 
-  const loginWithPasskey = async (): Promise<boolean> => {
+  const loginWithPasskey = async (): Promise<'success' | 'no-credential' | 'error'> => {
     if (!Passkey.isSupported()) {
       throw new Error("Passkeys are not supported on this device");
     }
@@ -195,16 +214,35 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
 
     try {
-      // Reads deviceWalletAddress from SecureStore (stored at registration).
-      // Retries once on AUTH_TIME_RECENCY_VIOLATION (biometric timeout >120s).
       await loginWithKokioPasskey();
       dispatch({ type: "PASSKEY" });
-      return true;
+      return 'success';
     } catch (error) {
-      dispatch({ type: "ERROR", payload: formatError(error) });
-      return false;
+      const isNoCredentials = (error as Record<string, unknown>)?.error === 'NoCredentials';
+      if (!isNoCredentials) {
+        dispatch({ type: "ERROR", payload: formatError(error) });
+      }
+      return isNoCredentials ? 'no-credential' : 'error';
     } finally {
       dispatch({ type: "LOADING", payload: null });
+    }
+  };
+
+  // Recovers an existing passkey after reinstall (SecureStore wiped but passkey
+  // still in Google Password Manager / iCloud Keychain). Returns the result on
+  // success so the caller can restore kokio state; returns null on any failure
+  // so the caller can fall through to fresh registration.
+  const recoverWithPasskey = async (): Promise<DiscoverLoginResult | null> => {
+    if (!Passkey.isSupported()) return null;
+
+    dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
+    try {
+      const result = await discoverAndLoginWithPasskey();
+      dispatch({ type: "PASSKEY" });
+      return result;
+    } catch {
+      dispatch({ type: "LOADING", payload: null });
+      return null;
     }
   };
 
@@ -247,6 +285,15 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       setStepUpHint(null);
     } catch (err) {
       setStepUpError(formatError(err));
+      if (err instanceof AuthError) {
+        // Server-side failure — retrying won't help; drain the queue so parked
+        // requests get a definitive rejection rather than hanging indefinitely.
+        rejectStepUp(err);
+        setStepUpVisible(false);
+        setStepUpHint(null);
+      }
+      // Platform/biometric errors (not AuthError) leave the modal open so the
+      // user can retry without losing their queued requests.
     }
   }, []);
 
@@ -264,6 +311,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
         state,
         signUpWithPasskey,
         loginWithPasskey,
+        recoverWithPasskey,
         reauthenticate,
         clearError,
         logout,

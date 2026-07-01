@@ -1,13 +1,11 @@
-import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator , KeyboardAvoidingView } from 'react-native'
+import React, { useEffect, useState , useRef, useMemo } from 'react'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import { KeyboardAvoidingView } from 'react-native'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { router, useLocalSearchParams } from 'expo-router'
 import { TextInput } from 'react-native-gesture-handler'
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { useRef, useMemo } from 'react'
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -20,10 +18,9 @@ interface Token {
     name: string
     symbol: string;
     value: string;
-    icon: string
-
-
+    icon: string;
 }
+
 interface Transaction {
     id: string;
     dateTime: string | Date; // Can adjust based on how you want to store it
@@ -32,7 +29,7 @@ interface Transaction {
     amount: string;
     status: "pending" | "completed"; // Union type for valid statuses
     type: "sent" | "received"; // Union type for valid types
-    icon: string;
+    icon: string | string [];
   }
   interface Contact {
     id: string;
@@ -53,7 +50,7 @@ const createStyles = () => StyleSheet.create({
     },
 })
 
-const sendToContact = () => {
+const SendToContact = () => {
     const { isDark } = useTheme();
     const styles = useMemo(createStyles, [isDark]);
     const params = useLocalSearchParams();
@@ -64,7 +61,7 @@ const sendToContact = () => {
     const { showToast, showMessage } = useToast();
 
 
-    const sheetRef = useRef(null);
+    const sheetRef = useRef<BottomSheet>(null);
 
 
     const snapPoints = useMemo(() => ['96.5%', '97%'], []);
@@ -110,9 +107,8 @@ const sendToContact = () => {
           await AsyncStorage.setItem(`contact_${contactId}`, JSON.stringify(updatedContact));
     
           console.log("Transaction added successfully:", newTransaction);
-          router.push({pathname:"/(tabs)/(wallet)/transactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
-    
-          
+          router.push({pathname:"/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
+          //@ts-expect-error non-reachable code for now, should be fixed when enabled
           showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',params?.firstName,params.monogramUrl)
         } catch (error) {
           console.error("Error adding transaction:", error);
@@ -230,7 +226,7 @@ const sendToContact = () => {
                     <BottomSheetScrollView contentContainerStyle={styles.contentContainer}>
                         {_.size(tokens) === 0 ? (
                             <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
-                                You don't hold any tokens yet.
+                                You don&#39;t hold any tokens yet.
                             </ThemedText>
                         ) : (
                             <ThemedView darkColor={Theme.colors.background} className='gap-y-3 mt-3 mb-3 px-4'>
@@ -269,4 +265,4 @@ const sendToContact = () => {
         </KeyboardAwareScrollView>
     )
 }
-export default sendToContact;
+export default SendToContact;

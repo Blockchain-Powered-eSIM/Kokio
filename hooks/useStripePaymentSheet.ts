@@ -1,1 +1,2 @@
-export { usePaymentSheet as useStripePaymentSheet } from "@stripe/stripe-react-native";
+// Metro resolves to .native.ts or .web.ts at runtime.
+export * from './useStripePaymentSheet.native';

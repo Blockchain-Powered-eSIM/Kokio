@@ -1,3 +1,5 @@
+// Library specific default import pattern
+// eslint-disable-next-line import/no-named-as-default
 import SignClient from "@walletconnect/sign-client";
 import type { SignClientTypes } from "@walletconnect/types";
 import { Config } from "@/appKeys";

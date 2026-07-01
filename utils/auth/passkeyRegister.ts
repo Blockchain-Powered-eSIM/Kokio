@@ -1,7 +1,6 @@
 import { Passkey } from 'react-native-passkey';
 import { type Hex, bytesToHex } from 'viem';
-import { decodeAttestationObject, parseAuthenticatorData, decodeCredentialPublicKey } from '@simplewebauthn/server/helpers';
-import { isoBase64URL } from '@simplewebauthn/server/helpers';
+import { decodeAttestationObject, parseAuthenticatorData, decodeCredentialPublicKey, isoBase64URL, cose } from '@simplewebauthn/server/helpers';
 import { kokioAuthClient, RegisterCompleteData } from './kokioAuthClient';
 import { AuthError } from './errors';
 
@@ -50,7 +49,10 @@ async function _registerPasskey(username: string): Promise<RegisterResult> {
     challenge: options.challenge,
     rp: options.rp,
     user: options.user,
-    pubKeyCredParams: options.pubKeyCredParams as { type: string; alg: number }[],
+    pubKeyCredParams: options.pubKeyCredParams.map((p) => ({
+      type: 'public-key' as const,
+      alg: p.alg as number,
+    })),
     timeout: options.timeout,
     excludeCredentials: [],
     authenticatorSelection: options.authenticatorSelection,
@@ -66,9 +68,14 @@ async function _registerPasskey(username: string): Promise<RegisterResult> {
   if (!authData.credentialPublicKey) {
     throw new AuthError('REGISTRATION_FAILED', undefined, 'No public key in attestation');
   }
-  const cosePubKey = decodeCredentialPublicKey(authData.credentialPublicKey);
-  const publicKeyX = bytesToHex(cosePubKey.get(-2) as Uint8Array) as Hex;
-  const publicKeyY = bytesToHex(cosePubKey.get(-3) as Uint8Array) as Hex;
+  const cosePubKey = decodeCredentialPublicKey(authData.credentialPublicKey) as cose.COSEPublicKeyEC2;
+  const x = cosePubKey.get(cose.COSEKEYS.x);
+  const y = cosePubKey.get(cose.COSEKEYS.y);
+  if (!x || !y) {
+    throw new AuthError('REGISTRATION_FAILED', undefined, 'COSE public key missing EC2 coordinates');
+  }
+  const publicKeyX = bytesToHex(x) as Hex;
+  const publicKeyY = bytesToHex(y) as Hex;
 
   // 3. Complete registration — server verifies attestation and derives wallet address
   const completeResp = await kokioAuthClient.registerComplete({

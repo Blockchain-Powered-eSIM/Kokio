@@ -1,8 +1,9 @@
 // Add global shims
 import "react-native-get-random-values";
-import "@walletconnect/react-native-compat";
 import "@ethersproject/shims";
-import { install as installQuickCrypto } from "react-native-quick-crypto";
+// utils/nativeRuntimeSetup.ts exists and exports {}, it is a bundler resolution alias edge case
+// eslint-disable-next-line import/no-unresolved
+import "@/utils/nativeRuntimeSetup";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
@@ -27,10 +28,6 @@ import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-
-// Polyfill global.crypto.subtle for jose / DPoP key generation.
-// index.js is not used when "main" = "expo-router/entry", so this must live here.
-installQuickCrypto();
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -63,6 +60,8 @@ export default function RootLayout() {
   useEffect(() => {
     useAuthStore.getState().loadPersistedTokens();
     setUnauthenticatedHandler(() => router.replace("/" as any));
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Initial connectivity check
@@ -109,8 +108,9 @@ export default function RootLayout() {
         }
       }
     });
-
     return () => unsubscribe();
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hide splash screen after fonts and bootstrap complete

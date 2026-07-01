@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StyleSheet, View, Text, Dimensions, Platform } from "react-native";
+import { StyleSheet, View, Text, Dimensions, Platform, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "expo-router";
+import { useNavigation, router } from "expo-router";
 import _get from "lodash/get";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -25,26 +25,68 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
 const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
 
-const ExpandableContent = ({ eSimItem = {} }: any) => {
+const ExpandableContent = ({
+  eSimItem = {},
+  onNetworkPress,
+}: {
+  eSimItem?: any;
+  onNetworkPress: () => void;
+}) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
-  return (<View style={{ gap: 12 }}>
-    {ESIM_EXTRA_DETAILS.map((item, index) => (
-      <View key={index} style={[!item.isFlexColumn && styles.expandedItem]}>
-        <DetailItem
-          iconType={item.iconType}
-          iconName={item.iconName}
-          value={item.label}
-          highlight={false}
-          containerStyles={styles.extraContentLabel}
-        />
-        <DetailItem
-          value={item.formatter?.(_get(eSimItem, item.key))}
-          containerStyles={item.dataContainerStyles}
-        />
-      </View>
-    ))}
-  </View>
+  const isMultiCountry = eSimItem?.coverageType !== "LOCAL";
+
+  return (
+    <View style={{ gap: 12 }}>
+      {ESIM_EXTRA_DETAILS.map((item, index) => {
+        const isNetworkRow = item.key === "countryWiseNetworkCoverages";
+
+        if (isNetworkRow && isMultiCountry) {
+          const coverage: any[] = _get(eSimItem, item.key) || [];
+          return (
+            <View key={index} style={styles.expandedItem}>
+              <DetailItem
+                iconType={item.iconType}
+                iconName={item.iconName}
+                value={item.label}
+                highlight={false}
+                containerStyles={styles.extraContentLabel}
+              />
+              <Pressable
+                onPress={onNetworkPress}
+                style={styles.networkLink}
+                hitSlop={8}
+              >
+                <Text style={styles.networkLinkText}>
+                  {coverage.length} {coverage.length === 1 ? "country" : "countries"}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={Theme.colors.cardForeground}
+                />
+              </Pressable>
+            </View>
+          );
+        }
+
+        return (
+          <View key={index} style={[!item.isFlexColumn && styles.expandedItem]}>
+            <DetailItem
+              iconType={item.iconType}
+              iconName={item.iconName}
+              value={item.label}
+              highlight={false}
+              containerStyles={styles.extraContentLabel}
+            />
+            <DetailItem
+              value={item.formatter?.(_get(eSimItem, item.key))}
+              containerStyles={item.dataContainerStyles}
+            />
+          </View>
+        );
+      })}
+    </View>
   );
 };
 
@@ -107,6 +149,16 @@ const createStyles = () => StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  networkLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  networkLinkText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: Theme.colors.cardForeground,
+  },
 });
 
 const CheckoutHeader = ({ eSimDetails = {} }: any) => {
@@ -119,7 +171,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
       return HEADER_MIN_HEIGHT + insets.top;
     }
     return HEADER_MIN_HEIGHT;
-  }, []);
+  }, [insets.top]);
 
   const eSimItem = React.useMemo(() => {
     if (typeof eSimDetails === "string") {
@@ -135,6 +187,18 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const [contentHeight, setContentHeight] = useState(0);
   const animatedHeight = useSharedValue(computedHeaderHeight);
   const isExpanded = useSharedValue(false);
+
+  const networkCoverage = useMemo(
+    () => eSimItem?.countryWiseNetworkCoverages ?? [],
+    [eSimItem]
+  );
+
+  const handleNetworkPress = () => {
+    router.push({
+      pathname: "/(tabs)/(shop)/coverage",
+      params: { data: JSON.stringify(networkCoverage) },
+    });
+  };
 
   const navigation = useNavigation();
 
@@ -204,6 +268,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         )}
       </View>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleBack, eSimItem]
   );
 
@@ -232,6 +298,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         />
       </View>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [eSimItem]
   );
 
@@ -311,7 +379,10 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         {/* Expandable details */}
         <Animated.View style={animatedContentStyle}>
           <View onLayout={onContentLayout}>
-            <ExpandableContent eSimItem={eSimItem} />
+            <ExpandableContent
+              eSimItem={eSimItem}
+              onNetworkPress={handleNetworkPress}
+            />
           </View>
         </Animated.View>
       </Animated.View>

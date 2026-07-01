@@ -1,20 +1,17 @@
 import 'react-native-get-random-values';
-import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
+import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { Pressable } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
-import { router } from 'expo-router';
-import { useNavigation, useLocalSearchParams } from 'expo-router';
+import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import { Theme } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 
-const addContactScreen = () => {
+const AddContactScreen = () => {
     const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -62,7 +59,7 @@ const addContactScreen = () => {
         // if (!isPermissionGranted) {
         //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
         // } else {
-        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName,isEdit:"false" } });
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { firstName: firstName, lastName: lastName,isEdit:"false" } });
         // }
     };
 
@@ -107,7 +104,7 @@ const addContactScreen = () => {
 
             // Optional: Show success message
             showMessage("Contact added successfully", "info");
-            router.replace({pathname:'/(tabs)/(wallet)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
+            router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
             console.log(contactObj);
             
 
@@ -200,4 +197,4 @@ const addContactScreen = () => {
     )
 }
 
-export default addContactScreen;
+export default AddContactScreen;

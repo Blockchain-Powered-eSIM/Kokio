@@ -1,11 +1,9 @@
-import { ExpoConfig, ConfigContext } from "expo/config";
-import { AppExtraConfig } from "./appKeys.js";
-import packageJson from "./package.json";
+const packageJson = require("./package.json");
 
 const { version } = packageJson;
 
-export default ({ config }: ConfigContext): ExpoConfig => {
-  const privateConfig: AppExtraConfig = {
+module.exports = ({ config }) => {
+  const privateConfig = {
     authServerBaseUrl: process.env.AUTH_SERVER_BASE_URL,
     redirectUri: process.env.REDIRECT_URI,
     apiBaseUrl: process.env.API_BASE_URL,
@@ -22,12 +20,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   };
 
   return {
-    // Merge any default or existing config
     ...config,
-
     newArchEnabled: true,
     name: "Kokio",
     slug: "kokio",
+    owner: "kokio-sg",
     version,
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -41,7 +38,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     runtimeVersion: version,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "app.kokio",
+      bundleIdentifier: "app.kokio.mobile",
       associatedDomains: ["webcredentials:kokio.app", "applinks:kokio.app"],
       config: {
         usesNonExemptEncryption: false,
@@ -49,15 +46,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       version,
       buildNumber: "1",
       infoPlist: {
-        NSPhotoLibraryUsageDescription: "This app may access your photo library when selecting or sharing images."
-      }
+        NSPhotoLibraryUsageDescription:
+          "This app may access your photo library when selecting or sharing images.",
+      },
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#242427",
       },
-      package: "app.kokio",
+      package: "app.kokio.mobile",
       edgeToEdgeEnabled: true,
       version,
       intentFilters: [
@@ -71,7 +69,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           category: ["BROWSABLE", "DEFAULT"],
         },
         {
-          // kokio://wc-connect?uri=wc%3A... — WalletConnect pairing URI (PAY-011)
           action: "VIEW",
           data: [{ scheme: "kokio", host: "wc-connect" }],
           category: ["BROWSABLE", "DEFAULT"],
@@ -124,7 +121,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "@stripe/stripe-react-native",
         {
-          merchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
+          merchantIdentifier:
+            process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
           enableGooglePay: true,
         },
       ],

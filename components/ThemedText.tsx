@@ -1,4 +1,4 @@
-import { Text, type TextProps, TextStyle } from 'react-native';
+import { Text, type TextProps } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { cn } from "./../lib/cn";
 
@@ -6,7 +6,6 @@ export type ThemedTextProps = TextProps & {
   children: React.ReactNode;
   variant?: "xsm" | "xsmb" | "sm" | "smb" | "normal" | "xl" | "xxl";
   className?: string;
-  style?: TextStyle;
   bold?: boolean;
   light?:boolean
   lightColor?: string;

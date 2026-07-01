@@ -27,7 +27,7 @@ export function useAppState(reauth?: boolean) {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [reauth]);
 
   return appStateVisible;
 }

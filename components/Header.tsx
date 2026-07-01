@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { useNavigation } from "expo-router";
+import { useNavigation, router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import _isFunction from "lodash/isFunction";
@@ -32,7 +32,7 @@ const Header = ({
     }
 
     if (goBackFallBack) {
-      navigation.navigate(goBackFallBack);
+      router.navigate(goBackFallBack);
     }
   };
 

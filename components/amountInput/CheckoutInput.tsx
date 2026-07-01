@@ -13,7 +13,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 interface CheckoutInputProps extends TextInputProps {
   label: string;
-  style?: StyleProp<ViewStyle>;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 const createStyles = () => StyleSheet.create({
@@ -47,14 +47,14 @@ const createStyles = () => StyleSheet.create({
 
 const CheckoutInput: React.FC<CheckoutInputProps> = ({
   label,
-  style,
+  containerStyle,
   value,
   ...props
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   return (
-    <View style={[styles.inner, style]}>
+    <View style={[styles.inner, containerStyle]}>
       <ThemedText light style={styles.label}>{label}</ThemedText>
       <TextInput
         {...props}

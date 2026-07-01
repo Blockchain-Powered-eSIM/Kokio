@@ -36,12 +36,24 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH * 0.8;
 const SPACING = 8;
 
-const isSearchTextMatch = ({ searchText, item, keyExtractor }) =>
-  _includes(_lowerCase(_get(item, keyExtractor)), searchText);
+type ServiceRegion = { code: string; name: string; flag?: string };
+const isSearchTextMatch = ({
+  searchText,
+  item,
+  keyExtractor,
+}: {
+  searchText: string;
+  item: ServiceRegion;
+  keyExtractor: string;
+}) => _includes(_lowerCase(_get(item, keyExtractor)), searchText);
+//const isSearchTextMatch = ({ searchText, item, keyExtractor }) =>
+//  _includes(_lowerCase(_get(item, keyExtractor)), searchText);
 
-const CountryItemRender = ({ item }) => {
-  const firstItem = _get(item, "0", {});
-  const secondItem = _get(item, "1", {});
+const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
+  //const firstItem = _get(item, "0", {});
+  //const secondItem = _get(item, "1", {});
+  const firstItem = item[0];
+  const secondItem = item[1];
 
   return (
     <View style={styles.countryItem}>
@@ -130,7 +142,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
     () =>
       _reduce(
         countryConfig,
-        (acc, item) => {
+        (acc: ServiceRegion[], item) => {
           if (
             isSearchTextMatch({
               searchText: sanitizedSearchText,
@@ -207,7 +219,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
               <FlatList
                 data={_chunk(countries, 2)}
                 renderItem={CountryItemRender}
-                keyExtractor={(item, index) => item?.code || index}
+                keyExtractor={(item, index) => String(item?.[0]?.code || index)}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.countryListContainer}
@@ -227,7 +239,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
           <FlatList
             data={regions}
             renderItem={({ item }) => <RegionItemRender item={item} />}
-            keyExtractor={(item, index) => item?.code || index}
+            keyExtractor={(item, index) => String(item?.[0]?.code || index)}
             ItemSeparatorComponent={() => <View style={{ height: SPACING }} />}
             ListEmptyComponent={RegionEmptyListComponent}
             showsVerticalScrollIndicator={false}

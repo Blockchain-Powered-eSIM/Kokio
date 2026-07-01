@@ -58,7 +58,8 @@ export async function performStepUp(): Promise<void> {
       challenge:        opts.challenge,
       rpId:             opts.rpId,
       timeout:          opts.timeout,
-      allowCredentials: opts.allowCredentials as { id: string; type: string }[],
+      // @ts-expect-error react-native-passkey does not export matched type PublicKeyCredentialDescriptor[]
+      allowCredentials: opts.allowCredentials,
       userVerification: opts.userVerification,
     });
 
@@ -98,9 +99,12 @@ export async function performStepUp(): Promise<void> {
 
     // 4. Swap only the AT. The RT is intentionally kept — the server spec states
     //    "No new refresh token is issued" for a step-up grant.
+    // Read the latest store state here (not the pre-biometric snapshot) so that
+    // a background refresh that ran during the prompt doesn't get its RT overwritten.
     const { auth_time } = parseIdToken(resp.id_token);
+    const latest = useAuthStore.getState().tokens ?? current;
     await useAuthStore.getState().setTokens({
-      ...current,
+      ...latest,
       access_token: resp.access_token,
       id_token:     resp.id_token,
       expires_at:   Date.now() + resp.expires_in * 1_000,

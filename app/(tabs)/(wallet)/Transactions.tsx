@@ -1,12 +1,10 @@
 import { View, Image, Pressable } from 'react-native';
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 import _ from "lodash"
 import { Theme } from '@/constants/Colors'
-import { useCallback } from 'react';
-
 
 interface Transaction {
   id?: string;
@@ -18,9 +16,6 @@ interface Transaction {
   amount: string;
 }
 
-
-
-
 const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
   if (!address) return "";
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
@@ -28,9 +23,7 @@ const shortenId = (address: string|undefined, startLength = 3, endLength = 6) =>
 
 const Transactions = () => {
   const router = useRouter();
-
-  
-  const transactions = [
+  const transactions = useMemo(() => [
     {
 
       name: 'Alice',
@@ -73,14 +66,14 @@ const Transactions = () => {
       type: 'received',
       icon: require('../../../assets/images/wallet/wallet.png')
     },
-  ];
+  ], []);
 
   const renderTransaction = useCallback(
     (tr: Transaction, index: number) => (
       tr.status === 'pending' && (
         <Pressable
           onPress={() => router.push({
-            pathname: "(wallet)/transactionDetails",
+            pathname: "/(tabs)/(wallet)/TransactionDetails",
             params: { transaction: JSON.stringify(transactions[index]) }
           })}
           key={tr?.id}
@@ -105,7 +98,7 @@ const Transactions = () => {
           <View className='flex-col items-end'>
             <ThemedText variant='xl'>{tr?.amount}</ThemedText>
             <ThemedText
-              darkColor={tr?.status === 'completed' ? Theme.colors.foreground : Theme.colors.primary}
+              darkColor={Theme.colors.primary}
               variant='sm'
             >
               {tr?.status}
@@ -140,7 +133,7 @@ const Transactions = () => {
               tr.status === 'completed' && (
                 <Pressable
                   onPress={() => router.push({
-                    pathname: "(wallet)/transactionDetails",
+                    pathname: "/(tabs)/(wallet)/TransactionDetails",
                     params: { transaction: JSON.stringify(transactions[index]) } // Convert object to string
                   })}
                   key={tr?.id}

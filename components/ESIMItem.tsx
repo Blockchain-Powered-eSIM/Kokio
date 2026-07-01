@@ -9,16 +9,25 @@ import DetailItem from "./ui/DetailItem";
 
 export interface Esim {
   catalogueId: string;
-  actualSellingPrice?: number;
+  actualSellingPrice: number;
   isUnlimited: boolean;
   serviceRegionCode: string;
-  serviceRegionFlag: string;
-  serviceRegionName: string;
+  serviceRegionFlag?: string | null;
+  serviceRegionName?: string | null;
   coverageType: string;
-  data: number;
-  sms: number | null;
-  validity: number;
-  voice: number | null;
+  data?: number | null;
+  sms?: number | null;
+  validity: number | null;
+  voice?: number | null;
+  planType?: "DATA" | "DATA_CALLS_SMS";
+  isTopupAvailable?: boolean;
+  isAutoStart?: boolean;
+  isKycRequired?: boolean;
+  countryWiseNetworkCoverages?: {
+    countryCode?: string;
+    countryName?: string;
+    networks?: { name?: string; type?: string }[];
+  }[];
 }
 
 const ESIMItem = ({
@@ -28,8 +37,8 @@ const ESIMItem = ({
   onPress,
 }: {
   item: Esim;
-  showBuyButton: Boolean;
-  containerStyle?: Object;
+  showBuyButton: boolean;
+  containerStyle?: object;
   onPress?: () => void;
 }) => {
   const { isDark } = useTheme();
@@ -57,6 +66,7 @@ const ESIMItem = ({
             <CountryFlag
               style={[showBuyButton && styles.flag]}
               isoCode={item?.serviceRegionCode}
+              //@ts-expect-error - null values are handled in the component
               flagUrl={item?.serviceRegionFlag}
               size={40}
             />
@@ -105,6 +115,9 @@ const ESIMItem = ({
         </View>
       </>
     ),
+    // isDark is required here, useTheme() does not change the element on regional, global and homepage
+    // It only works on the local tab of the shop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [item, showBuyButton, handleBuyCTAClick, isDark]
   );
 

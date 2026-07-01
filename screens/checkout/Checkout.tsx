@@ -28,8 +28,9 @@ import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { createCryptoOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus } from "@/utils/bff/order";
+import { createCryptoOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus, isOrderSuccess } from "@/utils/bff/order";
 import { pollingLabel } from "@/utils/orderStatus";
+import OrderFailureModal from "@/components/ui/OrderFailureModal";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
@@ -91,11 +92,10 @@ const ExternalWalletCheckout = ({
             setLoadingMessage(pollingLabel(s)),
           ).catch(() => null)
         : null;
-      if (finalOrder && kokioDeviceUID) {
-        await savePurchasedESIM(kokioDeviceUID, eSimItem, finalOrder, correlationId);
-      }
       onComplete(finalOrder);
     },
+    //TODO: Probably 'eSimItem', 'kokioDeviceUID', 'pendingOrder', and 'savePurchasedESIM' are not needed in the dependency array here, as they are not part of the changing values of this callback
+    //eslint-disable-next-line react-hooks/exhaustive-deps
     [correlationId, eSimItem, kokioDeviceUID, onComplete, pendingOrder, savePurchasedESIM, setIsCheckoutLoading, setLoadingMessage],
   );
 
@@ -103,7 +103,7 @@ const ExternalWalletCheckout = ({
 
   useEffect(() => {
     payWithCrypto();
-  }, []);
+  }, [payWithCrypto]);
 
   // SDK drawer closed without a confirmed payment → surface browser fallback
   const prevVisibleRef = useRef<boolean | null>(null);
@@ -331,6 +331,7 @@ const Checkout = () => {
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [showWalletSetupModal, setShowWalletSetupModal] = useState(false);
+  const [pendingPaymentMethod, setPendingPaymentMethod] = useState<string | null>(null);
   const [helioChargeToken, setHelioChargeToken] = useState<string | null>(null);
   const [helioCorrelationId, setHelioCorrelationId] = useState<string | null>(null);
   const [pendingHelioOrder, setPendingHelioOrder] = useState<CreateOrderResponse | null>(null);
@@ -343,9 +344,17 @@ const Checkout = () => {
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [orderResponse, setOrderResponse] = useState<OrderStatusResponse | null>(null);
   const [discountError, setDiscountError] = useState<string>("");
+  const [showManualReviewModal, setShowManualReviewModal] = useState(false);
+  const [failedOrderInfo, setFailedOrderInfo] = useState<{
+    orderStatus: string;
+    referenceId: string | null;
+    manualReviewReason?: string | null;
+  } | null>(null);
 
   const radioButtons: RadioButtonProps[] = useMemo(
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedPaymentMethod]
   );
 
@@ -377,7 +386,50 @@ const Checkout = () => {
     if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
       setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
     }
-  }, [compatibleEsims]);
+  }, [compatibleEsims, compatibleTopUpEsimId]);
+
+  const handleOrderResult = useCallback(async (
+    order: OrderStatusResponse | null,
+    correlationId?: string | null,
+  ) => {
+    if (!order) {
+      showMessage('Unable to confirm order status. Check Order History in Settings.', 'info');
+      return;
+    }
+
+    if (isOrderSuccess(order.orderStatus)) {
+      if (kokio.deviceUID) {
+        await savePurchasedESIM(kokio.deviceUID, eSimItem, order, correlationId);
+      }
+      setOrderResponse(order);
+      setShowSuccessModal(true);
+      return;
+    }
+
+    if (order.flaggedForManualReview) {
+      setFailedOrderInfo({
+        orderStatus: order.orderStatus,
+        referenceId: correlationId ?? order.orderId ?? null,
+        manualReviewReason: order.manualReviewReason ?? null,
+      });
+      setShowManualReviewModal(true);
+      return;
+    }
+
+    // Pre-payment terminal failures: PAYMENT_FAILED, ABANDONED
+    const msg =
+      order.orderStatus === 'PAYMENT_FAILED' ? 'Payment failed. Please try again.' :
+      order.orderStatus === 'ABANDONED'       ? 'Order expired. Please try again.' :
+      'Order could not be completed. Please try again.';
+    showMessage(msg, 'info');
+  }, [kokio.deviceUID, eSimItem, savePurchasedESIM, showMessage]);
+
+  const handleRemoveDiscount = useCallback(() => {
+    setIsDiscountApplied(false);
+    setDiscountAmount(0);
+    setDiscountCode("");
+    setDiscountError("");
+  }, []);
 
   const handleEsimCheckout = useCallback(async () => {
     try {
@@ -414,21 +466,12 @@ const Checkout = () => {
         await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
       }
       setLoadingMessage('Processing your order...');
-      const PAYMENT_ERRORS = new Set(['PAYMENT_FAILED', 'STRIPE_INVOICE_FINALIZATION_FAILED']);
       const orderData = correlationId
-        ? await pollOrderStatus(correlationId, 15, 2000, (s) => setLoadingMessage(pollingLabel(s)))
-            .catch((e) => { if (PAYMENT_ERRORS.has(e?.code)) throw e; return null; })
+        ? await pollOrderStatus(correlationId, 15, 2000, (s) => setLoadingMessage(pollingLabel(s))).catch(() => null)
         : null;
-
-      if (orderData) setOrderResponse(orderData);
-
-      // Store purchased eSIM in SecureStore and reducer
-      if (kokio.deviceUID && orderData) {
-        await savePurchasedESIM(kokio.deviceUID, eSimItem, orderData, correlationId);
-      }
-
       setIsCheckoutLoading(false);
-      setShowSuccessModal(true);
+      setLoadingMessage('');
+      await handleOrderResult(orderData, correlationId);
     } catch (err) {
       if (__DEV__) console.error("Checkout error:", err);
       const e = err as { code?: string; message?: string };
@@ -447,12 +490,13 @@ const Checkout = () => {
     discountCode,
     kokio?.userWallet,
     kokio?.deviceUID,
-    savePurchasedESIM,
     applyAsTopup,
     compatibleTopUpEsimId,
     createTopupOrder,
     showMessage,
     handleRemoveDiscount,
+    handleOrderResult,
+    upsertOrderRecord,
   ]);
 
   const resetHelioState = useCallback(() => {
@@ -461,15 +505,12 @@ const Checkout = () => {
     setHelioCorrelationId(null);
   }, []);
 
-  const handleHelioComplete = useCallback((finalOrder: OrderStatusResponse | null) => {
+  const handleHelioComplete = useCallback(async (finalOrder: OrderStatusResponse | null) => {
     resetHelioState();
     setIsCheckoutLoading(false);
     setLoadingMessage('');
-    if (finalOrder) {
-      setOrderResponse(finalOrder);
-      setShowSuccessModal(true);
-    }
-  }, [resetHelioState]);
+    await handleOrderResult(finalOrder, helioCorrelationId);
+  }, [resetHelioState, handleOrderResult, helioCorrelationId]);
 
   // Opens the payment page in SFSafariViewController / Chrome Custom Tab.
   // url/cid are passed explicitly so they can be forwarded directly from
@@ -491,15 +532,9 @@ const Checkout = () => {
               setLoadingMessage(pollingLabel(s)),
             ).catch(() => null)
           : null;
-        if (finalOrder?.installationDetails?.qrcode || finalOrder?.orderStatus === 'COMPLETED') {
-          if (kokio.deviceUID) {
-            await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder!, cid);
-          }
-          handleHelioComplete(finalOrder);
-        } else {
-          setIsCheckoutLoading(false);
-          setLoadingMessage('');
-        }
+        setIsCheckoutLoading(false);
+        setLoadingMessage('');
+        await handleOrderResult(finalOrder, cid);
       } catch {
         setIsCheckoutLoading(false);
         setLoadingMessage('');
@@ -522,7 +557,7 @@ const Checkout = () => {
     // dismissBrowser() was called by the AppState handler / moonpay-return).
     appStateSub.remove();
     doPoll();
-  }, [kokio.deviceUID, eSimItem, savePurchasedESIM, handleHelioComplete]);
+  }, [handleOrderResult]);
 
   const handleCheckout = useCallback(async () => {
     if (
@@ -586,10 +621,9 @@ const Checkout = () => {
               setLoadingMessage(pollingLabel(s)),
             ).catch(() => null)
           : null;
-        if (kokio.deviceUID && finalOrder) await savePurchasedESIM(kokio.deviceUID, eSimItem, finalOrder, correlationId);
-        setOrderResponse(finalOrder);
         setIsCheckoutLoading(false);
-        setShowSuccessModal(true);
+        setLoadingMessage('');
+        await handleOrderResult(finalOrder, correlationId);
       } catch (err) {
         const bffErr = err as { correlationId?: string | null };
         const errCid = fiatCorrelationId ?? bffErr?.correlationId;
@@ -607,6 +641,7 @@ const Checkout = () => {
     }
 
     if (
+      //@ts-expect-error EXTERNAL_WALLET has been intentionally disable for now
       selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET ||
       selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET_BROWSER
     ) {
@@ -671,7 +706,6 @@ const Checkout = () => {
     compatibleTopUpEsimId,
     kokio.userWallet,
     kokio.deviceUID,
-    savePurchasedESIM,
     upsertOrderRecord,
     initPaymentSheet,
     presentPaymentSheet,
@@ -679,6 +713,7 @@ const Checkout = () => {
     showMessage,
     handleEsimCheckout,
     handleBrowserPay,
+    handleOrderResult,
   ]);
 
   const handleInstallESIM = useCallback(() => {
@@ -697,16 +732,16 @@ const Checkout = () => {
 
   const handleWalletModalClose = useCallback(() => {
     setShowWalletSetupModal(false);
+    setPendingPaymentMethod(null);
   }, []);
 
   const handlePaymentMethodChange = useCallback(
     (value: string) => {
-      if (value === RADIO_KEYS.E_SIM_WALLET) {
-        if (kokio.userWallet) {
-          setSelectedPaymentMethod(value);
-        } else {
-          setShowWalletSetupModal(true);
-        }
+      if (value === RADIO_KEYS.E_SIM_WALLET) return; // disabled — not a payment option yet
+      if (!kokio.userWallet) {
+        // Wallet not yet deployed — gate behind deployment modal then resume
+        setPendingPaymentMethod(value);
+        setShowWalletSetupModal(true);
       } else {
         setSelectedPaymentMethod(value);
       }
@@ -738,13 +773,6 @@ const Checkout = () => {
       setShowWalletSetupModal(true);
     }
   }, [coupon, eSimItem.actualSellingPrice, kokio.userWallet]);
-
-  const handleRemoveDiscount = useCallback(() => {
-    setIsDiscountApplied(false);
-    setDiscountAmount(0);
-    setDiscountCode("");
-    setDiscountError("");
-  }, []);
 
   const totalAmount = useMemo(() => {
     if (isDiscountApplied) {
@@ -1004,13 +1032,21 @@ const Checkout = () => {
         onInstallESIM={handleInstallESIM}
       />
 
+      <OrderFailureModal
+        visible={showManualReviewModal}
+        orderStatus={failedOrderInfo?.orderStatus ?? ''}
+        referenceId={failedOrderInfo?.referenceId ?? null}
+        manualReviewReason={failedOrderInfo?.manualReviewReason}
+        onDismiss={() => setShowManualReviewModal(false)}
+      />
+
       <WalletSetupModal
         visible={showWalletSetupModal}
         onClose={handleWalletModalClose}
         onContinue={() => {
-          // TODO: Loader for Wallet
+          const method = pendingPaymentMethod;
           handleWalletModalClose();
-          setSelectedPaymentMethod(RADIO_KEYS.E_SIM_WALLET);
+          if (method) setSelectedPaymentMethod(method);
         }}
       />
 

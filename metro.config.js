@@ -21,7 +21,7 @@ const config = getDefaultConfig(__dirname);
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   ...require("node-libs-react-native"),
-  crypto: require.resolve("crypto-browserify"),
+  crypto: require.resolve("react-native-quick-crypto"),
   stream: require.resolve("stream-browserify"),
 };
 
@@ -43,7 +43,6 @@ config.resolver.unstable_conditionNames = [
   "require",
   "react-native",
 ];
-
 config.transformer.getTransformOptions = async () => ({
   transform: {
     experimentalImportSupport: true,
@@ -51,4 +50,9 @@ config.transformer.getTransformOptions = async () => ({
   },
 });
 
-module.exports = withNativeWind(config, { input: "./global.css" });
+const nativeWindConfig = withNativeWind(config, { input: "./global.css" });
+nativeWindConfig.resolver.sourceExts = [
+  ...nativeWindConfig.resolver.sourceExts,
+  "mjs",
+];
+module.exports = nativeWindConfig;

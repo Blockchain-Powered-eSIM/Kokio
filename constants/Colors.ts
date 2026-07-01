@@ -30,6 +30,7 @@ export const Colors = {
     border: "#C5E8F2",
     input: "#EEF8FC",          // cloud white — inputs
     ring: "#2A8FA0",
+    inactive: "#9BA1A6",
   },
 
   dark: {
