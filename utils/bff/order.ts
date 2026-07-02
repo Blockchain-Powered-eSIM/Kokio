@@ -30,7 +30,6 @@ export type ExternalWalletOrderResponse = CreateOrderResponse & {
 
 type FiatOrderRequest = {
   catalogueId: string;
-  currency: 'USD';
   isNewESim: boolean;
   esimId?: string;
   coupon?: string;
@@ -39,13 +38,10 @@ type FiatOrderRequest = {
 
 type ExternalWalletOrderRequest = {
   catalogueId: string;
-  currency: 'USD';
   isNewESim: boolean;
   esimId?: string;
   coupon?: string;
   isCryptoPayment: true;
-  payeeAddress?: string;
-  successRedirectUrl?: string;
 };
 
 // ─── Order functions ──────────────────────────────────────────────────────────

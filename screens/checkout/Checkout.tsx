@@ -42,7 +42,6 @@ import { useStripePaymentSheet } from "@/hooks/useStripePaymentSheet";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { Config } from "@/appKeys";
 import type { CreateOrderResponse, OrderStatusResponse, ExternalWalletOrderResponse } from "@/utils/bff/order";
 import * as WebBrowser from "expo-web-browser";
 import {
@@ -435,8 +434,6 @@ const Checkout = () => {
     try {
       setIsCheckoutLoading(true);
 
-      const deviceWalletId = kokio.userWallet?.address || "";
-
       if (applyAsTopup && compatibleTopUpEsimId) {
         await createTopupOrder.mutateAsync({
           request: {
@@ -454,12 +451,11 @@ const Checkout = () => {
 
       const payload = getEsimOrderPayload({
         eSimItem,
-        deviceWalletId,
         discountCode,
         applyAsTopup,
         compatibleTopUpEsimId
       });
-      const esimBody = { ...payload, payeeAddress: deviceWalletId };
+      const esimBody = payload;
       if (__DEV__) console.log('[Order] eSIM wallet body:', JSON.stringify(esimBody, null, 2));
       const { correlationId } = await createCryptoOrder(esimBody);
       if (kokio.deviceUID && correlationId) {
@@ -488,7 +484,6 @@ const Checkout = () => {
   }, [
     eSimItem,
     discountCode,
-    kokio?.userWallet,
     kokio?.deviceUID,
     applyAsTopup,
     compatibleTopUpEsimId,
@@ -568,10 +563,9 @@ const Checkout = () => {
       setLoadingMessage('Preparing your payment...');
       let fiatCorrelationId: string | null = null;
       try {
-        const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
+        const base = getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId });
         const fiatBody = {
           catalogueId: base.catalogueId,
-          currency: "USD" as const,
           isNewESim: base.isNewESim,
           esimId: base.esimId,
           coupon: base.coupon,
@@ -649,16 +643,13 @@ const Checkout = () => {
       setLoadingMessage('Preparing your payment...');
       let extCorrelationId: string | null = null;
       try {
-        const base = getEsimOrderPayload({ eSimItem, deviceWalletId: "", discountCode, applyAsTopup, compatibleTopUpEsimId });
+        const base = getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId });
         const extBody = {
           catalogueId: base.catalogueId,
-          currency: "USD" as const,
           isNewESim: base.isNewESim,
           esimId: base.esimId,
           coupon: base.coupon,
           isCryptoPayment: true as const,
-          payeeAddress: kokio.userWallet?.address,
-          successRedirectUrl: Config.EXTERNAL_WALLET_CALLBACK,
         };
         if (__DEV__) console.log('[Order] external wallet body:', JSON.stringify(extBody, null, 2));
         const { data: orderInit, correlationId } = await createExternalWalletOrder(extBody);
@@ -704,7 +695,6 @@ const Checkout = () => {
     discountCode,
     applyAsTopup,
     compatibleTopUpEsimId,
-    kokio.userWallet,
     kokio.deviceUID,
     upsertOrderRecord,
     initPaymentSheet,
