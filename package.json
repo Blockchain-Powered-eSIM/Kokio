@@ -56,7 +56,7 @@
     "expo-file-system": "55.0.22",
     "expo-font": "55.0.8",
     "expo-linear-gradient": "55.0.14",
-    "expo-linking": "55.0.15",
+    "expo-linking": "57.0.1",
     "expo-router": "55.0.16",
     "expo-secure-store": "55.0.14",
     "expo-splash-screen": "55.0.21",
