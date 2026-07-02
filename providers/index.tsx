@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react";
+import React, { ReactNode } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -23,7 +23,8 @@ const queryClient = new QueryClient({
   },
 });
 
-export const Providers = ({ children }: { children: ReactElement }) => {
+// Used ReactNode as ReactElement will make call sites reject mutiple children
+export const Providers = ({ children }: { children: ReactNode }) => {
   const colorScheme = useColorScheme();
 
   return (

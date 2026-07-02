@@ -16,6 +16,14 @@
  * authStore is mocked to assert token-clearing behaviour.
  */
 
+import api from '@/services/httpService';
+import { createOrder }            from '@/utils/bff/order';
+import { checkEsimCompatibility } from '@/utils/bff/esim';
+import { getCatalogue }           from '@/utils/bff/catalogue';
+import { StepUpCancelledError }   from '@/utils/auth/errors';
+import { BffError }               from '@/utils/bff/errors';
+import { useAuthStore }           from '@/stores/authStore';
+
 const mockClearTokens  = jest.fn<Promise<void>, []>();
 const mockSetTokens    = jest.fn<Promise<void>, [unknown]>();
 
@@ -46,14 +54,6 @@ jest.mock('@/services/httpService', () => ({
     getConfig: jest.fn(() => ({})),
   },
 }));
-
-import api from '@/services/httpService';
-import { createOrder }            from '@/utils/bff/order';
-import { checkEsimCompatibility } from '@/utils/bff/esim';
-import { getCatalogue }           from '@/utils/bff/catalogue';
-import { StepUpCancelledError }   from '@/utils/auth/errors';
-import { BffError }               from '@/utils/bff/errors';
-import { useAuthStore }           from '@/stores/authStore';
 
 const mockGet  = api.get  as jest.MockedFunction<typeof api.get>;
 const mockPost = api.post as jest.MockedFunction<typeof api.post>;

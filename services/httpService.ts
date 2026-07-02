@@ -1,14 +1,5 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-
-// Allow callers to opt out of auth header injection for public endpoints,
-// or to override the htu claim for routes with path parameters.
-declare module 'axios' {
-  interface InternalAxiosRequestConfig {
-    skipAuth?: boolean;
-    dpopHtu?: string;
-  }
-}
 import qs from 'qs';
 import { v4 as uuidv4 } from 'uuid';
 import { router } from 'expo-router';
@@ -19,6 +10,15 @@ import { buildDpopProof } from '@/utils/auth/dpopProof';
 import { refreshAccessToken, TokenFamilyRevokedError } from '@/utils/auth/refresh';
 import { StepUpCancelledError } from '@/utils/auth/errors';
 
+// Allow callers to opt out of auth header injection for public endpoints,
+// or to override the htu claim for routes with path parameters.
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuth?: boolean;
+    dpopHtu?: string;
+  }
+}
+
 // ─── Auth event callbacks ─────────────────────────────────────────────────────
 // Register these in your root provider before any authenticated request fires.
 // AUTH-502 wires up setStepUpHandler; AUTH-506 wires up setUnauthenticatedHandler.
@@ -27,8 +27,6 @@ import { StepUpCancelledError } from '@/utils/auth/errors';
 export type StepUpHint = {
   /** e.g. "POST /v1/order" — for UX telemetry / copy. */
   operationName: string;
-  /** Seconds since last biometric auth that the server requires (from 401 body). */
-  requiredAuthTimeAge?: number;
 };
 
 let _onStepUpNeeded: ((hint: StepUpHint) => void) | null = null;
@@ -97,7 +95,8 @@ function bffOrigin(): string | null {
 type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 // ─── Axios instance ───────────────────────────────────────────────────────────
-
+// This is standard axios usage pattern
+// eslint-disable-next-line import/no-named-as-default-member
 const instance: AxiosInstance = axios.create({
   timeout: 30_000,
   paramsSerializer: (params) => qs.stringify(params),
@@ -111,8 +110,10 @@ instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
 
   if (config.skipAuth) return config; // public endpoint — skip auth + correlation id
 
-  const correlationId = uuidv4();
+  // Preserve a caller-supplied idempotency key, otherwise mint one.
+  const correlationId = (config.headers['x-correlation-id'] as string | undefined) ?? uuidv4();
   config.headers['x-correlation-id'] = correlationId;
+
   if (__DEV__) console.log(`[http] ${(config.method ?? 'GET').toUpperCase()} ${config.url} | correlationId: ${correlationId}`);
 
   const stored = useAuthStore.getState().tokens;
@@ -162,13 +163,13 @@ instance.interceptors.response.use(
     const origin = bffOrigin();
     if (nonce && origin) _bffNonceCache.set(origin, nonce);
 
-    return res.data as unknown;
+    return res.data;
   },
 
   async (error: AxiosError) => {
     const cfg    = error.config as RetryableConfig | undefined;
     const status = error.response?.status;
-    const body   = error.response?.data as { code?: string; error?: string; required_auth_time_age?: number } | undefined;
+    const body   = error.response?.data as { code?: string; error?: string } | undefined;
     const wwwAuth = (error.response?.headers?.['www-authenticate'] as string | undefined) ?? '';
 
     // Cache any nonce from the error response too (RFC 9449 §8).
@@ -194,7 +195,6 @@ instance.interceptors.response.use(
     if (body?.code === 'STEP_UP_REQUIRED' || body?.error === 'STEP_UP_REQUIRED') {
       const hint: StepUpHint = {
         operationName:       `${(cfg.method ?? 'GET').toUpperCase()} ${cfg.url ?? ''}`,
-        requiredAuthTimeAge: body?.required_auth_time_age,
       };
       try {
         await waitForStepUp(hint);
@@ -264,20 +264,20 @@ const api = {
       paramsSerializer: (params: Record<string, unknown>) => qs.stringify(params),
     };
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get(url: string, params: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  get(url: string, params: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.get(url, { ...config, params });
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  post(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  post(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.post(url, data, config);
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.put(url, data, config);
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete(url: string, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  delete(url: string, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.delete(url, config);
   },
 };

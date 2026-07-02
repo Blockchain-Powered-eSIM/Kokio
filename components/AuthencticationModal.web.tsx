@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
 });
 
 export function AuthenticationModal() {
-  const { isDark } = useTheme();
+  const { isDark: _isDark } = useTheme();
   const [mode, setMode] = useState<AuthMode>("choice");
   const [visible, setVisible] = useState(true);
 

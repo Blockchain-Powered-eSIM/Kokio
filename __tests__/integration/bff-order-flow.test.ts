@@ -6,6 +6,13 @@
  * payment variants, coupon application, and error propagation.
  */
 
+import api from '@/services/httpService';
+import { getCatalogue }            from '@/utils/bff/catalogue';
+import { checkEsimCompatibility }  from '@/utils/bff/esim';
+import { createOrder, getOrderStatus } from '@/utils/bff/order';
+import { getCoupon }               from '@/utils/bff/coupon';
+import { BffError }                from '@/utils/bff/errors';
+
 jest.mock('@/services/httpService', () => ({
   __esModule: true,
   default: {
@@ -14,13 +21,6 @@ jest.mock('@/services/httpService', () => ({
     getConfig: jest.fn(() => ({})),
   },
 }));
-
-import api from '@/services/httpService';
-import { getCatalogue }            from '@/utils/bff/catalogue';
-import { checkEsimCompatibility }  from '@/utils/bff/esim';
-import { createOrder, getOrderStatus } from '@/utils/bff/order';
-import { getCoupon }               from '@/utils/bff/coupon';
-import { BffError }                from '@/utils/bff/errors';
 
 const mockGet  = api.get  as jest.MockedFunction<typeof api.get>;
 const mockPost = api.post as jest.MockedFunction<typeof api.post>;

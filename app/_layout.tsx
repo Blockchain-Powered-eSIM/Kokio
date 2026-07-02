@@ -1,6 +1,8 @@
 // Add global shims
 import "react-native-get-random-values";
 import "@ethersproject/shims";
+// utils/nativeRuntimeSetup.ts exists and exports {}, it is a bundler resolution alias edge case
+// eslint-disable-next-line import/no-unresolved
 import "@/utils/nativeRuntimeSetup";
 
 import { useFonts } from "expo-font";
@@ -58,6 +60,8 @@ export default function RootLayout() {
   useEffect(() => {
     useAuthStore.getState().loadPersistedTokens();
     setUnauthenticatedHandler(() => router.replace("/" as any));
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Initial connectivity check
@@ -104,8 +108,9 @@ export default function RootLayout() {
         }
       }
     });
-
     return () => unsubscribe();
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hide splash screen after fonts and bootstrap complete

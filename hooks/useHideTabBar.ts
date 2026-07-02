@@ -5,6 +5,6 @@ import _map from "lodash/map";
 
 export default function useHideTabBar() {
   useEffect(() => {
-    router?.setParams({ isTabBarVisible: false });
-  }, [router]);
+    router?.setParams({ isTabBarVisible: 0 });
+  }, []);
 }

@@ -6,6 +6,11 @@
  * device-wallet and external-wallet payment paths, and error handling.
  */
 
+import api from '@/services/httpService';
+import { checkEsimCompatibility } from '@/utils/bff/esim';
+import { createOrder }            from '@/utils/bff/order';
+import { BffError }               from '@/utils/bff/errors';
+
 jest.mock('@/services/httpService', () => ({
   __esModule: true,
   default: {
@@ -14,11 +19,6 @@ jest.mock('@/services/httpService', () => ({
     getConfig: jest.fn(() => ({})),
   },
 }));
-
-import api from '@/services/httpService';
-import { checkEsimCompatibility } from '@/utils/bff/esim';
-import { createOrder }            from '@/utils/bff/order';
-import { BffError }               from '@/utils/bff/errors';
 
 const mockGet  = api.get  as jest.MockedFunction<typeof api.get>;
 const mockPost = api.post as jest.MockedFunction<typeof api.post>;

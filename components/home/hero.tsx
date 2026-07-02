@@ -70,7 +70,7 @@ const Hero = () => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   const handleShopCTAClick = useCallback(() => {
-    router.navigate("/(shop)");
+    router.navigate("/(tabs)/(shop)");
   }, []);
 
   return (

@@ -3,6 +3,13 @@ import React, { useState } from "react";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 
+interface ColorPaletteModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  onSelectColor: (color: string) => void;
+  colors?: string[];
+}
+
 const ColorPaletteModal = ({
   isVisible,
   onClose,
@@ -19,7 +26,7 @@ const ColorPaletteModal = ({
     "#FF2D55", // Pink
     "#AC8E68", // Brown
   ],
-}) => {
+}: ColorPaletteModalProps) => {
   const handleColorSelect = (color: string) => {
     const newcolor = color.slice(1);
     onSelectColor(newcolor);

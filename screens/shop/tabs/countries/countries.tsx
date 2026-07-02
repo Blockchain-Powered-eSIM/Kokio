@@ -44,7 +44,7 @@ export default function Countries() {
           numColumns={2}
           renderItem={renderItem}
           columnWrapperStyle={styles.columnWrapperStyle}
-          keyExtractor={(item, index) => item?.code || index}
+          keyExtractor={(item, index) => String(item?.code || index)}
           contentContainerStyle={{ paddingBottom: 100 }}
           style={{ backgroundColor: "transparent" }}
         />

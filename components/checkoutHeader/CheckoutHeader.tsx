@@ -171,7 +171,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
       return HEADER_MIN_HEIGHT + insets.top;
     }
     return HEADER_MIN_HEIGHT;
-  }, []);
+  }, [insets.top]);
 
   const eSimItem = React.useMemo(() => {
     if (typeof eSimDetails === "string") {
@@ -268,6 +268,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         )}
       </View>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleBack, eSimItem]
   );
 
@@ -296,6 +298,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         />
       </View>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [eSimItem]
   );
 

@@ -1,10 +1,9 @@
 import { View, Image, Pressable, ScrollView } from 'react-native'
 import React, { useState, useCallback } from 'react'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams , useFocusEffect } from 'expo-router'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
 import { Theme } from '@/constants/Colors';
 
 interface Transaction {
@@ -18,7 +17,7 @@ interface Transaction {
   icon: string;
 }
 
-const contactDetails = () => {
+const ContactDetails = () => {
   const { id, monogramUrl, firstName, lastName, walletAddress } = useLocalSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -49,12 +48,11 @@ const contactDetails = () => {
   useFocusEffect(
     useCallback(() => {
       fetchTransactions();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   )
 
-
   return (
-    
     <ThemedView darkColor='black' className='flex-1  '>
       <ScrollView className='flex-1 pb-5'>
       <View className='w-auto mt-4   items-center '>
@@ -64,14 +62,12 @@ const contactDetails = () => {
         />
         <ThemedText variant='xxl' className='text-center mt-4'>{firstName} {lastName}</ThemedText>
 
-
       </View>
       <View className='w-full h-auto  mt-10 gap-x-2 flex-row  mx-2 '>
-        <Pressable onPress={() => router.push({ pathname: '/(contacts)/sendToContact', params: { monogramUrl: monogramUrl, firstName: firstName, lastName: lastName, id: id } })} className='flex-1  items-center'>
+        <Pressable onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/sendToContact', params: { monogramUrl: monogramUrl, firstName: firstName, lastName: lastName, id: id } })} className='flex-1  items-center'>
           <ThemedView darkColor={Theme.colors.itemBackground} className='w-[70%] ml-[-30] rounded-3xl py-5  justify-center items-center'>
 
             <Image source={require("../../../../assets/images/wallet/sendImg.png")} className='h-[32] w-[32]' />
-
             <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
         </Pressable>
@@ -84,9 +80,7 @@ const contactDetails = () => {
         </Pressable>
         <Pressable onPress={() => router.replace({ pathname: "/(tabs)/(wallet)/(contacts)/editContact", params: { firstName: firstName, lastName: lastName, monogramUrl: monogramUrl, id: id, walletAddress: walletAddress } })} className='flex-1'>
           <ThemedView darkColor={Theme.colors.itemBackground} className='w-[70%] ml-7  rounded-3xl py-5  justify-center items-center'>
-
             <Image source={require("../../../../assets/images/wallet/sampleProfileImg.png")} className='h-[32] w-[32]' />
-
             <ThemedText variant='sm' className='text-white mt-2' bold>Edit</ThemedText>
           </ThemedView>
         </Pressable>
@@ -94,7 +88,7 @@ const contactDetails = () => {
       <Pressable
         onPress={() =>
           router.push({
-            pathname: "/(contacts)/contactTransactions",
+            pathname: "/(tabs)/(wallet)/(contacts)/contactTransactions",
             params: { transactions: JSON.stringify(transactions) }, // Stringify the array
           })
         }
@@ -118,7 +112,6 @@ const contactDetails = () => {
                         {tr.type === "received" ? <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{tr.type}</ThemedText> :
                           <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.type}</ThemedText>
                         }
-
                       </View>
                     </View>
                     <View className='flex-col items-end '>
@@ -127,7 +120,6 @@ const contactDetails = () => {
                         <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.status}</ThemedText>
                       }
                     </View>
-
                   </View>
                 )
               })}
@@ -138,8 +130,7 @@ const contactDetails = () => {
       </Pressable>
       </ScrollView>
     </ThemedView>
-
   )
 }
 
-export default contactDetails;
+export default ContactDetails;

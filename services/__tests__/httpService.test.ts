@@ -3,11 +3,22 @@
 // interceptor functions it registers so tests can invoke them directly,
 // bypassing the real HTTP stack while still exercising the interceptor logic.
 
+// ─── Imports ──────────────────────────────────────────────────────────────────
+
+import {
+  rejectStepUp,
+  setStepUpHandler,
+  setUnauthenticatedHandler,
+  clearBffNonceCache,
+} from '@/services/httpService';
+import { useAuthStore }     from '@/stores/authStore';
+import { refreshAccessToken } from '@/utils/auth/refresh';
+import { StepUpCancelledError } from '@/utils/auth/errors';
+import { router }           from 'expo-router';
+
 jest.mock('axios', () => {
-  const _reqHandlers: Array<(cfg: unknown) => unknown> = [];
-  const _resHandlers: Array<
-    [(r: unknown) => unknown, (e: unknown) => Promise<unknown>]
-  > = [];
+  const _reqHandlers: ((cfg: unknown) => unknown)[] = [];
+  const _resHandlers: [(r: unknown) => unknown, (e: unknown) => Promise<unknown>][] = [];
 
   const instance = Object.assign(jest.fn(), {
     interceptors: {
@@ -57,24 +68,11 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: { getState: jest.fn() },
 }));
 
-// ─── Imports ──────────────────────────────────────────────────────────────────
-
-import {
-  rejectStepUp,
-  setStepUpHandler,
-  setUnauthenticatedHandler,
-  clearBffNonceCache,
-} from '@/services/httpService';
-import { useAuthStore }     from '@/stores/authStore';
-import { refreshAccessToken } from '@/utils/auth/refresh';
-import { StepUpCancelledError } from '@/utils/auth/errors';
-import { router }           from 'expo-router';
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type AxiosMod = {
   _instance:   jest.Mock;
-  _resHandlers: Array<[(r: unknown) => unknown, (e: unknown) => Promise<unknown>]>;
+  _resHandlers: [(r: unknown) => unknown, (e: unknown) => Promise<unknown>][];
 };
 
 function getResErrorHandler(): (e: unknown) => Promise<unknown> {

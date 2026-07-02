@@ -21,7 +21,7 @@ const config = getDefaultConfig(__dirname);
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   ...require("node-libs-react-native"),
-  crypto: require.resolve("crypto-browserify"),
+  crypto: require.resolve("react-native-quick-crypto"),
   stream: require.resolve("stream-browserify"),
 };
 

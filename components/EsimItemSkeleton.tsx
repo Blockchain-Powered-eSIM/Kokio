@@ -62,7 +62,7 @@ const createStyles = () => StyleSheet.create({
 const EsimItemSkeleton = ({
   containerStyle = {},
 }: {
-  containerStyle?: Object;
+  containerStyle?: object;
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
@@ -78,7 +78,7 @@ const EsimItemSkeleton = ({
       -1, // Infinite repeat
       true // Reverse
     );
-  }, []);
+  }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

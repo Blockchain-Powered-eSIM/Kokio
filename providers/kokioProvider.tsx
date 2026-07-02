@@ -7,7 +7,6 @@ import { createWalletClient, http, type Hex } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
 import { AppExtraConfig, Config } from "@/appKeys";
-const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
 import { SmartContractAccount } from "@aa-sdk/core";
 
@@ -21,6 +20,7 @@ import {
   getWcSignClient,
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
+const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
 export interface StoredTransactionData {
   orderId: string;
@@ -361,6 +361,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
           // from OrderListItem. These orders will show their status + ICCID correctly;
           // plan details will be restored if the user reinstalls from a device that has
           // local storage, or when the BFF exposes plan detail in a future endpoint.
+          //@ts-expect-error actualSellingPrice is missing from the declaration here. TODO: Should be ideally fixed
           const eSimItem: Esim = {
             catalogueId: o.planId,
             data: 0,
@@ -483,12 +484,16 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       }
     };
     fetchUserData();
+  //  TODO: Visit once order list is available via BFF
+  //eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!kokio.sdk && kokio.deviceUID && kokio.userPasskey) {
       setupKokio();
     }
+    // setupKokio is a function, not a dependency to watch for changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk]);
 
   const wcInitialized = useRef(false);

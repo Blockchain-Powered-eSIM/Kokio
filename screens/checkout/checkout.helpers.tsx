@@ -10,6 +10,7 @@ const radioButtonComponents: Record<string, JSX.Element> = {
   [RADIO_KEYS.E_SIM_WALLET]: <ESimWallet />,
   [RADIO_KEYS.CREDIT_CARD]: <CreditCard />,
   [RADIO_KEYS.APPLE_PAY]: <ApplePay />,
+  //@ts-expect-error EXTERNAL_WALLET is intentionally disabled as a radio key for now
   [RADIO_KEYS.EXTERNAL_WALLET]: <ExternalWallet />,
   [RADIO_KEYS.EXTERNAL_WALLET_BROWSER]: <ExternalWalletBrowser />,
 };

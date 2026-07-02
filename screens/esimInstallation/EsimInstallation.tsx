@@ -91,7 +91,7 @@ const warningStyles = StyleSheet.create({
   },
 });
 
-const TextWithCopy = ({ label, text }) => {
+const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   const handleCopyQRData = async () => {
@@ -356,7 +356,7 @@ const EsimInstallation = () => {
         {/* Manual Instructions */}
         <View style={styles.instructionsContainer}>
           <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
-            {"Steps: Go to Settings > Network & internet and select the plus sign (\"+\") next to your SIM — if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
+            {"Steps: Go to Settings > Network & internet and select the plus sign (&quot;+&quot;) next to your SIM — if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
           </Text>
         </View>
       </View>

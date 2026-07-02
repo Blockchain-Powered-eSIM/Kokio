@@ -203,7 +203,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
         showsVerticalScrollIndicator={false}
       >
         <ThemedText style={styles.aboutText}>
-          You are using KOKI'O Beta v1
+          You are using KOKI&#39;O Beta v1
         </ThemedText>
         <ThemedText style={styles.aboutText}>
           A mobile app to purchase eSIM data plans and subscriptions using
