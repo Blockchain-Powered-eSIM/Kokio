@@ -86,9 +86,9 @@ const ExternalWalletCheckout = ({
       setIsCheckoutLoading(true);
       setLoadingMessage('Processing your order...');
       const finalOrder = correlationId
-        ? await pollOrderStatus(correlationId, 15, 2000, (s) =>
-            setLoadingMessage(pollingLabel(s)),
-          ).catch(() => null)
+        ? await pollOrderStatus(correlationId, { onUpdate: (update) =>
+            setLoadingMessage(update.kind === 'status' ? pollingLabel(update.orderStatus) : 'Retrying...'),
+        }).catch(() => null)
         : null;
       onComplete(finalOrder);
     },
@@ -356,6 +356,9 @@ const Checkout = () => {
 
   const { showMessage } = useToast();
   const orderCorrelationRef = useRef<string | null>(null);
+  const handlePollUpdate = useCallback((update: import("@/utils/bff/order").PollUpdate) => {
+    setLoadingMessage(update.kind === 'status' ? pollingLabel(update.orderStatus) : 'Retrying...');
+  }, []);
   const createOrderMutation = useCreateOrder({
     onOrderCreated: async (correlationId) => {
       orderCorrelationRef.current = correlationId;
@@ -363,6 +366,7 @@ const Checkout = () => {
         await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
       }
     },
+    onPollUpdate: handlePollUpdate,
   });
 
   useEffect(() => {
@@ -464,9 +468,9 @@ const Checkout = () => {
       setLoadingMessage('Checking payment status...');
       try {
         const finalOrder = cid
-          ? await pollOrderStatus(cid, 5, 3000, (s) =>
-              setLoadingMessage(pollingLabel(s)),
-            ).catch(() => null)
+          ? await pollOrderStatus(cid, {
+            onUpdate: handlePollUpdate
+          }).catch(() => null)
           : null;
         setIsCheckoutLoading(false);
         setLoadingMessage('');
@@ -493,7 +497,7 @@ const Checkout = () => {
     // dismissBrowser() was called by the AppState handler / moonpay-return).
     appStateSub.remove();
     doPoll();
-  }, [handleOrderResult]);
+  }, [handleOrderResult, handlePollUpdate]);
 
   const handleCheckout = useCallback(async () => {
     const isCryptoPayment = !(

@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 
-import { submitOrder, pollOrderStatus } from '@/utils/bff/order';
-import type { CreateOrderRequest, OrderStatusResponse } from '@/utils/bff/order';
+import { submitOrder, pollOrderStatus, OrderNotFoundError } from '@/utils/bff/order';
+import type { CreateOrderRequest, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import type { Esim } from '@/components/ESIMItem';
 
@@ -14,6 +14,7 @@ export type CreateOrderVariables = {
 // Fired once order creation succeeds, before any payment step.
 export type CreateOrderOptions = {
   onOrderCreated?: (correlationId: string) => void | Promise<void>;
+  onPollUpdate?: (update: PollUpdate) => void;
 };
 
 export type CreateOrderResult =
@@ -61,6 +62,22 @@ export class StripeSheetError extends Error {
   }
 }
 
+/**
+ * Poll wrapper shared by both the FIAT and COUPON paths below. 
+ * Normalizes whatever pollOrderStatus throws (OrderNotFoundError, the generic timeout, 
+ * or a passthrough error) into an OrderCreationError carrying correlationId, 
+ * so the caller's FAILED-recording logic doesn't need a special case per error type.
+ */
+async function pollToTerminal(
+  correlationId: string,
+  onUpdate?: (update: PollUpdate) => void,
+): Promise<OrderStatusResponse> {
+  return pollOrderStatus(correlationId, { onUpdate }).catch((err) => {
+    const message = err instanceof OrderNotFoundError ? 'Order not found' : 'Order confirmation timed out';
+    throw new OrderCreationError(message, correlationId);
+  });
+}
+
 export function useCreateOrder(options: CreateOrderOptions = {}) {
   const queryClient = useQueryClient();
   const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
@@ -96,9 +113,8 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
         const { error: confirmError } = await confirmPaymentSheetPayment();
         if (confirmError) throw new StripeSheetError(confirmError.message);
 
-        const order = await pollOrderStatus(correlationId, 15, 2000).catch(() => {
-          throw new OrderCreationError('Order confirmation timed out', correlationId);
-        });
+        const order = await pollToTerminal(correlationId, options.onPollUpdate);
+
         return { kind: 'terminal', order, correlationId };
       }
 
@@ -122,9 +138,7 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
        * $0 invoice already auto-paid server-side. Poll immediately.
        * TODO: Partial coupon flow to be extended from here.
        */
-      const order = await pollOrderStatus(correlationId, 15, 2000).catch(() => {
-        throw new OrderCreationError('Order confirmation timed out', correlationId);
-      });
+      const order = await pollToTerminal(correlationId, options.onPollUpdate);
       return { kind: 'terminal', order, correlationId };
     },
 
