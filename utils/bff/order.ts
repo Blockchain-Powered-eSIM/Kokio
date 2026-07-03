@@ -13,75 +13,20 @@ export type InstallationDetails = components['schemas']['InstallationDetails'];
 
 export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, OrderListItem, OrderListResponse };
 
-
-// ─── Extended response types ──────────────────────────────────────────────────
-
-export type FiatOrderResponse = CreateOrderResponse & {
-  stripeInvoiceId: string;
-  clientSecret: string;
-};
-
-export type ExternalWalletOrderResponse = CreateOrderResponse & {
-  moonpayChargeId: string;
-  moonpayPaymentPageUrl: string;
-};
-
-// ─── Request types ────────────────────────────────────────────────────────────
-
-type FiatOrderRequest = {
-  catalogueId: string;
-  isNewESim: boolean;
-  esimId?: string;
-  coupon?: string;
-  isCryptoPayment: false;
-};
-
-type ExternalWalletOrderRequest = {
-  catalogueId: string;
-  isNewESim: boolean;
-  esimId?: string;
-  coupon?: string;
-  isCryptoPayment: true;
-};
-
 // ─── Order functions ──────────────────────────────────────────────────────────
 
-export function createOrder(body: CreateOrderRequest): Promise<CreateOrderResponse> {
-  return unwrapBffResponse(api.post('/v1/order', body as Record<string, unknown>));
-}
-
-export function createCryptoOrder(
-  body: CreateOrderRequest,
+// Single order-creation call for every payment method.
+export function submitOrder(
+  request: CreateOrderRequest,
 ): Promise<{ data: CreateOrderResponse; correlationId: string }> {
   const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<CreateOrderResponse>(
-    api.post('/v1/order', body as Record<string, unknown>, {
+    api.post('/v1/order', request as Record<string, unknown>, {
       headers: { 'x-correlation-id': idempotencyKey },
     }),
   ).then((r) => ({ ...r, correlationId: idempotencyKey }));
 }
-
-export function createFiatOrder(
-  body: FiatOrderRequest,
-): Promise<{ data: FiatOrderResponse; correlationId: string | null }> {
-  const idempotencyKey = uuidv4();
-  return unwrapBffResponseWithCorrelation<FiatOrderResponse>(
-    api.post('/v1/order', body as Record<string, unknown>, {
-      headers: { 'x-correlation-id': idempotencyKey },
-    }),
-  ).then((r) => ({ ...r, correlationId: idempotencyKey }));
-}
-
-export function createExternalWalletOrder(
-  body: ExternalWalletOrderRequest,
-): Promise<{ data: ExternalWalletOrderResponse; correlationId: string | null }> {
-  const idempotencyKey = uuidv4();
-  return unwrapBffResponseWithCorrelation<ExternalWalletOrderResponse>(
-    api.post('/v1/order', body as Record<string, unknown>, {
-      headers: { 'x-correlation-id': idempotencyKey },
-    }),
-  ).then((r) => ({ ...r, correlationId: idempotencyKey }));
-}
+ 
 
 export function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
   return unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));

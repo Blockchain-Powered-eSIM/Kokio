@@ -28,21 +28,20 @@ import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { createCryptoOrder, createFiatOrder, createExternalWalletOrder, pollOrderStatus, isOrderSuccess } from "@/utils/bff/order";
+import { isOrderSuccess, pollOrderStatus } from "@/utils/bff/order";
+import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/utils/bff/order";
 import { pollingLabel } from "@/utils/orderStatus";
 import OrderFailureModal from "@/components/ui/OrderFailureModal";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
-import { useCreateTopupOrder } from "@/hooks/useCreateOrder";
+import { useCreateOrder, OrderCreationError, StripeCancelledError, StripeSheetError } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
-import { useStripePaymentSheet } from "@/hooks/useStripePaymentSheet";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import type { CreateOrderResponse, OrderStatusResponse, ExternalWalletOrderResponse } from "@/utils/bff/order";
 import * as WebBrowser from "expo-web-browser";
 import {
   MoonpayCommerceProvider,
@@ -334,8 +333,6 @@ const Checkout = () => {
   const [helioChargeToken, setHelioChargeToken] = useState<string | null>(null);
   const [helioCorrelationId, setHelioCorrelationId] = useState<string | null>(null);
   const [pendingHelioOrder, setPendingHelioOrder] = useState<CreateOrderResponse | null>(null);
-  const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
-    useStripePaymentSheet();
   const { kokio, savePurchasedESIM, upsertOrderRecord } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
   const [debouncedCode, setDebouncedCode] = useState<string>("");
@@ -358,7 +355,15 @@ const Checkout = () => {
   );
 
   const { showMessage } = useToast();
-  const createTopupOrder = useCreateTopupOrder();
+  const orderCorrelationRef = useRef<string | null>(null);
+  const createOrderMutation = useCreateOrder({
+    onOrderCreated: async (correlationId) => {
+      orderCorrelationRef.current = correlationId;
+      if (kokio.deviceUID) {
+        await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
+      }
+    },
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedCode(discountCode), 500);
@@ -430,70 +435,6 @@ const Checkout = () => {
     setDiscountError("");
   }, []);
 
-  const handleEsimCheckout = useCallback(async () => {
-    try {
-      setIsCheckoutLoading(true);
-
-      if (applyAsTopup && compatibleTopUpEsimId) {
-        await createTopupOrder.mutateAsync({
-          request: {
-            catalogueId: eSimItem.catalogueId,
-            isNewESim: false,
-            esimId: compatibleTopUpEsimId,
-            isCryptoPayment: true,
-            coupon: discountCode || undefined,
-          },
-          eSimItem,
-        });
-        showMessage('eSIM topped up successfully!', 'info');
-        return;
-      }
-
-      const payload = getEsimOrderPayload({
-        eSimItem,
-        discountCode,
-        applyAsTopup,
-        compatibleTopUpEsimId
-      });
-      const esimBody = payload;
-      if (__DEV__) console.log('[Order] eSIM wallet body:', JSON.stringify(esimBody, null, 2));
-      const { correlationId } = await createCryptoOrder(esimBody);
-      if (kokio.deviceUID && correlationId) {
-        await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
-      }
-      setLoadingMessage('Processing your order...');
-      const orderData = correlationId
-        ? await pollOrderStatus(correlationId, 15, 2000, (s) => setLoadingMessage(pollingLabel(s))).catch(() => null)
-        : null;
-      setIsCheckoutLoading(false);
-      setLoadingMessage('');
-      await handleOrderResult(orderData, correlationId);
-    } catch (err) {
-      if (__DEV__) console.error("Checkout error:", err);
-      const e = err as { code?: string; message?: string };
-      const errCode = e.code;
-      if (errCode === 'COUPON_INSUFFICIENT_BALANCE') {
-        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
-        handleRemoveDiscount();
-      } else {
-        showMessage(formatBffError(err), 'info');
-      }
-      setIsCheckoutLoading(false);
-      setShowSuccessModal(false);
-    }
-  }, [
-    eSimItem,
-    discountCode,
-    kokio?.deviceUID,
-    applyAsTopup,
-    compatibleTopUpEsimId,
-    createTopupOrder,
-    showMessage,
-    handleRemoveDiscount,
-    handleOrderResult,
-    upsertOrderRecord,
-  ]);
-
   const resetHelioState = useCallback(() => {
     setHelioChargeToken(null);
     setPendingHelioOrder(null);
@@ -555,140 +496,85 @@ const Checkout = () => {
   }, [handleOrderResult]);
 
   const handleCheckout = useCallback(async () => {
-    if (
+    const isCryptoPayment = !(
       selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD ||
       selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
-    ) {
-      setIsCheckoutLoading(true);
-      setLoadingMessage('Preparing your payment...');
-      let fiatCorrelationId: string | null = null;
-      try {
-        const base = getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId });
-        const fiatBody = {
-          catalogueId: base.catalogueId,
-          isNewESim: base.isNewESim,
-          esimId: base.esimId,
-          coupon: base.coupon,
-          isCryptoPayment: false as const,
-        };
-        if (__DEV__) console.log('[Order] fiat body:', JSON.stringify(fiatBody, null, 2));
-        const { data: orderInit, correlationId } = await createFiatOrder(fiatBody);
-        fiatCorrelationId = correlationId;
-        if (__DEV__) console.log('[Order] fiat correlationId:', correlationId);
+    );
+    const request: CreateOrderRequest = {
+      ...getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId }),
+      isCryptoPayment,
+    };
 
-        if (kokio.deviceUID && correlationId) {
-          await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
-        }
+    setIsCheckoutLoading(true);
+    setLoadingMessage('Preparing your payment...');
+    orderCorrelationRef.current = null;
 
-        const { error: initError } = await initPaymentSheet({
-          merchantDisplayName: "Kokio",
-          paymentIntentClientSecret: orderInit.clientSecret,
-          customFlow: true,
-          applePay: { merchantCountryCode: "US" },
-          googlePay: { merchantCountryCode: "US", testEnv: __DEV__ },
-          style: "alwaysDark",
+    try {
+      const result = await createOrderMutation.mutateAsync({ request, eSimItem });
+
+      if (result.kind === 'terminal') {
+        setIsCheckoutLoading(false);
+        setLoadingMessage('');
+        await handleOrderResult(result.order, result.correlationId);
+        return;
+      }
+
+      // awaiting_crypto_payment
+      setIsCheckoutLoading(false);
+      setLoadingMessage('');
+
+      if (
+        //@ts-expect-error EXTERNAL_WALLET has been intentionally disable for now
+        selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET
+      ) {
+        setPendingHelioOrder({
+          orderId: result.orderId,
+          moonpayChargeId: result.moonpayChargeId,
+          moonpayPaymentPageUrl: result.moonpayPaymentPageUrl,
         });
-        if (initError) {
-          showMessage(initError.message, "info");
-          setIsCheckoutLoading(false);
-          return;
-        }
-
-        setLoadingMessage('');
-        const { error: presentError } = await presentPaymentSheet();
-        if (presentError) {
-          setIsCheckoutLoading(false);
-          return;
-        }
-
-        const { error: confirmError } = await confirmPaymentSheetPayment();
-        if (confirmError) {
-          if (__DEV__) console.error("[Stripe] confirmPaymentSheetPayment error:", confirmError);
-          showMessage(confirmError.message, "info");
-          setIsCheckoutLoading(false);
-          return;
-        }
-
-        setLoadingMessage('Processing your order...');
-        const finalOrder = correlationId
-          ? await pollOrderStatus(correlationId, 15, 2000, (s) =>
-              setLoadingMessage(pollingLabel(s)),
-            ).catch(() => null)
-          : null;
-        setIsCheckoutLoading(false);
-        setLoadingMessage('');
-        await handleOrderResult(finalOrder, correlationId);
-      } catch (err) {
-        const bffErr = err as { correlationId?: string | null };
-        const errCid = fiatCorrelationId ?? bffErr?.correlationId;
-        if (__DEV__) {
-          console.error("[Stripe] checkout error:", err);
-          if (errCid) console.log('[Order] fiat correlationId (error):', errCid);
-        }
-        if (kokio.deviceUID && errCid) {
-          await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
-        }
-        showMessage(formatBffError(err), "info");
-        setIsCheckoutLoading(false);
+        setHelioCorrelationId(result.correlationId);
+        setHelioChargeToken(result.moonpayChargeId);
+      } else {
+        /**
+         * EXTERNAL_WALLET_BROWSER and the device-wallet path share this browser fallback, 
+         * since both resolve to the same CRYPTO response shape. 
+         * Expected to diverge once the backend distinguishes direct transfers from processor payments.
+         * TODO: Revisit this branch then.
+         */
+        handleBrowserPay(result.moonpayPaymentPageUrl, result.correlationId);
       }
-      return;
-    }
+    } catch (err) {
+      if (__DEV__) console.error('Checkout error:', err);
 
-    if (
-      //@ts-expect-error EXTERNAL_WALLET has been intentionally disable for now
-      selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET ||
-      selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET_BROWSER
-    ) {
-      setIsCheckoutLoading(true);
-      setLoadingMessage('Preparing your payment...');
-      let extCorrelationId: string | null = null;
-      try {
-        const base = getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId });
-        const extBody = {
-          catalogueId: base.catalogueId,
-          isNewESim: base.isNewESim,
-          esimId: base.esimId,
-          coupon: base.coupon,
-          isCryptoPayment: true as const,
-        };
-        if (__DEV__) console.log('[Order] external wallet body:', JSON.stringify(extBody, null, 2));
-        const { data: orderInit, correlationId } = await createExternalWalletOrder(extBody);
-        extCorrelationId = correlationId;
-        if (__DEV__) console.log('[Order] external wallet correlationId:', correlationId);
-
-        if (kokio.deviceUID && correlationId) {
-          await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
-        }
-
+      if (err instanceof StripeCancelledError) {
         setIsCheckoutLoading(false);
         setLoadingMessage('');
-
-        if (selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET_BROWSER) {
-          // Skip the SDK drawer — open browser directly with fresh values.
-          const pageUrl = (orderInit as ExternalWalletOrderResponse).moonpayPaymentPageUrl;
-          if (pageUrl) handleBrowserPay(pageUrl, correlationId);
-        } else {
-          setPendingHelioOrder(orderInit);
-          setHelioCorrelationId(correlationId);
-          setHelioChargeToken(orderInit.moonpayChargeId);
-        }
-      } catch (err) {
-        const bffErr = err as { correlationId?: string | null };
-        const errCid = extCorrelationId ?? bffErr?.correlationId;
-        if (__DEV__) {
-          console.error("[Helio] checkout error:", err);
-          if (errCid) console.log('[Order] external wallet correlationId (error):', errCid);
-        }
-        if (kokio.deviceUID && errCid) {
-          await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
-        }
-        showMessage(formatBffError(err), "info");
-        setIsCheckoutLoading(false);
+        return;
       }
-      return;
-    }
+      if (err instanceof StripeSheetError) {
+        showMessage(err.message, 'info');
+        setIsCheckoutLoading(false);
+        setLoadingMessage('');
+        return;
+      }
+      const e = err as { code?: string; message?: string };
+      if (e.code === 'COUPON_INSUFFICIENT_BALANCE') {
+        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
+        handleRemoveDiscount();
+      } else {
+        showMessage(formatBffError(err), 'info');
+      }
 
-    handleEsimCheckout();
+      const errCid =
+        err instanceof OrderCreationError ? err.correlationId : orderCorrelationRef.current;
+      if (kokio.deviceUID && errCid) {
+        await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
+      }
+
+      setIsCheckoutLoading(false);
+      setLoadingMessage('');
+      setShowSuccessModal(false);
+    }
   }, [
     selectedPaymentMethod,
     eSimItem,
@@ -696,14 +582,12 @@ const Checkout = () => {
     applyAsTopup,
     compatibleTopUpEsimId,
     kokio.deviceUID,
+    createOrderMutation,
     upsertOrderRecord,
-    initPaymentSheet,
-    presentPaymentSheet,
-    confirmPaymentSheetPayment,
     showMessage,
-    handleEsimCheckout,
-    handleBrowserPay,
+    handleRemoveDiscount,
     handleOrderResult,
+    handleBrowserPay,
   ]);
 
   const handleInstallESIM = useCallback(() => {

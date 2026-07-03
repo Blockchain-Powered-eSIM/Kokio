@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 
-import { createCryptoOrder, pollOrderStatus } from '@/utils/bff/order';
+import { submitOrder, pollOrderStatus } from '@/utils/bff/order';
 import type { CreateOrderRequest, OrderStatusResponse } from '@/utils/bff/order';
-import { useKokio } from '@/hooks/useKokio';
+import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import type { Esim } from '@/components/ESIMItem';
 
 export type CreateOrderVariables = {
@@ -11,56 +11,130 @@ export type CreateOrderVariables = {
   eSimItem: Esim;
 };
 
-export type CreateTopupOrderVariables = {
-  request: Omit<CreateOrderRequest, 'isNewESim' | 'esimId'> & { isNewESim: false; esimId: string };
-  eSimItem: Esim;
+// Fired once order creation succeeds, before any payment step.
+export type CreateOrderOptions = {
+  onOrderCreated?: (correlationId: string) => void | Promise<void>;
 };
+
+export type CreateOrderResult =
+  | { kind: 'terminal'; order: OrderStatusResponse; correlationId: string }
+  | {
+      kind: 'awaiting_crypto_payment';
+      correlationId: string;
+      orderId: string;
+      moonpayChargeId: string;
+      moonpayPaymentPageUrl: string;
+    };
 
 // SecureStore key for the most recently purchased eSIM wallet address.
 // Read by topup flows to pre-populate the eSimId for compatibility checks.
 export const ESIM_ID_KEY = 'esimId';
 
-async function createAndPoll(request: CreateOrderRequest): Promise<{ order: OrderStatusResponse; correlationId: string | null }> {
-  const { data: orderInit, correlationId } = await createCryptoOrder(request);
-  const order = correlationId
-    ? await pollOrderStatus(correlationId, 15, 2000)
-    : await pollOrderStatus(orderInit.orderId, 15, 2000);
-  return { order, correlationId };
+/**
+ * Thrown when order creation itself fails, or when polling after payment times out. 
+ * Carries whatever correlationId is known (the client-generated idempotency key, 
+ * else the BFF envelope's correlationId) so the caller can record the order as FAILED.
+ */
+export class OrderCreationError extends Error {
+  correlationId: string | null;
+  constructor(message: string, correlationId: string | null) {
+    super(message);
+    this.name = 'OrderCreationError';
+    this.correlationId = correlationId;
+  }
 }
 
-export function useCreateOrder() {
+// The user backed out of the Stripe sheet without submitting.
+export class StripeCancelledError extends Error {
+  constructor() {
+    super('Payment cancelled');
+    this.name = 'StripeCancelledError';
+  }
+}
+
+// initPaymentSheet/confirmPaymentSheetPayment returned an error. Shown to the user, 
+// but does not record the order as FAILED, the order may still resolve via webhook/poll.
+export class StripeSheetError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'StripeSheetError';
+  }
+}
+
+export function useCreateOrder(options: CreateOrderOptions = {}) {
   const queryClient = useQueryClient();
-  const { kokio, savePurchasedESIM } = useKokio();
+  const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
+    useStripePaymentSheet();
 
-  return useMutation<OrderStatusResponse, Error, CreateOrderVariables>({
-    mutationFn: ({ request }) => createAndPoll(request).then(r => r.order),
+  return useMutation<CreateOrderResult, Error, CreateOrderVariables>({
+    mutationFn: async ({ request }) => {
+      const { data, correlationId } = await submitOrder(request).catch((err) => {
+        const bffErr = err as { correlationId?: string | null };
+        throw new OrderCreationError(
+          (err as Error)?.message ?? 'Order creation failed',
+          bffErr?.correlationId ?? null,
+        );
+      });
 
-    onSuccess: async (data, { eSimItem }) => {
-      if (data.esimId) {
-        await SecureStore.setItemAsync(ESIM_ID_KEY, data.esimId);
+      await options.onOrderCreated?.(correlationId);
+
+      // FIAT — clientSecret present.
+      if (data.clientSecret) {
+        const { error: initError } = await initPaymentSheet({
+          merchantDisplayName: 'Kokio',
+          paymentIntentClientSecret: data.clientSecret,
+          customFlow: true,
+          applePay: { merchantCountryCode: 'US' },
+          googlePay: { merchantCountryCode: 'US', testEnv: __DEV__ },
+          style: 'alwaysDark',
+        });
+        if (initError) throw new StripeSheetError(initError.message);
+
+        const { error: presentError } = await presentPaymentSheet();
+        if (presentError) throw new StripeCancelledError();
+
+        const { error: confirmError } = await confirmPaymentSheetPayment();
+        if (confirmError) throw new StripeSheetError(confirmError.message);
+
+        const order = await pollOrderStatus(correlationId, 15, 2000).catch(() => {
+          throw new OrderCreationError('Order confirmation timed out', correlationId);
+        });
+        return { kind: 'terminal', order, correlationId };
       }
-      if (kokio.deviceUID) {
-        await savePurchasedESIM(kokio.deviceUID, eSimItem, data);
+
+      /**
+       * CRYPTO — moonpayPaymentPageUrl present. 
+       * Which presentation mechanism to use (SDK drawer vs. hosted-page browser)
+       * is a caller-side UI decision. Return the session, when caller finishes, then poll.
+       */
+      if (data.moonpayChargeId && data.moonpayPaymentPageUrl) {
+        return {
+          kind: 'awaiting_crypto_payment',
+          correlationId,
+          orderId: data.orderId,
+          moonpayChargeId: data.moonpayChargeId,
+          moonpayPaymentPageUrl: data.moonpayPaymentPageUrl,
+        };
       }
-      await queryClient.invalidateQueries({ queryKey: ['orders'] });
+
+      /**
+       * COUPON (full coverage) — neither field present,
+       * $0 invoice already auto-paid server-side. Poll immediately.
+       * TODO: Partial coupon flow to be extended from here.
+       */
+      const order = await pollOrderStatus(correlationId, 15, 2000).catch(() => {
+        throw new OrderCreationError('Order confirmation timed out', correlationId);
+      });
+      return { kind: 'terminal', order, correlationId };
     },
-  });
-}
 
-export function useCreateTopupOrder() {
-  const queryClient = useQueryClient();
-  const { kokio, savePurchasedESIM } = useKokio();
-
-  return useMutation<OrderStatusResponse, Error, CreateTopupOrderVariables>({
-    mutationFn: ({ request }) => createAndPoll(request as CreateOrderRequest).then(r => r.order),
-
-    onSuccess: async (data, { eSimItem }) => {
-      if (data.esimId) {
-        await SecureStore.setItemAsync(ESIM_ID_KEY, data.esimId);
+    onSuccess: async (result) => {
+      if (result.kind !== 'terminal') return;
+      if (result.order.esimId) {
+        await SecureStore.setItemAsync(ESIM_ID_KEY, result.order.esimId);
       }
-      if (kokio.deviceUID) {
-        await savePurchasedESIM(kokio.deviceUID, eSimItem, data);
-      }
+      // savePurchasedESIM intentionally not called here.
+      // Called vua handleOrderResult in Checkout.tsx
       await queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });
