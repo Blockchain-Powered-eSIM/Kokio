@@ -75,6 +75,8 @@ const reduceESimDataForStorage = (
     planId: transactionData.planId,
     orderStatus: transactionData.orderStatus,
     paymentMethod: transactionData.paymentMethod,
+    stripeInvoiceUrl: transactionData.stripeInvoiceUrl ?? null,
+    flaggedForManualReview: transactionData.flaggedForManualReview ?? false,
     vendor: transactionData.vendor,
     esimId: transactionData.esimId,
     isNewESim: transactionData.isNewESim,
