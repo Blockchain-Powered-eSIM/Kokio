@@ -54,10 +54,14 @@ export function createOrder(body: CreateOrderRequest): Promise<CreateOrderRespon
   return unwrapBffResponse(api.post('/v1/order', body as Record<string, unknown>));
 }
 
+// idempotencyKey lets a caller reuse the same x-correlation-id across a
+// client-side retry of the same order attempt (e.g. tapping Pay again after
+// a dropped response), per the BFF's idempotency contract. Defaults to a
+// fresh key so existing callers that don't need retry-stability are unaffected.
 export function createCryptoOrder(
   body: CreateOrderRequest,
+  idempotencyKey: string = uuidv4(),
 ): Promise<{ data: CreateOrderResponse; correlationId: string }> {
-  const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<CreateOrderResponse>(
     api.post('/v1/order', body as Record<string, unknown>, {
       headers: { 'x-correlation-id': idempotencyKey },
@@ -67,8 +71,8 @@ export function createCryptoOrder(
 
 export function createFiatOrder(
   body: FiatOrderRequest,
+  idempotencyKey: string = uuidv4(),
 ): Promise<{ data: FiatOrderResponse; correlationId: string | null }> {
-  const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<FiatOrderResponse>(
     api.post('/v1/order', body as Record<string, unknown>, {
       headers: { 'x-correlation-id': idempotencyKey },
@@ -78,8 +82,8 @@ export function createFiatOrder(
 
 export function createExternalWalletOrder(
   body: ExternalWalletOrderRequest,
+  idempotencyKey: string = uuidv4(),
 ): Promise<{ data: ExternalWalletOrderResponse; correlationId: string | null }> {
-  const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<ExternalWalletOrderResponse>(
     api.post('/v1/order', body as Record<string, unknown>, {
       headers: { 'x-correlation-id': idempotencyKey },

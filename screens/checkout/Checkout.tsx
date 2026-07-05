@@ -45,6 +45,7 @@ import { useKokio } from "@/hooks/useKokio";
 import { Config } from "@/appKeys";
 import type { CreateOrderResponse, OrderStatusResponse, ExternalWalletOrderResponse } from "@/utils/bff/order";
 import * as WebBrowser from "expo-web-browser";
+import { v4 as uuidv4 } from "uuid";
 import {
   MoonpayCommerceProvider,
   usePayWithCrypto,
@@ -382,6 +383,22 @@ const Checkout = () => {
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
   const bg = useThemeColor({}, "background");
 
+  // Stable per-attempt idempotency key: reused across retries of an unchanged
+  // order (e.g. tapping Pay again after a dropped response) so the BFF can
+  // recognize them as the same attempt, per its duplicate-order/duplicate-charge
+  // contract. Regenerated only when the order's defining parameters change.
+  const orderAttemptRef = useRef<{ signature: string; id: string } | null>(null);
+  const getOrderAttemptId = useCallback((signature: string): string => {
+    if (orderAttemptRef.current?.signature !== signature) {
+      orderAttemptRef.current = { signature, id: uuidv4() };
+    }
+    return orderAttemptRef.current.id;
+  }, []);
+  const orderSignature = useMemo(
+    () => JSON.stringify([eSimItem?.catalogueId, discountCode, applyAsTopup, compatibleTopUpEsimId, selectedPaymentMethod]),
+    [eSimItem?.catalogueId, discountCode, applyAsTopup, compatibleTopUpEsimId, selectedPaymentMethod],
+  );
+
   useEffect(() => {
     if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
       setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
@@ -401,6 +418,8 @@ const Checkout = () => {
       if (kokio.deviceUID) {
         await savePurchasedESIM(kokio.deviceUID, eSimItem, order, correlationId);
       }
+      // Order attempt is complete — the next purchase (if any) should mint a fresh idempotency key.
+      orderAttemptRef.current = null;
       setOrderResponse(order);
       setShowSuccessModal(true);
       return;
@@ -438,7 +457,7 @@ const Checkout = () => {
       const deviceWalletId = kokio.userWallet?.address || "";
 
       if (applyAsTopup && compatibleTopUpEsimId) {
-        await createTopupOrder.mutateAsync({
+        const { order, correlationId } = await createTopupOrder.mutateAsync({
           request: {
             catalogueId: eSimItem.catalogueId,
             isNewESim: false,
@@ -447,8 +466,11 @@ const Checkout = () => {
             coupon: discountCode || undefined,
           },
           eSimItem,
+          idempotencyKey: getOrderAttemptId(orderSignature),
         });
-        showMessage('eSIM topped up successfully!', 'info');
+        setIsCheckoutLoading(false);
+        setLoadingMessage('');
+        await handleOrderResult(order, correlationId);
         return;
       }
 
@@ -461,7 +483,7 @@ const Checkout = () => {
       });
       const esimBody = { ...payload, payeeAddress: deviceWalletId };
       if (__DEV__) console.log('[Order] eSIM wallet body:', JSON.stringify(esimBody, null, 2));
-      const { correlationId } = await createCryptoOrder(esimBody);
+      const { correlationId } = await createCryptoOrder(esimBody, getOrderAttemptId(orderSignature));
       if (kokio.deviceUID && correlationId) {
         await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
       }
@@ -497,6 +519,8 @@ const Checkout = () => {
     handleRemoveDiscount,
     handleOrderResult,
     upsertOrderRecord,
+    getOrderAttemptId,
+    orderSignature,
   ]);
 
   const resetHelioState = useCallback(() => {
@@ -578,7 +602,7 @@ const Checkout = () => {
           isCryptoPayment: false as const,
         };
         if (__DEV__) console.log('[Order] fiat body:', JSON.stringify(fiatBody, null, 2));
-        const { data: orderInit, correlationId } = await createFiatOrder(fiatBody);
+        const { data: orderInit, correlationId } = await createFiatOrder(fiatBody, getOrderAttemptId(orderSignature));
         fiatCorrelationId = correlationId;
         if (__DEV__) console.log('[Order] fiat correlationId:', correlationId);
 
@@ -661,7 +685,7 @@ const Checkout = () => {
           successRedirectUrl: Config.EXTERNAL_WALLET_CALLBACK,
         };
         if (__DEV__) console.log('[Order] external wallet body:', JSON.stringify(extBody, null, 2));
-        const { data: orderInit, correlationId } = await createExternalWalletOrder(extBody);
+        const { data: orderInit, correlationId } = await createExternalWalletOrder(extBody, getOrderAttemptId(orderSignature));
         extCorrelationId = correlationId;
         if (__DEV__) console.log('[Order] external wallet correlationId:', correlationId);
 
@@ -714,6 +738,8 @@ const Checkout = () => {
     handleEsimCheckout,
     handleBrowserPay,
     handleOrderResult,
+    getOrderAttemptId,
+    orderSignature,
   ]);
 
   const handleInstallESIM = useCallback(() => {
