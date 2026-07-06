@@ -243,13 +243,19 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     () => (
       <View style={styles.countryFlagContainer}>
         <View style={styles.mainContent}>
-          <Ionicons
-            name="chevron-back-outline"
-            size={36}
-            color={Theme.colors.background}
-            style={{ marginRight: Theme.spacing.sm }}
+          <Pressable
             onPress={handleBack}
-          />
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons
+              name="chevron-back-outline"
+              size={36}
+              color={Theme.colors.background}
+              style={{ marginRight: Theme.spacing.sm }}
+            />
+          </Pressable>
           <Text
             style={[styles.countryText, { color: Theme.colors.cardForeground }]}
             numberOfLines={2}
@@ -283,8 +289,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         />
         <DetailItem
           iconName="cellular-outline"
-          value={_get(eSimItem, "data")}
-          suffix="GB"
+          value={eSimItem?.isUnlimited ? "Unlimited" : _get(eSimItem, "data")}
+          suffix={eSimItem?.isUnlimited ? "" : "GB"}
         />
         <DetailItem
           iconName="call-outline"

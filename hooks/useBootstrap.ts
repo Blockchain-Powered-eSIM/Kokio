@@ -41,7 +41,7 @@ export default function useBootstrap() {
 
   // Fetch bootstrap data on mount
   useEffect(() => {
-    fetchHealthData(); // TODO : add UI component to display errors to user
+    fetchHealthData();
     fetchBootstrapData();
   }, []);
 

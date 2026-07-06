@@ -97,6 +97,8 @@ const Hero = () => {
             backgroundColor: isDark ? Theme.colors.text : Theme.colors.shopCta,
           }]}
           onPress={handleShopCTAClick}
+          accessibilityRole="button"
+          accessibilityLabel="Shop for eSIM plans"
         >
           <Text style={[styles.heroButtonText, {
             color: isDark ? Theme.colors.background : Theme.colors.secondaryForeground,

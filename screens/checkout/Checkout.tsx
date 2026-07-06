@@ -416,6 +416,7 @@ const Checkout = () => {
     refetch: refetchTopupCompatibility,
     compatibleEsims,
     vendorMismatches,
+    checkErrors,
   } = useEsimCompatibility(
     { planId: eSimItem?.catalogueId },
     { enabled: hasPriorEsim },
@@ -888,22 +889,12 @@ const Checkout = () => {
   }, [eSimItem.actualSellingPrice, isDiscountApplied, discountAmount]);
 
 
-  // const canCheckout = useMemo(
-  //   () =>
-  //     isESimEnabled &&
-  //     selectedPaymentMethod &&
-  //     totalAmount === 0 &&
-  //     !isCheckoutLoading,
-  //   [isESimEnabled, selectedPaymentMethod, totalAmount, isCheckoutLoading]
-  // );
-
+  // E_SIM_WALLET is unreachable as selectedPaymentMethod: the radio option is
+  // hard-disabled (checkout.helpers.tsx) and handlePaymentMethodChange bails
+  // out before setSelectedPaymentMethod for that value.
   const canCheckout = useMemo(() => {
-    if (!isESimEnabled || isCheckoutLoading || !selectedPaymentMethod) return false;
-    if (selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET) {
-      return !!kokio.userWallet && isDiscountApplied;
-    }
-    return true;
-  }, [isESimEnabled, isCheckoutLoading, selectedPaymentMethod, kokio.userWallet, isDiscountApplied]);
+    return isESimEnabled && !isCheckoutLoading && !!selectedPaymentMethod;
+  }, [isESimEnabled, isCheckoutLoading, selectedPaymentMethod]);
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -972,6 +963,8 @@ const Checkout = () => {
                 <TouchableOpacity
                   style={[styles.applyButton, { paddingVertical: 6, paddingHorizontal: 14 }]}
                   onPress={handleApplyDiscount}
+                  accessibilityRole="button"
+                  accessibilityLabel="Apply coupon"
                 >
                   <ThemedText style={styles.applyButtonText}>Apply Coupon</ThemedText>
                 </TouchableOpacity>
@@ -989,6 +982,9 @@ const Checkout = () => {
                 <TouchableOpacity
                   onPress={handleRemoveDiscount}
                   style={styles.removeDiscountButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove discount"
                 >
                   <Ionicons name="close" size={16} color={Theme.colors.destructive} />
                 </TouchableOpacity>
@@ -1038,14 +1034,34 @@ const Checkout = () => {
             <ThemedText style={styles.discountErrorText}>
               {formatBffError(topupCheckError)}
             </ThemedText>
-            <TouchableOpacity onPress={() => refetchTopupCompatibility()}>
+            <TouchableOpacity
+              onPress={() => refetchTopupCompatibility()}
+              accessibilityRole="button"
+              accessibilityLabel="Retry top-up compatibility check"
+            >
               <ThemedText style={[styles.discountErrorText, { textDecorationLine: 'underline' }]}>
                 Retry
               </ThemedText>
             </TouchableOpacity>
           </View>
         )}
-        {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && vendorMismatches.length > 0 && (
+        {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && checkErrors.length > 0 && (
+          <View style={styles.discountErrorContainer}>
+            <ThemedText style={styles.discountErrorText}>
+              Couldn&apos;t verify top-up compatibility for your existing eSIM. Please try again.
+            </ThemedText>
+            <TouchableOpacity
+              onPress={() => refetchTopupCompatibility()}
+              accessibilityRole="button"
+              accessibilityLabel="Retry top-up compatibility check"
+            >
+              <ThemedText style={[styles.discountErrorText, { textDecorationLine: 'underline' }]}>
+                Retry
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+        {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && checkErrors.length === 0 && vendorMismatches.length > 0 && (
           <View style={styles.discountErrorContainer}>
             <ThemedText style={styles.discountErrorText}>
               Your existing eSIM isn&apos;t compatible with this plan for top-up.
@@ -1076,6 +1092,9 @@ const Checkout = () => {
                     styles.topupOptionRow,
                     isSelected && styles.topupOptionRowSelected,
                   ]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={`Apply this plan as a top-up to ${r.label}`}
                 >
                   <ThemedText style={styles.topupOptionText}>
                     {r.label}
@@ -1116,6 +1135,9 @@ const Checkout = () => {
         style={[styles.bottomButtonContainer, !canCheckout && { opacity: 0.5 }]}
         onPress={canCheckout ? handleCheckout : undefined}
         disabled={!canCheckout}
+        accessibilityRole="button"
+        accessibilityLabel={`Pay ${totalAmount} USD`}
+        accessibilityState={{ disabled: !canCheckout }}
       >
         <DetailItem
           prefix="Pay "

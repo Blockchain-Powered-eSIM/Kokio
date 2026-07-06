@@ -60,8 +60,6 @@ const ESIMItem = ({
     () => (
       <>
         <View style={styles.flagContainer}>
-          {/* <View style={[styles.flag, { backgroundColor: item.flagColor }]} /> */}
-          {/* TODO: Use flag from API response and fallback to this if not present */}
           {item?.coverageType === "LOCAL" && item?.serviceRegionCode && (
             <CountryFlag
               style={[showBuyButton && styles.flag]}
@@ -100,6 +98,8 @@ const ESIMItem = ({
             <TouchableOpacity
               style={[styles.buyButton, { backgroundColor: Theme.colors.shopCta }]}
               onPress={handleBuyCTAClick(item.catalogueId)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${item.serviceRegionName || "plan"} for $${(item.actualSellingPrice || 0).toFixed(2)}`}
             >
               <DetailItem
                 prefix="$"
@@ -107,7 +107,6 @@ const ESIMItem = ({
               />
               <View style={styles.buyButtonText}>
                 <Ionicons name="cart-outline" size={20} color={Theme.colors.cardForeground} />
-                {/* replaced "Buy" with "View" */}
                 <Text style={[styles.details, { color: Theme.colors.cardForeground }]}>View</Text>
               </View>
             </TouchableOpacity>
@@ -127,6 +126,8 @@ const ESIMItem = ({
         style={[styles.esimItemContainer, containerStyle]}
         onPress={onPress}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${item?.serviceRegionName || "eSIM"} plan`}
       >
         {content}
       </TouchableOpacity>

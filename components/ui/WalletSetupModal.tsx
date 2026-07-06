@@ -450,9 +450,12 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   }, [onClose]);
 
   const onSaveEOA = useCallback(async () => {
-    // TODO: save recovery EOA via Kokio API once endpoint is available
+    // No BFF endpoint exists yet to persist a recovery EOA (see docs/tasks.md
+    // for the backend ask) — don't let the user believe it was saved when it
+    // wasn't; tell them plainly instead of silently closing as if it succeeded.
     if (!eoaAddress) return;
-  }, [eoaAddress]);
+    showMessage("Recovery address saving isn't available yet — it wasn't saved. This will be added in a future update.", 'info');
+  }, [eoaAddress, showMessage]);
 
   const handleDone = useCallback(() => {
     onSaveEOA();

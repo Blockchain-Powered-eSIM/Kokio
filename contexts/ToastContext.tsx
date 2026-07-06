@@ -25,16 +25,22 @@ const ToastContext = createContext<ToastContextType>({
   showMessage: () => {},
 });
 
+// Errors need more time to read than a routine info confirmation.
+const MESSAGE_DISPLAY_MS: Record<MessageVariant, number> = {
+  error: 5000,
+  info: 3000,
+};
+
 function MessageToast({ message, variant, onHide }: { message: string; variant: MessageVariant; onHide: () => void }) {
   const opacity = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.sequence([
       Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-      Animated.delay(3000),
+      Animated.delay(MESSAGE_DISPLAY_MS[variant]),
       Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
     ]).start(onHide);
-  }, [onHide, opacity]);
+  }, [onHide, opacity, variant]);
 
   const bg = variant === 'error' ? Theme.colors.destructive : Theme.colors.muted;
 
@@ -61,10 +67,13 @@ const styles = StyleSheet.create({
   },
 });
 
+type QueuedMessage = { message: string; variant: MessageVariant; key: number };
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
   const [toastData, setToastData] = useState({ amount: '', ethAmount: '', type: '' });
-  const [msgToast, setMsgToast] = useState<{ message: string; variant: MessageVariant; key: number } | null>(null);
+  const [msgQueue, setMsgQueue] = useState<QueuedMessage[]>([]);
+  const msgToast = msgQueue[0] ?? null;
 
   const showToast = (amount: string, ethAmount: string, type: string) => {
     setToastData({ amount, ethAmount, type });
@@ -74,8 +83,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const hideToast = () => setVisible(false);
 
   const showMessage = (message: string, variant: MessageVariant = 'error') => {
-    setMsgToast({ message, variant, key: Date.now() });
+    setMsgQueue((queue) => [...queue, { message, variant, key: Date.now() }]);
   };
+
+  const dequeueMessage = () => setMsgQueue((queue) => queue.slice(1));
 
   return (
     <ToastContext.Provider value={{ showToast, hideToast, amount: toastData.amount, ethAmount: toastData.ethAmount, type: toastData.type, showMessage }}>
@@ -98,7 +109,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={msgToast.key}
             message={msgToast.message}
             variant={msgToast.variant}
-            onHide={() => setMsgToast(null)}
+            onHide={dequeueMessage}
           />
         </View>
       )}
