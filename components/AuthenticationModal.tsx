@@ -204,7 +204,6 @@ export function AuthenticationModal() {
           data ? { deviceWalletAddress: data.deviceWalletAddress } : null
         );
       if (data) {
-        succeeded = true;
         await setupKokioRegistration(
           data.deviceWalletAddress,
           data.deviceUniqueIdentifier,
@@ -213,6 +212,7 @@ export function AuthenticationModal() {
           data.publicKeyY,
           data.rawSalt ?? ""
         );
+        succeeded = true;
         sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
       }
     } catch (e) {
@@ -248,11 +248,11 @@ export function AuthenticationModal() {
           clearError();
           const recovered = await recoverWithPasskey();
           if (recovered) {
-            succeeded = true;
             await setupKokioRecovery(
               recovered.deviceWalletAddress,
               recovered.credentialId
             );
+            succeeded = true;
             sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
           }
         }
@@ -264,11 +264,11 @@ export function AuthenticationModal() {
             recovered ? { credentialId: recovered.credentialId } : null
           );
         if (recovered) {
-          succeeded = true;
           await setupKokioRecovery(
             recovered.deviceWalletAddress,
             recovered.credentialId
           );
+          succeeded = true;
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
         }
       }

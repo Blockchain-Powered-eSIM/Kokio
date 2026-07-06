@@ -16,6 +16,7 @@ import { Esim } from "@/components/ESIMItem";
 import { OrderStatusResponse } from "@/utils/bff/order";
 import { getAllEsims, type ESimDocument } from "@/utils/bff/esim";
 import { getOrderList, type OrderListItem } from "@/utils/bff/order";
+import { getAccount } from "@/utils/bff/account";
 import {
   getWcSignClient,
   setPendingProposal,
@@ -44,6 +45,17 @@ export interface StoredPurchasedESIM {
   eSimItem: Esim;
   transactionData: StoredTransactionData;
 }
+
+// Cosmetic fallback only — the BFF doesn't expose a plan's display name (region,
+// flag, data amount) from a bare planId (see stub eSimItem in syncPurchasedEsimsWithBff
+// below), so this just makes the raw catalogue/vendor id a bit less raw, e.g.
+// "esim_UL_1D_AE_V2" -> "UL 1D AE V2", rather than showing it verbatim.
+const prettifyPlanId = (planId: string): string =>
+  planId
+    .replace(/^esim[_-]?/i, '')
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .join(' ');
 
 const reduceESimDataForStorage = (
   eSimItem: Esim,
@@ -371,7 +383,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
             isUnlimited: false,
             coverageType: 'LOCAL',
             serviceRegionCode: '',
-            serviceRegionName: o.planId,
+            serviceRegionName: prettifyPlanId(o.planId),
             serviceRegionFlag: '',
           };
           return {
@@ -719,6 +731,29 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.setItemAsync('deviceWalletAddress', deviceWalletAddress);
     await SecureStore.setItemAsync('credentialId', credentialId);
     dispatch({ type: 'SET_DEVICE_WALLET_ADDRESS', payload: deviceWalletAddress });
+
+    // Fetch the wallet-derivation material (deviceUID/pubKeyX/pubKeyY/salt) needed
+    // to reconstruct the smart account after this reinstall. Must happen now, right
+    // after the fresh passkey assertion recovery just completed — GET /account
+    // requires step-up, and this is what satisfies its 5-minute recency window
+    // without prompting the user for a second biometric confirmation.
+    const account = await getAccount();
+
+    await saveValueForDeviceUID('deviceUID', account.deviceUniqueIdentifier);
+    await SecureStore.setItemAsync('publicKeyX', account.pubKeyX);
+    await SecureStore.setItemAsync('publicKeyY', account.pubKeyY);
+    await SecureStore.setItemAsync('rawSalt', account.salt);
+
+    dispatch({ type: 'SET_DEVICE_UID', payload: account.deviceUniqueIdentifier });
+    dispatch({ type: 'SET_RAW_SALT', payload: account.salt });
+    dispatch({
+      type: 'SET_KOKIO_PASSKEY',
+      payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
+    });
+
+    // Reconcile local purchase/order history against the live BFF now that the
+    // device is fully set up, instead of waiting for the next cold app launch.
+    await syncPurchasedEsimsWithBff(account.deviceUniqueIdentifier);
   };
 
   const clearKokio = () => {
