@@ -22,8 +22,11 @@ function InstallationHeader() {
           if (from === "orders") {
             router.navigate("/(tabs)/orders");
           } else {
-            router.push("/(tabs)/(shop)");
-            router.navigate("/(tabs)");
+            // navigate("/(tabs)") operates on the already-mounted Tabs
+            // navigator, which just re-focuses whichever tab was last active
+            // (e.g. Shop) instead of switching to Home. Resetting the root
+            // stack to "/" remounts (tabs) fresh, landing on its initial tab.
+            router.replace("/");
           }
         }}
       />

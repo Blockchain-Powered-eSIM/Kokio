@@ -827,11 +827,13 @@ const Checkout = () => {
 
   const handleTopupDone = useCallback(() => {
     setShowSuccessModal(false);
-    // Checkout lives inside the Shop tab's stack, so a plain navigate("/(tabs)")
-    // doesn't switch the active tab — same workaround as the InstallationHeader
-    // back handler in app/(tabs)/_layout.tsx.
-    router.push("/(tabs)/(shop)");
-    router.navigate("/(tabs)");
+    // Checkout lives inside the Shop tab's own stack, so navigate("/(tabs)")
+    // operates on the already-mounted Tabs navigator, which just re-focuses
+    // Shop (its last-active tab) instead of switching to Home. Resetting the
+    // root stack to "/" remounts (tabs) fresh, landing on its initial tab
+    // (Home) — same pattern used elsewhere in the app to return to the main
+    // shell (Offline.tsx, wc-session.tsx, wc-connect.tsx, callback.tsx).
+    router.replace("/");
   }, []);
 
   const handleWalletModalClose = useCallback(() => {
