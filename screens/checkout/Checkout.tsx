@@ -13,7 +13,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { RadioButtonProps, RadioGroup } from "react-native-radio-buttons-group";
-import ToggleSwitch from "toggle-switch-react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import _trim from "lodash/trim";
 import _subtract from "lodash/subtract";
@@ -267,6 +266,25 @@ const createStyles = () => StyleSheet.create({
     color: Theme.colors.success,
     fontSize: 14,
   },
+  topupOptionRow: {
+    marginTop: 4,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: Theme.colors.inputBackground,
+    borderColor: Theme.colors.mutedForeground,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  topupOptionRowSelected: {
+    borderColor: Theme.colors.success,
+    borderWidth: 2,
+  },
+  topupOptionText: {
+    color: Theme.colors.foreground,
+    fontSize: 14,
+  },
   removeDiscountButton: {
     padding: 4,
     backgroundColor: Theme.colors.destructiveBackground,
@@ -308,6 +326,16 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
+// e.g. "United Arab Emirates · 7 Days · 1GB" — same region/validity/data fields ESIMItem.tsx displays.
+function formatPlanLabel(plan?: Esim | null): string | undefined {
+  if (!plan?.serviceRegionName) return undefined;
+  const parts = [plan.serviceRegionName];
+  if (plan.validity) parts.push(`${plan.validity} Days`);
+  if (plan.isUnlimited) parts.push('Unlimited');
+  else if (plan.data) parts.push(`${plan.data}GB`);
+  return parts.join(' · ');
+}
+
 const Checkout = () => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
@@ -344,6 +372,7 @@ const Checkout = () => {
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [orderResponse, setOrderResponse] = useState<OrderStatusResponse | null>(null);
+  const [topupSuccessInfo, setTopupSuccessInfo] = useState<{ fromLabel: string; toLabel: string } | null>(null);
   const [discountError, setDiscountError] = useState<string>("");
   const [showManualReviewModal, setShowManualReviewModal] = useState(false);
   const [failedOrderInfo, setFailedOrderInfo] = useState<{
@@ -373,8 +402,21 @@ const Checkout = () => {
     isError: isCouponError,
   } = useCouponLookup(debouncedCode, debouncedCode.length === 8);
 
-  const hasPriorEsim = kokio.purchasedESIMs.length > 0;
-  const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility(
+  // Per the BFF spec, GET /esim/compatibility 404s with NO_ACTIVE_ESIMS_FOR_DEVICE
+  // when the device has no active eSIMs — only run the check once the user has
+  // at least one that actually completed (not a locally-recorded pending/failed attempt).
+  // esimId (not orderStatus) is the reliable signal: orderStatus gets overwritten with
+  // the eSIM's live activationStatus once synced (see syncPurchasedEsimsWithBff in
+  // kokioProvider.tsx), but esimId is only ever set once a vendor actually provisions one.
+  const hasPriorEsim = kokio.purchasedESIMs.some(e => !!e.transactionData.esimId);
+  const {
+    isLoading: isCheckingTopup,
+    isError: isTopupCheckError,
+    error: topupCheckError,
+    refetch: refetchTopupCompatibility,
+    compatibleEsims,
+    vendorMismatches,
+  } = useEsimCompatibility(
     { planId: eSimItem?.catalogueId },
     { enabled: hasPriorEsim },
   );
@@ -382,6 +424,34 @@ const Checkout = () => {
   const [applyAsTopup, setApplyAsTopup] = useState(false);
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
   const bg = useThemeColor({}, "background");
+
+  // The compatibility check only returns esimId/iccid — build a human-readable
+  // row label from local purchase history using the same region/validity/data
+  // fields ESIMItem.tsx shows elsewhere (e.g. "United Arab Emirates · 7 Days · 1GB"),
+  // so two eSIMs from the same country are still distinguishable by plan size.
+  // Falls back to ICCID, then the wallet address, if no local record exists
+  // (e.g. not yet synced).
+  const buildTopupEsimLabel = useCallback((esimId: string, iccid?: string): string => {
+    const plan = kokio.purchasedESIMs.find(e => e.transactionData.esimId === esimId)?.eSimItem;
+    const label = formatPlanLabel(plan);
+    if (label) return label;
+    if (iccid) return `ICCID ...${iccid.slice(-4)}`;
+    return `${esimId.slice(0, 6)}...${esimId.slice(-4)}`;
+  }, [kokio.purchasedESIMs]);
+
+  // Two eSIMs can share the exact same region + plan size (e.g. bought the same
+  // UAE plan twice) — append the ICCID's last 4 digits only when labels collide.
+  const topupEsimOptions = useMemo(() => {
+    const withLabel = compatibleEsims.map(r => ({ ...r, label: buildTopupEsimLabel(r.esimId, r.iccid) }));
+    const counts = withLabel.reduce<Record<string, number>>((acc, o) => {
+      acc[o.label] = (acc[o.label] ?? 0) + 1;
+      return acc;
+    }, {});
+    return withLabel.map(o => ({
+      ...o,
+      label: counts[o.label] > 1 && o.iccid ? `${o.label} (...${o.iccid.slice(-4)})` : o.label,
+    }));
+  }, [compatibleEsims, buildTopupEsimLabel]);
 
   // Stable per-attempt idempotency key: reused across retries of an unchanged
   // order (e.g. tapping Pay again after a dropped response) so the BFF can
@@ -399,12 +469,6 @@ const Checkout = () => {
     [eSimItem?.catalogueId, discountCode, applyAsTopup, compatibleTopUpEsimId, selectedPaymentMethod],
   );
 
-  useEffect(() => {
-    if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
-      setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
-    }
-  }, [compatibleEsims, compatibleTopUpEsimId]);
-
   const handleOrderResult = useCallback(async (
     order: OrderStatusResponse | null,
     correlationId?: string | null,
@@ -421,6 +485,11 @@ const Checkout = () => {
       // Order attempt is complete — the next purchase (if any) should mint a fresh idempotency key.
       orderAttemptRef.current = null;
       setOrderResponse(order);
+      setTopupSuccessInfo(
+        applyAsTopup && compatibleTopUpEsimId
+          ? { fromLabel: formatPlanLabel(eSimItem) ?? 'your new plan', toLabel: buildTopupEsimLabel(compatibleTopUpEsimId) }
+          : null
+      );
       setShowSuccessModal(true);
       return;
     }
@@ -441,7 +510,7 @@ const Checkout = () => {
       order.orderStatus === 'ABANDONED'       ? 'Order expired. Please try again.' :
       'Order could not be completed. Please try again.';
     showMessage(msg, 'info');
-  }, [kokio.deviceUID, eSimItem, savePurchasedESIM, showMessage]);
+  }, [kokio.deviceUID, eSimItem, savePurchasedESIM, showMessage, applyAsTopup, compatibleTopUpEsimId, buildTopupEsimLabel]);
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
@@ -756,6 +825,15 @@ const Checkout = () => {
     });
   }, [orderResponse]);
 
+  const handleTopupDone = useCallback(() => {
+    setShowSuccessModal(false);
+    // Checkout lives inside the Shop tab's stack, so a plain navigate("/(tabs)")
+    // doesn't switch the active tab — same workaround as the InstallationHeader
+    // back handler in app/(tabs)/_layout.tsx.
+    router.push("/(tabs)/(shop)");
+    router.navigate("/(tabs)");
+  }, []);
+
   const handleWalletModalClose = useCallback(() => {
     setShowWalletSetupModal(false);
     setPendingPaymentMethod(null);
@@ -953,59 +1031,59 @@ const Checkout = () => {
             </ThemedText>
           </View>
         )}
-        {/* TODO: TOPUP , selection from  multiple eSIMs(if exists and comptabile) for top-up*/}
+        {!isCheckingTopup && isTopupCheckError && (
+          <View style={styles.discountErrorContainer}>
+            <ThemedText style={styles.discountErrorText}>
+              {formatBffError(topupCheckError)}
+            </ThemedText>
+            <TouchableOpacity onPress={() => refetchTopupCompatibility()}>
+              <ThemedText style={[styles.discountErrorText, { textDecorationLine: 'underline' }]}>
+                Retry
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+        {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && vendorMismatches.length > 0 && (
+          <View style={styles.discountErrorContainer}>
+            <ThemedText style={styles.discountErrorText}>
+              Your existing eSIM isn&apos;t compatible with this plan for top-up.
+            </ThemedText>
+          </View>
+        )}
         {!isCheckingTopup && isTopupCompatible && (
           <View style={{ marginTop: 16 }}>
             <ThemedText>Apply as Top-up</ThemedText>
             <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
-              Top up your existing eSIM instead of buying a new one
+              Select an eSIM to top up, or leave unselected to buy a new one
             </Text>
-            <View style={styles.walletStatusRow}>
-              <View style={styles.toggleLeftSide}>
-                <ToggleSwitch
-                  isOn={applyAsTopup}
-                  onToggle={setApplyAsTopup}
-                  onColor={Theme.colors.success}
-                  offColor={Theme.colors.muted}
-                  size="small"
-                />
-                <ThemedText style={{ marginLeft: 8 }}>
-                  Apply this plan as a top-up
-                </ThemedText>
-              </View>
-            </View>
-            {applyAsTopup && compatibleEsims.length === 1 && compatibleTopUpEsimId && (
-              <View style={styles.discountAppliedContainer}>
-                <ThemedText style={styles.discountAppliedText}>
-                  {`eSIM: ${compatibleTopUpEsimId.slice(0, 6)}...${compatibleTopUpEsimId.slice(-4)}`}
-                </ThemedText>
-              </View>
-            )}
-            {applyAsTopup && compatibleEsims.length > 1 && (
-              <View style={{ marginTop: 8 }}>
-                <ThemedText style={{ color: Theme.colors.muted, fontSize: 13, marginBottom: 6 }}>
-                  Select eSIM to top up:
-                </ThemedText>
-                {compatibleEsims.map((r) => (
-                  <TouchableOpacity
-                    key={r.esimId}
-                    onPress={() => setCompatibleTopUpEsimId(r.esimId)}
-                    style={[
-                      styles.discountAppliedContainer,
-                      { marginTop: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-                      compatibleTopUpEsimId === r.esimId && { borderWidth: 1, borderColor: Theme.colors.success },
-                    ]}
-                  >
-                    <ThemedText style={styles.discountAppliedText}>
-                      {`${r.esimId.slice(0, 6)}...${r.esimId.slice(-4)}`}
-                    </ThemedText>
-                    {compatibleTopUpEsimId === r.esimId && (
-                      <Ionicons name="checkmark-circle" size={18} color={Theme.colors.success} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+            {topupEsimOptions.map((r) => {
+              const isSelected = applyAsTopup && compatibleTopUpEsimId === r.esimId;
+              return (
+                <TouchableOpacity
+                  key={r.esimId}
+                  onPress={() => {
+                    if (isSelected) {
+                      setApplyAsTopup(false);
+                      setCompatibleTopUpEsimId(undefined);
+                    } else {
+                      setApplyAsTopup(true);
+                      setCompatibleTopUpEsimId(r.esimId);
+                    }
+                  }}
+                  style={[
+                    styles.topupOptionRow,
+                    isSelected && styles.topupOptionRowSelected,
+                  ]}
+                >
+                  <ThemedText style={styles.topupOptionText}>
+                    {r.label}
+                  </ThemedText>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={18} color={Theme.colors.success} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -1055,7 +1133,11 @@ const Checkout = () => {
       <CheckoutSuccessModal
         visible={showSuccessModal}
         loading={isCheckoutLoading}
+        variant={topupSuccessInfo ? "topup" : "install"}
         onInstallESIM={handleInstallESIM}
+        onDone={handleTopupDone}
+        topupFromLabel={topupSuccessInfo?.fromLabel}
+        topupToLabel={topupSuccessInfo?.toLabel}
       />
 
       <OrderFailureModal
