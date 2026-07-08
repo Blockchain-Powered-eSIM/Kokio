@@ -397,9 +397,9 @@ export interface paths {
          *
          *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
          *
-         *     **Filtering:** Pass `activeOnly=true` to return only eSIMs with
-         *     `activationStatus: ACTIVE`. When omitted or any other value,
-         *     all eSIMs for the device are returned regardless of activation state.
+         *     **Filtering:** Pass `activeOnly=true` to return only usable eSIMs
+         *     (`activationStatus` of `RELEASED` or `INSTALLED`). When omitted or any other
+         *     value, all eSIMs for the device are returned regardless of activation state.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
          *     (10 requests per minute per `deviceWalletAddress`).
@@ -479,6 +479,43 @@ export interface paths {
          *     limiter (10 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimCheckCompatibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/esim/usage/{esimId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get eSIM usage
+         * @description Returns remaining usage allowance for the authenticated device's eSIMs.
+         *
+         *     - With `esimId` path param → usage for that single eSIM (device ownership enforced).
+         *     - Without `esimId` → usage for all **non-terminal** eSIMs of the device
+         *       (`activationStatus` of `RELEASED` or `INSTALLED`). Terminal eSIMs
+         *       (`UNAVAILABLE`, `DEACTIVATED`) are excluded.
+         *
+         *     Usage is fetched best-effort from upstream vendors and cached briefly
+         *     (15 min per eSIM). Data allowances are in **GB**; `voice` in **minutes**,
+         *     `sms` as a **count**. For unlimited plans, `isUnlimited` is `true` and the
+         *     numeric `remaining`/`total` are `null` (unless a capped topup is also active,
+         *     in which case the capped figures are returned alongside `isUnlimited: true`).
+         *
+         *     A per-eSIM `usageError` message is returned in that entry if its usage could
+         *     not be computed; other eSIMs are unaffected.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
+         *     **Rate limiting:** Global IP limiter + per-device limiter (10 req/min per `deviceWalletAddress`).
+         */
+        get: operations["esimGetUsage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -642,6 +679,7 @@ export interface paths {
          *     | `cleanup_abandoned_orders` | 24 hours | Voids Stripe invoices and marks stuck orders as `ABANDONED` |
          *     | `retry_vendor_fulfilment` | 3 minutes | Retries transient vendor failures (`VENDOR_RETRY_PENDING`) |
          *     | `retry_onchain_recording` | 15 minutes | Retries on-chain recording (`ESIM_PROVISIONED_PENDING_CHAIN`) |
+         *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
          */
         post: operations["adminJobsRun"];
         delete?: never;
@@ -967,6 +1005,8 @@ export interface components {
              *     |------|--------|---------|
              *     | `VENDOR_ORDER_FAILED` | 502 | Upstream vendor order API call failed |
              *     | `VENDOR_PLANS_FAILED` | 502 | Upstream vendor plans API call failed during catalogue refresh |
+             *     | `VENDOR_GET_STATUS_FAILED` | 502 | Upstream vendor could not fetch the status of requested eSIM |
+             *     | `VENDOR_GET_USAGE_FAILED` | 502 | Upstream vendor could not fetch the usage status of the requested eSIM |
              *
              *     **Admin errors**
              *
@@ -1188,7 +1228,7 @@ export interface components {
             /**
              * @description Server-generated salt persisted on the account, used by the client SDK as
              *     part of deterministic smart-account derivation.
-             * @example 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+             * @example 0x9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
              */
             salt: string;
             /**
@@ -1294,7 +1334,7 @@ export interface components {
              * @example LOCAL
              * @enum {string}
              */
-            coverageType: "LOCAL" | "REGIONAL" | "GLOBAL";
+            coverageType: "LOCAL" | "REGIONAL" | "GLOBAL" | "CUSTOM_REGIONAL";
             /**
              * @description Type of connectivity provided.
              * @example DATA
@@ -2000,11 +2040,17 @@ export interface components {
              */
             planHistory: components["schemas"]["PlanHistoryEntry"][];
             /**
-             * @description Current activation lifecycle state of the eSIM.
-             * @example ACTIVE
+             * @description eSIM-level profile/installation status — a normalised projection of the
+             *     upstream vendor's profile state, synced periodically (best-effort).
+             *     Distinct from per-plan bundle usage status carried on `planHistory` entries.
+             *       - `RELEASED`    — provisioned, not yet installed.
+             *       - `INSTALLED`   — installed and used at least once; usable.
+             *       - `UNAVAILABLE` — cannot be installed/used; reissue recommended.
+             *       - `DEACTIVATED` — no longer exists on the vendor side; dead.
+             * @example INSTALLED
              * @enum {string}
              */
-            activationStatus: "PENDING" | "ACTIVE" | "EXPIRED" | "FAILED" | "CANCELED" | "SUSPENDED" | "REVOKED";
+            activationStatus: "RELEASED" | "INSTALLED" | "UNAVAILABLE" | "DEACTIVATED";
             /**
              * @description eSIM installation data for device activation.
              *     Present on new eSIM purchases that have been provisioned.
@@ -2056,6 +2102,66 @@ export interface components {
              * @example 2026-04-15T12:30:00Z
              */
             purchaseDate: string;
+            /**
+             * @description Data allowance in GB, snapshotted from the catalogue plan at fulfilment time.
+             *     `null` for unlimited plans (`isUnlimited: true`).
+             * @example 1
+             */
+            data?: number | null;
+            /**
+             * @description SMS allowance, snapshotted from the catalogue plan at fulfilment time.
+             *     `null` when not applicable for this plan type.
+             * @example null
+             */
+            sms?: number | null;
+            /**
+             * @description Voice allowance in minutes, snapshotted from the catalogue plan at fulfilment time.
+             *     `null` when not applicable for this plan type.
+             * @example null
+             */
+            voice?: number | null;
+            /**
+             * @description Human-readable display name of the service region, snapshotted from the
+             *     catalogue plan at fulfilment time.
+             * @example United Kingdom
+             */
+            serviceRegionName?: string | null;
+            /**
+             * @description CDN URL for the service region flag, snapshotted from the catalogue plan at
+             *     fulfilment time. Non-null for `LOCAL` coverage only.
+             * @example https://flagcdn.com/w320/gb.png
+             */
+            serviceRegionFlag?: string | null;
+            /**
+             * @description `true` if this was an unlimited data plan. Snapshotted from the catalogue
+             *     plan at fulfilment time.
+             * @example false
+             */
+            isUnlimited: boolean;
+            /**
+             * @description Coverage scope, snapshotted from the catalogue plan at fulfilment time.
+             * @example LOCAL
+             * @enum {string}
+             */
+            coverageType: "LOCAL" | "REGIONAL" | "GLOBAL" | "CUSTOM_REGIONAL";
+            /**
+             * @description Stable per-bundle identifier from the owning vendor, used to correlate this
+             *     entry with the vendor's bundle records during status sync.
+             * @example 728
+             */
+            vendorBundleRef?: string | null;
+            /**
+             * @description Usage-lifecycle status of this specific bundle, synced from the vendor
+             *     (best-effort). Distinct from the eSIM-level `activationStatus`.
+             *       - `QUEUED`   — assigned, not yet started/used.
+             *       - `ACTIVE`   — in use, data remaining, within duration.
+             *       - `FINISHED` — data depleted, still within duration.
+             *       - `EXPIRED`  — duration exceeded (used, or unused/lapsed).
+             *       - `UNKNOWN`  — revoked or indeterminate vendor state.
+             * @example ACTIVE
+             * @enum {string}
+             */
+            bundleStatus: "QUEUED" | "ACTIVE" | "FINISHED" | "EXPIRED" | "UNKNOWN";
         };
         ESimListResponse: {
             /**
@@ -2067,6 +2173,26 @@ export interface components {
              */
             eSims: components["schemas"]["ESimDocument"][];
         };
+        /** @description Remaining usage allowance for a single eSIM. */
+        ESimUsage: {
+            esimId: string;
+            iccid: string;
+            /** @description Remaining data allowance in GB. Null for unlimited-only active plans. */
+            remaining: number | null;
+            /** @description Initial data allowance in GB. Null for unlimited-only active plans. */
+            total: number | null;
+            /** @description Remaining voice allowance in minutes. Null if not applicable. */
+            voice: number | null;
+            /** @description Remaining SMS allowance (count). Null if not applicable. */
+            sms: number | null;
+            /** @description True if at least one active bundle is unlimited. */
+            isUnlimited: boolean;
+            /** @description Furthest-future expiry among active bundles (vendor timestamp). Null if none active. */
+            expiresAt: string | null;
+            /** @description Per-eSIM usage-computation error message, or null on success. */
+            usageError: string | null;
+        };
+        EsimUsageResponse: components["schemas"]["ESimUsageResponse"];
         IssuedFromTx: {
             /**
              * @description On-chain transaction hash of the vault transfer that triggered coupon issuance.
@@ -2355,10 +2481,11 @@ export interface components {
              *     | `cleanup_abandoned_orders` | 24 hours | Voids/deletes Stripe invoices and marks orders stuck in `CREATED` or `PAYMENT_PENDING` beyond the 24-hour TTL as `ABANDONED`. Deletes `ABANDONED` orders older than 30 days |
              *     | `retry_vendor_fulfilment` | 3 minutes | Retries orders at `VENDOR_RETRY_PENDING` (transient vendor failures). Max 2 retries before `VENDOR_FAILED` |
              *     | `retry_onchain_recording` | 15 minutes | Retries `buildBuyDataBundleTxn` for orders at `ESIM_PROVISIONED_PENDING_CHAIN`. Max 2 retries before `COMPLETED` + `flaggedForManualReview` |
+             *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
              * @example refresh_catalogue
              * @enum {string}
              */
-            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording";
+            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording" | "sync_esim_status";
         };
         /**
          * @description Job execution result. Shape varies by job type.
@@ -2500,6 +2627,15 @@ export interface components {
              * @enum {string}
              */
             action: "denied" | "allowed";
+        };
+        ESimUsageResponse: {
+            /**
+             * @description Per-eSIM remaining usage allowance.
+             *     When `esimId` is provided, contains exactly one entry.
+             *     When omitted, contains one entry per non-terminal (RELEASED | INSTALLED) eSIM.
+             *     Empty array when the device has no non-terminal eSIMs.
+             */
+            usage: components["schemas"]["ESimUsage"][];
         };
     };
     responses: {
@@ -3559,7 +3695,8 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description When set to `"true"`, filters results to eSIMs with `activationStatus: ACTIVE` only.
+                 * @description When set to `"true"`, filters results to usable eSIMs only —
+                 *     those with `activationStatus` of `RELEASED` or `INSTALLED`.
                  *     Any other value or omission returns all eSIMs for the device.
                  * @example true
                  */
@@ -3696,16 +3833,30 @@ export interface operations {
                      *             "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
                      *             "planId": "1GB_EU_30D",
                      *             "validity": 30,
-                     *             "purchaseDate": "2026-04-15T12:30:00Z"
+                     *             "purchaseDate": "2026-04-15T12:30:00Z",
+                     *             "data": 1,
+                     *             "serviceRegionName": "Europe",
+                     *             "serviceRegionFlag": null,
+                     *             "isUnlimited": false,
+                     *             "coverageType": "REGIONAL",
+                     *             "vendorBundleRef": "728",
+                     *             "bundleStatus": "FINISHED"
                      *           },
                      *           {
                      *             "orderId": "664f1a2b3c4d5e6f7a8b9c0f",
                      *             "planId": "1GB_EU_30D_TOPUP",
                      *             "validity": 30,
-                     *             "purchaseDate": "2026-05-10T09:00:00Z"
+                     *             "purchaseDate": "2026-05-10T09:00:00Z",
+                     *             "data": 1,
+                     *             "serviceRegionName": "Europe",
+                     *             "serviceRegionFlag": null,
+                     *             "isUnlimited": false,
+                     *             "coverageType": "REGIONAL",
+                     *             "vendorBundleRef": "731",
+                     *             "bundleStatus": "ACTIVE"
                      *           }
                      *         ],
-                     *         "activationStatus": "ACTIVE",
+                     *         "activationStatus": "INSTALLED",
                      *         "installationDetails": {
                      *           "qrcode": "LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE",
                      *           "appleInstallationUrl": "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE"
@@ -3901,6 +4052,117 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    esimGetUsage: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description Optional eSIM wallet address. If provided, returns usage for that eSIM only;
+                 *     if omitted, returns usage for all non-terminal eSIMs of the device.
+                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 */
+                esimId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usage list returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "usage": [
+                     *           {
+                     *             "esimId": "0xdef456abc123def456abc123def456abc123def4",
+                     *             "iccid": "8944110068000000001",
+                     *             "remaining": 2.38,
+                     *             "total": 3,
+                     *             "voice": null,
+                     *             "sms": null,
+                     *             "isUnlimited": false,
+                     *             "expiresAt": "2026-05-22T06:28:04.250178Z",
+                     *             "usageError": null
+                     *           }
+                     *         ]
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["ESimUsageResponse"];
+                    };
+                };
+            };
+            /**
+             * @description The provided `esimId` belongs to a different device.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | eSIM exists but is not associated with the authenticated device |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ESIM_NOT_FOUND_FOR_DEVICE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "No eSIM found for esimId 0xdef4... associated with device 0xabc1..."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
             500: components["responses"]["InternalServerError"];
         };
     };
