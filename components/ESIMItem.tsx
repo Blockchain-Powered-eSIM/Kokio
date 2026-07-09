@@ -23,6 +23,7 @@ export interface Esim {
   isTopupAvailable?: boolean;
   isAutoStart?: boolean;
   isKycRequired?: boolean;
+  info?: string | null;
   countryWiseNetworkCoverages?: {
     countryCode?: string;
     countryName?: string;
