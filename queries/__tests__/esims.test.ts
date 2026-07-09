@@ -9,11 +9,9 @@ jest.mock('@/hooks/useIsAppActive', () => ({
   useIsAppActive: jest.fn(() => true),
 }));
 
-// useAuthStore — default: authenticated
-jest.mock('@/stores/authStore', () => ({
-  useAuthStore: jest.fn((selector: (s: { isAuthenticated: boolean }) => unknown) =>
-    selector({ isAuthenticated: true }),
-  ),
+// useAuthRelay — default: authenticated
+jest.mock('@/hooks/useAuthRelayer', () => ({
+  useAuthRelay: jest.fn(() => ({ state: { authenticated: true } })),
 }));
 
 // BFF utility functions
@@ -26,6 +24,7 @@ jest.mock('@/utils/bff/order', () => ({
 
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthStore } from '@/stores/authStore';
+import { useAuthRelay } from '@/hooks/useAuthRelayer'
 import { getAllEsims } from '@/utils/bff/esim';
 import { getOrderList } from '@/utils/bff/order';
 import {
@@ -78,9 +77,7 @@ describe('useEsims', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useIsAppActive as jest.Mock).mockReturnValue(true);
-    (useAuthStore as unknown as jest.Mock).mockImplementation(
-      (sel: (s: { isAuthenticated: boolean }) => unknown) => sel({ isAuthenticated: true }),
-    );
+    (useAuthRelay as jest.Mock).mockReturnValue({ state: { authenticated: true } });
   });
 
   it('returns data from getAllEsims on success', async () => {
@@ -121,9 +118,7 @@ describe('useEsims', () => {
   });
 
   it('does not fetch when unauthenticated', async () => {
-    (useAuthStore as unknown as jest.Mock).mockImplementation(
-      (sel: (s: { isAuthenticated: boolean }) => unknown) => sel({ isAuthenticated: false }),
-    );
+    (useAuthRelay as jest.Mock).mockReturnValue({ state: { authenticated: false } });
     (getAllEsims as jest.Mock).mockResolvedValue([ESIM_DOC]);
     const client = freshClient();
 
@@ -153,9 +148,7 @@ describe('useOrders', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useIsAppActive as jest.Mock).mockReturnValue(true);
-    (useAuthStore as unknown as jest.Mock).mockImplementation(
-      (sel: (s: { isAuthenticated: boolean }) => unknown) => sel({ isAuthenticated: true }),
-    );
+    (useAuthRelay as jest.Mock).mockReturnValue({ state: { authenticated: true } });
   });
 
   it('returns the orders array from getOrderList on success', async () => {

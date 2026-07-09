@@ -25,7 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAllEsims, type ESimDocument } from '@/utils/bff/esim';
 import { getOrderList, type OrderListItem } from '@/utils/bff/order';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthRelay } from '@/hooks/useAuthRelayer';
 
 // ─── Query key constants ───────────────────────────────────────────────────────
 
@@ -54,14 +54,14 @@ export interface UseEsimsResult {
  */
 export function useEsims(): UseEsimsResult {
   const isActive          = useIsAppActive();
-  const isAuthenticated   = useAuthStore((s) => s.isAuthenticated);
+  const { state: authState } = useAuthRelay();
 
   const query = useQuery<ESimDocument[]>({
     queryKey:          [DEVICE_ESIMS_KEY],
     queryFn:           getAllEsims,
     staleTime:         STALE_TIME,
     gcTime:            GC_TIME,
-    enabled:           isActive && isAuthenticated,
+    enabled:           isActive && authState.authenticated,
     refetchOnMount:    true,
     refetchInterval:   false,
     // On a network failure serve whatever is in cache.
@@ -92,7 +92,7 @@ export interface UseOrdersResult {
  */
 export function useOrders(): UseOrdersResult {
   const isActive        = useIsAppActive();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { state: authState } = useAuthRelay();
 
   const query = useQuery<OrderListItem[]>({
     queryKey:          [DEVICE_ORDERS_KEY],
@@ -102,7 +102,7 @@ export function useOrders(): UseOrdersResult {
     },
     staleTime:         STALE_TIME,
     gcTime:            GC_TIME,
-    enabled:           isActive && isAuthenticated,
+    enabled:           isActive && authState.authenticated,
     refetchOnMount:    true,
     refetchInterval:   false,
     retry:             1,
