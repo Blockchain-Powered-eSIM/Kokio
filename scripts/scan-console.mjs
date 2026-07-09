@@ -6,8 +6,6 @@
 //   - **/generated/**            — generated OpenAPI types (never hand-edited)
 //   - scripts/**                 — build/CI tooling legitimately uses console
 //   - **/__tests__/**, *.test.*, *.spec.*  — test code
-//   - **/*.web.ts(x)             — TEMPORARY: the web layer is slated for
-//                                  removal; drop this exclusion once it is gone
 //   - utils/logger.ts            — the one allowed console site
 //
 // Comment handling: block comments and `//` line comments are stripped before
@@ -43,7 +41,6 @@ function isExcludedFile(relPosix) {
   if (relPosix.includes("/generated/")) return true;
   if (relPosix.includes("/__tests__/")) return true;
   if (/\.(test|spec)\.(ts|tsx)$/.test(relPosix)) return true;
-  if (/\.web\.(ts|tsx)$/.test(relPosix)) return true; // TEMPORARY — see header
   return false;
 }
 

@@ -75,11 +75,6 @@ module.exports = ({ config }) => {
         },
       ],
     },
-    web: {
-      bundler: "metro",
-      output: "server",
-      favicon: "./assets/images/favicon.png",
-    },
     plugins: [
       [
         "expo-build-properties",
