@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StyleSheet, View, Text, Dimensions, Platform, Pressable } from "react-native";
+import { StyleSheet, View, Text, Dimensions, Platform, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, router } from "expo-router";
 import _get from "lodash/get";
@@ -37,12 +37,23 @@ const ExpandableContent = ({
   const isMultiCountry = eSimItem?.coverageType !== "LOCAL";
 
   return (
-    <View style={{ gap: 12 }}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      scrollEnabled={true}
+      contentContainerStyle={{ gap: 12 }}
+    >
       {ESIM_EXTRA_DETAILS.map((item, index) => {
+        const value = _get(eSimItem, item.key);
+
+        // Suppress rows that opt in to hiding when the field is absent or null.
+        if (item.hideWhenNullish && (value === null || value === undefined)) {
+          return null;
+        }
+
         const isNetworkRow = item.key === "countryWiseNetworkCoverages";
 
         if (isNetworkRow && isMultiCountry) {
-          const coverage: any[] = _get(eSimItem, item.key) || [];
+          const coverage: any[] = value || [];
           return (
             <View key={index} style={styles.expandedItem}>
               <DetailItem
@@ -80,13 +91,14 @@ const ExpandableContent = ({
               containerStyles={styles.extraContentLabel}
             />
             <DetailItem
-              value={item.formatter?.(_get(eSimItem, item.key))}
+              value={item.formatter?.(value)}
+              highlight={false}
               containerStyles={item.dataContainerStyles}
             />
           </View>
         );
       })}
-    </View>
+    </ScrollView>
   );
 };
 
