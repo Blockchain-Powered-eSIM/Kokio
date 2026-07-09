@@ -21,6 +21,7 @@ import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
+import { logger } from '@/utils/logger';
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -236,7 +237,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       try {
         await openBrowserAsync(url);
       } catch (error) {
-        console.error("Error opening browser:", error);
+        logger.error('BROWSER_OPEN_FAILED', { error });
       }
     }
   }, [walletAddress]);
@@ -247,7 +248,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
     const { deviceWalletAddress, deviceUID, userPasskey, rawSalt, sdk } = kokio;
 
-    console.log('[wallet] handleContinue state:', {
+    logger.debug('WALLET_CONTINUE_STATE', {
       deviceWalletAddress: !!deviceWalletAddress,
       deviceUID: !!deviceUID,
       hasX: !!userPasskey?.x,
@@ -257,7 +258,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     });
 
     if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !rawSalt || !sdk) {
-      console.warn('[wallet] guard failed — missing:', {
+      logger.warn('WALLET_SETUP_GUARD_FAILED — Missing', {
         deviceWalletAddress,
         x: userPasskey?.x,
         y: userPasskey?.y,
@@ -277,7 +278,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
       const salt = BigInt(rawSalt);
 
-      console.log('[wallet] getSmartWallet inputs:', {
+      logger.debug('GET_SMART_WALLET_INPUTS', {
         deviceUID,
         ownerKeyX: userPasskey.x,
         ownerKeyY: userPasskey.y,
@@ -296,7 +297,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       const deviceWalletClient = await sdk.smartAccount.getSmartWalletClient(deviceWallet);
 
       const sdkAddress = deviceWalletClient.account?.address;
-      console.log('[wallet] getSmartWallet result:', {
+      logger.debug('GET_SMART_WALLET_RESULT', {
         sdkAddress,
         serverAddress: deviceWalletAddress,
         match: sdkAddress?.toLowerCase() === deviceWalletAddress.toLowerCase(),
@@ -339,7 +340,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       await setupKokioUserWallet(deviceUID, deviceWallet);
       setShowRecovery(true);
     } catch (err: unknown) {
-      console.error('[wallet] deployment error:', err);
+      logger.error('WALLET_DEPLOYMENT_FAILED', { err });
       const message = err instanceof AuthError
         ? err.userMessage
         : err instanceof Error

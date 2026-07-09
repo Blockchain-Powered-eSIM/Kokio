@@ -14,7 +14,6 @@ const Checkbox = ({ checked, onChange }: CheckboxProps) => {
   const border = useThemeColor({}, "mutedForeground");
 
   const handleCheckboxChange = useCallback(() => {
-    console.log(onChange, !checked);
     onChange(!checked);
   }, [onChange, checked]);
 

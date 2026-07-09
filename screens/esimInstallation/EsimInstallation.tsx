@@ -21,6 +21,7 @@ import _split from "lodash/split";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { logger } from "@/utils/logger";
 
 type TabType = "Direct" | "QR" | "Manual";
 
@@ -98,7 +99,7 @@ const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
     try {
       await Clipboard.setStringAsync(text);
     } catch (error) {
-      console.error("Error copying to clipboard:", error);
+      logger.error('CLIPBOARD_COPY_FAILED', { error });
     }
   };
   return (
@@ -256,7 +257,7 @@ const EsimInstallation = () => {
     const handleShareQR = async () => {
       try {
         if (!qrViewRef.current) {
-          console.log("QR view ref is not available");
+          logger.warn('QR_VIEW_REF_UNAVAILABLE');
           return;
         }
 
@@ -271,10 +272,10 @@ const EsimInstallation = () => {
           url: `file://${uri}`,
           type: "image/png",
         }).catch((err) => {
-          err && console.log("react-native-share API failed", err);
+          if (err) logger.warn('QR_SHARE_API_FAILED', { err });
         });
       } catch (error) {
-        console.error("QR Share failed with error", error);
+        logger.error('QR_SHARE_FAILED', { error });
       }
     };
 

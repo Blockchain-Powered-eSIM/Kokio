@@ -7,6 +7,7 @@ import { createWalletClient, http, type Hex } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
 import { AppExtraConfig, Config } from "@/appKeys";
+import { logger } from '@/utils/logger';
 
 import { SmartContractAccount } from "@aa-sdk/core";
 
@@ -282,7 +283,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      if (__DEV__) console.error("Error saving purchased eSIMs to AsyncStorage:", error);
+      logger.error('ESIM_STORAGE_SAVE_FAILED', { error });
     }
   };
 
@@ -296,7 +297,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         return parsedResult;
       }
     } catch (error) {
-      if (__DEV__) console.error("Error retrieving purchased eSIMs from AsyncStorage:", error);
+      logger.error('ESIM_STORAGE_READ_FAILED', { error });
     }
   };
 
@@ -304,7 +305,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     try {
       await AsyncStorage.removeItem(key);
     } catch (error) {
-      if (__DEV__) console.error("Error deleting purchased eSIMs from AsyncStorage:", error);
+      logger.error('ESIM_STORAGE_DELETE_FAILED', { error });
     }
   };
 
@@ -422,7 +423,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       if (deviceUID && !storedWalletAddress) {
         await SecureStore.deleteItemAsync("deviceUID");
         await SecureStore.deleteItemAsync("credentialId");
-        if (__DEV__) console.log('[kokio] purged orphaned deviceUID (no deviceWalletAddress)');
+        logger.debug('KOKIO_PURGED_ORPHAN_DEVICE_UID');
       }
 
       if (deviceUID && storedWalletAddress) {
@@ -447,7 +448,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         const credentialId = await SecureStore.getItemAsync('credentialId');
         const publicKeyX = await SecureStore.getItemAsync('publicKeyX');
         const publicKeyY = await SecureStore.getItemAsync('publicKeyY');
-        if (__DEV__) console.log('[kokio] SecureStore hydration:', {
+        logger.debug('[KOKIO] SecureStore Hydration', {
           hasDeviceWalletAddress: !!storedWalletAddress,
           hasCredentialId: !!credentialId,
           hasPublicKeyX: !!publicKeyX,
@@ -533,11 +534,11 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       });
 
       client.on("session_delete", ({ topic }) => {
-        if (__DEV__) console.log("[WC] session deleted:", topic);
+        logger.debug('WC_SESSION_DELETED', { topic });
       });
     }).catch((err) => {
       wcInitialized.current = false;
-      if (__DEV__) console.error("[WC] init failed:", err);
+      logger.error('WC_INIT_FAILED', { err });
     });
   }, [kokio.sdk, kokio.userWallet]);
 
@@ -603,13 +604,13 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     transactionData: OrderStatusResponse,
     correlationId?: string | null,
   ) => {
-    if (__DEV__) console.log('[eSIM] order response:', JSON.stringify(transactionData, null, 2));
+    logger.debug('ESIM_ORDER_RESPONSE', { transactionData });
 
     const existingESIMs = await getValueForPurchasedESIMs(`purchasedESIMs-${deviceUID}`);
     const currentESIMs = existingESIMs || [];
 
     const reducedPurchasedESIM = reduceESimDataForStorage(eSimItem, transactionData, correlationId);
-    if (__DEV__) console.log('[eSIM] stored record:', JSON.stringify(reducedPurchasedESIM, null, 2));
+    logger.debug('ESIM_STORED_RECORD', { reducedPurchasedESIM });
 
     const existingIdx = correlationId
       ? currentESIMs.findIndex(e => e.transactionData.correlationId === correlationId)

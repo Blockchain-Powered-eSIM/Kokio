@@ -6,6 +6,7 @@ import { router , useFocusEffect } from 'expo-router'
 import _ from "lodash";
 import { Theme } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { logger } from '@/utils/logger';
 
 interface Contact {
     id: string;
@@ -18,13 +19,8 @@ interface Contact {
     transactions: any[]; // Replace `any` with a more specific type if possible
   }
 
-
 const ContactsScreen = () => {
-    
-   
-
         const [contacts, setContacts] = useState<Contact[]>([]);
-
         const getAllContacts = async () => {
           try {
             // Get the array of contact IDs
@@ -38,16 +34,14 @@ const ContactsScreen = () => {
                 return contactJson ? JSON.parse(contactJson) : null;
               })
             );
-        
             // Filter out any null values and update state
             const validContacts = contactsArray?.filter(contact => contact !== null);
             setContacts(validContacts);
           } catch (error) {
-            console.error('Error fetching contacts:', error);
+            logger.error('CONTACTS_FETCH_FAILED', { error });
             setContacts([]); // Set empty array in case of error
           }
         };
-        
         useFocusEffect(
           useCallback(() => {
             getAllContacts();
@@ -75,15 +69,12 @@ const ContactsScreen = () => {
                             </View>
                         </View>
                         <View className='flex-col items-end '>
-
                         </View>
-
                     </Pressable>
                 ))}
             </ThemedView>
         </ThemedView>
     )
 }
-
 
 export default ContactsScreen;

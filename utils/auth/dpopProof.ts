@@ -1,6 +1,7 @@
 import { SignJWT, base64url } from 'jose';
 import { v4 as uuidv4 } from 'uuid';
 import { getDpopKeyPair } from './dpopKeystore';
+import { logger } from '@/utils/logger';
 
 export type BuildDpopProofParams = {
   /** Full request URL — no query string or fragment (RFC 9449 §4.2 htu). */
@@ -47,7 +48,7 @@ export async function buildDpopProof({
   if (nonce !== undefined) payload.nonce = nonce;
   if (ath !== undefined) payload.ath = ath;
 
-  if (__DEV__) console.log('[dpop] proof payload:', JSON.stringify({ htm, htu, nonce, ath }));
+  logger.debug('DPOP_PROOF_PAYLOAD', { htm, htu, nonce, ath });
 
   return new SignJWT(payload)
     .setProtectedHeader({ typ: 'dpop+jwt', alg: 'ES256', jwk: publicJwk })

@@ -48,6 +48,7 @@ import {
   usePayWithCrypto,
 } from "@heliofi/checkout-react-native";
 import type { PaymentCallback } from "@heliofi/checkout-react-native";
+import { logger } from "@/utils/logger";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
@@ -82,7 +83,7 @@ const ExternalWalletCheckout = ({
   const onSuccess = useCallback<PaymentCallback>(
     async (result) => {
       successFiredRef.current = true;
-      if (__DEV__) console.log('[Helio] onSuccess:', result.transactionSignature);
+      logger.debug('HELIO_ONSUCCESS', { transactionSignature: result.transactionSignature });
       setIsCheckoutLoading(true);
       setLoadingMessage('Processing your order...');
       const finalOrder = correlationId
@@ -548,7 +549,7 @@ const Checkout = () => {
         handleBrowserPay(result.moonpayPaymentPageUrl, result.correlationId);
       }
     } catch (err) {
-      if (__DEV__) console.error('Checkout error:', err);
+      logger.error('CHECKOUT_FAILED', { err });
 
       if (err instanceof StripeCancelledError) {
         setIsCheckoutLoading(false);

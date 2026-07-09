@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Linking, Pressable, StatusBar } from 'react-native';
 import { Theme } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { logger } from '@/utils/logger';
 
 const createStyles = () => StyleSheet.create({
   container: {
@@ -111,7 +112,7 @@ export default function QrCodeScreen() {
     if (scanned) return;
     
     setScanned(true);
-    console.log('Scanned wallet address:', data);
+    logger.debug('WALLET_ADDRESS_SCANNED', { data });
 
     if(isEdit === "true"){
       router.replace({

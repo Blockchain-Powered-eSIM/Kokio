@@ -20,6 +20,7 @@ import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { logger } from '@/utils/logger';
 
 type AuthMode = "choice" | "authenticating" | "error";
 
@@ -198,11 +199,7 @@ export function AuthenticationModal() {
     let succeeded = false;
     try {
       const data = await signUpWithPasskey({});
-      if (__DEV__)
-        console.log(
-          "[auth] signUpWithPasskey result:",
-          data ? { deviceWalletAddress: data.deviceWalletAddress } : null
-        );
+      logger.debug('AUTH_SIGNUP_RESULT', data ? { deviceWalletAddress: data.deviceWalletAddress } : null);
       if (data) {
         succeeded = true;
         await setupKokioRegistration(
@@ -216,7 +213,7 @@ export function AuthenticationModal() {
         sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
       }
     } catch (e) {
-      console.error("[auth] handleNewUser error", e);
+      logger.error('AUTH_SIGNUP_FAILED', { err: e });
     } finally {
       if (!succeeded) setMode("error");
     }
@@ -230,15 +227,11 @@ export function AuthenticationModal() {
       const effectiveAddress =
         kokio.deviceWalletAddress ||
         (await SecureStore.getItemAsync("deviceWalletAddress"));
-      if (__DEV__)
-        console.log(
-          "[auth] handleExistingUser — path:",
-          effectiveAddress ? "login" : "recover"
-        );
+      logger.debug('AUTH_EXISTING_PATH', { path: effectiveAddress ? 'login' : 'recover' });
 
       if (effectiveAddress) {
         const result = await loginWithPasskey();
-        if (__DEV__) console.log("[auth] loginWithPasskey result:", result);
+        logger.debug('AUTH_LOGIN_RESULT', { result });
         if (result === "success") {
           succeeded = true;
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
@@ -258,11 +251,7 @@ export function AuthenticationModal() {
         }
       } else {
         const recovered = await recoverWithPasskey();
-        if (__DEV__)
-          console.log(
-            "[auth] recoverWithPasskey result:",
-            recovered ? { credentialId: recovered.credentialId } : null
-          );
+        logger.debug('AUTH_RECOVER_RESULT', { recovered });
         if (recovered) {
           succeeded = true;
           await setupKokioRecovery(
@@ -273,7 +262,7 @@ export function AuthenticationModal() {
         }
       }
     } catch (e) {
-      console.error("[auth] handleExistingUser error", e);
+      logger.error('AUTH_LOGIN_FAILED', { err: e });
     } finally {
       if (!succeeded) setMode("error");
     }

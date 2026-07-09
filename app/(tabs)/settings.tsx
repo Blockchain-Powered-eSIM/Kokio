@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { logger } from "@/utils/logger";
 
 const createStyles = () => StyleSheet.create({
   container: {
@@ -186,7 +187,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
     try {
       await openBrowserAsync(url);
     } catch (error) {
-      console.error("Error opening browser:", error);
+      logger.error('BROWSER_OPEN_FAILED', { error });
     }
   }, []);
 

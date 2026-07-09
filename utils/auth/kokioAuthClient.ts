@@ -2,6 +2,7 @@ import type { paths, components } from './generated/kokioAuth';
 import { Config } from '@/appKeys';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthError } from './errors';
+import { logger } from '@/utils/logger';
 
 // ─── Re-export generated types consumed across the auth layer ────────────────
 
@@ -154,9 +155,7 @@ async function authFetch<T>(
     const text = await res.text();
     const contentType = res.headers.get('content-type') ?? '';
 
-    if (__DEV__) {
-      console.log(`[authFetch] ${method} ${path} → ${res.status} (${contentType})\n req:`, body, '\n res:', text.slice(0, 1000));
-    }
+    logger.debug('AUTHFETCH_ROUNDTRIP', { method, path, status: res.status, contentType, body, res: text.slice(0, 1000) });
 
     if (!contentType.includes('application/json')) {
       throw new AuthError('SERVER_ERROR', res.status, text || `HTTP ${res.status}`);

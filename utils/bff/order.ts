@@ -2,6 +2,7 @@ import { BffError , unwrapBffResponse, unwrapBffResponseWithCorrelation } from '
 import type { components } from './generated/koKioBff';
 import api from '@/services/httpService';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/utils/logger';
 
 type CreateOrderRequest  = components['schemas']['CreateOrderRequest'];
 type CreateOrderResponse = components['schemas']['CreateOrderResponse'];
@@ -115,7 +116,7 @@ export async function pollOrderStatus(
       continue;
     }
 
-    if (__DEV__) console.log('[eSIM] poll:', JSON.stringify(status, null, 2));
+    logger.debug('ESIM_POLL_STATUS', { status });
 
     if (!status.orderId) throw new OrderNotFoundError();
     if (TERMINAL_ORDER_STATUSES.has(status.orderStatus)) return status;

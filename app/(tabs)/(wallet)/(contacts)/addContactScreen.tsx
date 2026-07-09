@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import { Theme } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
+import { logger } from '@/utils/logger';
 
 const AddContactScreen = () => {
     const { showMessage } = useToast();
@@ -19,7 +20,6 @@ const AddContactScreen = () => {
     const [isLoading, setIsLoading] = useState(false);
     const navigation = useNavigation();
     const params = useLocalSearchParams();
-
 
     useEffect(() => {
         // This will capture the wallet address when returning from the QR scan
@@ -49,13 +49,10 @@ const AddContactScreen = () => {
     ];
 
     const handleScan = async () => {
-
         // if (!isPermissionGranted) {
         //   await requestPermission();
         //   return; 
         // }
-
-
         // if (!isPermissionGranted) {
         //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
         // } else {
@@ -105,11 +102,11 @@ const AddContactScreen = () => {
             // Optional: Show success message
             showMessage("Contact added successfully", "info");
             router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
-            console.log(contactObj);
+            logger.debug('CONTACT_SAVE_OBJECT', { contactObj });
             
 
         } catch (error) {
-            console.log("Error saving contact:", error);
+            logger.error('CONTACT_SAVE_FAILED', { error });
             showMessage("Failed to add contact", "error");
         } finally {
             setIsLoading(false);
@@ -177,7 +174,7 @@ const AddContactScreen = () => {
                         <ThemedView className='flex-row justify-center mt-[140]  fixed items-center mb-5'>
                             <Pressable
                                 className="border border-primaryOrange px-6 py-3 w-[48%] rounded-3xl items-center justify-center"
-                                onPress={() => console.log('Button pressed!')}
+                                onPress={() => logger.debug('BUTTON_PRESSED')}
                             >
                                 <ThemedText className="text-primaryOrange">Cancel</ThemedText>
                             </Pressable>

@@ -4,6 +4,7 @@ import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
+import { logger } from '@/utils/logger';
 
 // ─── Response envelope helper (mirrors passkeyLogin.ts) ──────────────────────
 
@@ -13,12 +14,6 @@ function assertData<T>(raw: unknown, fallbackCode: string): T {
   const body = raw as ApiBody<T>;
   if (!body.data) throw new AuthError(body.code ?? fallbackCode, undefined, body.message);
   return body.data;
-}
-
-// ─── Telemetry ────────────────────────────────────────────────────────────────
-
-function logEvent(event: string, data?: Record<string, unknown>): void {
-  if (__DEV__) console.log('[stepup]', event, data ?? '');
 }
 
 // ─── Step-up ceremony ─────────────────────────────────────────────────────────
@@ -32,11 +27,11 @@ function logEvent(event: string, data?: Record<string, unknown>): void {
 // rejectStepUp(new StepUpCancelledError()) on user cancel (see httpService.ts).
 
 export async function performStepUp(): Promise<void> {
-  logEvent('stepup.started');
+  logger.debug('[STEPUP] Stepup started');
 
   const current = useAuthStore.getState().tokens;
   if (!current) {
-    logEvent('stepup.failed', { reason: 'NO_TOKENS' });
+    logger.error('STEP_UP_FAILED', { reason: 'NO_TOKENS' });
     throw new AuthError('STEP_UP_CANCELLED');
   }
 
@@ -66,7 +61,7 @@ export async function performStepUp(): Promise<void> {
     // 3. Complete the ceremony; DPoP nonce retry is handled inside kokioAuthClient.
     // htu is provided by authFetch from the actual request URL — do not hardcode it here.
     const buildProof: DpopProofBuilder = (nonce, htu) => {
-      logEvent('stepup.buildProof', { htu, nonce: !!nonce });
+      logger.debug('[STEPUP] buildProof', { htu, nonce: !!nonce });
       return buildDpopProof({ htu: htu!, htm: 'POST', nonce });
     };
 
@@ -111,9 +106,9 @@ export async function performStepUp(): Promise<void> {
       ...(auth_time !== undefined && { auth_time }),
     });
 
-    logEvent('stepup.completed', { auth_time });
+    logger.debug('[STEPUP] Completed', { auth_time });
   } catch (err) {
-    logEvent('stepup.failed', { error: err instanceof Error ? err.message : String(err) });
+    logger.error('STEP_UP_FAILED', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }

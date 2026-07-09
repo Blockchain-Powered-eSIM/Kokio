@@ -2,6 +2,7 @@ import { Theme } from "@/constants/Colors";
 import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useTheme } from "@/contexts/ThemeContext";
+import { logger } from '@/utils/logger';
 
 type PrimaryButtonProps = {
   children: React.ReactNode;
@@ -34,7 +35,7 @@ function Button({ children }: PrimaryButtonProps) {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   function pressHandler() {
-    console.log("Button pressed");
+    logger.debug('BUTTON_PRESSED');
   }
   return (
     <View style={styles.buttonOuterContainer}>

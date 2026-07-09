@@ -18,6 +18,7 @@ import {
 } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { clearUsedHashes } from "@/utils/orderTracking";
+import { logger } from '@/utils/logger';
 
 // ─── Error formatting ─────────────────────────────────────────────────────────
 
@@ -298,7 +299,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   }, []);
 
   const dismissStepUp = useCallback(() => {
-    if (__DEV__) console.log('[stepup] stepup.cancelled');
+    logger.debug('STEP_UP_CANCELLED');
     rejectStepUp(new StepUpCancelledError());
     setStepUpVisible(false);
     setStepUpHint(null);

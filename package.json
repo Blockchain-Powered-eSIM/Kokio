@@ -14,6 +14,7 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "npx eslint . --ext .ts,.tsx",
+    "lint:console": "node scripts/scan-console.mjs",
     "audit": "npx audit-ci --config audit-ci.jsonc",
     "gen:auth-types": "bash scripts/gen-auth-types.sh",
     "gen:bff-types": "bash scripts/gen-bff-types.sh",

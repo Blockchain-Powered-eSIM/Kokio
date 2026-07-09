@@ -17,6 +17,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
+import { logger } from '@/utils/logger';
 
 interface WalletProps {
   balance?: string;
@@ -142,7 +143,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
       try {
         await Linking.openURL(url);
       } catch (error) {
-        console.error("Error opening browser:", error);
+        logger.error('BROWSER_OPEN_FAILED', { error });
       }
     }
   };
@@ -152,7 +153,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
       try {
         await Clipboard.setStringAsync(walletId);
       } catch (error) {
-        console.error("Error copying to clipboard:", error);
+        logger.error('CLIPBOARD_COPY_FAILED', { error });
       }
     }
   };

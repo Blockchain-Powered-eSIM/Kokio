@@ -3,6 +3,7 @@ import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, Axi
 import qs from 'qs';
 import { v4 as uuidv4 } from 'uuid';
 import { router } from 'expo-router';
+import { logger } from '@/utils/logger';
 
 import { Config } from '@/appKeys';
 import { useAuthStore } from '@/stores/authStore';
@@ -114,7 +115,7 @@ instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
   const correlationId = (config.headers['x-correlation-id'] as string | undefined) ?? uuidv4();
   config.headers['x-correlation-id'] = correlationId;
 
-  if (__DEV__) console.log(`[http] ${(config.method ?? 'GET').toUpperCase()} ${config.url} | correlationId: ${correlationId}`);
+  logger.debug('HTTP_REQUEST', { method: (config.method ?? 'GET').toUpperCase(), url: config.url, correlationId });
 
   const stored = useAuthStore.getState().tokens;
   if (!stored) return config; // unauthenticated request — no auth headers
