@@ -11,7 +11,8 @@ export interface Esim {
   catalogueId: string;
   actualSellingPrice: number;
   isUnlimited: boolean;
-  serviceRegionCode: string;
+  // Optional: not present on display items built from ESimDocument/PlanHistoryEntry.
+  serviceRegionCode?: string;
   serviceRegionFlag?: string | null;
   serviceRegionName?: string | null;
   coverageType: string;
@@ -61,20 +62,21 @@ const ESIMItem = ({
     () => (
       <>
         <View style={styles.flagContainer}>
-          {/* <View style={[styles.flag, { backgroundColor: item.flagColor }]} /> */}
-          {/* TODO: Use flag from API response and fallback to this if not present */}
-          {item?.coverageType === "LOCAL" && item?.serviceRegionCode && (
-            <CountryFlag
-              style={[showBuyButton && styles.flag]}
-              isoCode={item?.serviceRegionCode}
-              //@ts-expect-error - null values are handled in the component
-              flagUrl={item?.serviceRegionFlag}
-              size={40}
-            />
-          )}
+          {item?.coverageType === "LOCAL" &&
+            (item?.serviceRegionCode || item?.serviceRegionFlag) && (
+              <CountryFlag
+                style={[showBuyButton && styles.flag]}
+                isoCode={item?.serviceRegionCode ?? ""}
+                //@ts-expect-error - null values are handled in the component
+                flagUrl={item?.serviceRegionFlag}
+                size={40}
+              />
+            )}
         </View>
         <View style={[styles.esimItem, { backgroundColor: Theme.colors.card }]}>
-          <Text style={[styles.country, { color: Theme.colors.cardForeground }]}>{item.serviceRegionName}</Text>
+          <Text style={[styles.country, { color: Theme.colors.cardForeground }]}>
+            {item.serviceRegionName}
+          </Text>
           <View style={styles.detailsContainer}>
             <DetailItem
               iconName="calendar-outline"
@@ -108,7 +110,6 @@ const ESIMItem = ({
               />
               <View style={styles.buyButtonText}>
                 <Ionicons name="cart-outline" size={20} color={Theme.colors.cardForeground} />
-                {/* replaced "Buy" with "View" */}
                 <Text style={[styles.details, { color: Theme.colors.cardForeground }]}>View</Text>
               </View>
             </TouchableOpacity>

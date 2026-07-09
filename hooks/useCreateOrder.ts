@@ -147,8 +147,6 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
       if (result.order.esimId) {
         await SecureStore.setItemAsync(ESIM_ID_KEY, result.order.esimId);
       }
-      // savePurchasedESIM intentionally not called here.
-      // Called vua handleOrderResult in Checkout.tsx
       await queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
   });

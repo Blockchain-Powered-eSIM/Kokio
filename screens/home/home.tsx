@@ -1,6 +1,5 @@
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import _get from "lodash/get";
 
 import ActiveESIMsScroll from "@/components/home/active-esim-scroll";
 import Wallet from "@/components/home/wallet";
@@ -16,8 +15,6 @@ export default function HomeScreen() {
   const [showWalletSetup, setShowWalletSetup] = useState(false);
   const bg = useThemeColor({}, "background");
 
-  const purchasedESIMs = _get(kokio, "purchasedESIMs") || [];
-
   const handleOpenWalletSetup = async () => {
     if (!kokio.sdk) {
       await setupKokio();
@@ -29,7 +26,7 @@ export default function HomeScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
       <ScrollView style={{ backgroundColor: bg }}>
         <Hero />
-        <ActiveESIMsScroll purchasedESIMs={purchasedESIMs} />
+        <ActiveESIMsScroll />
         {kokio.userWallet ? (
             <Wallet
               walletId={kokio.userWallet?.address}

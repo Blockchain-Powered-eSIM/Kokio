@@ -15,6 +15,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { RadioButtonProps, RadioGroup } from "react-native-radio-buttons-group";
 import ToggleSwitch from "toggle-switch-react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useQueryClient } from '@tanstack/react-query';
 import _trim from "lodash/trim";
 import _subtract from "lodash/subtract";
 import _toNumber from "lodash/toNumber";
@@ -28,6 +29,7 @@ import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
+import { useEsims, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/queries/esims';
 import { isOrderSuccess, pollOrderStatus } from "@/utils/bff/order";
 import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/utils/bff/order";
 import { pollingLabel } from "@/utils/orderStatus";
@@ -35,7 +37,7 @@ import OrderFailureModal from "@/components/ui/OrderFailureModal";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
-import { useCreateOrder, OrderCreationError, StripeCancelledError, StripeSheetError } from "@/hooks/useCreateOrder";
+import { useCreateOrder, StripeCancelledError, StripeSheetError } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
@@ -62,7 +64,6 @@ const ExternalWalletCheckout = ({
   pendingOrder,
   eSimItem,
   kokioDeviceUID,
-  savePurchasedESIM,
   setIsCheckoutLoading,
   setLoadingMessage,
   onComplete,
@@ -72,7 +73,6 @@ const ExternalWalletCheckout = ({
   pendingOrder: CreateOrderResponse | null;
   eSimItem: Esim;
   kokioDeviceUID: string | undefined;
-  savePurchasedESIM: (uid: string, item: Esim, order: OrderStatusResponse, cid?: string | null) => Promise<void>;
   setIsCheckoutLoading: (v: boolean) => void;
   setLoadingMessage: (msg: string) => void;
   onComplete: (order: OrderStatusResponse | null) => void;
@@ -93,9 +93,9 @@ const ExternalWalletCheckout = ({
         : null;
       onComplete(finalOrder);
     },
-    //TODO: Probably 'eSimItem', 'kokioDeviceUID', 'pendingOrder', and 'savePurchasedESIM' are not needed in the dependency array here, as they are not part of the changing values of this callback
+    //TODO: Probably 'eSimItem', 'kokioDeviceUID', 'pendingOrder' are not needed in the dependency array here, as they are not part of the changing values of this callback
     //eslint-disable-next-line react-hooks/exhaustive-deps
-    [correlationId, eSimItem, kokioDeviceUID, onComplete, pendingOrder, savePurchasedESIM, setIsCheckoutLoading, setLoadingMessage],
+    [correlationId, eSimItem, kokioDeviceUID, onComplete, pendingOrder, setIsCheckoutLoading, setLoadingMessage],
   );
 
   const { payWithCrypto, drawerVisible } = usePayWithCrypto({ onSuccess });
@@ -334,7 +334,7 @@ const Checkout = () => {
   const [helioChargeToken, setHelioChargeToken] = useState<string | null>(null);
   const [helioCorrelationId, setHelioCorrelationId] = useState<string | null>(null);
   const [pendingHelioOrder, setPendingHelioOrder] = useState<CreateOrderResponse | null>(null);
-  const { kokio, savePurchasedESIM, upsertOrderRecord } = useKokio();
+  const { kokio } = useKokio();
   const [discountCode, setDiscountCode] = useState<string>("");
   const [debouncedCode, setDebouncedCode] = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied] = useState<boolean>(false);
@@ -363,9 +363,6 @@ const Checkout = () => {
   const createOrderMutation = useCreateOrder({
     onOrderCreated: async (correlationId) => {
       orderCorrelationRef.current = correlationId;
-      if (kokio.deviceUID) {
-        await upsertOrderRecord(kokio.deviceUID, eSimItem, correlationId);
-      }
     },
     onPollUpdate: handlePollUpdate,
   });
@@ -381,7 +378,9 @@ const Checkout = () => {
     isError: isCouponError,
   } = useCouponLookup(debouncedCode, debouncedCode.length === 8);
 
-  const hasPriorEsim = kokio.purchasedESIMs.length > 0;
+  const queryClient  = useQueryClient();
+  const { esims }    = useEsims();
+  const hasPriorEsim = esims.length > 0;
   const { isLoading: isCheckingTopup, compatibleEsims } = useEsimCompatibility(
     { planId: eSimItem?.catalogueId },
     { enabled: hasPriorEsim },
@@ -407,9 +406,8 @@ const Checkout = () => {
     }
 
     if (isOrderSuccess(order.orderStatus)) {
-      if (kokio.deviceUID) {
-        await savePurchasedESIM(kokio.deviceUID, eSimItem, order, correlationId);
-      }
+      queryClient.invalidateQueries({ queryKey: [DEVICE_ESIMS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [DEVICE_ORDERS_KEY] });
       setOrderResponse(order);
       setShowSuccessModal(true);
       return;
@@ -431,7 +429,7 @@ const Checkout = () => {
       order.orderStatus === 'ABANDONED'       ? 'Order expired. Please try again.' :
       'Order could not be completed. Please try again.';
     showMessage(msg, 'info');
-  }, [kokio.deviceUID, eSimItem, savePurchasedESIM, showMessage]);
+  }, [queryClient, showMessage]);
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
@@ -570,12 +568,6 @@ const Checkout = () => {
         showMessage(formatBffError(err), 'info');
       }
 
-      const errCid =
-        err instanceof OrderCreationError ? err.correlationId : orderCorrelationRef.current;
-      if (kokio.deviceUID && errCid) {
-        await upsertOrderRecord(kokio.deviceUID, eSimItem, errCid, 'FAILED');
-      }
-
       setIsCheckoutLoading(false);
       setLoadingMessage('');
       setShowSuccessModal(false);
@@ -586,9 +578,7 @@ const Checkout = () => {
     discountCode,
     applyAsTopup,
     compatibleTopUpEsimId,
-    kokio.deviceUID,
     createOrderMutation,
-    upsertOrderRecord,
     showMessage,
     handleRemoveDiscount,
     handleOrderResult,
@@ -941,7 +931,6 @@ const Checkout = () => {
             pendingOrder={pendingHelioOrder}
             eSimItem={eSimItem}
             kokioDeviceUID={kokio.deviceUID}
-            savePurchasedESIM={savePurchasedESIM}
             setIsCheckoutLoading={setIsCheckoutLoading}
             setLoadingMessage={setLoadingMessage}
             onComplete={handleHelioComplete}

@@ -13,26 +13,53 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import _get from "lodash/get";
-import { openBrowserAsync } from "expo-web-browser";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { useKokio } from "@/hooks/useKokio";
-import type { StoredPurchasedESIM, StoredTransactionData } from "@/providers/kokioProvider";
-import { getAllEsims, getEsim } from "@/utils/bff/esim";
-import type { ESimDocument } from "@/utils/bff/esim";
+import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
+import type { OrderListItem } from "@/utils/bff/order";
 import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
 import ESIMItem from "@/components/ESIMItem";
-import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
+import type { Esim } from "@/components/ESIMItem";
+import { useEsims, useOrders } from "@/queries/esims";
 
-type EnrichedOrder = StoredPurchasedESIM & {
-  liveEsim?: ESimDocument;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+// An OrderListItem enriched with its matched ESimDocument, joined by esimId.
+type EnrichedOrder = OrderListItem & {
+  esim?: ESimDocument;
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Key used for FlatList and expand/collapse tracking.
+const getOrderKey = (item: EnrichedOrder): string =>
+  item.idempotencyKey ?? item.orderId ?? "";
+
+// Builds the minimal Esim display shape from an ESimDocument for ESIMItem.
+// Uses the most-recent PlanHistoryEntry for plan metadata.
+function toDisplayItem(doc: ESimDocument): Esim {
+  const entries: PlanHistoryEntry[] = doc.planHistory ?? [];
+  const latest = entries[entries.length - 1] as PlanHistoryEntry | undefined;
+  return {
+    catalogueId:        '',
+    actualSellingPrice: 0,
+    isUnlimited:        latest?.isUnlimited   ?? false,
+    serviceRegionCode:  undefined,
+    serviceRegionFlag:  latest?.serviceRegionFlag ?? null,
+    serviceRegionName:  latest?.serviceRegionName ?? null,
+    coverageType:       latest?.coverageType      ?? 'LOCAL',
+    data:               latest?.data              ?? null,
+    sms:                latest?.sms               ?? null,
+    voice:              latest?.voice             ?? null,
+    validity:           latest?.validity          ?? null,
+    info:               null,
+  };
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const createStyles = () =>
   StyleSheet.create({
@@ -78,29 +105,6 @@ const createStyles = () =>
       marginBottom: 8,
       padding: 14,
     },
-    extraDetailsContainer: {
-      gap: 10,
-      marginBottom: 14,
-    },
-    extraDetailRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    extraDetailLabel: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-    },
-    extraDetailLabelText: {
-      fontSize: 13,
-    },
-    extraDetailValue: {
-      fontSize: 13,
-      fontWeight: "500",
-      maxWidth: "55%",
-      textAlign: "right",
-    },
     actionRow: {
       flexDirection: "row",
       gap: 8,
@@ -116,61 +120,33 @@ const createStyles = () =>
     },
     installBtnText: {
       color: "white",
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: "600",
     },
     detailsBtnText: {
-      fontSize: 13,
-      fontWeight: "600",
-    },
-    supportBar: {
-      paddingHorizontal: 16,
-      paddingTop: 12,
-      paddingBottom: 14,
-      borderTopWidth: StyleSheet.hairlineWidth,
-    },
-    supportBarLabel: {
-      fontSize: 12,
-      marginBottom: 8,
-      textAlign: "center",
-    },
-    supportBtns: {
-      flexDirection: "row",
-      gap: 10,
-    },
-    supportBtn: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-      paddingVertical: 9,
-      borderRadius: 10,
-    },
-    supportBtnText: {
-      fontSize: 13,
-      fontWeight: "600",
+      fontSize: 14,
+      fontWeight: "500",
     },
   });
 
-// ── Purchase Details modal stylesheet ─────────────────────────────────────────
+// ─── Purchase Details Modal styles ────────────────────────────────────────────
 
 const pdStyles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: Theme.colors.overlayMedium,
   },
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
-    paddingBottom: 32,
-    maxHeight: "75%",
+    paddingBottom: 40,
+    maxHeight: "80%",
   },
   sheetHeader: {
     alignItems: "center",
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 4,
   },
   pillHandle: {
@@ -183,12 +159,12 @@ const pdStyles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    marginBottom: 4,
+    marginBottom: 16,
+    paddingTop: 8,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "600",
   },
   copyRow: {
     flexDirection: "row",
@@ -239,7 +215,7 @@ const pdStyles = StyleSheet.create({
   },
 });
 
-// ── CopyRow ───────────────────────────────────────────────────────────────────
+// ─── CopyRow ──────────────────────────────────────────────────────────────────
 
 const CopyRow = ({ label, value }: { label: string; value: string }) => {
   const [copied, setCopied] = useState(false);
@@ -252,7 +228,10 @@ const CopyRow = ({ label, value }: { label: string; value: string }) => {
     <TouchableOpacity onPress={handleCopy} style={pdStyles.copyRow} activeOpacity={0.7}>
       <View style={{ flex: 1, marginRight: 12 }}>
         <Text style={[pdStyles.copyLabel, { color: Theme.colors.inactive }]}>{label}</Text>
-        <Text style={[pdStyles.copyValue, { color: Theme.colors.cardForeground }]} numberOfLines={2}>
+        <Text
+          style={[pdStyles.copyValue, { color: Theme.colors.cardForeground }]}
+          numberOfLines={2}
+        >
           {value}
         </Text>
       </View>
@@ -265,21 +244,19 @@ const CopyRow = ({ label, value }: { label: string; value: string }) => {
   );
 };
 
-// ── PurchaseDetailsModal ──────────────────────────────────────────────────────
+// ─── PurchaseDetailsModal ─────────────────────────────────────────────────────
 
 const PurchaseDetailsModal = ({
   visible,
   onClose,
-  transactionData,
-  liveEsim,
+  order,
   invoiceUrl,
   lpa,
   supportRef,
 }: {
   visible: boolean;
   onClose: () => void;
-  transactionData: StoredTransactionData;
-  liveEsim?: ESimDocument;
+  order: EnrichedOrder;
   invoiceUrl: string | null;
   lpa: string | null;
   supportRef: string | null;
@@ -292,7 +269,11 @@ const PurchaseDetailsModal = ({
     statusBarTranslucent
   >
     <View style={pdStyles.overlay}>
-      <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
+      <TouchableOpacity
+        style={StyleSheet.absoluteFillObject}
+        onPress={onClose}
+        activeOpacity={1}
+      />
       <View style={[pdStyles.sheet, { backgroundColor: Theme.colors.card }]}>
         <View style={pdStyles.sheetHeader}>
           <View style={pdStyles.pillHandle} />
@@ -302,39 +283,49 @@ const PurchaseDetailsModal = ({
             Purchase Details
           </Text>
           <TouchableOpacity onPress={onClose} hitSlop={8}>
-            <Ionicons name="close-circle-outline" size={24} color={Theme.colors.mutedForeground} />
+            <Ionicons
+              name="close-circle-outline"
+              size={24}
+              color={Theme.colors.mutedForeground}
+            />
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
-          {transactionData.iccid ? <CopyRow label="ICCID" value={transactionData.iccid} /> : null}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 8 }}
+        >
+          {order.iccid ? <CopyRow label="ICCID" value={order.iccid} /> : null}
           {supportRef ? <CopyRow label="Reference" value={supportRef} /> : null}
           {lpa ? <CopyRow label="LPA String" value={lpa} /> : null}
 
-          {transactionData.paymentMethod ? (
+          {order.paymentMethod ? (
             <View style={pdStyles.infoRow}>
               <Text style={[pdStyles.infoLabel, { color: Theme.colors.inactive }]}>
                 Payment Method
               </Text>
               <Text style={[pdStyles.infoValue, { color: Theme.colors.cardForeground }]}>
-                {transactionData.paymentMethod}
+                {order.paymentMethod}
               </Text>
             </View>
           ) : null}
 
-          {transactionData.orderStatus ? (
+          {order.orderStatus ? (
             <View style={pdStyles.infoRow}>
               <Text style={[pdStyles.infoLabel, { color: Theme.colors.inactive }]}>Status</Text>
               <Text
-                style={[pdStyles.infoValue, { color: colorForStatus(transactionData.orderStatus) }]}
+                style={[pdStyles.infoValue, { color: colorForStatus(order.orderStatus) }]}
               >
-                {labelForStatus(transactionData.orderStatus)}
+                {labelForStatus(order.orderStatus)}
               </Text>
             </View>
           ) : null}
 
           {invoiceUrl ? (
-            <TouchableOpacity onPress={() => Linking.openURL(invoiceUrl)} style={pdStyles.infoRow}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(invoiceUrl)}
+              style={pdStyles.infoRow}
+            >
               <Text style={[pdStyles.infoLabel, { color: Theme.colors.inactive }]}>Invoice</Text>
               <Text style={{ color: Theme.colors.highlight, fontSize: 13, fontWeight: "500" }}>
                 View invoice →
@@ -342,12 +333,12 @@ const PurchaseDetailsModal = ({
             </TouchableOpacity>
           ) : null}
 
-          {liveEsim?.planHistory?.length ? (
+          {order.esim?.planHistory?.length ? (
             <View>
               <Text style={[pdStyles.sectionLabel, { color: Theme.colors.inactive }]}>
                 Plan History
               </Text>
-              {liveEsim.planHistory.map((entry, i) => (
+              {order.esim.planHistory.map((entry, i) => (
                 <View key={i} style={pdStyles.planHistoryRow}>
                   <Text style={{ color: Theme.colors.cardForeground, fontSize: 13 }}>
                     {entry.planId}
@@ -365,7 +356,7 @@ const PurchaseDetailsModal = ({
   </Modal>
 );
 
-// ── OrderCard ─────────────────────────────────────────────────────────────────
+// ─── OrderCard ────────────────────────────────────────────────────────────────
 
 const OrderCard = ({
   order,
@@ -380,47 +371,49 @@ const OrderCard = ({
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
-  const router = useRouter();
+  // const router = useRouter();
   const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
 
-  const { eSimItem, transactionData, liveEsim } = order;
-  const statusColor = colorForStatus(transactionData.orderStatus);
+  const statusColor = colorForStatus(order.orderStatus);
 
+  // LPA string: prefer the smdpAddress+matchingId pair from the live eSIM doc
+  // (authoritative); fall back to the qrcode stored on installationDetails.
   const lpa =
-    liveEsim?.smdpAddress && liveEsim?.matchingId
-      ? `LPA:1$${liveEsim.smdpAddress}$${liveEsim.matchingId}`
-      : transactionData.installationDetails?.qrcode ?? null;
+    order.esim?.smdpAddress && order.esim?.matchingId
+      ? `LPA:1$${order.esim.smdpAddress}$${order.esim.matchingId}`
+      : order.esim?.installationDetails?.qrcode ?? null;
 
-  const invoiceUrl = transactionData.stripeInvoiceUrl ?? null;
-  const flagged = transactionData.flaggedForManualReview ?? false;
-  const supportRef = transactionData.correlationId ?? transactionData.orderId;
+  const invoiceUrl = order.stripeInvoiceUrl ?? null;
+  const flagged    = order.flaggedForManualReview ?? false;
+  // idempotencyKey is the correlation id equivalent on OrderListItem.
+  const supportRef = order.idempotencyKey ?? order.orderId ?? null;
 
-  const extraDetailRows = useMemo(() => {
-    return ESIM_EXTRA_DETAILS.filter((item) => {
-      if (["IP_ROUTING", "ADDITIONAL_INFORMATION", "countryWiseNetworkCoverages"].includes(item.key))
-        return false;
-      const raw = _get(eSimItem, item.key);
-      if (raw === null || raw === undefined) return false;
-      const formatted = item.formatter?.(raw);
-      return formatted && formatted !== "N/A";
-    });
-  }, [eSimItem]);
-
-  const coverageCount = eSimItem.countryWiseNetworkCoverages?.length ?? 0;
+  // Display card: built from the linked ESimDocument when available.
+  // Falls back to a minimal placeholder when the eSIM doc hasn't been provisioned yet
+  const displayItem: Esim | null = order.esim ? toDisplayItem(order.esim) : null;
 
   return (
     <View style={styles.orderCardWrapper}>
-      <TouchableOpacity
-        onPress={onToggle}
-        activeOpacity={0.85}
-      >
-        <ESIMItem item={eSimItem} showBuyButton={false} />
+      <TouchableOpacity onPress={onToggle} activeOpacity={0.85}>
+        {displayItem ? (
+          <ESIMItem item={displayItem} showBuyButton={false} />
+        ) : (
+          // Fallback header for orders without a linked eSIM document
+          <View style={{ padding: 12 }}>
+            <Text style={{ color: Theme.colors.text, fontWeight: "600" }}>
+              {order.planId ?? "Order"}
+            </Text>
+          </View>
+        )}
+
         <View style={styles.orderMeta}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
-            {transactionData.orderStatus ? (
-              <View style={[styles.orderStatusBadge, { backgroundColor: statusColor + "22" }]}>
+            {order.orderStatus ? (
+              <View
+                style={[styles.orderStatusBadge, { backgroundColor: statusColor + "22" }]}
+              >
                 <Text style={[styles.orderStatusText, { color: statusColor }]}>
-                  {labelForStatus(transactionData.orderStatus)}
+                  {labelForStatus(order.orderStatus)}
                 </Text>
               </View>
             ) : null}
@@ -431,7 +424,9 @@ const OrderCard = ({
                   { backgroundColor: Theme.colors.goldenYellow + "22" },
                 ]}
               >
-                <Text style={[styles.orderStatusText, { color: Theme.colors.goldenYellow }]}>
+                <Text
+                  style={[styles.orderStatusText, { color: Theme.colors.goldenYellow }]}
+                >
                   Under Review
                 </Text>
               </View>
@@ -448,65 +443,6 @@ const OrderCard = ({
 
       {isExpanded && (
         <View style={[styles.detailSection, { backgroundColor: Theme.colors.surface }]}>
-          {(extraDetailRows.length > 0 || coverageCount > 0) && (
-            <View style={styles.extraDetailsContainer}>
-              {extraDetailRows.map((item, idx) => {
-                const raw = _get(eSimItem, item.key);
-                const formatted = item.formatter?.(raw);
-                return (
-                  <View key={idx} style={styles.extraDetailRow}>
-                    <View style={styles.extraDetailLabel}>
-                      <Ionicons
-                        name={item.iconName as any}
-                        size={15}
-                        color={Theme.colors.inactive}
-                      />
-                      <Text
-                        style={[styles.extraDetailLabelText, { color: Theme.colors.inactive }]}
-                      >
-                        {item.label}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[styles.extraDetailValue, { color: Theme.colors.text }]}
-                      numberOfLines={2}
-                    >
-                      {formatted}
-                    </Text>
-                  </View>
-                );
-              })}
-              {coverageCount > 0 && (
-                <View style={styles.extraDetailRow}>
-                  <View style={styles.extraDetailLabel}>
-                    <Ionicons name="cellular-outline" size={15} color={Theme.colors.inactive} />
-                    <Text style={[styles.extraDetailLabelText, { color: Theme.colors.inactive }]}>
-                      Coverage
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(tabs)/(shop)/coverage",
-                        params: {
-                          data: JSON.stringify(eSimItem.countryWiseNetworkCoverages),
-                          from: "orders",
-                        },
-                      })
-                    }
-                    style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
-                    hitSlop={8}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: Theme.colors.text }}>
-                      {coverageCount} {coverageCount === 1 ? "country" : "countries"}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={13} color={Theme.colors.text} />
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          )}
-
           <View style={styles.actionRow}>
             {lpa && onInstall ? (
               <TouchableOpacity
@@ -533,8 +469,7 @@ const OrderCard = ({
       <PurchaseDetailsModal
         visible={showPurchaseDetails}
         onClose={() => setShowPurchaseDetails(false)}
-        transactionData={transactionData}
-        liveEsim={liveEsim}
+        order={order}
         invoiceUrl={invoiceUrl}
         lpa={lpa}
         supportRef={supportRef}
@@ -543,156 +478,92 @@ const OrderCard = ({
   );
 };
 
-// ── OrdersScreen ──────────────────────────────────────────────────────────────
-
-const getOrderKey = (item: EnrichedOrder): string =>
-  item.transactionData.correlationId ??
-  item.transactionData.orderId ??
-  item.transactionData.iccid ??
-  "";
+// ─── OrdersScreen ─────────────────────────────────────────────────────────────
 
 export default function OrdersScreen() {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
-  const { kokio } = useKokio();
   const router = useRouter();
   const bg = useThemeColor({}, "background");
   const { expandOrderId } = useLocalSearchParams<{ expandOrderId?: string }>();
-  const orders = kokio.purchasedESIMs;
-  const [enrichedOrders, setEnrichedOrders] = useState<EnrichedOrder[]>(orders);
+
+  const { esims, isLoading: esimsLoading } = useEsims();
+  const { orders, isLoading: ordersLoading } = useOrders();
+
+  const isLoading = esimsLoading || ordersLoading;
+
+  // Join orders with their matching ESimDocument by esimId.
+  const enrichedOrders = useMemo<EnrichedOrder[]>(() => {
+    const esimMap = new Map<string, ESimDocument>(esims.map((e) => [e.esimId, e]));
+    return orders.map((order) => ({
+      ...order,
+      esim: order.esimId ? esimMap.get(order.esimId) : undefined,
+    }));
+  }, [orders, esims]);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Collapse all when leaving the Orders tab
+  // Collapse all cards when leaving the Orders tab.
   useFocusEffect(
     useCallback(() => {
       return () => setExpandedId(null);
-    }, [])
+    }, []),
   );
 
-  // Auto-expand the order referenced by the URL param (e.g. from a notification)
+  // Auto-expand the card referenced by the URL param.
+  // Matches on idempotencyKey, orderId, or esimId
   useEffect(() => {
-    if (!expandOrderId || !enrichedOrders.length) return;
+    if (!expandOrderId || enrichedOrders.length === 0) return;
     const matched = enrichedOrders.find(
       (o) =>
-        o.transactionData.correlationId === expandOrderId ||
-        o.transactionData.orderId === expandOrderId
+        o.idempotencyKey === expandOrderId ||
+        o.orderId        === expandOrderId ||
+        o.esimId         === expandOrderId,
     );
     if (matched) setExpandedId(getOrderKey(matched));
   }, [expandOrderId, enrichedOrders]);
 
-  useEffect(() => {
-    setEnrichedOrders(orders);
-  }, [orders]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchLive = async () => {
-      try {
-        const liveEsims = await getAllEsims();
-        const liveMap = new Map<string, ESimDocument>(liveEsims.map(e => [e.esimId, e]));
-
-        orders.forEach(async (order, i) => {
-          const { transactionData } = order;
-
-          // Resolve live eSIM doc — try the map first, fall back to direct fetch
-          let live = transactionData.esimId ? liveMap.get(transactionData.esimId) : undefined;
-          if (!live && transactionData.esimId) {
-            live = await getEsim(transactionData.esimId).catch(() => undefined);
-          }
-          if (!live) return; // nothing new to add
-
-          const enriched: EnrichedOrder = {
-            ...order,
-            liveEsim: live,
-            transactionData: {
-              ...transactionData,
-              iccid: live.iccid ?? transactionData.iccid,
-              orderStatus: live.activationStatus ?? transactionData.orderStatus,
-              planId: live.planId ?? transactionData.planId,
-              installationDetails: live.installationDetails ?? transactionData.installationDetails,
-            },
-          };
-
-          if (!cancelled) {
-            setEnrichedOrders((prev) => {
-              const next = [...prev];
-              next[i] = enriched;
-              return next;
-            });
-          }
-        });
-      } catch {
-        // live fetch failed — stored data already shown
-      }
-    };
-    fetchLive();
-    return () => {
-      cancelled = true;
-    };
-  }, [orders]);
+  const handleInstall = useCallback((lpa: string) => {
+    // Parse LPA string: LPA:1$<smdpAddress>$<matchingId>
+    const parts = lpa.split("$");
+    const qrcode = lpa;
+    const appleInstallationUrl = parts[1] && parts[2]
+      ? `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${lpa}`
+      : "";
+    router.navigate({
+      pathname: "/(tabs)/installation",
+      params: { qrcode, appleInstallationUrl, iccid: "", orderId: "" },
+    });
+  }, [router]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["bottom"]}>
       <ThemedView style={styles.container}>
-        {enrichedOrders.length === 0 ? (
+        {isLoading ? (
+          <ThemedText style={styles.emptyText}>Loading orders…</ThemedText>
+        ) : enrichedOrders.length === 0 ? (
           <ThemedText style={styles.emptyText}>No orders yet.</ThemedText>
         ) : (
-
           <FlatList
             data={enrichedOrders}
-            keyExtractor={(item) =>
-              item.transactionData.correlationId ??
-              item.transactionData.orderId ??
-              item.transactionData.iccid ??
-              Math.random().toString()
-            }
-            renderItem={({ item }) => {
-              const key = getOrderKey(item);
-              return (
+            keyExtractor={getOrderKey}
+            renderItem={({ item }) => (
               <OrderCard
                 order={item}
-                isExpanded={expandedId === key}
-                onToggle={() => setExpandedId((prev) => (prev === key ? null : key))}
-                onInstall={(lpa) =>
-                  router.push({
-                    pathname: "/(tabs)/installation",
-                    params: { qrcode: lpa, from: "orders" },
-                  })
+                onInstall={handleInstall}
+                isExpanded={expandedId === getOrderKey(item)}
+                onToggle={() =>
+                  setExpandedId((prev) =>
+                    prev === getOrderKey(item) ? null : getOrderKey(item),
+                  )
                 }
               />
-            );}}
+            )}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 8 }}
+            contentContainerStyle={{ paddingBottom: 16 }}
           />
         )}
       </ThemedView>
-
-      <View
-        style={[
-          styles.supportBar,
-          { backgroundColor: Theme.colors.card, borderTopColor: Theme.colors.muted },
-        ]}
-      >
-        <Text style={[styles.supportBarLabel, { color: Theme.colors.inactive }]}>
-          Need help with your eSIM?
-        </Text>
-        <View style={styles.supportBtns}>
-          <TouchableOpacity
-            onPress={() => Linking.openURL("mailto:contact@kokio.app")}
-            style={[styles.supportBtn, { backgroundColor: Theme.colors.surface }]}
-          >
-            <Ionicons name="mail-outline" size={15} color={Theme.colors.text} />
-            <Text style={[styles.supportBtnText, { color: Theme.colors.text }]}>Email Us</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => openBrowserAsync("https://t.me/+Ru38DI2V69IyY2Y9")}
-            style={[styles.supportBtn, { backgroundColor: Theme.colors.surface }]}
-          >
-            <Ionicons name="paper-plane-outline" size={15} color={Theme.colors.text} />
-            <Text style={[styles.supportBtnText, { color: Theme.colors.text }]}>Telegram</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </SafeAreaView>
   );
 }
