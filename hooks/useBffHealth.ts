@@ -1,18 +1,6 @@
-import { useState, useEffect } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { checkBffHealth } from '@/utils/bff/health';
-
-function useIsAppActive(): boolean {
-  const [isActive, setIsActive] = useState(AppState.currentState === 'active');
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      setIsActive(state === 'active');
-    });
-    return () => sub.remove();
-  }, []);
-  return isActive;
-}
+import { useIsAppActive } from '@/hooks/useIsAppActive';
 
 export function useBffHealth() {
   const isActive = useIsAppActive();
