@@ -9,6 +9,7 @@ import type { Esim } from '@/components/ESIMItem';
 export type CreateOrderVariables = {
   request: CreateOrderRequest;
   eSimItem: Esim;
+  idempotencyKey?: string;
 };
 
 // Fired once order creation succeeds, before any payment step.

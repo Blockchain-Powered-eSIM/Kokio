@@ -327,7 +327,7 @@ const PurchaseDetailsModal = ({
               style={pdStyles.infoRow}
             >
               <Text style={[pdStyles.infoLabel, { color: Theme.colors.inactive }]}>Invoice</Text>
-              <Text style={{ color: Theme.colors.highlight, fontSize: 13, fontWeight: "500" }}>
+              <Text style={{ color: Theme.colors.link, fontSize: 13, fontWeight: "500" }}>
                 View invoice →
               </Text>
             </TouchableOpacity>

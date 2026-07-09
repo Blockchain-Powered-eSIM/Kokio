@@ -103,6 +103,8 @@ const ESIMItem = ({
             <TouchableOpacity
               style={[styles.buyButton, { backgroundColor: Theme.colors.shopCta }]}
               onPress={handleBuyCTAClick(item.catalogueId)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${item.serviceRegionName || "plan"} for $${(item.actualSellingPrice || 0).toFixed(2)}`}
             >
               <DetailItem
                 prefix="$"
@@ -129,6 +131,8 @@ const ESIMItem = ({
         style={[styles.esimItemContainer, containerStyle]}
         onPress={onPress}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${item?.serviceRegionName || "eSIM"} plan`}
       >
         {content}
       </TouchableOpacity>

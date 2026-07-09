@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { Theme } from "@/constants/Colors";
 import { useCatalogueByRegion } from "@/hooks/useCatalogue";
@@ -13,7 +13,7 @@ export default function EsimsByRegion() {
   const { data, isLoading, error, refetch } = useCatalogueByRegion(region);
 
   if (isLoading) {
-    return <ActivityIndicator style={styles.center} />;
+    return <DataPackTabGroup esims={[]} isLoading containerStyle={styles.container} />;
   }
 
   if (error) {

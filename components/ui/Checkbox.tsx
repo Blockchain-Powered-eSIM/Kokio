@@ -7,21 +7,33 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 interface CheckboxProps {
   checked: boolean;
   onChange: (newValue: boolean) => void;
+  disabled?: boolean;
 }
 
-const Checkbox = ({ checked, onChange }: CheckboxProps) => {
-  const bg = useThemeColor({}, "card");
+// Always white in both themes by design — unlike most surfaces, this isn't
+// meant to follow the "card" token, which is intentionally yellow in dark mode.
+const CHECKBOX_BACKGROUND = "#FFFFFF";
+
+const Checkbox = ({ checked, onChange, disabled = false }: CheckboxProps) => {
   const border = useThemeColor({}, "mutedForeground");
 
   const handleCheckboxChange = useCallback(() => {
+    if (disabled) return;
     onChange(!checked);
-  }, [onChange, checked]);
+  }, [onChange, checked, disabled]);
 
   return (
     <Pressable
       role="checkbox"
       aria-checked={checked}
-      style={[styles.checkboxBase, { backgroundColor: bg, borderColor: border }]}
+      disabled={disabled}
+      accessibilityState={{ checked, disabled }}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      style={[
+        styles.checkboxBase,
+        { backgroundColor: CHECKBOX_BACKGROUND, borderColor: border },
+        disabled && styles.checkboxDisabled,
+      ]}
       onPress={handleCheckboxChange}
     >
       {checked && (
@@ -40,8 +52,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
   },
-  checkboxPressed: {
-    opacity: 0.8, // Adds a feedback effect on press
+  checkboxDisabled: {
+    opacity: 0.4,
   },
 });
 

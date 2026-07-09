@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import DataPackTabGroup from "@/components/DataPackTabGroup";
 import { ThemedText } from "@/components/ThemedText";
@@ -9,7 +9,7 @@ export default function Global() {
   const { data, isLoading, error, refetch } = useCatalogue({ serviceRegionCode: "GLOBAL" });
 
   if (isLoading) {
-    return <ActivityIndicator style={styles.center} />;
+    return <DataPackTabGroup esims={[]} isLoading />;
   }
 
   if (error) {

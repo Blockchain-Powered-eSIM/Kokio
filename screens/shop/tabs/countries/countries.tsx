@@ -15,6 +15,12 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const COLUMN_GAP = 16;
 const ITEM_WIDTH = (SCREEN_WIDTH * 0.9 - COLUMN_GAP) / COLUMN_COUNT;
 
+const EmptyListComponent = () => (
+  <ThemedText style={{ textAlign: "center", flex: 1, paddingTop: 42 }}>
+    No countries found
+  </ThemedText>
+);
+
 export default function Countries() {
   const list = appBootstrap.getCountries;
 
@@ -22,6 +28,8 @@ export default function Countries() {
     <TouchableOpacity
       onPress={navigateToESIMsByCountry(item?.code)}
       style={{ width: ITEM_WIDTH, alignItems: "center" }}
+      accessibilityRole="button"
+      accessibilityLabel={item?.name || "Country"}
     >
       <View key={item?.code || index} style={styles.country}>
         <CountryFlag
@@ -47,6 +55,7 @@ export default function Countries() {
           keyExtractor={(item, index) => String(item?.code || index)}
           contentContainerStyle={{ paddingBottom: 100 }}
           style={{ backgroundColor: "transparent" }}
+          ListEmptyComponent={EmptyListComponent}
         />
       </View>
     </ThemedView>

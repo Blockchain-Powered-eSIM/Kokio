@@ -37,6 +37,7 @@ export default function RootLayout() {
   const pathname = usePathname();
 
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [bootstrapDismissed, setBootstrapDismissed] = useState(false);
   const [loaded] = useFonts({
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
@@ -46,7 +47,7 @@ export default function RootLayout() {
     "Lexend-Black": require("../assets/fonts/Lexend-Black.ttf"),
   });
 
-  const { isLoading } = useBootstrap();
+  const { isLoading, error: bootstrapError, refresh: refreshBootstrap } = useBootstrap();
 
   // Use refs to avoid recreating the NetInfo listener on every pathname change
   const pathnameRef = useRef(pathname);
@@ -66,15 +67,34 @@ export default function RootLayout() {
 
   // Initial connectivity check
   useEffect(() => {
+    let settled = false;
+
+    // On some devices isInternetReachable can stay null indefinitely (the
+    // reachability probe never resolves). Without a bound here, _isNull(isConnected)
+    // keeps FullScreenLoader up forever. Give up after 6s and assume online —
+    // the listener below still corrects this and redirects to Offline if a
+    // later reading confirms we're actually offline.
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        setIsConnected(true);
+      }
+    }, 6000);
+
     NetInfo.fetch().then((state) => {
+      if (settled) return;
       if (_isNull(state.isInternetReachable)) {
         // Network state is still being determined
         setIsConnected(null);
       } else {
+        settled = true;
+        clearTimeout(timeoutId);
         const online = !!state.isConnected && !!state.isInternetReachable;
         setIsConnected(online);
       }
     });
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
@@ -120,9 +140,15 @@ export default function RootLayout() {
     }
   }, [loaded, isLoading]);
 
+  const showLoader = !bootstrapDismissed && (!loaded || _isNull(isConnected) || isLoading || !!bootstrapError);
+
   const inner =
-    !loaded || _isNull(isConnected) ? (
-      <FullScreenLoader />
+    showLoader ? (
+      <FullScreenLoader
+        error={bootstrapError}
+        onRetry={bootstrapError ? refreshBootstrap : undefined}
+        onContinue={bootstrapError ? () => setBootstrapDismissed(true) : undefined}
+      />
     ) : (
       <Providers>
       <ServiceStatusBanner />

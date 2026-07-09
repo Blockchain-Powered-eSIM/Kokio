@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
 } from "react-native";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import Share from "react-native-share";
@@ -14,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import _get from "lodash/get";
 import _split from "lodash/split";
@@ -236,20 +235,48 @@ const createStyles = () => StyleSheet.create({
   textCopyContainer: {
     marginBottom: 12,
   },
+  missingQrContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 16,
+  },
 });
 
 const EsimInstallation = () => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   const { qrcode } = useLocalSearchParams();
-  const qrData =
-    (Array.isArray(qrcode) ? _head(qrcode) : qrcode) ||
-    "LPA:1$activation.airalo.com$sample-qr-data";
+  const router = useRouter();
+  const rawQrData = Array.isArray(qrcode) ? _head(qrcode) : qrcode;
+  const hasQrData = !!rawQrData;
+  const qrData = rawQrData || "";
 
   const qrDataSplit = _split(qrData, "$");
   const activationAddress = _get(qrDataSplit, [1]);
   const activationCode = _get(qrDataSplit, [2]);
   const [activeTab, setActiveTab] = useState<TabType>("QR");
+
+  if (!hasQrData) {
+    return (
+      <View style={[styles.container, styles.missingQrContainer, { backgroundColor: Theme.colors.background }]}>
+        <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>
+          Installation details unavailable
+        </ThemedText>
+        <Text style={[styles.sectionDescription, { color: Theme.colors.inactive, textAlign: "center", marginBottom: 0 }]}>
+          We couldn&apos;t find the installation QR code for this eSIM. Please go back and try again from Orders.
+        </Text>
+        <TouchableOpacity
+          style={[styles.shareButton, { borderColor: Theme.colors.muted }]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={[styles.shareButtonText, { color: Theme.colors.text }]}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const QRScene = () => {
     const qrViewRef = useRef(null);
@@ -338,10 +365,10 @@ const EsimInstallation = () => {
             text={qrData}
           />
 
-          {Platform.OS === "ios" && activationAddress && (
+          {activationAddress && (
             <TextWithCopy label="SM-DP+ ADDRESS" text={activationAddress} />
           )}
-          {Platform.OS === "ios" && activationCode && (
+          {activationCode && (
             <TextWithCopy label="ACTIVATION CODE" text={activationCode} />
           )}
 
@@ -375,8 +402,14 @@ const EsimInstallation = () => {
           take a few minutes. Select Allow/OK, when prompted.
         </Text>
 
-        <TouchableOpacity style={[styles.shareButton, { borderColor: Theme.colors.muted }]}>
-          <Text style={[styles.shareButtonText, { color: Theme.colors.text }]}>Coming soon</Text>
+        <TouchableOpacity
+          style={[styles.shareButton, { borderColor: Theme.colors.muted, opacity: 0.5 }]}
+          disabled
+          accessibilityRole="button"
+          accessibilityLabel="Direct installation (coming soon)"
+          accessibilityState={{ disabled: true }}
+        >
+          <Text style={[styles.shareButtonText, { color: Theme.colors.inactive }]}>Coming soon</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

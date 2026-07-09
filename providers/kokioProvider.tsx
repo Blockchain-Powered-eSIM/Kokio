@@ -9,6 +9,7 @@ import { AppExtraConfig, Config } from "@/appKeys";
 import { SmartContractAccount } from "@aa-sdk/core";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getAccount } from "@/utils/bff/account";
 import {
   getWcSignClient,
   setPendingProposal,
@@ -181,7 +182,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   };
 
   // ── Boot hydration ────────────────────────────────────────────────────────
-
   useEffect(() => {
     const fetchUserData = async () => {
       const storedWalletAddress = await SecureStore.getItemAsync("deviceWalletAddress");
@@ -192,8 +192,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       const deviceUID = await getValueForDeviceUID("deviceUID");
 
       // Guard: deviceUID without deviceWalletAddress is orphaned state
-      // (e.g. old Turnkey install or a crashed registration). Purge it so the
-      // auth modal routes to sign-up rather than a broken login attempt.
       if (deviceUID && !storedWalletAddress) {
         await SecureStore.deleteItemAsync("deviceUID");
         await SecureStore.deleteItemAsync("credentialId");
@@ -405,6 +403,25 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.setItemAsync('deviceWalletAddress', deviceWalletAddress);
     await SecureStore.setItemAsync('credentialId', credentialId);
     dispatch({ type: 'SET_DEVICE_WALLET_ADDRESS', payload: deviceWalletAddress });
+
+    // Fetch the wallet-derivation material (deviceUID/pubKeyX/pubKeyY/salt) needed
+    // to reconstruct the smart account after this reinstall. Must happen now, right
+    // after the fresh passkey assertion recovery just completed — GET /account
+    // requires step-up, and this is what satisfies its 5-minute recency window
+    // without prompting the user for a second biometric confirmation.
+    const account = await getAccount();
+
+    await saveValueForDeviceUID('deviceUID', account.deviceUniqueIdentifier);
+    await SecureStore.setItemAsync('publicKeyX', account.pubKeyX);
+    await SecureStore.setItemAsync('publicKeyY', account.pubKeyY);
+    await SecureStore.setItemAsync('rawSalt', account.salt);
+
+    dispatch({ type: 'SET_DEVICE_UID', payload: account.deviceUniqueIdentifier });
+    dispatch({ type: 'SET_RAW_SALT', payload: account.salt });
+    dispatch({
+      type: 'SET_KOKIO_PASSKEY',
+      payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
+    });
   };
 
   const clearKokio = () => {

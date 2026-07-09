@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { Theme } from "@/constants/Colors";
 import { useCatalogueByCountry } from "@/hooks/useCatalogue";
@@ -14,7 +14,7 @@ function EsimsByCountry() {
   const { data, isLoading, error, refetch } = useCatalogueByCountry(countryCode);
 
   if (isLoading) {
-    return <ActivityIndicator style={styles.center} />;
+    return <DataPackTabGroup esims={[]} isLoading containerStyle={styles.container} />;
   }
 
   if (error) {
