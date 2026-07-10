@@ -1,5 +1,7 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useCallback } from "react";
 import {
+  Linking,
+  Platform,
   View,
   Text,
   StyleSheet,
@@ -246,7 +248,8 @@ const createStyles = () => StyleSheet.create({
 const EsimInstallation = () => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
-  const { qrcode } = useLocalSearchParams();
+  const { qrcode, appleInstallationUrl: rawAppleUrl } = useLocalSearchParams();
+  const appleInstallationUrl = Array.isArray(rawAppleUrl) ? rawAppleUrl[0] : (rawAppleUrl ?? "");
   const router = useRouter();
   const rawQrData = Array.isArray(qrcode) ? _head(qrcode) : qrcode;
   const hasQrData = !!rawQrData;
@@ -391,29 +394,58 @@ const EsimInstallation = () => {
     </ScrollView>
   );
 
-  const DirectScene = () => (
-    <ScrollView style={styles.content}>
-      <WarningCards />
-      <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
-        <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>Direct Installation</ThemedText>
-
-        <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
-          Select Install eSIM and wait — do not close the app, installation may
-          take a few minutes. Select Allow/OK, when prompted.
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.shareButton, { borderColor: Theme.colors.muted, opacity: 0.5 }]}
-          disabled
-          accessibilityRole="button"
-          accessibilityLabel="Direct installation (coming soon)"
-          accessibilityState={{ disabled: true }}
-        >
-          <Text style={[styles.shareButtonText, { color: Theme.colors.inactive }]}>Coming soon</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
+  const DirectScene = () => {
+    const handleDirectInstall = useCallback(async () => {
+      try {
+        await Linking.openURL(appleInstallationUrl);
+      } catch (err) {
+        logger.error('ESIM_APPLE_INSTALL_FAILED', { err });
+      }
+    }, [appleInstallationUrl]);
+  
+    const isEnabled = Platform.OS === "ios" && !!appleInstallationUrl;
+  
+    return (
+      <ScrollView style={styles.content}>
+        <WarningCards />
+        <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
+          <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>
+            Direct Installation
+          </ThemedText>
+  
+          <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
+            {isEnabled
+              ? "Tap Install eSIM to begin. Do not close the app — installation may take a few minutes. Select Allow/OK when prompted."
+              : "Select Install eSIM and wait — do not close the app, installation may take a few minutes. Select Allow/OK, when prompted."}
+          </Text>
+  
+          <TouchableOpacity
+            style={[
+              styles.shareButton,
+              {
+                borderColor: isEnabled ? Theme.colors.primary : Theme.colors.muted,
+                opacity:     isEnabled ? 1 : 0.5,
+              },
+            ]}
+            disabled={!isEnabled}
+            onPress={isEnabled ? handleDirectInstall : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={isEnabled ? "Install eSIM on this iPhone" : "Direct installation (coming soon)"}
+            accessibilityState={{ disabled: !isEnabled }}
+          >
+            <Text
+              style={[
+                styles.shareButtonText,
+                { color: isEnabled ? Theme.colors.text : Theme.colors.inactive },
+              ]}
+            >
+              {isEnabled ? "Install eSIM" : "Coming soon"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  };
 
   const renderTabBar = () => {
     const tabs: TabType[] = ["Direct", "QR", "Manual"];
