@@ -111,9 +111,9 @@ const ActiveESIMsScroll = () => {
   // Uses esimId as the expand key — orders.tsx matches on esimId.
   const handleESIMPress = useCallback((doc: ESimDocument) => {
     return () => {
-      router.navigate({
-        pathname: "/(tabs)/orders",
-        params: { expandOrderId: doc.esimId },
+      router.push({
+        pathname: "/esim-detail",
+        params: { esimId: doc.esimId },
       });
     };
   }, []);
