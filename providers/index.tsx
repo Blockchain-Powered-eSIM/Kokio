@@ -16,7 +16,7 @@ import { KokioProvider } from './kokioProvider';
 import { KokioStripeProvider } from './StripeProvider';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/queries/esims';
+import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 
 // ─── Persisted query keys ──────────────────────────────────────────────────────
 const PERSISTED_KEYS: Set<string> = new Set([DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY]);

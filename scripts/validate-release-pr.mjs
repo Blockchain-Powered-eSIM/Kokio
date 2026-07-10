@@ -15,7 +15,6 @@ const otaSafePatterns = [
   "hooks/",
   "lib/",
   "providers/",
-  "queries/",
   "screens/",
   "services/",
   "stores/",

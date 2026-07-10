@@ -5,7 +5,7 @@ import _isEmpty from "lodash/isEmpty";
 
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useEsims } from "@/queries/esims";
+import { useEsims } from "@/hooks/useDeviceEsims";
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import type { Esim } from "@/components/ESIMItem";
 import ESIMItem from "@/components/ESIMItem";

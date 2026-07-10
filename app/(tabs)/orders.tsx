@@ -23,7 +23,7 @@ import type { OrderListItem } from "@/utils/bff/order";
 import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
 import ESIMItem from "@/components/ESIMItem";
 import type { Esim } from "@/components/ESIMItem";
-import { useEsims, useOrders } from "@/queries/esims";
+import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

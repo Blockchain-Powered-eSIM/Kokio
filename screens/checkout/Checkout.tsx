@@ -27,7 +27,7 @@ import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
-import { useEsims, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/queries/esims';
+import { useEsims, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 import { isOrderSuccess, pollOrderStatus } from "@/utils/bff/order";
 import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/utils/bff/order";
 import { pollingLabel } from "@/utils/orderStatus";

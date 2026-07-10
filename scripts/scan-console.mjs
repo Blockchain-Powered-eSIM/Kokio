@@ -22,7 +22,6 @@ const SOURCE_DIRS = [
   "components",
   "hooks",
   "providers",
-  "queries",
   "screens",
   "services",
   "stores",
