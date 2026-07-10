@@ -401,7 +401,7 @@ const EsimInstallation = () => {
       } catch (err) {
         logger.error('ESIM_APPLE_INSTALL_FAILED', { err });
       }
-    }, [appleInstallationUrl]);
+    }, []);
   
     const isEnabled = Platform.OS === "ios" && !!appleInstallationUrl;
   
