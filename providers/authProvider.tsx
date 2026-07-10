@@ -189,7 +189,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
        * The credential won't be locally indexed for ~1s. 
        * Wait 1500ms so the first login attempt succeeds without dialog.
        */
-      await new Promise<void>(resolve => setTimeout(resolve, 1500));
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
 
       /**
        * Registration creates the credential and derives the wallet, but does not establish a session.

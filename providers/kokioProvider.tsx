@@ -182,6 +182,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   };
 
   // ── Boot hydration ────────────────────────────────────────────────────────
+
   useEffect(() => {
     const fetchUserData = async () => {
       const storedWalletAddress = await SecureStore.getItemAsync("deviceWalletAddress");
@@ -191,7 +192,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
       const deviceUID = await getValueForDeviceUID("deviceUID");
 
-      // Guard: deviceUID without deviceWalletAddress is orphaned state
       if (deviceUID && !storedWalletAddress) {
         await SecureStore.deleteItemAsync("deviceUID");
         await SecureStore.deleteItemAsync("credentialId");
@@ -216,15 +216,15 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         }
 
         const credentialId = await SecureStore.getItemAsync('credentialId');
-        const publicKeyX = await SecureStore.getItemAsync('publicKeyX');
-        const publicKeyY = await SecureStore.getItemAsync('publicKeyY');
+        const publicKeyX   = await SecureStore.getItemAsync('publicKeyX');
+        const publicKeyY   = await SecureStore.getItemAsync('publicKeyY');
         logger.debug('KOKIO_SECURESTORE_HYDRATION', {
           hasDeviceWalletAddress: !!storedWalletAddress,
-          hasCredentialId: !!credentialId,
-          hasPublicKeyX: !!publicKeyX,
-          hasPublicKeyY: !!publicKeyY,
-          hasRawSalt: !!(await SecureStore.getItemAsync('rawSalt')),
-          hasDeviceUID: !!deviceUID,
+          hasCredentialId:        !!credentialId,
+          hasPublicKeyX:          !!publicKeyX,
+          hasPublicKeyY:          !!publicKeyY,
+          hasRawSalt:             !!(await SecureStore.getItemAsync('rawSalt')),
+          hasDeviceUID:           !!deviceUID,
         });
 
         if (credentialId && publicKeyX && publicKeyY) {
@@ -248,15 +248,57 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     fetchUserData();
   }, []);
 
-  // ── SDK initialisation ────────────────────────────────────────────────────
+  /**
+   * ── SDK initialisation + wallet auto-derivation ───────────────────────────
+   *
+   * This effect fires whenever the SDK, deviceUID, or userPasskey changes.
+   * After the SDK is ready it also derives and persists the SmartContractAccount
+   * when userWallet is absent — covering two cases:
+   *   1. Normal cold boot: userWallet was loaded from SecureStore in the hydration effect above,
+   *        so kokio.userWallet is already set and the derivation block is skipped.
+   *
+   *   2. Account recovery after reinstall: setupKokioRecovery populates all derivation material 
+   *        and sets the SDK, but userWallet is absent because the SmartContractAccount was never persisted.
+   *        The derivation block runs here, producing the address for the wallet card without a biometric prompt.
+   */
 
   useEffect(() => {
-    if (!kokio.sdk && kokio.deviceUID && kokio.userPasskey) {
-      setupKokio();
-    }
-    // setupKokio is a function, not a dependency to watch for changes
+    const initSdkAndDeriveWallet = async () => {
+      if (!kokio.sdk && kokio.deviceUID && kokio.userPasskey) {
+        await setupKokio();
+        // setupKokio dispatches SET_KOKIO which will re-trigger this effect with kokio.sdk populated.
+        // Return here to avoid racing the dispatch.
+        return;
+      }
+
+      if (
+        kokio.sdk &&
+        kokio.deviceUID &&
+        kokio.userPasskey?.x &&
+        kokio.userPasskey?.y &&
+        kokio.rawSalt &&
+        !kokio.userWallet
+      ) {
+        try {
+          const ownerKey: [Hex, Hex] = [kokio.userPasskey.x, kokio.userPasskey.y];
+          const salt = BigInt(kokio.rawSalt);
+          const deviceWallet = await kokio.sdk.smartAccount.getSmartWallet(
+            kokio.deviceUID,
+            ownerKey,
+            salt,
+          );
+
+          await setupKokioUserWallet(kokio.deviceUID, deviceWallet);
+          logger.debug('WALLET_AUTO_DERIVED', { deviceUID: kokio.deviceUID });
+        } catch (err) {
+          logger.error('WALLET_AUTO_DERIVE_FAILED', { err });
+        }
+      }
+    };
+
+    initSdkAndDeriveWallet();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk]);
+  }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk, kokio.rawSalt, kokio.userWallet]);
 
   // ── WalletConnect initialisation ──────────────────────────────────────────
 
@@ -278,8 +320,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         const { topic, params, id } = event;
         const { request } = params;
         try {
-          // TODO PAY-011: route eth_sendTransaction / eth_signTypedData_v4
-          // through kokio-sdk signer + Pimlico bundler once SDK exposes signing API.
           void walletAddress;
           throw new Error(`Method not yet implemented: ${request.method}`);
         } catch (err) {
@@ -315,8 +355,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   };
 
   const setupKokio = async () => {
-    // Prefer state (populated at mount or registration); fall back to SecureStore
-    // for the case where setupKokio() is called before hydration completes.
     const credentialId =
       kokio.userPasskey?.credentialId ??
       await SecureStore.getItemAsync('credentialId') ??
@@ -336,9 +374,9 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       return;
     }
 
-    const signerAddress = resolvedAddress as `0x${string}`;
-    const chainId = Config.CHAIN_ID ?? baseSepolia.id;
-    const chain = chainId === base.id ? base : baseSepolia;
+    const signerAddress    = resolvedAddress as `0x${string}`;
+    const chainId          = Config.CHAIN_ID ?? baseSepolia.id;
+    const chain            = chainId === base.id ? base : baseSepolia;
     const alchemySubdomain = chainId === base.id ? 'base-mainnet' : 'base-sepolia';
 
     const rpcUrl = extra.alchemyApiKey
@@ -387,11 +425,11 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     };
     await saveValueForUserData(`userData-${deviceUniqueIdentifier}`, userData);
 
-    dispatch({ type: "SET_DEVICE_UID", payload: deviceUniqueIdentifier });
+    dispatch({ type: "SET_DEVICE_UID",            payload: deviceUniqueIdentifier });
     dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
-    dispatch({ type: "SET_RAW_SALT", payload: rawSalt });
-    dispatch({ type: "SET_KOKIO_USER", payload: userData });
-    dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX, y: publicKeyY } });
+    dispatch({ type: "SET_RAW_SALT",              payload: rawSalt });
+    dispatch({ type: "SET_KOKIO_USER",            payload: userData });
+    dispatch({ type: "SET_KOKIO_PASSKEY",         payload: { credentialId, x: publicKeyX, y: publicKeyY } });
   };
 
   const setupKokioUserWallet = async (deviceUID: string, wallet: SmartContractAccount) => {
@@ -414,14 +452,18 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await saveValueForDeviceUID('deviceUID', account.deviceUniqueIdentifier);
     await SecureStore.setItemAsync('publicKeyX', account.pubKeyX);
     await SecureStore.setItemAsync('publicKeyY', account.pubKeyY);
-    await SecureStore.setItemAsync('rawSalt', account.salt);
+    await SecureStore.setItemAsync('rawSalt',    account.salt);
 
-    dispatch({ type: 'SET_DEVICE_UID', payload: account.deviceUniqueIdentifier });
-    dispatch({ type: 'SET_RAW_SALT', payload: account.salt });
+    dispatch({ type: 'SET_DEVICE_UID',    payload: account.deviceUniqueIdentifier });
+    dispatch({ type: 'SET_RAW_SALT',      payload: account.salt });
     dispatch({
       type: 'SET_KOKIO_PASSKEY',
       payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
     });
+    // userWallet is intentionally NOT set here. The SDK-init useEffect above
+    // detects that sdk is ready + userWallet is absent and calls
+    // getSmartWallet() automatically once the SDK is initialised. This avoids
+    // racing setupKokio() which fires concurrently on the same state change.
   };
 
   const clearKokio = () => {
@@ -430,12 +472,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
   const clearKokioUser = async () => {
     dispatch({ type: "CLEAR_KOKIO_USER" });
-    // Best-effort deletes — iOS SecureStore throws when a key doesn't exist,
-    // so each delete is wrapped individually to ensure all keys are attempted.
     await deleteValueForUser(`userWallet-${kokio.deviceUID}`).catch(() => {});
     await deleteValueForUser(`userData-${kokio.deviceUID}`).catch(() => {});
-    // Remove legacy purchasedESIMs AsyncStorage key if it exists on this device.
-    // The key is no longer written but may be present from a previous version.
     await AsyncStorage.removeItem(`purchasedESIMs-${kokio.deviceUID}`).catch(() => {});
     await deleteValueForUser("deviceUID").catch(() => {});
     await SecureStore.deleteItemAsync("deviceWalletAddress").catch(() => {});

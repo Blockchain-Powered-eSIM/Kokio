@@ -13,58 +13,6 @@ import { logger } from '@/utils/logger';
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 
-/*DEVICE WALLET DEPLOYEMENT FIX*/
-// type LoginCompleteExtended = {
-//   deviceWalletAddress: string;
-//   authTime: number;
-//   deviceUniqueIdentifier?: string;
-//   rawSalt?: string;
-//   publicKeyX?: string;
-//   publicKeyY?: string;
-// };
-//
-// async function hydrateCredentialStore(data: LoginCompleteExtended): Promise<void> {
-//   if (data.deviceUniqueIdentifier) {
-//     const existing = await SecureStore.getItemAsync('deviceUID');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('deviceUID', JSON.stringify(data.deviceUniqueIdentifier));
-//       logger.debug('[PASSKEY] hydrated deviceUID from loginComplete');
-//     }
-//   }
-//   if (data.rawSalt) {
-//     const existing = await SecureStore.getItemAsync('rawSalt');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('rawSalt', data.rawSalt);
-//       logger.debug('[PASSKEY] hydrated rawSalt from loginComplete');
-//     }
-//   }
-//   if (data.publicKeyX && data.publicKeyY) {
-//     const existing = await SecureStore.getItemAsync('publicKeyX');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('publicKeyX', data.publicKeyX);
-//       await SecureStore.setItemAsync('publicKeyY', data.publicKeyY);
-//       logger.debug('[PASSKEY] hydrated publicKeyX/Y from loginComplete');
-//     }
-//   }
-// }
-//
-// async function hydrateDeviceUIDFromUserHandle(userHandle: string | null | undefined): Promise<void> {
-//   if (!userHandle) return;
-//   try {
-//     const b64 = userHandle.replace(/-/g, '+').replace(/_/g, '/');
-//     const binary = atob(b64);
-//     let decoded = '';
-//     for (let i = 0; i < binary.length; i++) decoded += binary[i];
-//     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded)) return;
-//     const existing = await SecureStore.getItemAsync('deviceUID');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('deviceUID', JSON.stringify(decoded));
-//       logger.debug('PASSKEY_HYDRATED_DEVICE_UID', { userHandle: decoded });
-//     }
-//   } catch { /* non-critical */ }
-// }
-/*DEVICE WALLET DEPLOYEMENT FIX*/
-
 export type DiscoverLoginResult = {
   credentialId: string;
   deviceWalletAddress: string;
