@@ -226,6 +226,7 @@ const Checkout = () => {
   const [isDiscountApplied, setIsDiscountApplied]         = useState<boolean>(false);
   const [discountAmount, setDiscountAmount]               = useState<number>(0);
   const [orderResponse, setOrderResponse]                 = useState<OrderStatusResponse | null>(null);
+  const [topupSuccessInfo, setTopupSuccessInfo]           = useState<{ fromLabel: string; toLabel: string } | null>(null);
   const [discountError, setDiscountError]                 = useState<string>("");
   const [showManualReviewModal, setShowManualReviewModal] = useState(false);
   const [failedOrderInfo, setFailedOrderInfo]             = useState<{
@@ -329,6 +330,14 @@ const Checkout = () => {
       queryClient.invalidateQueries({ queryKey: [DEVICE_ESIMS_KEY] });
       queryClient.invalidateQueries({ queryKey: [DEVICE_ORDERS_KEY] });
       setOrderResponse(order);
+      setTopupSuccessInfo(
+        applyAsTopup && compatibleTopUpEsimId
+          ? {
+              fromLabel: formatPlanLabel(eSimItem) ?? 'your new plan',
+              toLabel:   buildTopupEsimLabel(compatibleTopUpEsimId),
+            }
+          : null,
+      );
       setShowSuccessModal(true);
       return;
     }
@@ -346,7 +355,7 @@ const Checkout = () => {
       order.orderStatus === 'ABANDONED'       ? 'Order expired. Please try again.'   :
       'Order could not be completed. Please try again.';
     showMessage(msg, 'info');
-  }, [queryClient, showMessage]);
+  }, [queryClient, showMessage, applyAsTopup, compatibleTopUpEsimId, eSimItem, buildTopupEsimLabel]);
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
@@ -480,6 +489,11 @@ const Checkout = () => {
       },
     });
   }, [orderResponse]);
+
+  const handleTopupDone = useCallback(() => {
+    setShowSuccessModal(false);
+    router.replace("/");
+  }, []);
 
   const handleWalletModalClose = useCallback(() => {
     setShowWalletSetupModal(false);
@@ -724,7 +738,11 @@ const Checkout = () => {
       <CheckoutSuccessModal
         visible={showSuccessModal}
         loading={isCheckoutLoading}
+        variant={topupSuccessInfo ? "topup" : "install"}
         onInstallESIM={handleInstallESIM}
+        onDone={handleTopupDone}
+        topupFromLabel={topupSuccessInfo?.fromLabel}
+        topupToLabel={topupSuccessInfo?.toLabel}
       />
 
       <OrderFailureModal

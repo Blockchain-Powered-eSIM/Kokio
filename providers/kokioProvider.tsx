@@ -2,7 +2,7 @@ import React, { ReactNode, createContext, useEffect, useReducer, useRef } from "
 import { router } from "expo-router";
 import { Kokio } from "kokio-sdk";
 import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
-import { createWalletClient, http, type Hex } from "viem";
+import { createWalletClient, http, type Address, type Hex } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
 import { AppExtraConfig, Config } from "@/appKeys";
@@ -15,6 +15,7 @@ import {
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/utils/logger";
+import { checkWalletDeployed } from "@/utils/wallet/checkWalletDeployed";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
@@ -251,37 +252,52 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   /**
    * ── SDK initialisation + wallet auto-derivation ───────────────────────────
    *
-   * This effect fires whenever the SDK, deviceUID, or userPasskey changes.
-   * After the SDK is ready it also derives and persists the SmartContractAccount
-   * when userWallet is absent — covering two cases:
-   *   1. Normal cold boot: userWallet was loaded from SecureStore in the hydration effect above,
-   *        so kokio.userWallet is already set and the derivation block is skipped.
+   * Two-step effect:
+   *   Step 1   —   Initialise the SDK when deviceUID + userPasskey are available but sdk is not constructed.
+   *                setupKokio dispatches SET_KOKIO and returns; 
+   *                the effect re-fires with kokio.sdk populated.
    *
-   *   2. Account recovery after reinstall: setupKokioRecovery populates all derivation material 
-   *        and sets the SDK, but userWallet is absent because the SmartContractAccount was never persisted.
-   *        The derivation block runs here, producing the address for the wallet card without a biometric prompt.
+   *   Step 2   —   When sdk is ready and userWallet is absent, 
+   *                call checkWalletDeployed (Registry.isDeviceWalletValid) to distinguish:
+   *                - New registration  : wallet not yet deployed on-chain ->
+   *                  Registry returns false -> skip auto-derivation ->
+   *                  WalletSetupModal drives deployment via sendUserOperation.
+   *                - Recovery after reinstall  : wallet deployed on-chain ->
+   *                  Registry returns true -> auto-derive SmartContractAccount
+   *                  via getSmartWallet and persist via setupKokioUserWallet.
    */
 
   useEffect(() => {
     const initSdkAndDeriveWallet = async () => {
       if (!kokio.sdk && kokio.deviceUID && kokio.userPasskey) {
         await setupKokio();
-        // setupKokio dispatches SET_KOKIO which will re-trigger this effect with kokio.sdk populated.
-        // Return here to avoid racing the dispatch.
         return;
       }
-
       if (
         kokio.sdk &&
         kokio.deviceUID &&
         kokio.userPasskey?.x &&
         kokio.userPasskey?.y &&
         kokio.rawSalt &&
+        kokio.deviceWalletAddress &&
         !kokio.userWallet
       ) {
         try {
+          const deployed = await checkWalletDeployed(
+            kokio.deviceWalletAddress,
+            kokio.sdk.viemWalletClient,
+            kokio.sdk.constants?.factoryAddresses?.REGISTRY as Address,
+          );
+
+          if (!deployed) {
+            // New registration
+            logger.debug('WALLET_AUTO_DERIVE_SKIPPED', { reason: 'not_deployed' });
+            return;
+          }
+          // Recovery
           const ownerKey: [Hex, Hex] = [kokio.userPasskey.x, kokio.userPasskey.y];
           const salt = BigInt(kokio.rawSalt);
+
           const deviceWallet = await kokio.sdk.smartAccount.getSmartWallet(
             kokio.deviceUID,
             ownerKey,
@@ -291,6 +307,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
           await setupKokioUserWallet(kokio.deviceUID, deviceWallet);
           logger.debug('WALLET_AUTO_DERIVED', { deviceUID: kokio.deviceUID });
         } catch (err) {
+          // Non-fatal: wallet card stays in setup-prompt state.
           logger.error('WALLET_AUTO_DERIVE_FAILED', { err });
         }
       }
@@ -298,7 +315,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
     initSdkAndDeriveWallet();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk, kokio.rawSalt, kokio.userWallet]);
+  }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk, kokio.rawSalt, kokio.userWallet, kokio.deviceWalletAddress]);
 
   // ── WalletConnect initialisation ──────────────────────────────────────────
 
@@ -442,11 +459,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.setItemAsync('credentialId', credentialId);
     dispatch({ type: 'SET_DEVICE_WALLET_ADDRESS', payload: deviceWalletAddress });
 
-    // Fetch the wallet-derivation material (deviceUID/pubKeyX/pubKeyY/salt) needed
-    // to reconstruct the smart account after this reinstall. Must happen now, right
-    // after the fresh passkey assertion recovery just completed — GET /account
-    // requires step-up, and this is what satisfies its 5-minute recency window
-    // without prompting the user for a second biometric confirmation.
     const account = await getAccount();
 
     await saveValueForDeviceUID('deviceUID', account.deviceUniqueIdentifier);
@@ -460,10 +472,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       type: 'SET_KOKIO_PASSKEY',
       payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
     });
-    // userWallet is intentionally NOT set here. The SDK-init useEffect above
-    // detects that sdk is ready + userWallet is absent and calls
-    // getSmartWallet() automatically once the SDK is initialised. This avoids
-    // racing setupKokio() which fires concurrently on the same state change.
+    // userWallet is intentionally NOT set here.
+    // The initSdkAndDeriveWallet useEffect calls checkWalletDeployed once the SDK is ready.
   };
 
   const clearKokio = () => {
