@@ -146,16 +146,14 @@ const createStyles = () => StyleSheet.create({
   expandIndicatorRow: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: Platform.OS === "android" ? 8 : 10,
-    marginBottom: Platform.OS === "android" ? 4 : 6,
+    paddingVertical: 12,
   },
   pillHandle: {
     backgroundColor: Theme.colors.handle,
     borderRadius: 10,
-    height: 10,
+    height: 20,
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
   arrowCenter: {
     alignItems: "center",
@@ -219,28 +217,41 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     MAX_ALLOWED_HEIGHT
   );
 
+  const toggleExpanded = () => {
+    "worklet";
+    if (isExpanded.value) {
+      isExpanded.value = false;
+      animatedHeight.value = withTiming(computedHeaderHeight, {
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+      });
+    } else {
+      isExpanded.value = true;
+      animatedHeight.value = withTiming(headerMaxHeight, {
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+      });
+    }
+  };
+  
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    "worklet";
+    toggleExpanded();
+  });
+  
   const panGesture = Gesture.Pan().onEnd((event) => {
     "worklet";
     const dy = event.translationY;
     if (Math.abs(dy) > 20) {
-      const shouldExpand = dy > 0 && !isExpanded.value;
-      const shouldCollapse = dy < 0 && isExpanded.value;
-
-      if (shouldExpand) {
-        isExpanded.value = true;
-        animatedHeight.value = withTiming(headerMaxHeight, {
-          duration: 250,
-          easing: Easing.out(Easing.ease),
-        });
-      } else if (shouldCollapse) {
-        isExpanded.value = false;
-        animatedHeight.value = withTiming(computedHeaderHeight, {
-          duration: 250,
-          easing: Easing.out(Easing.ease),
-        });
+      const shouldExpand  = dy > 0 && !isExpanded.value;
+      const shouldCollapse = dy < 0 &&  isExpanded.value;
+      if (shouldExpand || shouldCollapse) {
+        toggleExpanded();
       }
     }
   });
+
+  const combinedGesture = Gesture.Simultaneous(tapGesture, panGesture);
 
   const onContentLayout = (event: any) =>
     setContentHeight(_get(event, "nativeEvent.layout.height"));
@@ -359,7 +370,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   }));
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={combinedGesture}>
       <Animated.View
         style={[
           styles.header,
