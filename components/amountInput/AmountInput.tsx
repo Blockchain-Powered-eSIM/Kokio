@@ -1,15 +1,14 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Dimensions, Image, StyleSheet, View } from "react-native";
 import CurrencyInput from "react-native-currency-input";
 
 import { ThemedText } from "../ThemedText";
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CONTAINER_WIDTH = SCREEN_WIDTH - 24;
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   labelText: {
     color: Theme.colors.foreground,
     fontSize: 14,
@@ -43,8 +42,6 @@ const AmountInput = ({
   value: number | null;
   onChangeValue: (num: number | null) => void;
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.buttonStyle}>
       <View>

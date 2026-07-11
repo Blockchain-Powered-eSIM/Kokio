@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
   View,
   ScrollView,
-  // Switch,
   Text,
   Switch,
   Linking,
@@ -22,7 +21,7 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
@@ -144,8 +143,7 @@ const MenuItem = ({
   action: (() => void) | undefined;
   disabled?: boolean;
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  useTheme();
   return (
   <TouchableOpacity
     style={[styles.menuItem, disabled && { opacity: DISABLED_OPACITY }]}
@@ -181,8 +179,7 @@ const MenuItem = ({
 };
 
 const AboutContent = ({ onClose }: { onClose: () => void }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  useTheme();
   const handleLinkPress = useCallback(async (url: string) => {
     try {
       await openBrowserAsync(url);
@@ -238,8 +235,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 const ContactContent = ({ onClose }: { onClose: () => void }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  useTheme();
 
   return (
     <View style={styles.aboutContainer}>
@@ -283,7 +279,6 @@ export default function MenuScreen() {
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const bg = useThemeColor({}, "background");
-  const styles = useMemo(createStyles, [isDark]);
 
   const menuItems = [
     {

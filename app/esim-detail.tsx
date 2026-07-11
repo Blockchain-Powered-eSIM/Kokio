@@ -17,7 +17,6 @@ import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
@@ -77,8 +76,7 @@ const BUNDLE_COLOR: Record<BundleStatus, string> = {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = () =>
-  StyleSheet.create({
+const styles = StyleSheet.create({
     safeArea:       { flex: 1 },
     header: {
       flexDirection:     "row",
@@ -239,7 +237,6 @@ const createStyles = () =>
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const Chip = ({ label, color }: { label: string; color: string }) => {
-  const styles = useMemo(createStyles, []);
   return (
     <View style={[styles.chip, { backgroundColor: color + "22" }]}>
       <Text style={[styles.chipText, { color }]}>{label}</Text>
@@ -256,7 +253,6 @@ const CopyRow = ({
   value: string;
   last?: boolean;
 }) => {
-  const styles = useMemo(createStyles, []);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -289,10 +285,8 @@ const CopyRow = ({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function EsimDetailScreen() {
-  const { isDark } = useTheme();
-  const styles     = useMemo(createStyles, [isDark]);
-  const bg         = useThemeColor({}, "background");
-  const router     = useRouter();
+  const bg = useThemeColor({}, "background");
+  const router = useRouter();
 
   const { esimId } = useLocalSearchParams<{ esimId: string }>();
 

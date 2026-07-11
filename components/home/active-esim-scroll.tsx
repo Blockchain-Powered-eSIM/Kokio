@@ -4,7 +4,6 @@ import { router } from "expo-router";
 import _isEmpty from "lodash/isEmpty";
 
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import type { Esim } from "@/components/ESIMItem";
@@ -22,8 +21,7 @@ const SPACING      = 8;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = () =>
-  StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
       marginVertical: 12,
     },
@@ -97,9 +95,6 @@ function toDisplayItem(doc: ESimDocument): Esim {
 
 // No props — self-fetching via useEsims().
 const ActiveESIMsScroll = () => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
-
   const { esims, isLoading } = useEsims();
 
   const activeEsims = useMemo(

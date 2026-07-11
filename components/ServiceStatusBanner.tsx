@@ -1,13 +1,11 @@
-import { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { useBffHealth } from '@/hooks/useBffHealth';
 import { Theme } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   banner: {
     backgroundColor: Theme.colors.warning,
     flexDirection:   'row',
@@ -25,8 +23,6 @@ const createStyles = () => StyleSheet.create({
 });
 
 export function ServiceStatusBanner() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const { isHealthy } = useBffHealth();
   const insets = useSafeAreaInsets();
 

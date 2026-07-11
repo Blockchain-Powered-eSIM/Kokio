@@ -7,7 +7,7 @@ export type ThemedTextProps = TextProps & {
   variant?: "xsm" | "xsmb" | "sm" | "smb" | "normal" | "xl" | "xxl";
   className?: string;
   bold?: boolean;
-  light?:boolean
+  light?: boolean;
   lightColor?: string;
   darkColor?: string;
 };
@@ -28,11 +28,8 @@ export function ThemedText({
   return (
     <Text
       className={cn(
-        `
-        text-black
-        text-base
-        font-Lexend
-        `,
+        // Removed text-black to let the style prop control the color dynamically
+        "text-base font-Lexend",
         variant === "xsm" && "text-xs",
         variant === "xsmb" && "text-xs font-LexendSemiBold",
         variant === "sm" && "text-sm font-Lexend",

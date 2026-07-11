@@ -14,7 +14,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -61,8 +60,7 @@ function toDisplayItem(doc: ESimDocument): Esim {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = () =>
-  StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
       flex: 1,
       padding: 10,
@@ -369,9 +367,6 @@ const OrderCard = ({
   isExpanded: boolean;
   onToggle: () => void;
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
-  // const router = useRouter();
   const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
 
   const statusColor = colorForStatus(order.orderStatus);
@@ -481,8 +476,6 @@ const OrderCard = ({
 // ─── OrdersScreen ─────────────────────────────────────────────────────────────
 
 export default function OrdersScreen() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const router = useRouter();
   const bg = useThemeColor({}, "background");
   const { expandOrderId } = useLocalSearchParams<{ expandOrderId?: string }>();

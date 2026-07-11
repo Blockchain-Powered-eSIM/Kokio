@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import CountryFlag from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
@@ -43,8 +42,6 @@ const ESIMItem = ({
   containerStyle?: object;
   onPress?: () => void;
 }) => {
-  const { isDark } = useTheme();
-
   const handleBuyCTAClick = useCallback(
     (id: string) => () => {
       router.navigate({
@@ -122,7 +119,7 @@ const ESIMItem = ({
     // isDark is required here, useTheme() does not change the element on regional, global and homepage
     // It only works on the local tab of the shop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [item, showBuyButton, handleBuyCTAClick, isDark]
+    [item, showBuyButton, handleBuyCTAClick]
   );
 
   if (onPress) {

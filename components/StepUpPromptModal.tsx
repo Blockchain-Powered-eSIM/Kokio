@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -10,9 +10,8 @@ import {
 } from "react-native";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: Theme.colors.overlayMedium,
@@ -125,8 +124,6 @@ function friendlyOperation(raw: string | undefined): string {
 }
 
 export function StepUpPromptModal() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const { stepUpVisible, stepUpHint, stepUpError, stepUp, dismissStepUp } =
     useAuthRelay();
   const [loading, setLoading] = useState(false);

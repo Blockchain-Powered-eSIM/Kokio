@@ -11,7 +11,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import CountryFlag from "@/components/ui/CountryFlag";
 import SearchBar from "@/components/SearchInput";
@@ -30,8 +29,7 @@ const SEARCH_THRESHOLD = 3;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = () =>
-  StyleSheet.create({
+const styles = StyleSheet.create({
     safeArea: {
       flex: 1,
     },
@@ -122,10 +120,8 @@ const createStyles = () =>
 
 const CoverageRow = ({
   entry,
-  styles,
 }: {
   entry:  CountryNetworkEntry;
-  styles: ReturnType<typeof createStyles>;
 }) => {
   const networks = entry.networks ?? [];
   return (
@@ -161,10 +157,8 @@ const CoverageRow = ({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CoverageModal() {
-  const { isDark } = useTheme();
-  const styles     = useMemo(createStyles, [isDark]);
-  const bg         = useThemeColor({}, "background");
-  const router     = useRouter();
+  const bg = useThemeColor({}, "background");
+  const router = useRouter();
 
   const { data: rawData } = useLocalSearchParams<{ data: string }>();
   const [query, setQuery] = useState("");
@@ -229,7 +223,7 @@ export default function CoverageModal() {
         data={filtered}
         keyExtractor={(_, i) => i.toString()}
         renderItem={({ item }) => (
-          <CoverageRow entry={item} styles={styles} />
+          <CoverageRow entry={item} />
         )}
         style={styles.list}
         showsVerticalScrollIndicator={false}

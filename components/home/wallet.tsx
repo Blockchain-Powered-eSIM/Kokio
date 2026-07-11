@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   StyleSheet,
   Image,
@@ -13,7 +13,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
@@ -34,7 +33,7 @@ const shortenId = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   headingText: {
     fontSize: 16,
     paddingLeft: 20,
@@ -135,8 +134,6 @@ const createStyles = () => StyleSheet.create({
 });
 
 const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const handleAddressPress = async () => {
     if (walletId) {
       const url = `${BASE_SEPOLIA_TESTNET}/${walletId}`;

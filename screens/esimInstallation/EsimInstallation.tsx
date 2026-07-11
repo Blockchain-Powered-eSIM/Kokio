@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import {
   Linking,
   Platform,
@@ -93,32 +93,7 @@ const warningStyles = StyleSheet.create({
   },
 });
 
-const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
-  const handleCopyQRData = async () => {
-    try {
-      await Clipboard.setStringAsync(text);
-    } catch (error) {
-      logger.error('CLIPBOARD_COPY_FAILED', { error });
-    }
-  };
-  return (
-    <View style={styles.textCopyContainer}>
-      <Text style={[styles.manualDetailsHeader, { color: Theme.colors.inactive }]}>{label}</Text>
-      <View style={styles.manualDetailsContent}>
-        <View style={styles.manualDetailsTextContainer}>
-          <Text style={[styles.manualDetailsText, { color: Theme.colors.text }]}>{text}</Text>
-        </View>
-        <TouchableOpacity style={styles.copyButton} onPress={handleCopyQRData}>
-          <Ionicons name="copy-outline" size={16} color={Theme.colors.text} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -245,9 +220,31 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
+const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
+  const handleCopyQRData = async () => {
+    try {
+      await Clipboard.setStringAsync(text);
+    } catch (error) {
+      logger.error('CLIPBOARD_COPY_FAILED', { error });
+    }
+  };
+  return (
+    <View style={styles.textCopyContainer}>
+      <Text style={[styles.manualDetailsHeader, { color: Theme.colors.inactive }]}>{label}</Text>
+      <View style={styles.manualDetailsContent}>
+        <View style={styles.manualDetailsTextContainer}>
+          <Text style={[styles.manualDetailsText, { color: Theme.colors.text }]}>{text}</Text>
+        </View>
+        <TouchableOpacity style={styles.copyButton} onPress={handleCopyQRData}>
+          <Ionicons name="copy-outline" size={16} color={Theme.colors.text} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 const EsimInstallation = () => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const { qrcode, appleInstallationUrl: rawAppleUrl } = useLocalSearchParams();
   const appleInstallationUrl = Array.isArray(rawAppleUrl) ? rawAppleUrl[0] : (rawAppleUrl ?? "");
   const router = useRouter();

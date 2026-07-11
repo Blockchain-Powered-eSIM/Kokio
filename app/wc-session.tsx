@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -9,7 +9,6 @@ import {
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useKokio } from "@/hooks/useKokio";
 import { Config } from "@/appKeys";
 import {
@@ -19,7 +18,7 @@ import {
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/utils/logger";
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
@@ -97,8 +96,6 @@ const createStyles = () => StyleSheet.create({
 });
 
 export default function WcSessionScreen() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const router = useRouter();
   const { kokio } = useKokio();
   const [loading, setLoading] = useState(false);

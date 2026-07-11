@@ -1,13 +1,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, View, Linking, Pressable, StatusBar } from 'react-native';
 import { Theme } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
 import { logger } from '@/utils/logger';
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -101,8 +100,6 @@ const createStyles = () => StyleSheet.create({
 });
 
 export default function QrCodeScreen() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const [permission, requestPermission] = useCameraPermissions();
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [scanned, setScanned] = useState(false);

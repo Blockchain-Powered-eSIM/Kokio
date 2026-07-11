@@ -15,7 +15,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
 import CountryFlag from "@/components/ui/CountryFlag";
 
@@ -36,8 +35,6 @@ const ExpandableContent = ({
   onNetworkPress: () => void;
   onContentSizeChange?: (w: number, h: number) => void;
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const isMultiCountry = eSimItem?.coverageType !== "LOCAL";
 
   return (
@@ -106,7 +103,7 @@ const ExpandableContent = ({
   );
 };
 
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   header: {
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
@@ -176,8 +173,6 @@ const createStyles = () => StyleSheet.create({
 });
 
 const CheckoutHeader = ({ eSimDetails = {} }: any) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
   const insets = useSafeAreaInsets();
 
   const computedHeaderHeight = useMemo(() => {

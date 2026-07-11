@@ -1,42 +1,41 @@
-// styles.ts
 import { StyleSheet } from "react-native";
 
 const tintColorLight = "#2A8FA0";
 
 export const Colors = {
   light: {
-    text: "#1A3D4F",           // deep navy
-    background: "#A8D8E8",     // sky blue — app bg
+    text: "#1A3D4F",
+    background: "#A8D8E8",
     tint: tintColorLight,
     icon: "#2A8FA0",
     tabIconDefault: "#7ABCCC",
     tabIconSelected: tintColorLight,
-    headerText: "#4A8090",
-    foreground: "#4A8090",     // slate — secondary text
-    card: "#FFFFFF",           // white — main cards
+    headerText: "#1A3D4F",
+    foreground: "#4A8090",
+    card: "#FFFFFF",
     cardForeground: "#1A3D4F",
     popover: "#FFFFFF",
     popoverForeground: "#1A3D4F",
-    primary: "#2A8FA0",        // deep teal
+    primary: "#2A8FA0",
     primaryForeground: "#FFFFFF",
-    secondary: "#E8614A",      // coral — CTA
+    secondary: "#E8614A",
     secondaryForeground: "#FFFFFF",
-    muted: "#C5E8F2",          // sky muted
-    mutedForeground: "#7ABCCC",
-    accent: "#2A8FA0",         // deep teal — icons/active
+    muted: "#8AB8C7",
+    mutedForeground: "#4A8090",
+    accent: "#2A8FA0",
     accentForeground: "#FFFFFF",
     destructive: "#FF453A",
     destructiveForeground: "#FFFFFF",
-    border: "#C5E8F2",
-    input: "#EEF8FC",          // cloud white — inputs
+    border: "#9BCBD9",
+    input: "#EEF8FC",
     ring: "#2A8FA0",
     inactive: "#9BA1A6",
   },
 
   dark: {
-    text: "white",
-    background: "#000",
-    tint: "#fff",
+    text: "#F2F2F7",
+    background: "#000000",
+    tint: "#FFFFFF",
     headerText:  "#9BA1A6",
     icon: "#9BA1A6",
     tabIconDefault: "#9BA1A6",
@@ -45,7 +44,6 @@ export const Colors = {
     secondaryBackground: "#242427",
     inactive: "#777777",
 
-    // background: '#ffffff',
     foreground: "#AEAEB2",
 
     card: "#FFD60A",
@@ -92,16 +90,9 @@ const EXTRA_TOKENS = {
   overlayDark: "rgba(0, 0, 0, 0.7)",
   handle: "rgba(60, 60, 67, 0.2)",
   handleArrow: "rgba(60, 60, 67, 0.8)",
-  info: "#64D2FF",
-  link: "#4A9EFF",
   gradientDark: "#404040",
-  modalBackground: "rgba(60, 60, 60, 0.9)",
-  contentBackground: "rgba(100, 100, 100, 0.9)",
-  itemBackground: "#1c1c1e",
   warning: "#FF9500",
   pink: "#FF2D55",
-  systemBlue: "#007AFF",
-  sheetBackground: "rgba(37, 37, 37, 0.95)",
 };
 
 const DARK_TOKENS = {
@@ -109,13 +100,20 @@ const DARK_TOKENS = {
   ...EXTRA_TOKENS,
   background: "#242427",
   inputBackground: "#7676803D",
-  surface: "#1a1a1a",
+  surface: "#1C1C1E",
   surfaceElevated: "#2a2a2a",
   skeletonBase: "#5C5C61",
   skeletonHighlight: "#E0E0E0",
-  shopCta: "#FFAF01",           // dark: keeps current goldenYellow
-  payButton: "#FFD60A",         // dark: keeps current secondary
-  walletModalBackground: "rgba(60, 60, 60, 0.9)", // dark: same as modalBackground
+  shopCta: "#FFAF01",
+  payButton: "#FFD60A",
+  info: "#64D2FF",
+  link: "#4A9EFF",
+  systemBlue: "#0A84FF",
+  modalBackground: "rgba(28, 28, 30, 0.9)",
+  contentBackground: "rgba(36, 36, 39, 0.9)",
+  itemBackground: "#1C1C1E",
+  sheetBackground: "rgba(37, 37, 37, 0.95)",
+  walletModalBackground: "rgba(60, 60, 60, 0.9)",
 };
 
 const LIGHT_TOKENS = {
@@ -128,15 +126,17 @@ const LIGHT_TOKENS = {
   skeletonBase: "#C5E8F2",
   skeletonHighlight: "#EEF8FC",
   destructive: "#FF453A",
-  secondaryBackground: "#FFFFFF",   // white tab bar
-  goldenYellow: "#E8614A",          // coral — no yellow in light theme
-  shopCta: "#7ABCCC",               // light: muted sky blue
-  payButton: "#FFFFFF",             // light: white
+  secondaryBackground: "#FFFFFF",
+  goldenYellow: "#E8614A",
+  shopCta: "#2A8FA0",
+  payButton: "#FFFFFF",
   cardForeground: "#1A3D4F",
-  highlight: "#E8614A",             // coral active tab tint
+  highlight: "#E8614A",
   inactive: "#7ABCCC",
   link: "#2A8FA0",
-  gradientDark: "#FFFFFF",          // wallet card gradient start: white → sky
+  info: "#065A76",
+  systemBlue: "#007AFF",
+  gradientDark: "#FFFFFF",
   modalBackground: "rgba(255, 255, 255, 0.95)",
   walletModalBackground: "rgba(168, 216, 232, 0.75)",
   contentBackground: "#FFFFFF",
