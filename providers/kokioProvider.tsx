@@ -283,10 +283,11 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         !kokio.userWallet
       ) {
         try {
+          const KokioConstants = await kokio.sdk.constants;
           const deployed = await checkWalletDeployed(
             kokio.deviceWalletAddress,
             kokio.sdk.viemWalletClient,
-            kokio.sdk.constants?.factoryAddresses?.REGISTRY as Address,
+            KokioConstants.factoryAddresses.REGISTRY as Address,
           );
 
           if (!deployed) {

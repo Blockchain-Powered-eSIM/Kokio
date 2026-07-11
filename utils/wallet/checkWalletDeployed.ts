@@ -8,7 +8,6 @@
  * The Registry ABI fragment is inlined rather than imported from the SDK package
  * because kokio-sdk's package.json#exports does not expose an ./abis path. 
  * The ABI fragment below is sourced from src/abis/Registry.ts in the SDK repo.
- * TODO: Remove this if the abis are exported via the SDK in the future.
  */
 
 import {
@@ -17,38 +16,8 @@ import {
   type WalletClient,
   type Address,
 } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
+import { Registry } from 'kokio-sdk/abis';
 import { logger } from '@/utils/logger';
-
-// ─── ABI fragment ─────────────────────────────────────────────────────────────
-// Source: kokio-sdk src/abis/Registry.ts — isDeviceWalletValid only.
-
-const IS_DEVICE_WALLET_VALID_ABI = [
-  {
-    inputs: [{
-      internalType: 'address',
-      name: 'deviceWalletAddress',
-      type: 'address'
-    }],
-    name: 'isDeviceWalletValid',
-    outputs:[{
-      internalType: 'bool',
-      name: 'valid',
-      type: 'bool'
-    }],
-    stateMutability: 'view',
-    type:   'function',
-  },
-] as const;
-
-// ─── Registry address map ─────────────────────────────────────────────────────
-// Sourced: kokio-sdk src/logic/constants.ts
-// TODO: Remove if available from SDK
-
-const REGISTRY_BY_CHAIN_ID: Record<number, Address> = {
-  [baseSepolia.id]: '0xCa447f5C75C57f6C59027304A5Fb5A09F0E005c9',
-  [base.id]: '0x',
-};
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -70,33 +39,23 @@ const REGISTRY_BY_CHAIN_ID: Record<number, Address> = {
 export async function checkWalletDeployed(
   deviceWalletAddress: string,
   viemWalletClient: WalletClient,
-  registryAddress?: Address,
+  registryAddress: Address,
 ): Promise<boolean> {
   try {
-    const chainId = await viemWalletClient.getChainId();
-    const useRegistryAddress = registryAddress ?? REGISTRY_BY_CHAIN_ID[chainId];
-
-    if (!useRegistryAddress || useRegistryAddress === '0x') {
-      logger.debug('WALLET_DEPLOY_CHECK_SKIPPED', {
-        chainId,
-        reason: 'registry_not_deployed',
-      });
-      return false;
-    }
-
-    const chain = viemWalletClient.chain ?? baseSepolia;
+    const chain = viemWalletClient.chain;
     const transportUrl = (viemWalletClient.transport as { url?: string }).url;
+    
     const publicClient = createPublicClient({
       chain,
       transport: http(transportUrl),
     });
 
     const isValid = await publicClient.readContract({
-      address: useRegistryAddress,
-      abi: IS_DEVICE_WALLET_VALID_ABI,
+      address: registryAddress,
+      abi: Registry,
       functionName: 'isDeviceWalletValid',
       args: [deviceWalletAddress as Address],
-    });
+    }) as boolean;
 
     logger.debug('WALLET_DEPLOY_CHECK', { deployed: isValid });
     return isValid;
