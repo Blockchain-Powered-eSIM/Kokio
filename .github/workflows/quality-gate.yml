@@ -51,6 +51,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Stray Logs
+        run: npm run lint:console
+
       # Deferred
       # The suite is not actively maintained against this PR gate yet. 
       # Re-enable this step once test suite is up-to-date w.r.t. tooling and functionality.
