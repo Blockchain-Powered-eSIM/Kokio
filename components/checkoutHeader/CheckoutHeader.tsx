@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View, Text, Dimensions, Platform, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useDerivedValue,
   withTiming,
   interpolate,
   Easing,
@@ -20,7 +21,8 @@ import CountryFlag from "@/components/ui/CountryFlag";
 
 import DetailItem from "../ui/DetailItem";
 
-const HEADER_MIN_HEIGHT = Platform.OS === "android" ? 150 : 200;
+const PILL_ROW_HEIGHT = 40;
+const HEADER_MIN_HEIGHT = (Platform.OS === "android" ? 150 : 200) + PILL_ROW_HEIGHT;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
 const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
@@ -28,9 +30,11 @@ const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
 const ExpandableContent = ({
   eSimItem = {},
   onNetworkPress,
+  onContentSizeChange,
 }: {
   eSimItem?: any;
   onNetworkPress: () => void;
+  onContentSizeChange?: (w: number, h: number) => void;
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
@@ -41,11 +45,11 @@ const ExpandableContent = ({
       showsVerticalScrollIndicator={false}
       scrollEnabled={true}
       contentContainerStyle={{ gap: 12 }}
+      onContentSizeChange={onContentSizeChange}
     >
       {ESIM_EXTRA_DETAILS.map((item, index) => {
         const value = _get(eSimItem, item.key);
 
-        // Suppress rows that opt in to hiding when the field is absent or null.
         if (item.hideWhenNullish && (value === null || value === undefined)) {
           return null;
         }
@@ -194,9 +198,18 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     return eSimDetails;
   }, [eSimDetails]);
 
-  const [contentHeight, setContentHeight] = useState(0);
+  // useSharedValues keeps worklets and styles in sync without React re-renders
+  const contentHeight = useSharedValue(0);
   const animatedHeight = useSharedValue(computedHeaderHeight);
   const isExpanded = useSharedValue(false);
+
+  // Derived value instantly updates the max height when contentHeight finishes measuring
+  const headerMaxHeight = useDerivedValue(() => {
+    return Math.min(
+      contentHeight.value + computedHeaderHeight + 40, // 40 for pill + margins
+      MAX_ALLOWED_HEIGHT
+    );
+  });
 
   const networkCoverage = useMemo(
     () => eSimItem?.countryWiseNetworkCoverages ?? [],
@@ -212,11 +225,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
 
   const navigation = useNavigation();
 
-  const headerMaxHeight = Math.min(
-    contentHeight + computedHeaderHeight + 40, // 40 for pill + margins
-    MAX_ALLOWED_HEIGHT
-  );
-
   const toggleExpanded = () => {
     "worklet";
     if (isExpanded.value) {
@@ -227,7 +235,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
       });
     } else {
       isExpanded.value = true;
-      animatedHeight.value = withTiming(headerMaxHeight, {
+      animatedHeight.value = withTiming(headerMaxHeight.value, {
         duration: 250,
         easing: Easing.out(Easing.ease),
       });
@@ -252,9 +260,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   });
 
   const combinedGesture = Gesture.Simultaneous(tapGesture, panGesture);
-
-  const onContentLayout = (event: any) =>
-    setContentHeight(_get(event, "nativeEvent.layout.height"));
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -297,8 +302,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         )}
       </View>
     ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleBack, eSimItem]
   );
 
@@ -327,8 +330,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         />
       </View>
     ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [eSimItem]
   );
 
@@ -336,11 +337,10 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     height: animatedHeight.value,
   }));
 
-  // Only animate width — height is fixed on the pill
   const animatedPillWidth = useAnimatedStyle(() => ({
     width: interpolate(
       animatedHeight.value,
-      [computedHeaderHeight, headerMaxHeight],
+      [computedHeaderHeight, headerMaxHeight.value],
       [48, DIVIDER_WIDTH]
     ),
   }));
@@ -348,7 +348,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const animatedContentStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       animatedHeight.value,
-      [computedHeaderHeight, headerMaxHeight],
+      [computedHeaderHeight, headerMaxHeight.value],
       [0, 1]
     ),
   }));
@@ -356,7 +356,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const animatedArrowDownStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       animatedHeight.value,
-      [computedHeaderHeight, headerMaxHeight],
+      [computedHeaderHeight, headerMaxHeight.value],
       [1, 0]
     ),
   }));
@@ -364,7 +364,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const animatedArrowUpStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       animatedHeight.value,
-      [computedHeaderHeight, headerMaxHeight],
+      [computedHeaderHeight, headerMaxHeight.value],
       [0, 1]
     ),
   }));
@@ -378,7 +378,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
           animatedHeaderStyle,
         ]}
       >
-        {/* Country + flag + back */}
         <View
           style={{
             marginBottom:
@@ -391,7 +390,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
           {detailItems}
         </View>
 
-        {/* Pill drag handle */}
         <View style={styles.expandIndicatorRow}>
           <Animated.View style={[styles.pillHandle, animatedPillWidth]}>
             <Animated.View style={animatedArrowDownStyle}>
@@ -405,19 +403,18 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
           </Animated.View>
         </View>
 
-        {/* Expandable details */}
         <Animated.View style={animatedContentStyle}>
-          <View onLayout={onContentLayout}>
-            <ExpandableContent
-              eSimItem={eSimItem}
-              onNetworkPress={handleNetworkPress}
-            />
-          </View>
+          <ExpandableContent
+            eSimItem={eSimItem}
+            onNetworkPress={handleNetworkPress}
+            onContentSizeChange={(_width, height) => {
+              contentHeight.value = height;
+            }}
+          />
         </Animated.View>
       </Animated.View>
     </GestureDetector>
   );
 };
-
 
 export default React.memo(CheckoutHeader);
