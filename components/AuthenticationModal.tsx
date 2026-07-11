@@ -310,7 +310,7 @@ export function AuthenticationModal() {
         )}
       </View>
     ),
-    [styles, mode]
+    [mode]
   );
 
   return (

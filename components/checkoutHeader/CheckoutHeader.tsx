@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View, Text, Dimensions, Platform, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -256,11 +256,11 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
 
   const combinedGesture = Gesture.Simultaneous(tapGesture, panGesture);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     }
-  };
+  }, [navigation]);
 
   const countryAndFlagWithGoBack = useMemo(
     () => (

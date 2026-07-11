@@ -235,7 +235,6 @@ const Checkout = () => {
 
   const radioButtons: RadioButtonProps[] = useMemo(
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedPaymentMethod],
   );
 

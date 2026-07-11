@@ -156,8 +156,6 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </View>
     ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -194,8 +192,6 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         )}
       </>
     ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [animatedIconStyle, textColor, variant, topupFromLabel, topupToLabel]
   );
 
@@ -210,8 +206,6 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </TouchableOpacity>
     ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onInstallESIM, onDone, variant]
   );
 
