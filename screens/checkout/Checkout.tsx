@@ -226,6 +226,7 @@ const Checkout = () => {
   const [isDiscountApplied, setIsDiscountApplied]         = useState<boolean>(false);
   const [discountAmount, setDiscountAmount]               = useState<number>(0);
   const [orderResponse, setOrderResponse]                 = useState<OrderStatusResponse | null>(null);
+  const [orderCompleted, setOrderCompleted]               = useState(false);
   const [topupSuccessInfo, setTopupSuccessInfo]           = useState<{ fromLabel: string; toLabel: string } | null>(null);
   const [discountError, setDiscountError]                 = useState<string>("");
   const [showManualReviewModal, setShowManualReviewModal] = useState(false);
@@ -278,7 +279,7 @@ const Checkout = () => {
     checkErrors,
   } = useEsimCompatibility(
     { planId: eSimItem?.catalogueId },
-    { enabled: hasPriorEsim },
+    { enabled: hasPriorEsim && !orderCompleted },
   );
   const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup]                   = useState(false);
@@ -327,6 +328,7 @@ const Checkout = () => {
       return;
     }
     if (isOrderSuccess(order.orderStatus)) {
+      setOrderCompleted(true);
       queryClient.invalidateQueries({ queryKey: [DEVICE_ESIMS_KEY] });
       queryClient.invalidateQueries({ queryKey: [DEVICE_ORDERS_KEY] });
       setOrderResponse(order);
@@ -479,6 +481,7 @@ const Checkout = () => {
 
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);
+    router.dismissAll();
     router.navigate({
       pathname: "/(tabs)/installation",
       params: {
@@ -492,7 +495,8 @@ const Checkout = () => {
 
   const handleTopupDone = useCallback(() => {
     setShowSuccessModal(false);
-    router.replace("/");
+    router.dismissAll();
+    router.navigate("/(tabs)");
   }, []);
 
   const handleWalletModalClose = useCallback(() => {
