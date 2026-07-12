@@ -4,6 +4,17 @@ Kokio uses EAS Workflows to automate native builds, store submissions, TestFligh
 
 These workflows are run on-demand from GitHub Actions after protected pull request merges to `staging` and `production`.
 
+## Platform Model
+
+Workflows are **scoped to a single platform**. The router resolves which platforms a release targets:
+
+- **Android is always released.** No label required.
+- **iOS is opt-in.** Add the `ios` label to the promotion PR (or choose `ios`/`both` on manual dispatch).
+
+iOS workflow files exist but are **dormant** — they are not invoked until an Apple Developer account is connected. This keeps a missing Apple account from failing an Android release, and keeps the iOS cutover to a label rather than a config change.
+
+Platform resolution lives **only** in `.github/workflows/route-eas-release.yml`. `scripts/validate-release-pr.mjs` stays platform-agnostic on purpose, so there is one place to edit when iOS comes online.
+
 ## Branch Purposes
 
 ### `dev`
@@ -26,7 +37,7 @@ The `staging` branch is for release candidate testing.
 - Runs OTA updates for PRs labeled `ota` only when they change approved OTA-safe paths and a compatible finished build already exists on Expo for both platforms.
 - Falls back to native builds for version, native, config, dependency, and uncertain changes.
 - Submits Android builds to Google Play open testing.
-- Distributes iOS builds through TestFlight external testing in the `Public` group.
+- Distributes iOS builds through TestFlight external testing in the `Public` group (when `ios` is opted in).
 
 ### `production`
 
@@ -39,7 +50,7 @@ The `production` branch is for real app releases.
 - Runs OTA updates for PRs labeled `ota` only when they change approved OTA-safe paths and a compatible finished build already exists on Expo for both platforms.
 - Falls back to native builds for version, native, config, dependency, and uncertain changes.
 - Submits Android builds to the Google Play production track.
-- Submits iOS builds to App Store Connect.
+- Submits iOS builds to App Store Connect (when `ios` is opted in).
 
 ## Release Versioning
 
@@ -61,69 +72,41 @@ The `Release Policy` GitHub Action validates that:
 
 ### `workflows/create-dev-builds.yml`
 
-Runs on pushes to `dev`.
+Runs on pushes to `dev`. Builds Android and iOS device builds with the `development` profile.
 
-This workflow builds:
+### Native build & submit
 
-- Android with the `development` EAS build profile.
-- iOS device builds with the `development` EAS build profile.
+| File | Runs when | Does |
+|---|---|---|
+| `workflows/deploy-staging-android.yml` | merged PR to `staging`, no `ota` label | Android `staging` build → Google Play open testing |
+| `workflows/deploy-staging-ios.yml` | as above **+ `ios` label** | iOS `staging` build → TestFlight (`Public`, beta review submitted) |
+| `workflows/deploy-production-android.yml` | merged PR to `production`, no `ota` label | Android `production` build → Play production track |
+| `workflows/deploy-production-ios.yml` | as above **+ `ios` label** | iOS `production` build → App Store Connect |
 
-### `workflows/deploy-staging.yml`
+Staging workflows use the EAS `preview` environment so cloud jobs pull staging-safe environment variables instead of production values.
 
-Runs on-demand from GitHub Actions for merged PRs to `staging` that do not have the `ota` label.
+### OTA
 
-This workflow:
-
-1. Creates a new Android build with the `staging` profile.
-2. Creates a new iOS build with the `staging` profile.
-3. Submits Android to Google Play open testing.
-4. Distributes iOS through TestFlight external testing in the `Public` group.
-
-The staging workflow uses the EAS `preview` environment for submission and distribution jobs so cloud jobs pull staging-safe environment variables instead of production values.
-
-### `workflows/publish-staging-ota.yml`
-
-Runs on-demand from GitHub Actions for merged PRs to `staging` that have the `ota` label.
-
-This workflow:
-
-1. Publishes an Android OTA update to the `staging` branch.
-2. Publishes an iOS OTA update to the `staging` branch.
-
-### `workflows/deploy-production.yml`
-
-Runs on-demand from GitHub Actions for merged PRs to `production` that do not have the `ota` label.
-
-This workflow:
-
-1. Creates a new Android build with the `production` profile.
-2. Creates a new iOS build with the `production` profile.
-3. Submits Android to the Google Play production track.
-4. Submits iOS to App Store Connect.
-
-### `workflows/publish-production-ota.yml`
-
-Runs on-demand from GitHub Actions for merged PRs to `production` that have the `ota` label.
-
-This workflow:
-
-1. Publishes an Android OTA update to the `production` branch.
-2. Publishes an iOS OTA update to the `production` branch.
+| File | Runs when | Does |
+|---|---|---|
+| `workflows/publish-staging-ota-android.yml` | merged PR to `staging` with `ota` | Android OTA to the `staging` branch |
+| `workflows/publish-staging-ota-ios.yml` | as above **+ `ios` label** | iOS OTA to the `staging` branch |
+| `workflows/publish-production-ota-android.yml` | merged PR to `production` with `ota` | Android OTA to the `production` branch |
+| `workflows/publish-production-ota-ios.yml` | as above **+ `ios` label** | iOS OTA to the `production` branch |
 
 ### `.github/workflows/route-eas-release.yml`
 
 Runs when a PR is merged into `staging` or `production`.
 
-This workflow:
+1. Reads the merged PR's target branch and labels.
+2. Resolves platforms: Android always; iOS if the `ios` label is present.
+3. Derives the workflow file per platform:
+   - `ota` label → `.eas/workflows/publish-{base}-ota-{platform}.yml`
+   - no `ota` label → `.eas/workflows/deploy-{base}-{platform}.yml`
+4. For OTA-labeled PRs, verifies Expo already has a finished store build **for each resolved platform** at the current app/runtime version on the target profile (`scripts/verify-ota-preflight.mjs`, via `OTA_PLATFORMS`).
+5. Calls `eas workflow:run` once per resolved platform with the exact merge commit SHA.
 
-1. Reads the merged PR target branch and labels.
-2. Chooses the correct EAS workflow:
-   - `ota` label on `staging` -> `publish-staging-ota.yml`
-   - no `ota` label on `staging` -> `deploy-staging.yml`
-   - `ota` label on `production` -> `publish-production-ota.yml`
-   - no `ota` label on `production` -> `deploy-production.yml`
-3. For OTA-labeled PRs, verifies Expo already has finished store builds for Android and iOS at the current app/runtime version on the target profile.
-4. Calls `eas workflow:run` with the exact merge commit SHA.
+`workflow_dispatch` supports an explicit `workflow_file`, which bypasses platform resolution entirely.
 
 ## OTA Trigger Rules
 
@@ -132,7 +115,7 @@ OTA is triggered only when all of these are true:
 - the merged PR targets `staging` or `production`
 - the merged PR carried the `ota` label and passed release validation
 - the PR changed only approved OTA-safe paths
-- Expo already has finished store builds for the target app/runtime version on both platforms
+- Expo already has a finished store build at the target app/runtime version **for each platform being published**
 
 OTA is not triggered when any of these are true:
 

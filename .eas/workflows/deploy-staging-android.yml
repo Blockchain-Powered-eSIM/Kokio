@@ -1,0 +1,18 @@
+name: Deploy staging (Android)
+
+jobs:
+  build_android:
+    name: Build Android
+    type: build
+    params:
+      platform: android
+      profile: staging
+
+  submit_android:
+    name: Submit Android to open testing
+    needs: [build_android]
+    type: submit
+    environment: preview
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: staging
