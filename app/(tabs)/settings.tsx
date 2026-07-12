@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -21,7 +21,7 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
@@ -49,9 +49,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconLeft: {
+    color: Theme.colors.icon,
     marginRight: 16,
   },
   iconRight: {
+    color: Theme.colors.icon,
     marginLeft: 16,
   },
   aboutContainer: {
@@ -73,9 +75,11 @@ const styles = StyleSheet.create({
     color: Theme.colors.text,
     fontSize: 24,
     fontWeight: "600",
+    paddingTop: 20,
   },
   closeButton: {
-    padding: 4,
+    color: Theme.colors.icon,
+    paddingTop: 16,
   },
   aboutContent: {
     flex: 1,
@@ -124,11 +128,10 @@ const styles = StyleSheet.create({
 
 const MENU_ITEM_ENABLED = {
   CONTACT: false, // moved from the bottom Phone tab — enable once contacts feature is ready
-  PRIVACY: false, // enable once privacy policy is ready
 };
 
 // Disabled menu item styling
-const DISABLED_OPACITY = 0.3;
+const DISABLED_OPACITY = 0.4;
 
 const MenuItem = ({
   title,
@@ -143,7 +146,8 @@ const MenuItem = ({
   action: (() => void) | undefined;
   disabled?: boolean;
 }) => {
-  useTheme();
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
   <TouchableOpacity
     style={[styles.menuItem, disabled && { opacity: DISABLED_OPACITY }]}
@@ -179,7 +183,8 @@ const MenuItem = ({
 };
 
 const AboutContent = ({ onClose }: { onClose: () => void }) => {
-  useTheme();
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const handleLinkPress = useCallback(async (url: string) => {
     try {
       await openBrowserAsync(url);
@@ -193,7 +198,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
       <View style={styles.aboutHeader}>
         <ThemedText style={styles.aboutTitle}>About</ThemedText>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color="white" />
+          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
         </TouchableOpacity>
       </View>
       <ScrollView
@@ -235,14 +240,15 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 const ContactContent = ({ onClose }: { onClose: () => void }) => {
-  useTheme();
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
 
   return (
     <View style={styles.aboutContainer}>
       <View style={styles.aboutHeader}>
         <ThemedText style={styles.aboutTitle}>Contact Support</ThemedText>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color="white" />
+          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
         </TouchableOpacity>
       </View>
       <View style={styles.aboutContent}>
@@ -253,7 +259,7 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
           <View style={styles.menuItemContent}>
             <Ionicons name="mail-outline" size={24} color="white" style={styles.iconLeft} />
             <ThemedText style={styles.menuItemText}>Email Us</ThemedText>
-            <ThemedText style={{ color: Theme.colors.muted, fontSize: 13 }}>contact@kokio.app</ThemedText>
+            <ThemedText style={styles.aboutLink}>contact@kokio.app</ThemedText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -263,7 +269,7 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
           <View style={styles.menuItemContent}>
             <Ionicons name="paper-plane-outline" size={24} color="white" style={styles.iconLeft} />
             <ThemedText style={styles.menuItemText}>Telegram</ThemedText>
-            <Ionicons name="chevron-forward-outline" size={20} color="white" />
+            <Ionicons name="chevron-forward-outline" size={20} color={styles.closeButton.color} />
           </View>
         </TouchableOpacity>
       </View>
@@ -279,21 +285,22 @@ export default function MenuScreen() {
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const bg = useThemeColor({}, "background");
+  const styles = useMemo(createStyles, [isDark]);
 
   const menuItems = [
-    {
-      id: "1",
-      title: "Contact",
-      iconLeft: "call-outline",
-      iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.CONTACT,
-    },
+    //{
+    //  id: "1",
+    //  title: "Contact",
+    //  iconLeft: "call-outline",
+    //  iconRight: "chevron-forward-outline",
+    //  disabled: !MENU_ITEM_ENABLED.CONTACT,
+    //},
     {
       id: "3",
       title: "Privacy Policy",
       iconLeft: "lock-closed-outline",
       iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.PRIVACY,
+      action: () => openBrowserAsync("https://kokio.app/privacy-policy"),
     },
     {
       id: "5",

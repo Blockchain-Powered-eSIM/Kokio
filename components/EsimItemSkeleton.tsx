@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated, {
   useSharedValue,
@@ -8,8 +8,9 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   esimItemContainer: {
     marginTop: Theme.spacing.lg,
   },
@@ -63,6 +64,8 @@ const EsimItemSkeleton = ({
 }: {
   containerStyle?: object;
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const opacity = useSharedValue(0.3);
 
   // Create a pulsing animation

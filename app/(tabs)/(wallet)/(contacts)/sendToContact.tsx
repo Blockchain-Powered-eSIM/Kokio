@@ -11,6 +11,7 @@ import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useToast } from '@/contexts/ToastContext'
 import { Theme } from '@/constants/Colors'
+import { useTheme } from '@/contexts/ThemeContext'
 import { logger } from '@/utils/logger';
 
 interface Token {
@@ -42,7 +43,7 @@ interface Transaction {
     transactions: Transaction[];
   }
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
     contentContainer: {
         backgroundColor: Theme.colors.background,
         padding: 0,
@@ -51,6 +52,8 @@ const styles = StyleSheet.create({
 })
 
 const SendToContact = () => {
+    const { isDark } = useTheme();
+    const styles = useMemo(createStyles, [isDark]);
     const params = useLocalSearchParams();
     const [amount, setAmount] = useState("0");
     const [token, setToken] = useState<Token | null>(null);
@@ -58,7 +61,9 @@ const SendToContact = () => {
     const [isLoading,setIsLoading] = useState(false);
     const { showToast, showMessage } = useToast();
 
+
     const sheetRef = useRef<BottomSheet>(null);
+
 
     const snapPoints = useMemo(() => ['96.5%', '97%'], []);
     const handleShowSheet = () => {

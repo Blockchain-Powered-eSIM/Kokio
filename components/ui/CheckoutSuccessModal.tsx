@@ -33,7 +33,7 @@ interface CheckoutSuccessModalProps {
   topupToLabel?: string;
 }
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: Theme.colors.overlay,
@@ -119,6 +119,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   topupToLabel,
 }) => {
   const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const textColor = useThemeColor({}, "text");
 
   const scale = useSharedValue(0);

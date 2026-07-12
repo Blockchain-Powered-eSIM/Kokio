@@ -15,13 +15,14 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
 import CountryFlag from "@/components/ui/CountryFlag";
 
 import DetailItem from "../ui/DetailItem";
 
 const PILL_ROW_HEIGHT = 40;
-const HEADER_MIN_HEIGHT = (Platform.OS === "android" ? 150 : 200) + PILL_ROW_HEIGHT;
+const HEADER_MIN_HEIGHT = 150 + PILL_ROW_HEIGHT;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
 const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
@@ -35,6 +36,8 @@ const ExpandableContent = ({
   onNetworkPress: () => void;
   onContentSizeChange?: (w: number, h: number) => void;
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const isMultiCountry = eSimItem?.coverageType !== "LOCAL";
 
   return (
@@ -103,7 +106,7 @@ const ExpandableContent = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   header: {
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
@@ -173,6 +176,8 @@ const styles = StyleSheet.create({
 });
 
 const CheckoutHeader = ({ eSimDetails = {} }: any) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const insets = useSafeAreaInsets();
 
   const computedHeaderHeight = useMemo(() => {

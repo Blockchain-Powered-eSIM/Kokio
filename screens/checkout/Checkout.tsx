@@ -22,6 +22,7 @@ import _toUpper from "lodash/toUpper";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
@@ -117,7 +118,7 @@ const ExternalWalletCheckout = ({
   return null;
 };
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   container:              { flex: 1 },
   scrollContent:          { flex: 1, paddingHorizontal: 12 },
   scrollContentContainer: { paddingBottom: 20 },
@@ -198,6 +199,8 @@ function esimDocToDisplayItem(doc: ESimDocument): Esim {
 }
 
 const Checkout = () => {
+  const { isDark } = useTheme();
+  const styles     = useMemo(createStyles, [isDark]);
   const { item: eSimDetails } = useLocalSearchParams();
 
   const eSimItem: Esim = React.useMemo(() => {

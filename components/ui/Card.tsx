@@ -3,11 +3,13 @@ import {
   View as DefaultView,
   StyleSheet,
 } from "react-native";
+import { useMemo } from "react";
 
 import type { ThemedTextProps } from "@/components/ThemedText";
 import type { ThemedViewProps } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Static layout styles — no Theme.colors, safe at module level
 const staticStyles = StyleSheet.create({
@@ -34,7 +36,7 @@ const staticStyles = StyleSheet.create({
   },
 });
 
-const cardStyle = StyleSheet.create({
+const createCardStyle = () => StyleSheet.create({
   card: {
     width: "100%",
     backgroundColor: Theme.colors.card,
@@ -44,6 +46,8 @@ const cardStyle = StyleSheet.create({
 
 function Card(props: ThemedViewProps) {
   const { style, lightColor, darkColor, children, ...otherProps } = props;
+  const { isDark } = useTheme();
+  const cardStyle = useMemo(createCardStyle, [isDark]);
   const backgroundColor = useThemeColor(
     { light: lightColor, dark: darkColor },
     "card"

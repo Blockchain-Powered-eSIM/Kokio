@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,11 @@ import _isNull from "lodash/isNull";
 import NetInfo from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/ThemedText";
 import { Colors, Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/contexts/ToastContext";
 import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.background,
@@ -78,6 +79,8 @@ const styles = StyleSheet.create({
 });
 
 const OfflineScreen: React.FC = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const router = useRouter();
   const { showMessage } = useToast();
 

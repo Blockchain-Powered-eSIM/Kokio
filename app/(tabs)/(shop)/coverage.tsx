@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import CountryFlag from "@/components/ui/CountryFlag";
 import SearchBar from "@/components/SearchInput";
@@ -19,7 +20,8 @@ type CountryNetworkEntry = {
 
 const SEARCH_THRESHOLD = 3;
 
-const styles = StyleSheet.create({
+const createStyles = () =>
+  StyleSheet.create({
     container: {
       flex: 1,
       paddingTop: 12,
@@ -88,8 +90,10 @@ const styles = StyleSheet.create({
 
 const CoverageRow = ({
   entry,
+  styles,
 }: {
   entry: CountryNetworkEntry;
+  styles: ReturnType<typeof createStyles>;
 }) => {
   const networks = entry.networks ?? [];
   return (
@@ -126,6 +130,8 @@ const CoverageRow = ({
 };
 
 export default function CoverageScreen() {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const bg = useThemeColor({}, "background");
   const { data: rawData } = useLocalSearchParams<{ data: string }>();
   const [query, setQuery] = useState("");
@@ -166,7 +172,7 @@ export default function CoverageScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(_, i) => i.toString()}
-        renderItem={({ item }) => <CoverageRow entry={item} />}
+        renderItem={({ item }) => <CoverageRow entry={item} styles={styles} />}
         style={styles.list}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

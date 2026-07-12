@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   labelContainer: {
     flex: 1,
     marginLeft: 8,
@@ -33,6 +34,8 @@ const styles = StyleSheet.create({
 });
 
 const ESimWallet = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
@@ -44,6 +47,8 @@ const ESimWallet = () => {
 };
 
 const CreditCard = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Credit Card</ThemedText>
@@ -56,6 +61,8 @@ const CreditCard = () => {
 };
 
 const ApplePay = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Apple Pay</ThemedText>
@@ -68,6 +75,8 @@ const ApplePay = () => {
 };
 
 const ExternalWallet = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>External Wallet</ThemedText>
@@ -80,6 +89,8 @@ const ExternalWallet = () => {
 };
 
 const ExternalWalletBrowser = () => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>External Wallet (via Moonpay)</ThemedText>

@@ -16,6 +16,7 @@ import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
@@ -38,7 +39,7 @@ const formatWalletAddress = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: Theme.colors.overlay,
@@ -214,6 +215,8 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   onClose,
   onContinue,
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
   const [showRetry, setShowRetry] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -6,6 +6,7 @@ import { router } from "expo-router";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { labelForStatus } from "@/utils/orderStatus";
 
 interface OrderFailureModalProps {
@@ -24,7 +25,7 @@ const REASON_LABELS: Record<string, string> = {
   WALLET_REGISTRATION_FAILED:'Device wallet registration failed.',
 };
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: Theme.colors.overlay,
@@ -117,6 +118,8 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
   manualReviewReason,
   onDismiss,
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {

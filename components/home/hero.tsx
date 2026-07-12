@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 import { Card, CardFooter } from "../ui/Card";
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   backgroundImageContainer: {
     overflow: "hidden",
     width: "100%",
@@ -68,6 +68,7 @@ const styles = StyleSheet.create({
 
 const Hero = () => {
   const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const handleShopCTAClick = useCallback(() => {
     router.navigate("/(tabs)/(shop)");
   }, []);

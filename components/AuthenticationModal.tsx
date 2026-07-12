@@ -24,7 +24,8 @@ import { logger } from '@/utils/logger';
 
 type AuthMode = "choice" | "authenticating" | "error";
 
-const styles = StyleSheet.create({
+const createStyles = () =>
+  StyleSheet.create({
     kokioImage: {
       height: 60,
       marginTop: 10,
@@ -35,6 +36,7 @@ const styles = StyleSheet.create({
       fontWeight: "300",
       fontFamily: "Lexend-Light",
       marginTop: 32,
+      paddingTop: 12,
     },
     authSubtext: {
       fontSize: 13,
@@ -127,6 +129,7 @@ const styles = StyleSheet.create({
 
 export function AuthenticationModal() {
   const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const [mode, setMode] = useState<AuthMode>("choice");
   const sheetRef = useRef<BottomSheet>(null);
 

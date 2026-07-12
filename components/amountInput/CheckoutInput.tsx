@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   TextInput,
   StyleSheet,
@@ -9,13 +9,14 @@ import {
 } from "react-native";
 import { ThemedText } from "../ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface CheckoutInputProps extends TextInputProps {
   label: string;
   containerStyle?: StyleProp<ViewStyle>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   blurContainer: {
     borderRadius: 20,
     overflow: "hidden",
@@ -50,6 +51,8 @@ const CheckoutInput: React.FC<CheckoutInputProps> = ({
   value,
   ...props
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   return (
     <View style={[styles.inner, containerStyle]}>
       <ThemedText light style={styles.label}>{label}</ThemedText>
