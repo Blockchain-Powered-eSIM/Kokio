@@ -288,13 +288,13 @@ export default function MenuScreen() {
   const styles = useMemo(createStyles, [isDark]);
 
   const menuItems = [
-    //{
-    //  id: "1",
-    //  title: "Contact",
-    //  iconLeft: "call-outline",
-    //  iconRight: "chevron-forward-outline",
-    //  disabled: !MENU_ITEM_ENABLED.CONTACT,
-    //},
+    {
+      id: "1",
+      title: "Contact",
+      iconLeft: "call-outline",
+      iconRight: "chevron-forward-outline",
+      disabled: !MENU_ITEM_ENABLED.CONTACT,
+    },
     {
       id: "3",
       title: "Privacy Policy",

@@ -157,6 +157,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </View>
     ),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -193,6 +195,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         )}
       </>
     ),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [animatedIconStyle, textColor, variant, topupFromLabel, topupToLabel]
   );
 
@@ -207,6 +211,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </TouchableOpacity>
     ),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onInstallESIM, onDone, variant]
   );
 

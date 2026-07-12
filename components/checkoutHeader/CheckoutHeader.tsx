@@ -302,6 +302,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         )}
       </View>
     ),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleBack, eSimItem]
   );
 
@@ -330,6 +332,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         />
       </View>
     ),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [eSimItem]
   );
 

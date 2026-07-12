@@ -238,6 +238,8 @@ const Checkout = () => {
 
   const radioButtons: RadioButtonProps[] = useMemo(
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedPaymentMethod],
   );
 

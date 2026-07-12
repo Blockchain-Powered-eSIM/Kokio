@@ -313,6 +313,8 @@ export function AuthenticationModal() {
         )}
       </View>
     ),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [mode]
   );
 
