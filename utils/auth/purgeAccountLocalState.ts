@@ -29,7 +29,11 @@ const SECURE_KEYS = [
 export async function purgeAccountLocalState(): Promise<void> {
   let deviceUID: string | null = null;
   try {
-    deviceUID = await SecureStore.getItemAsync('deviceUID');
+    const raw = await SecureStore.getItemAsync('deviceUID');
+    // Stored via JSON.stringify (kokioProvider.saveValueForDeviceUID, authProvider.signUpWithPasskey)
+    if (raw) {
+      try { deviceUID = JSON.parse(raw) as string; } catch { deviceUID = raw; }
+    }
   } catch {
     /* best-effort */
   }

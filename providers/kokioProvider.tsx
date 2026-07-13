@@ -16,6 +16,7 @@ import {
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/utils/logger";
 import { checkWalletDeployed } from "@/utils/wallet/checkWalletDeployed";
+import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { isAccountDeletedError } from "@/utils/bff/errors";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
@@ -249,6 +250,23 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     };
     fetchUserData();
   }, []);
+
+  /**
+   * Reset in-memory Kokio state when the account is deleted — either explicitly via Settings,
+   * or when ANY authed endpoint returns 404 ACCOUNT_DELETED (the interceptor path, where no screen is involved).
+   *
+   * State-only by design: storage is owned by purgeAccountLocalState, which runs in the same sequence.
+   * Calling clearKokioUser() here would race it.
+   */
+  useEffect(
+    () =>
+      subscribeAccountDeleted((deleted) => {
+        if (!deleted) return;
+        dispatch({ type: 'CLEAR_KOKIO_USER' });
+        dispatch({ type: 'CLEAR_KOKIO' });
+      }),
+    [],
+  );
 
   /**
    * ── SDK initialisation + wallet auto-derivation ───────────────────────────

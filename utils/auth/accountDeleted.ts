@@ -40,6 +40,7 @@ export async function hydrateAccountDeleted(): Promise<boolean> {
   } catch {
     _cached = false;
   }
+  listeners.forEach((fn) => fn(_cached));
   return _cached;
 }
 
