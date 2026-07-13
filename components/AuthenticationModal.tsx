@@ -13,6 +13,7 @@ import BottomSheet, {
   BottomSheetBackdropProps,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { isAccountDeletedCached, subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { ThemedText } from "./ThemedText";
 import { useKokio } from "@/hooks/useKokio";
@@ -44,6 +45,15 @@ const createStyles = () =>
       fontWeight: "300",
       fontFamily: "Lexend-Light",
       textAlign: "center",
+    },
+    deletedBody: {
+      fontSize: 13,
+      marginTop: 12,
+      fontWeight: "300",
+      fontFamily: "Lexend-Light",
+      textAlign: "center",
+      paddingHorizontal: 12,
+      lineHeight: 19,
     },
     loadingContainer: {
       alignItems: "center",
@@ -131,6 +141,7 @@ export function AuthenticationModal() {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   const [mode, setMode] = useState<AuthMode>("choice");
+  const [accountDeleted, setAccountDeleted] = useState(isAccountDeletedCached());
   const sheetRef = useRef<BottomSheet>(null);
 
   const { state, loginWithPasskey, signUpWithPasskey, recoverWithPasskey, clearError } =
@@ -152,6 +163,8 @@ export function AuthenticationModal() {
   // instead of re-checking SecureStore, which would briefly show the stale
   // "Log In" button before flipping to the New/Existing choice.
   const hasResolvedOnce = useRef(!!kokio.deviceWalletAddress);
+
+  useEffect(() => subscribeAccountDeleted(setAccountDeleted), []);
 
   useEffect(() => {
     if (kokio.deviceWalletAddress) {
@@ -335,33 +348,63 @@ export function AuthenticationModal() {
           style={styles.kokioImage}
         />
         <ThemedText style={[styles.authRequiredText, { color: Theme.colors.text }]}>
-          Authentication Required
-        </ThemedText>
-        <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
-          {mode === "authenticating"
-            ? "Verifying your identity…"
-            : isReturningUser
-            ? "Log in to continue"
-            : "Choose how to get started"}
+          {accountDeleted ? "Account Deleted" : "Authentication Required"}
         </ThemedText>
 
-        {mode === "authenticating" || isReturningUser === null ? (
-          loadingContent
-        ) : isReturningUser ? (
-          <View style={styles.loginButtonRow}>
-            <Pressable style={styles.loginButton} onPress={handleExistingUser}>
-              <Text style={styles.primaryButtonText}>Log In</Text>
-            </Pressable>
-          </View>
+        {accountDeleted ? (
+          <>
+            <ThemedText style={[styles.deletedBody, { color: Theme.colors.foreground }]}>
+              This account has been deleted and cannot be restored. If your Kokio passkey
+              is still on this device, remove it from your password manager — it no longer
+              grants access to anything.
+            </ThemedText>
+            <ThemedText style={[styles.deletedBody, { color: Theme.colors.foreground }]}>
+              To use Kokio again, create a new account. This generates a new passkey and a
+              new wallet.
+            </ThemedText>
+
+            {mode === "authenticating" ? (
+              loadingContent
+            ) : (
+              <View style={styles.loginButtonRow}>
+                {/* handleNewUser — not signUpWithPasskey directly: it supplies the
+                    {} argument and runs setupKokioRegistration, and its success path
+                    clears the deleted flag via clearAccountDeleted(). */}
+                <Pressable style={styles.loginButton} onPress={handleNewUser}>
+                  <Text style={styles.primaryButtonText}>Create New Account</Text>
+                </Pressable>
+              </View>
+            )}
+          </>
         ) : (
-          <View style={styles.buttonRow}>
-            <Pressable style={styles.primaryButton} onPress={handleNewUser}>
-              <Text style={styles.primaryButtonText}>New User</Text>
-            </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={handleExistingUser}>
-              <Text style={styles.secondaryButtonText}>Existing User</Text>
-            </Pressable>
-          </View>
+          <>
+            <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
+              {mode === "authenticating"
+                ? "Verifying your identity…"
+                : isReturningUser
+                ? "Log in to continue"
+                : "Choose how to get started"}
+            </ThemedText>
+
+            {mode === "authenticating" || isReturningUser === null ? (
+              loadingContent
+            ) : isReturningUser ? (
+              <View style={styles.loginButtonRow}>
+                <Pressable style={styles.loginButton} onPress={handleExistingUser}>
+                  <Text style={styles.primaryButtonText}>Log In</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.buttonRow}>
+                <Pressable style={styles.primaryButton} onPress={handleNewUser}>
+                  <Text style={styles.primaryButtonText}>New User</Text>
+                </Pressable>
+                <Pressable style={styles.secondaryButton} onPress={handleExistingUser}>
+                  <Text style={styles.secondaryButtonText}>Existing User</Text>
+                </Pressable>
+              </View>
+            )}
+          </>
         )}
 
         {!!state.error && mode === "error" && (

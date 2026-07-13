@@ -20,6 +20,7 @@ import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
+import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 
 const createStyles = () => StyleSheet.create({
   container: {
@@ -278,12 +279,13 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function MenuScreen() {
-  const { logout } = useAuthRelay();
+  const { logout, deleteAccount } = useAuthRelay();
   const { clearKokioUser } = useKokio();
   const { isDark, toggleTheme } = useTheme();
 
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const bg = useThemeColor({}, "background");
   const styles = useMemo(createStyles, [isDark]);
 
@@ -323,6 +325,14 @@ export default function MenuScreen() {
       iconRight: "chevron-forward-outline",
       action: logout,
     },
+    {
+      id: "9",
+      title: "Delete Account",
+      iconLeft: "trash-outline",
+      iconRight: "chevron-forward-outline",
+      destructive: true,
+      action: () => setShowDeleteAccount(true),
+    },
     ...(__DEV__ ? [{
       id: "7",
       title: "Logout and Clear Data",
@@ -357,6 +367,14 @@ export default function MenuScreen() {
               )}
               keyExtractor={(item) => item.id}
               style={styles.list}
+            />
+            <DeleteAccountModal
+              visible={showDeleteAccount}
+              onCancel={() => setShowDeleteAccount(false)}
+              onConfirm={async () => {
+                await deleteAccount();
+                setShowDeleteAccount(false);
+              }}
             />
             { <View style={styles.themeRow}>
               <Ionicons

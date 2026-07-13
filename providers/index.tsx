@@ -23,7 +23,7 @@ const PERSISTED_KEYS: Set<string> = new Set([DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY
 
 // ─── QueryClient ──────────────────────────────────────────────────────────────
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
@@ -35,7 +35,7 @@ const queryClient = new QueryClient({
 // Single flat key in AsyncStorage.
 // The dehydrateOptions filter below ensures only PERSISTED_KEYS queries are written.
 
-const asyncStoragePersister = createAsyncStoragePersister({
+export const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key:     'kokio.rq.cache',
 });

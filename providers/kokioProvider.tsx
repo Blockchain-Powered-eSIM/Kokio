@@ -16,6 +16,7 @@ import {
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/utils/logger";
 import { checkWalletDeployed } from "@/utils/wallet/checkWalletDeployed";
+import { isAccountDeletedError } from "@/utils/bff/errors";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
@@ -460,21 +461,28 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.setItemAsync('credentialId', credentialId);
     dispatch({ type: 'SET_DEVICE_WALLET_ADDRESS', payload: deviceWalletAddress });
 
-    const account = await getAccount();
-
-    await saveValueForDeviceUID('deviceUID', account.deviceUniqueIdentifier);
-    await SecureStore.setItemAsync('publicKeyX', account.pubKeyX);
-    await SecureStore.setItemAsync('publicKeyY', account.pubKeyY);
-    await SecureStore.setItemAsync('rawSalt',    account.salt);
-
-    dispatch({ type: 'SET_DEVICE_UID',    payload: account.deviceUniqueIdentifier });
-    dispatch({ type: 'SET_RAW_SALT',      payload: account.salt });
-    dispatch({
-      type: 'SET_KOKIO_PASSKEY',
-      payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
-    });
-    // userWallet is intentionally NOT set here.
-    // The initSdkAndDeriveWallet useEffect calls checkWalletDeployed once the SDK is ready.
+    try {
+      const account = await getAccount();
+      await saveValueForDeviceUID('deviceUID', account.deviceUniqueIdentifier);
+      await SecureStore.setItemAsync('publicKeyX', account.pubKeyX);
+      await SecureStore.setItemAsync('publicKeyY', account.pubKeyY);
+      await SecureStore.setItemAsync('rawSalt',    account.salt);
+  
+      dispatch({ type: 'SET_DEVICE_UID',    payload: account.deviceUniqueIdentifier });
+      dispatch({ type: 'SET_RAW_SALT',      payload: account.salt });
+      dispatch({
+        type: 'SET_KOKIO_PASSKEY',
+        payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
+      });
+      // userWallet is intentionally NOT set here.
+      // The initSdkAndDeriveWallet useEffect calls checkWalletDeployed once the SDK is ready.
+    } catch (err) {
+      if ( isAccountDeletedError(err) ) {
+        // Terminal
+        logger.debug('RECOVERY_ABORTED_ACCOUNT_DELETED');
+        throw err;
+      }
+    }
   };
 
   const clearKokio = () => {
