@@ -142,12 +142,18 @@ export function AuthenticationModal() {
   const styles = useMemo(createStyles, [isDark]);
   const [mode, setMode] = useState<AuthMode>("choice");
   const [accountDeleted, setAccountDeleted] = useState(isAccountDeletedCached());
+  const [localError, setLocalError] = useState("");
   const sheetRef = useRef<BottomSheet>(null);
 
   const { state, loginWithPasskey, signUpWithPasskey, recoverWithPasskey, clearError } =
     useAuthRelay();
   const { kokio, setupKokioRegistration, setupKokioRecovery, clearKokioUser } =
     useKokio();
+  
+  const resetErrors = useCallback(() => {
+    clearError();
+    setLocalError("");
+  }, [clearError]);
 
   // Distinguishes a fresh install / never-registered device (show New vs.
   // Existing choice) from a device that already completed passkey setup
@@ -208,7 +214,7 @@ export function AuthenticationModal() {
   );
 
   const handleNewUser = useCallback(async () => {
-    clearError();
+    setLocalError();
     setMode("authenticating");
     let succeeded = false;
     try {
@@ -231,10 +237,10 @@ export function AuthenticationModal() {
     } finally {
       if (!succeeded) setMode("error");
     }
-  }, [signUpWithPasskey, setupKokioRegistration, clearError]);
+  }, [signUpWithPasskey, setupKokioRegistration, setLocalError]);
 
   const handleExistingUser = useCallback(async () => {
-    clearError();
+    setLocalError();
     setMode("authenticating");
     let succeeded = false;
     try {
@@ -273,6 +279,24 @@ export function AuthenticationModal() {
           );
           succeeded = true;
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        } else {
+          const recovered = await recoverWithPasskey();
+          logger.debug('AUTH_RECOVER_RESULT', { recovered });
+          if (recovered) {
+            await setupKokioRecovery(
+              recovered.deviceWalletAddress,
+              recovered.credentialId
+            );
+            succeeded = true;
+            sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+          } else {
+            // No discoverable Kokio passkey on this device. Distinct from a
+            // failure — this is simply a device that has never registered, or
+            // whose passkey was deleted from the password manager.
+            setLocalError(
+              "No Kokio passkey found on this device. Tap New User to create an account."
+            );
+          }
         }
       }
     } catch (e) {
@@ -286,7 +310,7 @@ export function AuthenticationModal() {
     kokio,
     setupKokioRecovery,
     clearKokioUser,
-    clearError,
+    resetErrors,
   ]);
 
   useEffect(() => {
@@ -297,11 +321,11 @@ export function AuthenticationModal() {
       // expanded/closed, never unmounted — so `mode` from a prior attempt
       // (e.g. left at "authenticating" after a successful login) would
       // otherwise leak into the next time the modal reopens (e.g. on logout).
-      clearError();
+      resetErrors();
       setMode("choice");
       sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
     }
-    // clearError intentionally omitted: it's recreated every provider render
+    // resetErrors intentionally omitted: it's recreated every provider render
     // and including it would re-trigger this effect (and re-animate the
     // sheet) on unrelated re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -381,6 +405,8 @@ export function AuthenticationModal() {
             <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
               {mode === "authenticating"
                 ? "Verifying your identity…"
+                : isReturningUser === null
+                ? "Checking this device…"
                 : isReturningUser
                 ? "Log in to continue"
                 : "Choose how to get started"}
@@ -407,14 +433,14 @@ export function AuthenticationModal() {
           </>
         )}
 
-        {!!state.error && mode === "error" && (
-          <Text style={styles.errorText}>{state.error}</Text>
+        {mode === "error" && !!(localError || state.error) && (
+          <Text style={styles.errorText}>{localError || state.error}</Text>
         )}
 
         <Pressable
           disabled={mode === "authenticating"}
           onPress={() => {
-            clearError();
+            resetErrors();
             setMode("choice");
             sheetRef.current?.close({
               duration: 250,
