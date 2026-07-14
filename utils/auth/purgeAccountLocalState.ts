@@ -44,8 +44,8 @@ export async function purgeAccountLocalState(): Promise<void> {
   if (deviceUID) {
     await Promise.all([
       AsyncStorage.removeItem(`purchasedESIMs-${deviceUID}`).catch(() => {}),
-      AsyncStorage.removeItem(`userWallet-${deviceUID}`).catch(() => {}),
-      AsyncStorage.removeItem(`userData-${deviceUID}`).catch(() => {}),
+      SecureStore.deleteItemAsync(`userWallet-${deviceUID}`).catch(() => {}),
+      SecureStore.deleteItemAsync(`userData-${deviceUID}`).catch(() => {}),
     ]);
   }
   try {
