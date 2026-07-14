@@ -214,7 +214,7 @@ export function AuthenticationModal() {
   );
 
   const handleNewUser = useCallback(async () => {
-    setLocalError();
+    resetErrors();
     setMode("authenticating");
     let succeeded = false;
     try {
@@ -237,10 +237,10 @@ export function AuthenticationModal() {
     } finally {
       if (!succeeded) setMode("error");
     }
-  }, [signUpWithPasskey, setupKokioRegistration, setLocalError]);
+  }, [signUpWithPasskey, setupKokioRegistration, resetErrors]);
 
   const handleExistingUser = useCallback(async () => {
-    setLocalError();
+    resetErrors();
     setMode("authenticating");
     let succeeded = false;
     try {
@@ -258,7 +258,7 @@ export function AuthenticationModal() {
         } else if (result === "no-credential") {
           // Passkey deleted — fall back to recovery
           await clearKokioUser();
-          clearError();
+          resetErrors();
           const recovered = await recoverWithPasskey();
           if (recovered) {
             await setupKokioRecovery(
