@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme } from '@/constants/Colors';
+import { logger } from '@/utils/logger';
 
 interface Transaction {
   id: string;
@@ -29,7 +30,7 @@ const ContactDetails = () => {
       const contact = contactJson ? JSON.parse(contactJson) : null;
 
       if (!contact) {
-        console.error(`Contact with ID ${contact_id} not found`);
+        logger.error('CONTACT_NOT_FOUND', { contact_id });
         setTransactions([]); // Set empty array if contact not found
         return;
       }
@@ -38,9 +39,9 @@ const ContactDetails = () => {
       const contactTransactions: Transaction[] = contact.transactions || [];
       setTransactions(contactTransactions);
 
-      console.log("Fetched transactions:", contactTransactions);
+      logger.debug('CONTACT_TRANSACTIONS_FETCHED', { contactTransactions });
     } catch (error) {
-      console.error("Error fetching transactions:", error);
+      logger.error('CONTACT_TRANSACTIONS_FETCH_FAILED', { error });
       setTransactions([]); // Set empty array in case of error
     }
   };

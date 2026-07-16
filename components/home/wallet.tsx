@@ -17,6 +17,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
+import { logger } from '@/utils/logger';
 
 interface WalletProps {
   balance?: string;
@@ -142,7 +143,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
       try {
         await Linking.openURL(url);
       } catch (error) {
-        console.error("Error opening browser:", error);
+        logger.error('BROWSER_OPEN_FAILED', { error });
       }
     }
   };
@@ -152,7 +153,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
       try {
         await Clipboard.setStringAsync(walletId);
       } catch (error) {
-        console.error("Error copying to clipboard:", error);
+        logger.error('CLIPBOARD_COPY_FAILED', { error });
       }
     }
   };
@@ -203,6 +204,9 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
                     onPress={handleAddressPress}
                     disabled={!walletId}
                     style={styles.iconButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open wallet address in block explorer"
                   >
                     <MaterialIcons
                       name="open-in-new"
@@ -214,21 +218,21 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
                     onPress={handleCopyAddress}
                     disabled={!walletId}
                     style={styles.iconButton}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Copy wallet address"
                   >
                     <Ionicons name="copy-outline" size={16} color={Theme.colors.foreground} />
                   </TouchableOpacity>
                 </View>
               </View>
             </>
-          // ) : (
-          //   <>
-          //     <ThemedText className="mt-8 mb-20 ml-4">
-          //       Proceed to shop and continue.
-          //     </ThemedText>
-          //   </>
-          // )}
           ) : (
-            <TouchableOpacity onPress={onSetupWallet} >
+            <TouchableOpacity
+              onPress={onSetupWallet}
+              accessibilityRole="button"
+              accessibilityLabel="Create your device wallet"
+            >
               <ThemedText className="mt-8 mb-20 ml-4">
                 Tap to create your device wallet
               </ThemedText>

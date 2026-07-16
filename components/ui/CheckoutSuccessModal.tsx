@@ -24,7 +24,13 @@ interface CheckoutSuccessModalProps {
   visible: boolean;
   loading?: boolean;
   onClose?: () => void;
-  onInstallESIM: () => void;
+  variant?: "install" | "topup";
+  onInstallESIM?: () => void;
+  onDone?: () => void;
+  /** Label of the plan just purchased, e.g. "United Arab Emirates · 7 Days · 1GB" — topup variant only. */
+  topupFromLabel?: string;
+  /** Label of the existing eSIM the top-up was applied to — topup variant only. */
+  topupToLabel?: string;
 }
 
 const createStyles = () => StyleSheet.create({
@@ -106,7 +112,11 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   visible,
   loading = false,
   onClose = () => {},
+  variant = "install",
   onInstallESIM,
+  onDone,
+  topupFromLabel,
+  topupToLabel,
 }) => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
@@ -147,7 +157,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </View>
     ),
-    // styles have their own memo watching for changes based on theme
+    // All missing dependencies are of style attributes which are in their on useMemo() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
@@ -164,33 +174,46 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </Animated.View>
 
         <ThemedText bold style={[styles.title, { color: textColor }]}>
-          Transaction Successful
+          {variant === "topup" ? "Top-up Successful" : "Transaction Successful"}
         </ThemedText>
 
-        <ThemedText style={[styles.subtitle, { color: textColor }]}>
-          It&#39;s now time to install your newly purchased eSIM.
-        </ThemedText>
+        {variant === "topup" ? (
+          <ThemedText style={[styles.subtitle, { color: textColor }]}>
+            {`Top-up of ${topupFromLabel ?? "your new plan"} is applied to ${topupToLabel ?? "your eSIM"}.`}
+          </ThemedText>
+        ) : (
+          <>
+            <ThemedText style={[styles.subtitle, { color: textColor }]}>
+              It&#39;s now time to install your newly purchased eSIM.
+            </ThemedText>
 
-        <ThemedText style={styles.description}>
-          If you are not abroad yet, no worries, the eSIM will only activate
-          once connected to your destination network.
-        </ThemedText>
+            <ThemedText style={styles.description}>
+              If you are not abroad yet, no worries, the eSIM will only activate
+              once connected to your destination network.
+            </ThemedText>
+          </>
+        )}
       </>
     ),
-    // styles have their own memo watching for changes based on theme
+    // All missing dependencies are of style attributes which are in their on useMemo() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [animatedIconStyle, textColor]
+    [animatedIconStyle, textColor, variant, topupFromLabel, topupToLabel]
   );
 
-  const installButton = useMemo(
+  const actionButton = useMemo(
     () => (
-      <TouchableOpacity style={[styles.installButton, { backgroundColor: Theme.colors.shopCta }]} onPress={onInstallESIM}>
-        <ThemedText style={[styles.installButtonText, { color: Theme.colors.cardForeground }]}>Install eSIM</ThemedText>
+      <TouchableOpacity
+        style={[styles.installButton, { backgroundColor: Theme.colors.shopCta }]}
+        onPress={variant === "topup" ? onDone : onInstallESIM}
+      >
+        <ThemedText style={[styles.installButtonText, { color: Theme.colors.cardForeground }]}>
+          {variant === "topup" ? "Done" : "Install eSIM"}
+        </ThemedText>
       </TouchableOpacity>
     ),
-    // styles have their own memo watching for changes based on theme
+    // All missing dependencies are of style attributes which are in their on useMemo() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onInstallESIM]
+    [onInstallESIM, onDone, variant]
   );
 
   return (
@@ -210,7 +233,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
             </View>
           </View>
 
-          {!loading && installButton}
+          {!loading && actionButton}
         </View>
       </View>
     </Modal>

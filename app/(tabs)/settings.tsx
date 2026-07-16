@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-  // Switch,
   Text,
   Switch,
   Linking,
@@ -20,6 +19,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { logger } from "@/utils/logger";
+import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 
 const createStyles = () => StyleSheet.create({
   container: {
@@ -49,9 +50,11 @@ const createStyles = () => StyleSheet.create({
     flex: 1,
   },
   iconLeft: {
+    color: Theme.colors.icon,
     marginRight: 16,
   },
   iconRight: {
+    color: Theme.colors.icon,
     marginLeft: 16,
   },
   aboutContainer: {
@@ -73,9 +76,11 @@ const createStyles = () => StyleSheet.create({
     color: Theme.colors.text,
     fontSize: 24,
     fontWeight: "600",
+    paddingTop: 20,
   },
   closeButton: {
-    padding: 4,
+    color: Theme.colors.icon,
+    paddingTop: 16,
   },
   aboutContent: {
     flex: 1,
@@ -124,11 +129,10 @@ const createStyles = () => StyleSheet.create({
 
 const MENU_ITEM_ENABLED = {
   CONTACT: false, // moved from the bottom Phone tab — enable once contacts feature is ready
-  PRIVACY: false, // enable once privacy policy is ready
 };
 
 // Disabled menu item styling
-const DISABLED_OPACITY = 0.3;
+const DISABLED_OPACITY = 0.4;
 
 const MenuItem = ({
   title,
@@ -186,7 +190,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
     try {
       await openBrowserAsync(url);
     } catch (error) {
-      console.error("Error opening browser:", error);
+      logger.error('BROWSER_OPEN_FAILED', { error });
     }
   }, []);
 
@@ -195,7 +199,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
       <View style={styles.aboutHeader}>
         <ThemedText style={styles.aboutTitle}>About</ThemedText>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color="white" />
+          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
         </TouchableOpacity>
       </View>
       <ScrollView
@@ -245,7 +249,7 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
       <View style={styles.aboutHeader}>
         <ThemedText style={styles.aboutTitle}>Contact Support</ThemedText>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color="white" />
+          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
         </TouchableOpacity>
       </View>
       <View style={styles.aboutContent}>
@@ -256,7 +260,7 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
           <View style={styles.menuItemContent}>
             <Ionicons name="mail-outline" size={24} color="white" style={styles.iconLeft} />
             <ThemedText style={styles.menuItemText}>Email Us</ThemedText>
-            <ThemedText style={{ color: Theme.colors.muted, fontSize: 13 }}>contact@kokio.app</ThemedText>
+            <ThemedText style={styles.aboutLink}>contact@kokio.app</ThemedText>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -266,7 +270,7 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
           <View style={styles.menuItemContent}>
             <Ionicons name="paper-plane-outline" size={24} color="white" style={styles.iconLeft} />
             <ThemedText style={styles.menuItemText}>Telegram</ThemedText>
-            <Ionicons name="chevron-forward-outline" size={20} color="white" />
+            <Ionicons name="chevron-forward-outline" size={20} color={styles.closeButton.color} />
           </View>
         </TouchableOpacity>
       </View>
@@ -275,12 +279,13 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 export default function MenuScreen() {
-  const { logout } = useAuthRelay();
+  const { logout, deleteAccount } = useAuthRelay();
   const { clearKokioUser } = useKokio();
   const { isDark, toggleTheme } = useTheme();
 
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const bg = useThemeColor({}, "background");
   const styles = useMemo(createStyles, [isDark]);
 
@@ -297,7 +302,7 @@ export default function MenuScreen() {
       title: "Privacy Policy",
       iconLeft: "lock-closed-outline",
       iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.PRIVACY,
+      action: () => openBrowserAsync("https://kokio.app/privacy-policy"),
     },
     {
       id: "5",
@@ -319,6 +324,14 @@ export default function MenuScreen() {
       iconLeft: "log-out-outline",
       iconRight: "chevron-forward-outline",
       action: logout,
+    },
+    {
+      id: "9",
+      title: "Delete Account",
+      iconLeft: "trash-outline",
+      iconRight: "chevron-forward-outline",
+      destructive: true,
+      action: () => setShowDeleteAccount(true),
     },
     ...(__DEV__ ? [{
       id: "7",
@@ -354,6 +367,14 @@ export default function MenuScreen() {
               )}
               keyExtractor={(item) => item.id}
               style={styles.list}
+            />
+            <DeleteAccountModal
+              visible={showDeleteAccount}
+              onCancel={() => setShowDeleteAccount(false)}
+              onConfirm={async () => {
+                await deleteAccount();
+                setShowDeleteAccount(false);
+              }}
             />
             { <View style={styles.themeRow}>
               <Ionicons

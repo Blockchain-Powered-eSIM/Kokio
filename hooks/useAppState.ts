@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { AppState } from "react-native";
+import { logger } from '@/utils/logger';
 
 export function useAppState(reauth?: boolean) {
   const appState = useRef(AppState.currentState);
@@ -11,17 +12,17 @@ export function useAppState(reauth?: boolean) {
         appState.current.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
-        console.log("Kokio App has come to the foreground!");
+        logger.debug('APPSTATE_FOREGROUND');
       } else {
         if (reauth) {
           // reauthenticate();
-          console.log("App has gone to the background!");
+          logger.debug('APPSTATE_BACKGROUND');
         }
       }
       
       appState.current = nextAppState;
       setAppStateVisible(appState.current);
-      console.log("AppState", appState.current);
+      logger.debug('APPSTATE_CHANGE', { state: appState.current });
     });
     
     return () => {

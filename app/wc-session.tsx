@@ -17,6 +17,7 @@ import {
   pendingProposal,
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
+import { logger } from "@/utils/logger";
 
 const createStyles = () => StyleSheet.create({
   container: {
@@ -136,7 +137,7 @@ export default function WcSessionScreen() {
       setPendingProposal(null);
       router.replace("/");
     } catch (err) {
-      if (__DEV__) console.error("[WC] approve failed:", err);
+      logger.error('WC_APPROVE_FAILED', { err });
     } finally {
       setLoading(false);
     }
@@ -151,7 +152,7 @@ export default function WcSessionScreen() {
         reason: { code: 4001, message: "User rejected" },
       });
     } catch (err) {
-      if (__DEV__) console.error("[WC] reject failed:", err);
+      logger.error('WC_REJECT_FAILED', { err });
     } finally {
       setPendingProposal(null);
       setLoading(false);

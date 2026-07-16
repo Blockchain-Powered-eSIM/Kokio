@@ -1,0 +1,10 @@
+name: Publish production OTA (iOS)
+
+jobs:
+  publish_ios_update:
+    name: Publish iOS production OTA update
+    type: update
+    environment: production
+    params:
+      branch: production
+      platform: ios

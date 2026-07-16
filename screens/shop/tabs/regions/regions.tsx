@@ -16,13 +16,23 @@ import { REGION_CONFIG } from "@/constants/general.constants";
 import appBootstrap from "@/utils/appBootstrap";
 import { navigateToESIMsByRegion } from "@/utils/general";
 
+const EmptyListComponent = () => (
+  <ThemedText style={{ textAlign: "center", flex: 1, paddingTop: 42 }}>
+    No regions found
+  </ThemedText>
+);
+
 export default function Regions() {
   const list = appBootstrap.getRegions;
 
   const renderItem = ({ item, index }: any) => {
     const imagePath = _get(REGION_CONFIG, [item?.code, "imagePath"]);
     return (
-      <TouchableOpacity onPress={navigateToESIMsByRegion(item?.code)}>
+      <TouchableOpacity
+        onPress={navigateToESIMsByRegion(item?.code)}
+        accessibilityRole="button"
+        accessibilityLabel={item?.name || "Region"}
+      >
         <View key={item?.code || index} style={styles.region}>
           <ThemedText style={styles.regionLabel} variant="xl">
             {item?.name || ""}
@@ -44,6 +54,7 @@ export default function Regions() {
         renderItem={renderItem}
         style={{ width: "100%", backgroundColor: "transparent" }}
         keyExtractor={(item, index) => String(item?.code || index)}
+        ListEmptyComponent={EmptyListComponent}
       />
     </ThemedView>
   );

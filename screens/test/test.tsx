@@ -8,6 +8,7 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { useKokio } from "@/hooks/useKokio";
 import { useAppState } from "@/hooks/useAppState";
 import { generateKeyPair, SignJWT, calculateJwkThumbprint, exportJWK } from "jose";
+import { logger } from "@/utils/logger";
 
 const isValidEmail = (email: string | undefined) => {
   if (!email) return false;
@@ -16,7 +17,7 @@ const isValidEmail = (email: string | undefined) => {
 
 export default function TestScreen() {
   const appState = useAppState(true);
-  console.log("AppState in layout", appState);
+  logger.debug('TEST_APPSTATE', { appState });
 
   const { signUpWithPasskey, loginWithPasskey } = useAuthRelay();
   const { kokio, clearKokioUser } = useKokio();
@@ -144,7 +145,7 @@ export default function TestScreen() {
     try {
       await loginWithPasskey();
     } catch (e) {
-      console.error("Error signing in", e);
+      logger.error('TEST_SIGNIN_FAILED', { err: e });
     }
   }, [loginWithPasskey]);
 
@@ -153,9 +154,9 @@ export default function TestScreen() {
       return alert("Invalid email address");
     try {
       const response = await signUpWithPasskey({ username, email });
-      console.log("sign-up result", response);
+      logger.debug('TEST_SIGNUP_RESULT', { response });
     } catch (e) {
-      console.error("Error signing up", e);
+      logger.error('TEST_SIGNUP_FAILED', { err: e });
     }
   }, [email, username, signUpWithPasskey]);
 

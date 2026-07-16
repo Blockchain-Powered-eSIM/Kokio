@@ -1,21 +1,29 @@
-import React, { ReactNode } from "react";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import React, { ReactNode } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from "@react-navigation/native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+} from '@react-navigation/native';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { AuthRelayProvider } from "./authProvider";
-import { KokioProvider } from "./kokioProvider";
-import { KokioStripeProvider } from "./StripeProvider";
+import { AuthRelayProvider } from './authProvider';
+import { KokioProvider } from './kokioProvider';
+import { KokioStripeProvider } from './StripeProvider';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 
-import { ToastProvider } from "@/contexts/ToastContext";
-import { useColorScheme } from "@/hooks/useColorScheme";
+// ─── Persisted query keys ──────────────────────────────────────────────────────
+const PERSISTED_KEYS: Set<string> = new Set([DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY]);
 
-const queryClient = new QueryClient({
+// ─── QueryClient ──────────────────────────────────────────────────────────────
+
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
@@ -23,15 +31,32 @@ const queryClient = new QueryClient({
   },
 });
 
-// Used ReactNode as ReactElement will make call sites reject mutiple children
+// ─── AsyncStorage persister ───────────────────────────────────────────────────
+// Single flat key in AsyncStorage.
+// The dehydrateOptions filter below ensures only PERSISTED_KEYS queries are written.
+
+export const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key:     'kokio.rq.cache',
+});
+
 export const Providers = ({ children }: { children: ReactNode }) => {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <QueryClientProvider client={queryClient}>
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+              persister: asyncStoragePersister,
+              dehydrateOptions: {
+                shouldDehydrateQuery: (query) =>
+                  PERSISTED_KEYS.has(query.queryKey[0] as string),
+              },
+            }}
+          >
             <KokioStripeProvider>
               <AuthRelayProvider>
                 <KokioProvider>
@@ -39,7 +64,7 @@ export const Providers = ({ children }: { children: ReactNode }) => {
                 </KokioProvider>
               </AuthRelayProvider>
             </KokioStripeProvider>
-          </QueryClientProvider>
+          </PersistQueryClientProvider>
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </ThemeProvider>

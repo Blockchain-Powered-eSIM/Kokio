@@ -73,7 +73,7 @@ describe('single compatible eSIM → topup', () => {
       catalogueId:    PLAN_ID,
       currency:       'USD',
       isNewESim:      false,
-      eSimId:         selectedEsim,
+      esimId:         selectedEsim,
       isCryptoPayment: true,
       payeeAddress:   DEVICE_WALLET,
     } as any);
@@ -81,7 +81,7 @@ describe('single compatible eSIM → topup', () => {
     expect(order.orderId).toBe('ord-topup-001');
   });
 
-  it('topup order body has isNewESim: false and the selected eSimId', async () => {
+  it('topup order body has isNewESim: false and the selected esimId', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([COMPAT_A]));
     const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
     const selectedEsim = compat.results.find((r: any) => r.compatible)!.esimId;
@@ -91,20 +91,20 @@ describe('single compatible eSIM → topup', () => {
       catalogueId: PLAN_ID,
       currency: 'USD',
       isNewESim: false,
-      eSimId: selectedEsim,
+      esimId: selectedEsim,
       isCryptoPayment: true,
       payeeAddress: DEVICE_WALLET,
     } as any);
 
     const [, body] = mockPost.mock.calls[0];
-    expect(body).toMatchObject({ isNewESim: false, eSimId: ESIM_A });
+    expect(body).toMatchObject({ isNewESim: false, esimId: ESIM_A });
   });
 
   it('topup order body does NOT include deviceId', async () => {
     mockPost.mockResolvedValue(orderEnvelope());
     await createOrder({
       catalogueId: PLAN_ID, currency: 'USD', isNewESim: false,
-      eSimId: ESIM_A, isCryptoPayment: true, payeeAddress: DEVICE_WALLET,
+      esimId: ESIM_A, isCryptoPayment: true, payeeAddress: DEVICE_WALLET,
     } as any);
 
     const [, body] = mockPost.mock.calls[0];
@@ -124,7 +124,7 @@ describe('multiple compatible eSIMs — user selects one', () => {
     expect(compatible.map((r: any) => r.esimId)).toEqual([ESIM_A, ESIM_B]);
   });
 
-  it('user selects the second compatible eSIM — that eSimId is used in the order', async () => {
+  it('user selects the second compatible eSIM — that esimId is used in the order', async () => {
     mockGet.mockResolvedValueOnce(compatEnvelope([COMPAT_A, COMPAT_B]));
     const compat = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_A);
 
@@ -134,11 +134,11 @@ describe('multiple compatible eSIMs — user selects one', () => {
     mockPost.mockResolvedValueOnce(orderEnvelope(TOPUP_RESPONSE));
     await createOrder({
       catalogueId: PLAN_ID, currency: 'USD', isNewESim: false,
-      eSimId: userSelection, isCryptoPayment: true, payeeAddress: DEVICE_WALLET,
+      esimId: userSelection, isCryptoPayment: true, payeeAddress: DEVICE_WALLET,
     } as any);
 
     const [, body] = mockPost.mock.calls[0];
-    expect(body).toMatchObject({ eSimId: ESIM_B });
+    expect(body).toMatchObject({ esimId: ESIM_B });
   });
 
   it('incompatible eSIMs (vendorMismatch) are excluded by the caller', async () => {
@@ -180,7 +180,7 @@ describe('topup via external wallet', () => {
       catalogueId:    PLAN_ID,
       currency:       'USD',
       isNewESim:      false,
-      eSimId:         ESIM_A,
+      esimId:         ESIM_A,
       isCryptoPayment: true,
       payeeAddress:   EXTERNAL_ADDR,
       txnHash:        TXN_HASH,
@@ -191,7 +191,7 @@ describe('topup via external wallet', () => {
     const [, body] = mockPost.mock.calls[0];
     expect(body).toMatchObject({
       isNewESim:    false,
-      eSimId:       ESIM_A,
+      esimId:       ESIM_A,
       payeeAddress: EXTERNAL_ADDR,
       txnHash:      TXN_HASH,
       tokenName:    'USDC',
@@ -203,7 +203,7 @@ describe('topup via external wallet', () => {
     mockPost.mockResolvedValue(orderEnvelope());
     await createOrder({
       catalogueId: PLAN_ID, currency: 'USD', isNewESim: false,
-      eSimId: ESIM_A, isCryptoPayment: true, payeeAddress: EXTERNAL_ADDR,
+      esimId: ESIM_A, isCryptoPayment: true, payeeAddress: EXTERNAL_ADDR,
       txnHash: TXN_HASH, tokenName: 'USDC', network: 'BASE',
     } as any);
 
@@ -238,12 +238,12 @@ describe('topup flow error handling', () => {
   it('ORDER_CREATION_FAILED on topup propagates as BffError', async () => {
     mockPost.mockResolvedValue(bffError('ORDER_CREATION_FAILED'));
     await expect(
-      createOrder({ catalogueId: PLAN_ID, currency: 'USD', isNewESim: false, eSimId: ESIM_A, isCryptoPayment: true, payeeAddress: DEVICE_WALLET } as any)
+      createOrder({ catalogueId: PLAN_ID, currency: 'USD', isNewESim: false, esimId: ESIM_A, isCryptoPayment: true, payeeAddress: DEVICE_WALLET } as any)
     ).rejects.toBeInstanceOf(BffError);
   });
 
   it('failed topup can be retried and succeeds', async () => {
-    const req = { catalogueId: PLAN_ID, currency: 'USD', isNewESim: false, eSimId: ESIM_A, isCryptoPayment: true, payeeAddress: DEVICE_WALLET } as any;
+    const req = { catalogueId: PLAN_ID, currency: 'USD', isNewESim: false, esimId: ESIM_A, isCryptoPayment: true, payeeAddress: DEVICE_WALLET } as any;
     mockPost
       .mockResolvedValueOnce(bffError('ORDER_CREATION_FAILED'))
       .mockResolvedValueOnce(orderEnvelope());

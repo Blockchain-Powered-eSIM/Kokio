@@ -10,9 +10,7 @@ if (!eventPath && !process.env.RELEASE_BASE_BRANCH) {
   process.exit(1);
 }
 
-const event = eventPath
-  ? JSON.parse(fs.readFileSync(eventPath, "utf8"))
-  : {};
+const event = eventPath ? JSON.parse(fs.readFileSync(eventPath, "utf8")) : {};
 const baseBranch =
   process.env.RELEASE_BASE_BRANCH ?? event.pull_request?.base?.ref;
 const labels = (event.pull_request?.labels ?? []).map((label) => label.name);
@@ -29,13 +27,31 @@ if (!hasOtaLabel) {
   process.exit(0);
 }
 
+const VALID_PLATFORMS = new Set(["android", "ios"]);
+const platforms = (process.env.OTA_PLATFORMS ?? "android")
+  .split(/[\s,]+/)
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+
+if (platforms.length === 0) {
+  console.error("OTA_PLATFORMS resolved to an empty platform list.");
+  process.exit(1);
+}
+for (const platform of platforms) {
+  if (!VALID_PLATFORMS.has(platform)) {
+    console.error(
+      `Unknown platform "${platform}" in OTA_PLATFORMS. Expected android and/or ios.`
+    );
+    process.exit(1);
+  }
+}
+
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
 );
 const appVersion = packageJson.version;
 const runtimeVersion = packageJson.version;
 const profile = baseBranch;
-const platforms = ["android", "ios"];
 
 for (const platform of platforms) {
   let builds;
@@ -79,12 +95,15 @@ for (const platform of platforms) {
 
   if (!Array.isArray(builds) || builds.length === 0) {
     console.error(
-      `No finished ${platform} store build found for profile ${profile}, app version ${appVersion}, and runtime version ${runtimeVersion}. OTA requires an existing compatible build for both platforms.`
+      `No finished ${platform} store build found for profile ${profile}, app version ${appVersion}, and runtime version ${runtimeVersion}. ` +
+        `An OTA update to ${platform} requires an existing compatible store build for that platform.`
     );
     process.exit(1);
   }
+  console.log(
+    `OTA preflight: found a compatible finished ${platform} build for ${profile} @ ${appVersion}.`
+  );
 }
-
 console.log(
-  `OTA preflight passed for ${baseBranch} using app/runtime version ${appVersion}.`
+  `OTA preflight passed for ${baseBranch} (${platforms.join(", ")}) using app/runtime version ${appVersion}.`
 );

@@ -9,15 +9,25 @@ import type { RegisterResult } from "@/utils/auth/passkeyRegister";
 import { loginWithKokioPasskey, discoverAndLoginWithPasskey, type DiscoverLoginResult } from "@/utils/auth/passkeyLogin";
 import { performStepUp } from "@/utils/auth/stepUp";
 import { AuthError, StepUpCancelledError } from "@/utils/auth/errors";
+import { deleteAccount as bffDeleteAccount } from '@/utils/bff/account';
+import {
+  markAccountDeleted,
+  clearAccountDeleted,
+  hydrateAccountDeleted,
+} from '@/utils/auth/accountDeleted';
 import {
   setStepUpHandler,
   resolveStepUp,
   rejectStepUp,
   clearBffNonceCache,
+  setAccountDeletedHandler,
   type StepUpHint,
 } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { clearUsedHashes } from "@/utils/orderTracking";
+import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
+import { PasskeyRemovalModal } from '@/components/PasskeyRemovalModal';
+import { logger } from '@/utils/logger';
 
 // ─── Error formatting ─────────────────────────────────────────────────────────
 
@@ -100,6 +110,7 @@ export interface AuthRelayProviderType {
   stepUpError: string;
   stepUp: () => Promise<void>;
   dismissStepUp: () => void;
+  deleteAccount: () => Promise<void>;
 }
 
 export const AuthRelayContext = createContext<AuthRelayProviderType>({
@@ -115,6 +126,7 @@ export const AuthRelayContext = createContext<AuthRelayProviderType>({
   stepUpError: '',
   stepUp: async () => {},
   dismissStepUp: () => {},
+  deleteAccount: async () => {},
 });
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -130,6 +142,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   const [stepUpVisible, setStepUpVisible] = useState(false);
   const [stepUpHint, setStepUpHint] = useState<StepUpHint | null>(null);
   const [stepUpError, setStepUpError] = useState('');
+  const [passkeyRemovalVisible, setPasskeyRemovalVisible] = useState(false);
   const router = useRouter();
 
   // Wire httpService step-up handler — fires whenever a BFF request returns
@@ -152,6 +165,15 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       }
     });
     return unsub;
+  }, []);
+
+  // Fired by the httpService interceptor on 404 ACCOUNT_DELETED from ANY authed endpoint.
+  useEffect(() => {
+    void hydrateAccountDeleted();
+    setAccountDeletedHandler(() => {
+      dispatch({ type: "REAUTHENTICATE" });
+      setPasskeyRemovalVisible(true);
+    });
   }, []);
 
   const signUpWithPasskey = async (user: {
@@ -188,7 +210,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
        * The credential won't be locally indexed for ~1s. 
        * Wait 1500ms so the first login attempt succeeds without dialog.
        */
-      await new Promise<void>(resolve => setTimeout(resolve, 1500));
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
 
       /**
        * Registration creates the credential and derives the wallet, but does not establish a session.
@@ -197,6 +219,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
        */
       await loginWithKokioPasskey(registration.credentialId, registration.deviceWalletAddress);
       dispatch({ type: "PASSKEY" });
+      await clearAccountDeleted();
       return registration;
     } catch (err) {
       dispatch({ type: "ERROR", payload: formatError(err) });
@@ -250,7 +273,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "REAUTHENTICATE" });
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     // Revoke the refresh token server-side (RFC 7009).
     // Server always returns 200; clear locally regardless of network errors.
     const tokens = useAuthStore.getState().tokens;
@@ -270,7 +293,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     await clearUsedHashes();
     dispatch({ type: "REAUTHENTICATE" });
     router.replace("/");
-  };
+  }, [router]);
 
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });
@@ -298,12 +321,23 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
   }, []);
 
   const dismissStepUp = useCallback(() => {
-    if (__DEV__) console.log('[stepup] stepup.cancelled');
+    logger.debug('STEP_UP_CANCELLED');
     rejectStepUp(new StepUpCancelledError());
     setStepUpVisible(false);
     setStepUpHint(null);
     setStepUpError('');
   }, []);
+
+  const deleteAccount = useCallback(async () => {
+    await bffDeleteAccount();
+  
+    // Flag before teardown — logout() navigates.
+    await markAccountDeleted();
+    await purgeAccountLocalState();
+    await logout();
+  
+    setPasskeyRemovalVisible(true);
+  }, [logout]);
 
   return (
     <AuthRelayContext.Provider
@@ -320,9 +354,14 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
         stepUpError,
         stepUp,
         dismissStepUp,
+        deleteAccount,
       }}
     >
       {children}
+      <PasskeyRemovalModal
+        visible = {passkeyRemovalVisible}
+        onDismiss = {() => setPasskeyRemovalVisible(false)}
+      />
     </AuthRelayContext.Provider>
   );
 };

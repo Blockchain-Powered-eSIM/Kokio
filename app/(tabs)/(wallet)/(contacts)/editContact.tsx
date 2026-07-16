@@ -10,6 +10,7 @@ import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import ColorPaletteModal from '@/components/ui/modals/colorPalleteModal';
 import { Theme } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
+import { logger } from '@/utils/logger';
 
 const EditContact = () => {
     const { showMessage } = useToast();
@@ -50,7 +51,6 @@ const EditContact = () => {
         }, [navigation, params]);
 
         useEffect(()=>{
-            console.log()
         },[])
     const handleScan = async () => {
         // if (!isPermissionGranted) {
@@ -110,11 +110,11 @@ const EditContact = () => {
               id:params.id
             },
           });
-          console.log("Updated contact:", editedContactObj);
+          logger.debug('CONTACT_UPDATED', { editedContactObj });
       
         // Reset form fields
         } catch (error) {
-          console.log("Error updating contact:", error);
+          logger.error('CONTACT_UPDATE_FAILED', { error });
           showMessage("Failed to update contact", "error");
         } finally {
           setIsLoading(false);
@@ -194,7 +194,7 @@ const EditContact = () => {
                         <ThemedView className='flex-row justify-center mt-[50]  fixed items-center  mb-5'>
                             <Pressable
                                 className="border border-primaryOrange px-6 py-3 w-[48%] rounded-3xl items-center justify-center"
-                                onPress={() => console.log('Button pressed!')}
+                                onPress={() => logger.debug('BUTTON_PRESSED')}
                             >
                                 <ThemedText className="text-primaryOrange">Cancel</ThemedText>
                             </Pressable>

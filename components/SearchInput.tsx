@@ -60,9 +60,16 @@ const SearchBar = ({
         value={searchText}
         onChangeText={handleTextChange}
         placeholderTextColor={foreground}
+        accessibilityLabel={placeholder}
       />
       {searchText.length > 0 && (
-        <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
+        <TouchableOpacity
+          style={styles.clearButton}
+          onPress={handleClear}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Clear search"
+        >
           <Ionicons name="close" size={ICON_SIZE} color={foreground} />
         </TouchableOpacity>
       )}
