@@ -1,5 +1,8 @@
 name: Route EAS Release
 
+#   - Android is always released.
+#   - iOS is opt-in: add the `ios` label to the promotion PR.
+#     iOS workflow files configured to stay dormant until an Apple Developer account is connected.
 on:
   pull_request_target:
     branches:
@@ -14,7 +17,7 @@ on:
         required: true
         type: string
       workflow_file:
-        description: Optional explicit EAS workflow file path
+        description: Optional explicit EAS workflow file path (bypasses platform resolution)
         required: false
         default: ""
         type: string
@@ -31,6 +34,15 @@ on:
         required: false
         default: false
         type: boolean
+      platforms:
+        description: Platforms to release
+        required: false
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - both
 
 jobs:
   route-release:
@@ -66,7 +78,7 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Select EAS workflow
+      - name: Select EAS workflows
         id: select
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -76,49 +88,59 @@ jobs:
           INPUT_OTA: ${{ inputs.ota }}
           INPUT_WORKFLOW_FILE: ${{ inputs.workflow_file }}
           INPUT_REF: ${{ inputs.ref }}
+          INPUT_PLATFORMS: ${{ inputs.platforms }}
           MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           node - <<'EOF'
-          const labels = JSON.parse(process.env.LABELS_JSON || "[]");
-          const isManual = process.env.EVENT_NAME === "workflow_dispatch";
+          const fs = require("node:fs");
+
+          const labels     = JSON.parse(process.env.LABELS_JSON || "[]");
+          const isManual   = process.env.EVENT_NAME === "workflow_dispatch";
+
           const hasOtaLabel = isManual
             ? process.env.INPUT_OTA === "true"
             : labels.includes("ota");
+
           const baseBranch = isManual
             ? process.env.INPUT_BASE_BRANCH
             : process.env.BASE_BRANCH;
+
           const targetRef = isManual
             ? process.env.INPUT_REF
             : process.env.MERGE_COMMIT_SHA;
-          const manualWorkflow = process.env.INPUT_WORKFLOW_FILE.trim();
 
-          const workflowFromInputs = manualWorkflow
-            ? manualWorkflow
-            : baseBranch === "staging"
-              ? hasOtaLabel
-                ? ".eas/workflows/publish-staging-ota.yml"
-                : ".eas/workflows/deploy-staging.yml"
-              : hasOtaLabel
-                ? ".eas/workflows/publish-production-ota.yml"
-                : ".eas/workflows/deploy-production.yml";
+          const manualWorkflow = (process.env.INPUT_WORKFLOW_FILE || "").trim();
 
-          require("node:fs").appendFileSync(
-            process.env.GITHUB_OUTPUT,
-            `base_branch=${baseBranch}\n`
-          );
-          require("node:fs").appendFileSync(
-            process.env.GITHUB_OUTPUT,
-            `is_ota=${hasOtaLabel}\n`
-          );
+          let platforms;
+          if (isManual) {
+            const choice = process.env.INPUT_PLATFORMS || "android";
+            platforms = choice === "both" ? ["android", "ios"] : [choice];
+          } else {
+            platforms = ["android"];
+            if (labels.includes("ios")) platforms.push("ios");
+          }
 
-          require("node:fs").appendFileSync(
-            process.env.GITHUB_OUTPUT,
-            `workflow=${workflowFromInputs}\n`
-          );
-          require("node:fs").appendFileSync(
-            process.env.GITHUB_OUTPUT,
-            `target_ref=${targetRef}\n`
-          );
+          // ── Workflow file resolution ──────────────────────────────────────
+          const fileFor = (platform) =>
+            hasOtaLabel
+              ? `.eas/workflows/publish-${baseBranch}-ota-${platform}.yml`
+              : `.eas/workflows/deploy-${baseBranch}-${platform}.yml`;
+
+          // An explicit manual workflow_file bypasses resolution entirely.
+          const workflows = manualWorkflow
+            ? [manualWorkflow]
+            : platforms.map(fileFor);
+
+          const out = [
+            `base_branch=${baseBranch}`,
+            `is_ota=${hasOtaLabel}`,
+            `target_ref=${targetRef}`,
+            `platforms=${platforms.join(" ")}`,
+            `workflows=${workflows.join(" ")}`,
+          ].join("\n");
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, out + "\n");
+          console.log(out);
           EOF
 
       - name: Verify OTA preflight
@@ -126,10 +148,17 @@ jobs:
         env:
           RELEASE_BASE_BRANCH: ${{ steps.select.outputs.base_branch }}
           RELEASE_HAS_OTA_LABEL: "true"
+          OTA_PLATFORMS: ${{ steps.select.outputs.platforms }}
         run: node scripts/verify-ota-preflight.mjs
 
-      - name: Run EAS workflow
-        run: >
-          eas workflow:run ${{ steps.select.outputs.workflow }}
-          --ref ${{ steps.select.outputs.target_ref }}
-          --non-interactive
+      - name: Run EAS workflows
+        env:
+          WORKFLOWS: ${{ steps.select.outputs.workflows }}
+          TARGET_REF: ${{ steps.select.outputs.target_ref }}
+        run: |
+          set -euo pipefail
+          for workflow in $WORKFLOWS; do
+            echo "::group::eas workflow:run $workflow"
+            eas workflow:run "$workflow" --ref "$TARGET_REF" --non-interactive
+            echo "::endgroup::"
+          done

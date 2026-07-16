@@ -121,7 +121,95 @@ export interface paths {
         get: operations["accountGet"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete account
+         * @description Permanently deletes the authenticated device's account. **THIS IS IRREVERSIBLE.**
+         *
+         *     Returns `204 No Content` on success. This is the only endpoint in the API that
+         *     returns no response body — there is nothing to return, and a `204` carries no
+         *     payload by definition. Clients must not attempt to parse JSON from this response.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`) **and step-up**
+         *     (`requireStepUp`). Deletion is the only irreversible destructive action in the
+         *     product, so a valid access token alone is deliberately insufficient — a fresh
+         *     passkey assertion is required. A stale token yields `STEP_UP_REQUIRED` (401);
+         *     complete the step-up ceremony on the Auth Server and retry.
+         *
+         *     **Rate limiting:** Subject to the global IP limiter and the per-device limiter
+         *     (10 requests per minute per `deviceWalletAddress`).
+         *
+         *     ---
+         *
+         *     ### What deletion does
+         *
+         *     Sets a deletion flag and timestamp on the Account document. From that moment the
+         *     `requireAuth` account gate refuses **every** authenticated request from this device
+         *     with `ACCOUNT_DELETED` (404) — including a repeat call to this endpoint. Any access
+         *     token issued before deletion becomes inert.
+         *
+         *     ### What deletion deliberately does NOT do, and why
+         *
+         *     This is a **soft delete**. That is a considered design decision, not an incomplete
+         *     implementation. The rationale:
+         *
+         *     - **The system holds no personally identifiable information.** By design, users
+         *       purchase eSIMs without providing PII. The canonical identity — `deviceWalletAddress`
+         *       — is an EVM address derived deterministically from a passkey's P-256 public key
+         *       coordinates. It is pseudonymous, and there is **no re-identification path**: without
+         *       the passkey assertion, no record in this system can be bound to a person, including
+         *       by the operator. Deleting the identity linkage would therefore remove nothing that
+         *       identifies anyone.
+         *
+         *     - **Order, eSIM, and payment records are retained** for financial and audit compliance.
+         *       Their `deviceId` linkage *is* the audit trail; severing it would defeat the retention
+         *       obligation while removing no identifying information.
+         *
+         *     - **The payment processor holds no identifying customer data** configured by this
+         *       service. The Stripe customer object is created without name, email, or address
+         *       fields. Payment instrument data is processed under the processor's own
+         *       controllership and is not available to this service.
+         *
+         *     - **Provisioned eSIMs remain usable until expiry.** Deleting an account does **NOT**
+         *       cancel eSIMs the user has paid for. An installed eSIM continues to work on the
+         *       device until its plan expires — the user simply loses access to its details through
+         *       this API. Nothing is revoked at the eSIM vendor.
+         *
+         *     - **On-chain transaction records are immutable** and cannot be deleted. They are
+         *       pseudonymous (a wallet address, no personal data) and persist on the ledger by
+         *       design.
+         *
+         *     ### Auth Server behaviour — important for clients
+         *
+         *     The Auth Server is **intentionally not informed** of account deletion. The passkey
+         *     remains registered and will continue to authenticate successfully: `login/begin` and
+         *     `login/complete` will succeed and mint valid access tokens.
+         *
+         *     **Those tokens buy no access.** Every authenticated endpoint on this service refuses
+         *     them with `ACCOUNT_DELETED` (404). Authentication succeeds; authorisation does not.
+         *
+         *     This means a user who deletes their account but keeps their passkey will experience a
+         *     successful login followed by `ACCOUNT_DELETED` on the first authenticated call.
+         *
+         *     ### Required client behaviour after deletion
+         *
+         *     Clients **must** handle `ACCOUNT_DELETED` (404) as a distinct terminal state on **any**
+         *     authenticated endpoint, not only on this one. On receiving it:
+         *
+         *     1. **Do not retry** and do not attempt a token refresh — the token is valid; the account
+         *        is gone. Refreshing will succeed and change nothing.
+         *     2. **Discard all stored tokens** and clear local session state.
+         *     3. **Prompt the user to delete their passkey** from their device (iOS Settings →
+         *        Passwords, or Google Password Manager). This is the terminal step the user must
+         *        perform themselves — this service cannot remove a passkey from the user's device,
+         *        and the Auth Server will keep authenticating it until they do.
+         *     4. **Return the user to the unauthenticated / registration entry point.**
+         *
+         *     Registering a **new** passkey produces a different key pair, hence a different
+         *     `deviceWalletAddress`, hence a genuinely new account. Re-registering the **same**
+         *     passkey resolves to the same (deleted) `deviceWalletAddress` and will not restore
+         *     access.
+         */
+        delete: operations["accountDelete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -397,9 +485,9 @@ export interface paths {
          *
          *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
          *
-         *     **Filtering:** Pass `activeOnly=true` to return only eSIMs with
-         *     `activationStatus: ACTIVE`. When omitted or any other value,
-         *     all eSIMs for the device are returned regardless of activation state.
+         *     **Filtering:** Pass `activeOnly=true` to return only usable eSIMs
+         *     (`activationStatus` of `RELEASED` or `INSTALLED`). When omitted or any other
+         *     value, all eSIMs for the device are returned regardless of activation state.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
          *     (10 requests per minute per `deviceWalletAddress`).
@@ -479,6 +567,43 @@ export interface paths {
          *     limiter (10 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimCheckCompatibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/esim/usage/{esimId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get eSIM usage
+         * @description Returns remaining usage allowance for the authenticated device's eSIMs.
+         *
+         *     - With `esimId` path param → usage for that single eSIM (device ownership enforced).
+         *     - Without `esimId` → usage for all **non-terminal** eSIMs of the device
+         *       (`activationStatus` of `RELEASED` or `INSTALLED`). Terminal eSIMs
+         *       (`UNAVAILABLE`, `DEACTIVATED`) are excluded.
+         *
+         *     Usage is fetched best-effort from upstream vendors and cached briefly
+         *     (15 min per eSIM). Data allowances are in **GB**; `voice` in **minutes**,
+         *     `sms` as a **count**. For unlimited plans, `isUnlimited` is `true` and the
+         *     numeric `remaining`/`total` are `null` (unless a capped topup is also active,
+         *     in which case the capped figures are returned alongside `isUnlimited: true`).
+         *
+         *     A per-eSIM `usageError` message is returned in that entry if its usage could
+         *     not be computed; other eSIMs are unaffected.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
+         *     **Rate limiting:** Global IP limiter + per-device limiter (10 req/min per `deviceWalletAddress`).
+         */
+        get: operations["esimGetUsage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -642,6 +767,7 @@ export interface paths {
          *     | `cleanup_abandoned_orders` | 24 hours | Voids Stripe invoices and marks stuck orders as `ABANDONED` |
          *     | `retry_vendor_fulfilment` | 3 minutes | Retries transient vendor failures (`VENDOR_RETRY_PENDING`) |
          *     | `retry_onchain_recording` | 15 minutes | Retries on-chain recording (`ESIM_PROVISIONED_PENDING_CHAIN`) |
+         *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
          */
         post: operations["adminJobsRun"];
         delete?: never;
@@ -967,6 +1093,8 @@ export interface components {
              *     |------|--------|---------|
              *     | `VENDOR_ORDER_FAILED` | 502 | Upstream vendor order API call failed |
              *     | `VENDOR_PLANS_FAILED` | 502 | Upstream vendor plans API call failed during catalogue refresh |
+             *     | `VENDOR_GET_STATUS_FAILED` | 502 | Upstream vendor could not fetch the status of requested eSIM |
+             *     | `VENDOR_GET_USAGE_FAILED` | 502 | Upstream vendor could not fetch the usage status of the requested eSIM |
              *
              *     **Admin errors**
              *
@@ -1188,7 +1316,7 @@ export interface components {
             /**
              * @description Server-generated salt persisted on the account, used by the client SDK as
              *     part of deterministic smart-account derivation.
-             * @example 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+             * @example 0x9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
              */
             salt: string;
             /**
@@ -1294,7 +1422,7 @@ export interface components {
              * @example LOCAL
              * @enum {string}
              */
-            coverageType: "LOCAL" | "REGIONAL" | "GLOBAL";
+            coverageType: "LOCAL" | "REGIONAL" | "GLOBAL" | "CUSTOM_REGIONAL";
             /**
              * @description Type of connectivity provided.
              * @example DATA
@@ -2000,11 +2128,17 @@ export interface components {
              */
             planHistory: components["schemas"]["PlanHistoryEntry"][];
             /**
-             * @description Current activation lifecycle state of the eSIM.
-             * @example ACTIVE
+             * @description eSIM-level profile/installation status — a normalised projection of the
+             *     upstream vendor's profile state, synced periodically (best-effort).
+             *     Distinct from per-plan bundle usage status carried on `planHistory` entries.
+             *       - `RELEASED`    — provisioned, not yet installed.
+             *       - `INSTALLED`   — installed and used at least once; usable.
+             *       - `UNAVAILABLE` — cannot be installed/used; reissue recommended.
+             *       - `DEACTIVATED` — no longer exists on the vendor side; dead.
+             * @example INSTALLED
              * @enum {string}
              */
-            activationStatus: "PENDING" | "ACTIVE" | "EXPIRED" | "FAILED" | "CANCELED" | "SUSPENDED" | "REVOKED";
+            activationStatus: "RELEASED" | "INSTALLED" | "UNAVAILABLE" | "DEACTIVATED";
             /**
              * @description eSIM installation data for device activation.
              *     Present on new eSIM purchases that have been provisioned.
@@ -2056,6 +2190,66 @@ export interface components {
              * @example 2026-04-15T12:30:00Z
              */
             purchaseDate: string;
+            /**
+             * @description Data allowance in GB, snapshotted from the catalogue plan at fulfilment time.
+             *     `null` for unlimited plans (`isUnlimited: true`).
+             * @example 1
+             */
+            data?: number | null;
+            /**
+             * @description SMS allowance, snapshotted from the catalogue plan at fulfilment time.
+             *     `null` when not applicable for this plan type.
+             * @example null
+             */
+            sms?: number | null;
+            /**
+             * @description Voice allowance in minutes, snapshotted from the catalogue plan at fulfilment time.
+             *     `null` when not applicable for this plan type.
+             * @example null
+             */
+            voice?: number | null;
+            /**
+             * @description Human-readable display name of the service region, snapshotted from the
+             *     catalogue plan at fulfilment time.
+             * @example United Kingdom
+             */
+            serviceRegionName?: string | null;
+            /**
+             * @description CDN URL for the service region flag, snapshotted from the catalogue plan at
+             *     fulfilment time. Non-null for `LOCAL` coverage only.
+             * @example https://flagcdn.com/w320/gb.png
+             */
+            serviceRegionFlag?: string | null;
+            /**
+             * @description `true` if this was an unlimited data plan. Snapshotted from the catalogue
+             *     plan at fulfilment time.
+             * @example false
+             */
+            isUnlimited: boolean;
+            /**
+             * @description Coverage scope, snapshotted from the catalogue plan at fulfilment time.
+             * @example LOCAL
+             * @enum {string}
+             */
+            coverageType: "LOCAL" | "REGIONAL" | "GLOBAL" | "CUSTOM_REGIONAL";
+            /**
+             * @description Stable per-bundle identifier from the owning vendor, used to correlate this
+             *     entry with the vendor's bundle records during status sync.
+             * @example 728
+             */
+            vendorBundleRef?: string | null;
+            /**
+             * @description Usage-lifecycle status of this specific bundle, synced from the vendor
+             *     (best-effort). Distinct from the eSIM-level `activationStatus`.
+             *       - `QUEUED`   — assigned, not yet started/used.
+             *       - `ACTIVE`   — in use, data remaining, within duration.
+             *       - `FINISHED` — data depleted, still within duration.
+             *       - `EXPIRED`  — duration exceeded (used, or unused/lapsed).
+             *       - `UNKNOWN`  — revoked or indeterminate vendor state.
+             * @example ACTIVE
+             * @enum {string}
+             */
+            bundleStatus: "QUEUED" | "ACTIVE" | "FINISHED" | "EXPIRED" | "UNKNOWN";
         };
         ESimListResponse: {
             /**
@@ -2063,9 +2257,37 @@ export interface components {
              *     Empty array when no eSIMs exist for the device.
              *
              *     When `activeOnly=true` is provided, only eSIMs with
-             *     `activationStatus: ACTIVE` are included.
+             *     `activationStatus: RELEASED | INSTALLED` are included.
              */
             eSims: components["schemas"]["ESimDocument"][];
+        };
+        /** @description Remaining usage allowance for a single eSIM. */
+        ESimUsage: {
+            esimId: string;
+            iccid: string;
+            /** @description Remaining data allowance in GB. Null for unlimited-only active plans. */
+            remaining: number | null;
+            /** @description Initial data allowance in GB. Null for unlimited-only active plans. */
+            total: number | null;
+            /** @description Remaining voice allowance in minutes. Null if not applicable. */
+            voice: number | null;
+            /** @description Remaining SMS allowance (count). Null if not applicable. */
+            sms: number | null;
+            /** @description True if at least one active bundle is unlimited. */
+            isUnlimited: boolean;
+            /** @description Furthest-future expiry among active bundles (vendor timestamp). Null if none active. */
+            expiresAt: string | null;
+            /** @description Per-eSIM usage-computation error message, or null on success. */
+            usageError: string | null;
+        };
+        ESimUsageResponse: {
+            /**
+             * @description Per-eSIM remaining usage allowance.
+             *     When `esimId` is provided, contains exactly one entry.
+             *     When omitted, contains one entry per non-terminal (RELEASED | INSTALLED) eSIM.
+             *     Empty array when the device has no non-terminal eSIMs.
+             */
+            usage: components["schemas"]["ESimUsage"][];
         };
         IssuedFromTx: {
             /**
@@ -2355,10 +2577,11 @@ export interface components {
              *     | `cleanup_abandoned_orders` | 24 hours | Voids/deletes Stripe invoices and marks orders stuck in `CREATED` or `PAYMENT_PENDING` beyond the 24-hour TTL as `ABANDONED`. Deletes `ABANDONED` orders older than 30 days |
              *     | `retry_vendor_fulfilment` | 3 minutes | Retries orders at `VENDOR_RETRY_PENDING` (transient vendor failures). Max 2 retries before `VENDOR_FAILED` |
              *     | `retry_onchain_recording` | 15 minutes | Retries `buildBuyDataBundleTxn` for orders at `ESIM_PROVISIONED_PENDING_CHAIN`. Max 2 retries before `COMPLETED` + `flaggedForManualReview` |
+             *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
              * @example refresh_catalogue
              * @enum {string}
              */
-            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording";
+            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording" | "sync_esim_status";
         };
         /**
          * @description Job execution result. Shape varies by job type.
@@ -2562,6 +2785,43 @@ export interface components {
                  *       "code": "INTERNAL_SERVER_ERROR",
                  *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                  *       "message": "Something went wrong. Please try again later"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
+        AccountDeletedResponse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+        /**
+         * @description The authenticated device's account has been deleted.
+         *
+         *     The presented access token is valid — the Auth Server is intentionally unaware of
+         *     account deletion and will keep authenticating the passkey. Authorisation is refused
+         *     here instead. Do not retry and do not refresh the token.
+         *
+         *     **Required client handling:** discard stored tokens, clear session state, prompt the
+         *     user to remove their passkey from the device, and return to the unauthenticated entry
+         *     point. See `DELETE /v1/account` for the full rationale.
+         *
+         *     | Code | Meaning |
+         *     |------|---------|
+         *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
+         */
+        AccountDeletedError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "success": false,
+                 *       "code": "ACCOUNT_DELETED",
+                 *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                 *       "message": "This account has been deleted. Please remove the associated passkey from your device."
                  *     }
                  */
                 "application/json": components["schemas"]["ErrorResponse"];
@@ -2871,6 +3131,120 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            404: components["responses"]["AccountDeletedError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    accountDelete: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description Account deleted. **No response body.**
+             *
+             *     The account is now flagged deleted. All subsequent authenticated requests from
+             *     this device — including a repeat `DELETE /v1/account` — will return
+             *     `404 ACCOUNT_DELETED`.
+             */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /**
+             * @description Authentication, DPoP validation, or step-up recency check failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `STEP_UP_REQUIRED` | Operation requires recent authentication — complete the step-up ceremony and retry |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm`, `htu`, or `ath` binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the `cnf.jkt` claim |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description The account has already been deleted.
+             *
+             *     Returned when this endpoint is called for an account that is already flagged
+             *     deleted — the `requireAuth` gate refuses the request before the handler runs.
+             *     The operation is therefore **not HTTP-idempotent**: a second call returns `404`
+             *     rather than repeating the `204`. The *effect* is idempotent — the account remains
+             *     deleted and the original deletion timestamp is never overwritten.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ACCOUNT_DELETED` | This account has been deleted — see the required client behaviour above |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ACCOUNT_DELETED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "This account has been deleted. Please remove the associated passkey from your device."
+                     *     }
+                     */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
@@ -3322,6 +3696,7 @@ export interface operations {
              *     |------|---------|
              *     | `NOT_FOUND` | `catalogueId` does not match an active catalogue entry |
              *     | `NO_EQUIVALENT_TOPUP_PLAN` | No active TOPUP plan equivalent exists for the submitted SIM-type `catalogueId` |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
              */
             404: {
                 headers: {
@@ -3482,6 +3857,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["DPoPAuthError"];
+            404: components["responses"]["AccountDeletedError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -3552,6 +3928,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["DPoPAuthError"];
+            404: components["responses"]["AccountDeletedError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -3559,7 +3936,8 @@ export interface operations {
         parameters: {
             query?: {
                 /**
-                 * @description When set to `"true"`, filters results to eSIMs with `activationStatus: ACTIVE` only.
+                 * @description When set to `"true"`, filters results to usable eSIMs only —
+                 *     those with `activationStatus` of `RELEASED` or `INSTALLED`.
                  *     Any other value or omission returns all eSIMs for the device.
                  * @example true
                  */
@@ -3618,6 +3996,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["DPoPAuthError"];
+            404: components["responses"]["AccountDeletedError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -3696,16 +4075,30 @@ export interface operations {
                      *             "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
                      *             "planId": "1GB_EU_30D",
                      *             "validity": 30,
-                     *             "purchaseDate": "2026-04-15T12:30:00Z"
+                     *             "purchaseDate": "2026-04-15T12:30:00Z",
+                     *             "data": 1,
+                     *             "serviceRegionName": "Europe",
+                     *             "serviceRegionFlag": null,
+                     *             "isUnlimited": false,
+                     *             "coverageType": "REGIONAL",
+                     *             "vendorBundleRef": "728",
+                     *             "bundleStatus": "FINISHED"
                      *           },
                      *           {
                      *             "orderId": "664f1a2b3c4d5e6f7a8b9c0f",
                      *             "planId": "1GB_EU_30D_TOPUP",
                      *             "validity": 30,
-                     *             "purchaseDate": "2026-05-10T09:00:00Z"
+                     *             "purchaseDate": "2026-05-10T09:00:00Z",
+                     *             "data": 1,
+                     *             "serviceRegionName": "Europe",
+                     *             "serviceRegionFlag": null,
+                     *             "isUnlimited": false,
+                     *             "coverageType": "REGIONAL",
+                     *             "vendorBundleRef": "731",
+                     *             "bundleStatus": "ACTIVE"
                      *           }
                      *         ],
-                     *         "activationStatus": "ACTIVE",
+                     *         "activationStatus": "INSTALLED",
                      *         "installationDetails": {
                      *           "qrcode": "LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE",
                      *           "appleInstallationUrl": "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE"
@@ -3746,11 +4139,12 @@ export interface operations {
             };
             401: components["responses"]["DPoPAuthError"];
             /**
-             * @description No eSIM exists for the provided wallet address.
+             * @description No eSIM exists for the provided wallet address, or user account has been deleted.
              *
              *     | Code | Meaning |
              *     |------|---------|
              *     | `NOT_FOUND` | No eSIM record found for the given `esimId` |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
              */
             404: {
                 headers: {
@@ -3884,6 +4278,7 @@ export interface operations {
              *     | `NOT_FOUND` | `planId` does not match an active catalogue entry |
              *     | `NO_EQUIVALENT_TOPUP_PLAN` | No active TOPUP equivalent exists for the submitted plan |
              *     | `NO_ACTIVE_ESIMS_FOR_DEVICE` | The authenticated device has no active eSIMs |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
              */
             404: {
                 headers: {
@@ -3901,6 +4296,118 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    esimGetUsage: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description Optional eSIM wallet address. If provided, returns usage for that eSIM only;
+                 *     if omitted, returns usage for all non-terminal eSIMs of the device.
+                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 */
+                esimId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usage list returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "usage": [
+                     *           {
+                     *             "esimId": "0xdef456abc123def456abc123def456abc123def4",
+                     *             "iccid": "8944110068000000001",
+                     *             "remaining": 2.38,
+                     *             "total": 3,
+                     *             "voice": null,
+                     *             "sms": null,
+                     *             "isUnlimited": false,
+                     *             "expiresAt": "2026-05-22T06:28:04.250178Z",
+                     *             "usageError": null
+                     *           }
+                     *         ]
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["ESimUsageResponse"];
+                    };
+                };
+            };
+            /**
+             * @description The provided `esimId` belongs to a different device.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | eSIM exists but is not associated with the authenticated device |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ESIM_NOT_FOUND_FOR_DEVICE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "No eSIM found for esimId 0xdef4... associated with device 0xabc1..."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            404: components["responses"]["AccountDeletedError"];
             500: components["responses"]["InternalServerError"];
         };
     };

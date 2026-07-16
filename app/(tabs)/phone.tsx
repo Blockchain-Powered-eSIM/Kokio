@@ -6,6 +6,7 @@ import React, { useState, useCallback } from "react";
 import { router , useFocusEffect } from "expo-router";
 import _ from "lodash";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { logger } from "@/utils/logger";
 
 interface Contact {
   id: string;
@@ -43,7 +44,7 @@ const ContactsScreen = () => {
       );
       setContacts(validContacts);
     } catch (error) {
-      console.error("Error fetching contacts:", error);
+      logger.error('CONTACTS_FETCH_FAILED', { error });
       setContacts([]); // Set empty array in case of error
     }
   };

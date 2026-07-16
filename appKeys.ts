@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { logger } from "@/utils/logger";
 
 export interface AppExtraConfig {
   authServerBaseUrl?: string;
@@ -23,7 +24,7 @@ const extra =
     | AppExtraConfig
     | undefined);
 
-console.log("[KOKIO CONFIG DEBUG]", {
+ logger.debug("[KOKIO CONFIG DEBUG]", {
   extraKeys: Object.keys(extra ?? {}),
   apiBaseUrl: extra?.apiBaseUrl,
   authServerBaseUrl: extra?.authServerBaseUrl,
@@ -47,35 +48,11 @@ export const Config = {
   EXTERNAL_WALLET_CALLBACK: extra?.externalWalletCallback,
 
   validateSecrets: () => {
-    if (!extra?.authServerBaseUrl) {
-      console.error(
-        "Critical Error: AUTH_SERVER_BASE_URL is missing. Check your EAS Secrets configuration."
-      );
-    }
-
-    if (!extra?.redirectUri) {
-      console.error(
-        "Critical Error: REDIRECT_URI is missing. Check your EAS Secrets configuration."
-      );
-    }
-
-    if (!extra?.apiBaseUrl) {
-      console.error(
-        "Critical Error: API_BASE_URL is missing. Check your EAS Secrets configuration."
-      );
-    }
-
-    if (!extra?.stripePublishableKey) {
-      console.warn(
-        "Warning: STRIPE_PUBLISHABLE_KEY is not set. Stripe payments (PAY-008) will not work."
-      );
-    }
-
-    if (!extra?.walletConnectProjectId) {
-      console.warn(
-        "Warning: WALLETCONNECT_PROJECT_ID is not set. WalletConnect sessions (PAY-011) will not work."
-      );
-    }
+    if (!extra?.authServerBaseUrl) logger.error('CONFIG_MISSING_AUTH_SERVER_BASE_URL');
+    if (!extra?.redirectUri) logger.error('CONFIG_MISSING_REDIRECT_URI');
+    if (!extra?.apiBaseUrl) logger.error('CONFIG_MISSING_API_BASE_URL');
+    if (!extra?.stripePublishableKey) logger.warn('CONFIG_MISSING_STRIPE_PUBLISHABLE_KEY');
+    if (!extra?.walletConnectProjectId) logger.warn('CONFIG_MISSING_WALLETCONNECT_PROJECT_ID');
   },
 };
 

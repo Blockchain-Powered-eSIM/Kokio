@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -60,6 +60,8 @@ const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
       <TouchableOpacity
         onPress={navigateToESIMsByCountry(firstItem?.code)}
         style={styles.flagWrapper}
+        accessibilityRole="button"
+        accessibilityLabel={firstItem?.name || "Country"}
       >
         <CountryFlag
           isoCode={firstItem?.code}
@@ -72,6 +74,8 @@ const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
       <TouchableOpacity
         style={styles.flagWrapper}
         onPress={navigateToESIMsByCountry(secondItem?.code)}
+        accessibilityRole="button"
+        accessibilityLabel={secondItem?.name || "Country"}
       >
         <CountryFlag
           isoCode={secondItem?.code}
@@ -105,7 +109,11 @@ const RegionItemRender = ({
 }) => {
   const foregroundColor = useThemeColor({}, "foreground");
   return (
-    <TouchableOpacity onPress={navigateToESIMsByRegion(item?.code)}>
+    <TouchableOpacity
+      onPress={navigateToESIMsByRegion(item?.code)}
+      accessibilityRole="button"
+      accessibilityLabel={item?.name || "Region"}
+    >
       <ThemedView
         style={styles.regionItem}
         darkColor={Theme.colors.secondaryBackground}
@@ -203,6 +211,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
   }, [regionConfig, sanitizedSearchText, countries]);
 
   const [scrollOffset, setScrollOffset] = useState(0);
+  const carouselRef = useRef<FlatList>(null);
   const chunkedCountries = _chunk(countries, 2);
   const SNAP_INTERVAL = 160 + SPACING;
   const maxOffset = (chunkedCountries.length - 1) * SNAP_INTERVAL;
@@ -210,13 +219,31 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
   const isAtStart = scrollOffset <= 0;
   const isAtEnd = scrollOffset >= maxOffset - SNAP_INTERVAL;
 
+  const scrollByOnePage = (direction: 1 | -1) => {
+    const target = Math.min(
+      Math.max(scrollOffset + direction * SNAP_INTERVAL, 0),
+      maxOffset
+    );
+    carouselRef.current?.scrollToOffset({ offset: target, animated: true });
+    setScrollOffset(target);
+  };
+
   return (
     <ThemedView style={styles.container}>
       {_size(countries) ? (
         <ThemedView style={styles.countrySectionWrapper}>
           <View style={styles.carouselRow}>
-            <Ionicons name="chevron-back" size={15} color={Theme.colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+            <TouchableOpacity
+              onPress={() => scrollByOnePage(-1)}
+              disabled={isAtStart}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Scroll countries left"
+            >
+              <Ionicons name="chevron-back" size={15} color={Theme.colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+            </TouchableOpacity>
               <FlatList
+                ref={carouselRef}
                 data={_chunk(countries, 2)}
                 renderItem={CountryItemRender}
                 keyExtractor={(item, index) => String(item?.[0]?.code || index)}
@@ -229,7 +256,15 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
                 onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.x)}
                 scrollEventThrottle={16}
               />
-            <Ionicons name="chevron-forward" size={15} color={Theme.colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+            <TouchableOpacity
+              onPress={() => scrollByOnePage(1)}
+              disabled={isAtEnd}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Scroll countries right"
+            >
+              <Ionicons name="chevron-forward" size={15} color={Theme.colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+            </TouchableOpacity>
           </View>
         </ThemedView>
       ) : null}

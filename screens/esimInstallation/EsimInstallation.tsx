@@ -1,11 +1,12 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useCallback } from "react";
 import {
+  Linking,
+  Platform,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
 } from "react-native";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import Share from "react-native-share";
@@ -14,13 +15,14 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import _get from "lodash/get";
 import _split from "lodash/split";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { logger } from "@/utils/logger";
 
 type TabType = "Direct" | "QR" | "Manual";
 
@@ -98,7 +100,7 @@ const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
     try {
       await Clipboard.setStringAsync(text);
     } catch (error) {
-      console.error("Error copying to clipboard:", error);
+      logger.error('CLIPBOARD_COPY_FAILED', { error });
     }
   };
   return (
@@ -235,20 +237,49 @@ const createStyles = () => StyleSheet.create({
   textCopyContainer: {
     marginBottom: 12,
   },
+  missingQrContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 16,
+  },
 });
 
 const EsimInstallation = () => {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
-  const { qrcode } = useLocalSearchParams();
-  const qrData =
-    (Array.isArray(qrcode) ? _head(qrcode) : qrcode) ||
-    "LPA:1$activation.airalo.com$sample-qr-data";
+  const { qrcode, appleInstallationUrl: rawAppleUrl } = useLocalSearchParams();
+  const appleInstallationUrl = Array.isArray(rawAppleUrl) ? rawAppleUrl[0] : (rawAppleUrl ?? "");
+  const router = useRouter();
+  const rawQrData = Array.isArray(qrcode) ? _head(qrcode) : qrcode;
+  const hasQrData = !!rawQrData;
+  const qrData = rawQrData || "";
 
   const qrDataSplit = _split(qrData, "$");
   const activationAddress = _get(qrDataSplit, [1]);
   const activationCode = _get(qrDataSplit, [2]);
   const [activeTab, setActiveTab] = useState<TabType>("QR");
+
+  if (!hasQrData) {
+    return (
+      <View style={[styles.container, styles.missingQrContainer, { backgroundColor: Theme.colors.background }]}>
+        <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>
+          Installation details unavailable
+        </ThemedText>
+        <Text style={[styles.sectionDescription, { color: Theme.colors.inactive, textAlign: "center", marginBottom: 0 }]}>
+          We couldn&apos;t find the installation QR code for this eSIM. Please go back and try again from Orders.
+        </Text>
+        <TouchableOpacity
+          style={[styles.shareButton, { borderColor: Theme.colors.muted }]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Text style={[styles.shareButtonText, { color: Theme.colors.text }]}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const QRScene = () => {
     const qrViewRef = useRef(null);
@@ -256,7 +287,7 @@ const EsimInstallation = () => {
     const handleShareQR = async () => {
       try {
         if (!qrViewRef.current) {
-          console.log("QR view ref is not available");
+          logger.warn('QR_VIEW_REF_UNAVAILABLE');
           return;
         }
 
@@ -271,10 +302,10 @@ const EsimInstallation = () => {
           url: `file://${uri}`,
           type: "image/png",
         }).catch((err) => {
-          err && console.log("react-native-share API failed", err);
+          if (err) logger.warn('QR_SHARE_API_FAILED', { err });
         });
       } catch (error) {
-        console.error("QR Share failed with error", error);
+        logger.error('QR_SHARE_FAILED', { error });
       }
     };
 
@@ -337,10 +368,10 @@ const EsimInstallation = () => {
             text={qrData}
           />
 
-          {Platform.OS === "ios" && activationAddress && (
+          {activationAddress && (
             <TextWithCopy label="SM-DP+ ADDRESS" text={activationAddress} />
           )}
-          {Platform.OS === "ios" && activationCode && (
+          {activationCode && (
             <TextWithCopy label="ACTIVATION CODE" text={activationCode} />
           )}
 
@@ -363,23 +394,58 @@ const EsimInstallation = () => {
     </ScrollView>
   );
 
-  const DirectScene = () => (
-    <ScrollView style={styles.content}>
-      <WarningCards />
-      <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
-        <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>Direct Installation</ThemedText>
-
-        <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
-          Select Install eSIM and wait — do not close the app, installation may
-          take a few minutes. Select Allow/OK, when prompted.
-        </Text>
-
-        <TouchableOpacity style={[styles.shareButton, { borderColor: Theme.colors.muted }]}>
-          <Text style={[styles.shareButtonText, { color: Theme.colors.text }]}>Coming soon</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
+  const DirectScene = () => {
+    const handleDirectInstall = useCallback(async () => {
+      try {
+        await Linking.openURL(appleInstallationUrl);
+      } catch (err) {
+        logger.error('ESIM_APPLE_INSTALL_FAILED', { err });
+      }
+    }, []);
+  
+    const isEnabled = Platform.OS === "ios" && !!appleInstallationUrl;
+  
+    return (
+      <ScrollView style={styles.content}>
+        <WarningCards />
+        <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
+          <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>
+            Direct Installation
+          </ThemedText>
+  
+          <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
+            {isEnabled
+              ? "Tap Install eSIM to begin. Do not close the app — installation may take a few minutes. Select Allow/OK when prompted."
+              : "Select Install eSIM and wait — do not close the app, installation may take a few minutes. Select Allow/OK, when prompted."}
+          </Text>
+  
+          <TouchableOpacity
+            style={[
+              styles.shareButton,
+              {
+                borderColor: isEnabled ? Theme.colors.primary : Theme.colors.muted,
+                opacity:     isEnabled ? 1 : 0.5,
+              },
+            ]}
+            disabled={!isEnabled}
+            onPress={isEnabled ? handleDirectInstall : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={isEnabled ? "Install eSIM on this iPhone" : "Direct installation (coming soon)"}
+            accessibilityState={{ disabled: !isEnabled }}
+          >
+            <Text
+              style={[
+                styles.shareButtonText,
+                { color: isEnabled ? Theme.colors.text : Theme.colors.inactive },
+              ]}
+            >
+              {isEnabled ? "Install eSIM" : "Coming soon"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  };
 
   const renderTabBar = () => {
     const tabs: TabType[] = ["Direct", "QR", "Manual"];

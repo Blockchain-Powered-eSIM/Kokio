@@ -13,6 +13,7 @@ import BottomSheet, {
   BottomSheetBackdropProps,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { isAccountDeletedCached, subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { ThemedText } from "./ThemedText";
 import { useKokio } from "@/hooks/useKokio";
@@ -20,6 +21,7 @@ import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { logger } from '@/utils/logger';
 
 type AuthMode = "choice" | "authenticating" | "error";
 
@@ -35,6 +37,7 @@ const createStyles = () =>
       fontWeight: "300",
       fontFamily: "Lexend-Light",
       marginTop: 32,
+      paddingTop: 12,
     },
     authSubtext: {
       fontSize: 13,
@@ -42,6 +45,15 @@ const createStyles = () =>
       fontWeight: "300",
       fontFamily: "Lexend-Light",
       textAlign: "center",
+    },
+    deletedBody: {
+      fontSize: 13,
+      marginTop: 12,
+      fontWeight: "300",
+      fontFamily: "Lexend-Light",
+      textAlign: "center",
+      paddingHorizontal: 12,
+      lineHeight: 19,
     },
     loadingContainer: {
       alignItems: "center",
@@ -129,12 +141,19 @@ export function AuthenticationModal() {
   const { isDark } = useTheme();
   const styles = useMemo(createStyles, [isDark]);
   const [mode, setMode] = useState<AuthMode>("choice");
+  const [accountDeleted, setAccountDeleted] = useState(isAccountDeletedCached());
+  const [localError, setLocalError] = useState("");
   const sheetRef = useRef<BottomSheet>(null);
 
   const { state, loginWithPasskey, signUpWithPasskey, recoverWithPasskey, clearError } =
     useAuthRelay();
   const { kokio, setupKokioRegistration, setupKokioRecovery, clearKokioUser } =
     useKokio();
+  
+  const resetErrors = useCallback(() => {
+    clearError();
+    setLocalError("");
+  }, [clearError]);
 
   // Distinguishes a fresh install / never-registered device (show New vs.
   // Existing choice) from a device that already completed passkey setup
@@ -150,6 +169,8 @@ export function AuthenticationModal() {
   // instead of re-checking SecureStore, which would briefly show the stale
   // "Log In" button before flipping to the New/Existing choice.
   const hasResolvedOnce = useRef(!!kokio.deviceWalletAddress);
+
+  useEffect(() => subscribeAccountDeleted(setAccountDeleted), []);
 
   useEffect(() => {
     if (kokio.deviceWalletAddress) {
@@ -193,18 +214,13 @@ export function AuthenticationModal() {
   );
 
   const handleNewUser = useCallback(async () => {
-    clearError();
+    resetErrors();
     setMode("authenticating");
     let succeeded = false;
     try {
       const data = await signUpWithPasskey({});
-      if (__DEV__)
-        console.log(
-          "[auth] signUpWithPasskey result:",
-          data ? { deviceWalletAddress: data.deviceWalletAddress } : null
-        );
+      logger.debug('AUTH_SIGNUP_RESULT', data ? { deviceWalletAddress: data.deviceWalletAddress } : null);
       if (data) {
-        succeeded = true;
         await setupKokioRegistration(
           data.deviceWalletAddress,
           data.deviceUniqueIdentifier,
@@ -213,67 +229,78 @@ export function AuthenticationModal() {
           data.publicKeyY,
           data.rawSalt ?? ""
         );
+        succeeded = true;
         sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
       }
     } catch (e) {
-      console.error("[auth] handleNewUser error", e);
+      logger.error('AUTH_SIGNUP_FAILED', { err: e });
     } finally {
       if (!succeeded) setMode("error");
     }
-  }, [signUpWithPasskey, setupKokioRegistration, clearError]);
+  }, [signUpWithPasskey, setupKokioRegistration, resetErrors]);
 
   const handleExistingUser = useCallback(async () => {
-    clearError();
+    resetErrors();
     setMode("authenticating");
     let succeeded = false;
     try {
       const effectiveAddress =
         kokio.deviceWalletAddress ||
         (await SecureStore.getItemAsync("deviceWalletAddress"));
-      if (__DEV__)
-        console.log(
-          "[auth] handleExistingUser — path:",
-          effectiveAddress ? "login" : "recover"
-        );
+      logger.debug('AUTH_EXISTING_PATH', { path: effectiveAddress ? 'login' : 'recover' });
 
       if (effectiveAddress) {
         const result = await loginWithPasskey();
-        if (__DEV__) console.log("[auth] loginWithPasskey result:", result);
+        logger.debug('AUTH_LOGIN_RESULT', { result });
         if (result === "success") {
           succeeded = true;
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
         } else if (result === "no-credential") {
           // Passkey deleted — fall back to recovery
           await clearKokioUser();
-          clearError();
+          resetErrors();
           const recovered = await recoverWithPasskey();
           if (recovered) {
-            succeeded = true;
             await setupKokioRecovery(
               recovered.deviceWalletAddress,
               recovered.credentialId
             );
+            succeeded = true;
             sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
           }
         }
       } else {
         const recovered = await recoverWithPasskey();
-        if (__DEV__)
-          console.log(
-            "[auth] recoverWithPasskey result:",
-            recovered ? { credentialId: recovered.credentialId } : null
-          );
+        logger.debug('AUTH_RECOVER_RESULT', { recovered });
         if (recovered) {
-          succeeded = true;
           await setupKokioRecovery(
             recovered.deviceWalletAddress,
             recovered.credentialId
           );
+          succeeded = true;
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+        } else {
+          const recovered = await recoverWithPasskey();
+          logger.debug('AUTH_RECOVER_RESULT', { recovered });
+          if (recovered) {
+            await setupKokioRecovery(
+              recovered.deviceWalletAddress,
+              recovered.credentialId
+            );
+            succeeded = true;
+            sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
+          } else {
+            // No discoverable Kokio passkey on this device. Distinct from a
+            // failure — this is simply a device that has never registered, or
+            // whose passkey was deleted from the password manager.
+            setLocalError(
+              "No Kokio passkey found on this device. Tap New User to create an account."
+            );
+          }
         }
       }
     } catch (e) {
-      console.error("[auth] handleExistingUser error", e);
+      logger.error('AUTH_LOGIN_FAILED', { err: e });
     } finally {
       if (!succeeded) setMode("error");
     }
@@ -283,7 +310,7 @@ export function AuthenticationModal() {
     kokio,
     setupKokioRecovery,
     clearKokioUser,
-    clearError,
+    resetErrors,
   ]);
 
   useEffect(() => {
@@ -294,11 +321,11 @@ export function AuthenticationModal() {
       // expanded/closed, never unmounted — so `mode` from a prior attempt
       // (e.g. left at "authenticating" after a successful login) would
       // otherwise leak into the next time the modal reopens (e.g. on logout).
-      clearError();
+      resetErrors();
       setMode("choice");
       sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
     }
-    // clearError intentionally omitted: it's recreated every provider render
+    // resetErrors intentionally omitted: it's recreated every provider render
     // and including it would re-trigger this effect (and re-animate the
     // sheet) on unrelated re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -323,7 +350,9 @@ export function AuthenticationModal() {
         )}
       </View>
     ),
-    [styles, mode]
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mode]
   );
 
   return (
@@ -343,43 +372,75 @@ export function AuthenticationModal() {
           style={styles.kokioImage}
         />
         <ThemedText style={[styles.authRequiredText, { color: Theme.colors.text }]}>
-          Authentication Required
-        </ThemedText>
-        <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
-          {mode === "authenticating"
-            ? "Verifying your identity…"
-            : isReturningUser
-            ? "Log in to continue"
-            : "Choose how to get started"}
+          {accountDeleted ? "Account Deleted" : "Authentication Required"}
         </ThemedText>
 
-        {mode === "authenticating" || isReturningUser === null ? (
-          loadingContent
-        ) : isReturningUser ? (
-          <View style={styles.loginButtonRow}>
-            <Pressable style={styles.loginButton} onPress={handleExistingUser}>
-              <Text style={styles.primaryButtonText}>Log In</Text>
-            </Pressable>
-          </View>
+        {accountDeleted ? (
+          <>
+            <ThemedText style={[styles.deletedBody, { color: Theme.colors.foreground }]}>
+              This account has been deleted and cannot be restored. If your Kokio passkey
+              is still on this device, remove it from your password manager — it no longer
+              grants access to anything.
+            </ThemedText>
+            <ThemedText style={[styles.deletedBody, { color: Theme.colors.foreground }]}>
+              To use Kokio again, create a new account. This generates a new passkey and a
+              new wallet.
+            </ThemedText>
+
+            {mode === "authenticating" ? (
+              loadingContent
+            ) : (
+              <View style={styles.loginButtonRow}>
+                {/* handleNewUser — not signUpWithPasskey directly: it supplies the
+                    {} argument and runs setupKokioRegistration, and its success path
+                    clears the deleted flag via clearAccountDeleted(). */}
+                <Pressable style={styles.loginButton} onPress={handleNewUser}>
+                  <Text style={styles.primaryButtonText}>Create New Account</Text>
+                </Pressable>
+              </View>
+            )}
+          </>
         ) : (
-          <View style={styles.buttonRow}>
-            <Pressable style={styles.primaryButton} onPress={handleNewUser}>
-              <Text style={styles.primaryButtonText}>New User</Text>
-            </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={handleExistingUser}>
-              <Text style={styles.secondaryButtonText}>Existing User</Text>
-            </Pressable>
-          </View>
+          <>
+            <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
+              {mode === "authenticating"
+                ? "Verifying your identity…"
+                : isReturningUser === null
+                ? "Checking this device…"
+                : isReturningUser
+                ? "Log in to continue"
+                : "Choose how to get started"}
+            </ThemedText>
+
+            {mode === "authenticating" || isReturningUser === null ? (
+              loadingContent
+            ) : isReturningUser ? (
+              <View style={styles.loginButtonRow}>
+                <Pressable style={styles.loginButton} onPress={handleExistingUser}>
+                  <Text style={styles.primaryButtonText}>Log In</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.buttonRow}>
+                <Pressable style={styles.primaryButton} onPress={handleNewUser}>
+                  <Text style={styles.primaryButtonText}>New User</Text>
+                </Pressable>
+                <Pressable style={styles.secondaryButton} onPress={handleExistingUser}>
+                  <Text style={styles.secondaryButtonText}>Existing User</Text>
+                </Pressable>
+              </View>
+            )}
+          </>
         )}
 
-        {!!state.error && mode === "error" && (
-          <Text style={styles.errorText}>{state.error}</Text>
+        {mode === "error" && !!(localError || state.error) && (
+          <Text style={styles.errorText}>{localError || state.error}</Text>
         )}
 
         <Pressable
           disabled={mode === "authenticating"}
           onPress={() => {
-            clearError();
+            resetErrors();
             setMode("choice");
             sheetRef.current?.close({
               duration: 250,

@@ -3,7 +3,6 @@ import type { CreateOrderRequest } from "@/utils/bff/order";
 
 type EsimOrderPayloadParams = {
   eSimItem: Esim;
-  deviceWalletId: string | undefined;
   discountCode: string;
   applyAsTopup: boolean;
   compatibleTopUpEsimId: string | undefined;

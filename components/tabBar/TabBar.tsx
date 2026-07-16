@@ -68,7 +68,8 @@ const styles = StyleSheet.create({
   tabStyle: {
     flex: 1,
     paddingVertical: 6,
-    minHeight: 30,
+    minHeight: 44,
+    justifyContent: "center",
   },
   tabBarText: {
     textAlign: "center",

@@ -92,6 +92,10 @@ export class BffError extends Error {
   }
 }
 
+export function isAccountDeletedError(e: unknown): boolean {
+  return e instanceof BffError && e.code === 'ACCOUNT_DELETED';
+}
+
 // ─── formatBffError ───────────────────────────────────────────────────────────
 // Pass the caught value directly; returns a string ready for showMessage().
 

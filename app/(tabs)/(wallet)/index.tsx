@@ -8,6 +8,7 @@ import { Theme } from '@/constants/Colors';
 import Wallet from '@/components/home/wallet';
 import { useToast } from '@/contexts/ToastContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/utils/logger';
 
 const tokens = [
   { id: '1', name: 'USDC', symbol: 'USDC', balance: '0.5', value: '$85.23 USD', icon: require("../../../assets/images/wallet/usdc.png") },
@@ -51,7 +52,7 @@ const getAllContacts = async () => {
     const validContacts = contactsArray?.filter(contact => contact !== null);
     setContacts(validContacts);
   } catch (error) {
-    console.error('Error fetching contacts:', error);
+    logger.error('CONTACTS_FETCH_FAILED', { error });
     setContacts([]); // Set empty array in case of error
   }
 };

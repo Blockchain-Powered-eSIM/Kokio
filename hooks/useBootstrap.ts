@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getServiceRegions } from "@/utils/bff/catalogue";
 import { checkBffHealth } from "@/utils/bff/health";
 import AppBootstrap from "@/utils/appBootstrap";
+import { logger } from '@/utils/logger';
 
 export default function useBootstrap() {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,12 +13,12 @@ export default function useBootstrap() {
     setError(null);
     try {
       const healthy = await checkBffHealth();
-      console.log("Health status", healthy);
+      logger.debug('BFF_HEALTH_STATUS', healthy);
       if (!healthy) {
-        console.error("Non 200 status");
+        logger.warn('BFF_HEALTH_NON_200');
       }
     } catch (err) {
-      console.error("Failed to query BFF", err);
+      logger.error('BFF_HEALTH_QUERY_FAILED', { err });
       setError(err);
     } finally {
       setIsLoading(false);
@@ -32,7 +33,7 @@ export default function useBootstrap() {
       const { countries, regions } = await getServiceRegions();
       new AppBootstrap({ countries, regions });
     } catch (err) {
-      console.error("Failed to fetch bootstrap data:", err);
+      logger.error('BOOTSTRAP_FETCH_FAILED', { err });
       setError(err);
     } finally {
       setIsLoading(false);
@@ -41,7 +42,7 @@ export default function useBootstrap() {
 
   // Fetch bootstrap data on mount
   useEffect(() => {
-    fetchHealthData(); // TODO : add UI component to display errors to user
+    fetchHealthData();
     fetchBootstrapData();
   }, []);
 

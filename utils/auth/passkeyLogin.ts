@@ -9,60 +9,9 @@ import { parseIdToken } from './tokenStore';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
 import { Config } from '@/appKeys';
+import { logger } from '@/utils/logger';
 
 // ─── Shared types ────────────────────────────────────────────────────────────
-
-/*DEVICE WALLET DEPLOYEMENT FIX*/
-// type LoginCompleteExtended = {
-//   deviceWalletAddress: string;
-//   authTime: number;
-//   deviceUniqueIdentifier?: string;
-//   rawSalt?: string;
-//   publicKeyX?: string;
-//   publicKeyY?: string;
-// };
-//
-// async function hydrateCredentialStore(data: LoginCompleteExtended): Promise<void> {
-//   if (data.deviceUniqueIdentifier) {
-//     const existing = await SecureStore.getItemAsync('deviceUID');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('deviceUID', JSON.stringify(data.deviceUniqueIdentifier));
-//       if (__DEV__) console.log('[passkey] hydrated deviceUID from loginComplete');
-//     }
-//   }
-//   if (data.rawSalt) {
-//     const existing = await SecureStore.getItemAsync('rawSalt');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('rawSalt', data.rawSalt);
-//       if (__DEV__) console.log('[passkey] hydrated rawSalt from loginComplete');
-//     }
-//   }
-//   if (data.publicKeyX && data.publicKeyY) {
-//     const existing = await SecureStore.getItemAsync('publicKeyX');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('publicKeyX', data.publicKeyX);
-//       await SecureStore.setItemAsync('publicKeyY', data.publicKeyY);
-//       if (__DEV__) console.log('[passkey] hydrated publicKeyX/Y from loginComplete');
-//     }
-//   }
-// }
-//
-// async function hydrateDeviceUIDFromUserHandle(userHandle: string | null | undefined): Promise<void> {
-//   if (!userHandle) return;
-//   try {
-//     const b64 = userHandle.replace(/-/g, '+').replace(/_/g, '/');
-//     const binary = atob(b64);
-//     let decoded = '';
-//     for (let i = 0; i < binary.length; i++) decoded += binary[i];
-//     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded)) return;
-//     const existing = await SecureStore.getItemAsync('deviceUID');
-//     if (!existing) {
-//       await SecureStore.setItemAsync('deviceUID', JSON.stringify(decoded));
-//       if (__DEV__) console.log('[passkey] hydrated deviceUID from userHandle:', decoded);
-//     }
-//   } catch { /* non-critical */ }
-// }
-/*DEVICE WALLET DEPLOYEMENT FIX*/
 
 export type DiscoverLoginResult = {
   credentialId: string;
@@ -106,7 +55,7 @@ async function captureAuthorizationCode(
       { authorizationEndpoint },
       { preferUniversalLinks: true },
     );
-    if (__DEV__) console.log(`[authorize] (android/promptAsync) → ${result.type}`);
+    logger.debug('AUTHORIZE_ANDROID_RESULT', { type: result.type});
 
     if (result.type === 'success') {
       const { code } = result.params;
@@ -127,7 +76,7 @@ async function captureAuthorizationCode(
     redirect: 'follow',
   });
   const returnUrl = (response as unknown as { url?: string }).url ?? '';
-  if (__DEV__) console.log(`[authorize] (ios/fetch) → ${response.status}`, { responseUrl: returnUrl });
+  logger.debug('AUTHORIZE_IOS_RESULT', { status: response.status, responseUrl: returnUrl });
 
   if (returnUrl && /[?&](code|error)=/.test(returnUrl)) {
     const result = request.parseReturnUrl(returnUrl);
@@ -174,7 +123,7 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
 
   let assertion;
   try {
-    console.log('[PASSKEY] calling Passkey.get');
+    logger.debug('PASSKEY Calling Passkey.get');
     // On Android, empty allowCredentials triggers discoverable-credential discovery
     // via Google Password Manager, which hangs or shows "Use another device" when
     // the credential isn't yet locally indexed. Use the stored credential ID to
@@ -193,10 +142,10 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
       allowCredentials: allowCredentials,
       userVerification: beginData.userVerification,
     });
-    console.log('[PASSKEY] got assertion');
-    if (__DEV__) console.log('[PASSKEY] assertion userHandle (raw):', assertion.response.userHandle);
+    logger.debug('PASSKEY_GOT_ASSERTION');
+    logger.debug('PASSKEY_ASSERTION_RAW_USERHANDLE', assertion.response.userHandle);
   } catch (e) {
-    console.log('[PASSKEY] error', e);
+    logger.error('PASSKEY_ASSERTION_FAILED', { err: e });
     throw e;
   }
 
@@ -311,7 +260,7 @@ export async function discoverAndLoginWithPasskey(): Promise<DiscoverLoginResult
     allowCredentials: [],
     userVerification: beginData.userVerification,
   });
-  if (__DEV__) console.log('[PASSKEY] discover assertion userHandle (raw):', assertion.response.userHandle);
+  logger.debug('PASSKEY_DISCOVER_USERHANDLE', { userHandle: assertion.response.userHandle });
 
   const completeData = assertData<{ deviceWalletAddress: string; authTime: number }>(
     await kokioAuthClient.loginComplete({

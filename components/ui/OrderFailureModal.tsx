@@ -131,7 +131,7 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
 
   const handleGoToOrders = () => {
     onDismiss();
-    router.navigate('/(tabs)/settings');
+    router.navigate('/(tabs)/orders');
   };
 
   const reasonText = manualReviewReason ? (REASON_LABELS[manualReviewReason] ?? manualReviewReason) : null;

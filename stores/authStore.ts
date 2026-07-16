@@ -12,6 +12,11 @@ import {
 
 type AuthStoreState = {
   tokens: TokenBundle | null;
+  /**
+   * True ONLY after a successful passkey ceremony this process lifetime
+   * `loadPersistedTokens` intentionally does NOT set this flag.
+   * The presence of a stored token bundle does not constitute an authenticated session.
+   */
   isAuthenticated: boolean;
   setTokens: (bundle: TokenBundle) => Promise<void>;
   loadPersistedTokens: () => Promise<void>;
@@ -31,7 +36,8 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
 
   loadPersistedTokens: async () => {
     const bundle = await loadTokens();
-    set({ tokens: bundle, isAuthenticated: bundle !== null });
+    // isAuthenticated is deliberately NOT set, a bundle in storage does not constitute an authenticated session.
+    set({ tokens: bundle });
   },
 
   clearTokens: async () => {

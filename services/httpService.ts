@@ -3,12 +3,15 @@ import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, Axi
 import qs from 'qs';
 import { v4 as uuidv4 } from 'uuid';
 import { router } from 'expo-router';
+import { logger } from '@/utils/logger';
 
 import { Config } from '@/appKeys';
 import { useAuthStore } from '@/stores/authStore';
 import { buildDpopProof } from '@/utils/auth/dpopProof';
 import { refreshAccessToken, TokenFamilyRevokedError } from '@/utils/auth/refresh';
 import { StepUpCancelledError } from '@/utils/auth/errors';
+import { markAccountDeleted } from '@/utils/auth/accountDeleted';
+import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 
 // Allow callers to opt out of auth header injection for public endpoints,
 // or to override the htu claim for routes with path parameters.
@@ -31,9 +34,11 @@ export type StepUpHint = {
 
 let _onStepUpNeeded: ((hint: StepUpHint) => void) | null = null;
 let _onUnauthenticated: (() => void) | null = null;
+let _onAccountDeleted: (() => void) | null = null;
 
 export function setStepUpHandler(fn: (hint: StepUpHint) => void): void { _onStepUpNeeded    = fn; }
-export function setUnauthenticatedHandler(fn: () => void): void        { _onUnauthenticated = fn; }
+export function setUnauthenticatedHandler(fn: () => void): void { _onUnauthenticated = fn; }
+export function setAccountDeletedHandler(fn: () => void): void { _onAccountDeleted = fn; }
 
 // ─── Step-up queue (AUTH-502) ─────────────────────────────────────────────────
 // All concurrent requests that hit STEP_UP_REQUIRED park here. AUTH-502 calls
@@ -114,7 +119,7 @@ instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
   const correlationId = (config.headers['x-correlation-id'] as string | undefined) ?? uuidv4();
   config.headers['x-correlation-id'] = correlationId;
 
-  if (__DEV__) console.log(`[http] ${(config.method ?? 'GET').toUpperCase()} ${config.url} | correlationId: ${correlationId}`);
+  logger.debug('HTTP_REQUEST', { method: (config.method ?? 'GET').toUpperCase(), url: config.url, correlationId });
 
   const stored = useAuthStore.getState().tokens;
   if (!stored) return config; // unauthenticated request — no auth headers
@@ -176,6 +181,19 @@ instance.interceptors.response.use(
     const errNonce = error.response?.headers?.['dpop-nonce'] as string | undefined;
     const origin   = bffOrigin();
     if (errNonce && origin) _bffNonceCache.set(origin, errNonce);
+
+    // Terminal state, valid on ANY authenticated endpoint — not just DELETE /account.
+    if (
+      status === 404 &&
+      (body?.code === 'ACCOUNT_DELETED' || body?.error === 'ACCOUNT_DELETED')
+    ) {
+      await markAccountDeleted();
+      await useAuthStore.getState().clearTokens();
+      await purgeAccountLocalState();
+      _onAccountDeleted?.();
+      router.replace('/');
+      return Promise.reject(error.response ?? error);
+    }
 
     // Non-401 or already retried — pass through.
     if (status !== 401 || !cfg || cfg._retried) {

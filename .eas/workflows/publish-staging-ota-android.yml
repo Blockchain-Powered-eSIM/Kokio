@@ -1,0 +1,10 @@
+name: Publish staging OTA (Android)
+
+jobs:
+  publish_android_update:
+    name: Publish Android staging OTA update
+    type: update
+    environment: preview
+    params:
+      branch: staging
+      platform: android

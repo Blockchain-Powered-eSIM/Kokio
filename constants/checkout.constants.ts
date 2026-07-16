@@ -32,6 +32,7 @@ type EsimExtraDetail = {
   formatter: (value: any) => string;
   isFlexColumn?: boolean;
   dataContainerStyles?: object;
+  hideWhenNullish?: boolean;
 };
 
 export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
@@ -93,10 +94,11 @@ export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
   // NOTE: Not currently consumed
   {
     iconName: "information-outline",
-    key: "ADDITIONAL_INFORMATION",
+    key: "info",
     label: "Additional Information",
-    formatter: () => "N/A",
+    formatter: (value: string) => value,
     isFlexColumn: true,
     dataContainerStyles: { marginLeft: 22 },
+    hideWhenNullish: true,
   },
 ];

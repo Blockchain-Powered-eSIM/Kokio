@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useToast } from '@/contexts/ToastContext'
 import { Theme } from '@/constants/Colors'
 import { useTheme } from '@/contexts/ThemeContext'
+import { logger } from '@/utils/logger';
 
 interface Token {
     id: string;
@@ -106,12 +107,12 @@ const SendToContact = () => {
           // Save back to AsyncStorage
           await AsyncStorage.setItem(`contact_${contactId}`, JSON.stringify(updatedContact));
     
-          console.log("Transaction added successfully:", newTransaction);
+          logger.debug('TRANSACTION_ADDED', { newTransaction });
           router.push({pathname:"/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
           //@ts-expect-error non-reachable code for now, should be fixed when enabled
           showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',params?.firstName,params.monogramUrl)
         } catch (error) {
-          console.error("Error adding transaction:", error);
+          logger.error('TRANSACTION_ADD_FAILED', { error });
           showMessage("Failed to send transaction", "error");
         } finally {
           setIsLoading(false);
@@ -142,7 +143,7 @@ const SendToContact = () => {
             setTokens(mappedTokens);
             setToken(mappedTokens[0]);
         } catch (error) {
-            console.error('Error fetching tokens:', error);
+            logger.error('TOKENS_FETCH_FAILED', { error });
         }
     };
 

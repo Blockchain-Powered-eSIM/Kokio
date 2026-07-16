@@ -1,0 +1,10 @@
+name: Publish production OTA (Android)
+
+jobs:
+  publish_android_update:
+    name: Publish Android production OTA update
+    type: update
+    environment: production
+    params:
+      branch: production
+      platform: android
