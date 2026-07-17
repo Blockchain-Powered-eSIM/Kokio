@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -36,18 +36,32 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH * 0.8;
 const SPACING = 8;
 
-const isSearchTextMatch = ({ searchText, item, keyExtractor }) =>
-  _includes(_lowerCase(_get(item, keyExtractor)), searchText);
+type ServiceRegion = { code: string; name: string; flag?: string };
+const isSearchTextMatch = ({
+  searchText,
+  item,
+  keyExtractor,
+}: {
+  searchText: string;
+  item: ServiceRegion;
+  keyExtractor: string;
+}) => _includes(_lowerCase(_get(item, keyExtractor)), searchText);
+//const isSearchTextMatch = ({ searchText, item, keyExtractor }) =>
+//  _includes(_lowerCase(_get(item, keyExtractor)), searchText);
 
-const CountryItemRender = ({ item }) => {
-  const firstItem = _get(item, "0", {});
-  const secondItem = _get(item, "1", {});
+const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
+  //const firstItem = _get(item, "0", {});
+  //const secondItem = _get(item, "1", {});
+  const firstItem = item[0];
+  const secondItem = item[1];
 
   return (
     <View style={styles.countryItem}>
       <TouchableOpacity
         onPress={navigateToESIMsByCountry(firstItem?.code)}
         style={styles.flagWrapper}
+        accessibilityRole="button"
+        accessibilityLabel={firstItem?.name || "Country"}
       >
         <CountryFlag
           isoCode={firstItem?.code}
@@ -60,6 +74,8 @@ const CountryItemRender = ({ item }) => {
       <TouchableOpacity
         style={styles.flagWrapper}
         onPress={navigateToESIMsByCountry(secondItem?.code)}
+        accessibilityRole="button"
+        accessibilityLabel={secondItem?.name || "Country"}
       >
         <CountryFlag
           isoCode={secondItem?.code}
@@ -91,8 +107,13 @@ const RegionItemRender = ({
 }: {
   item: { name?: string; code: string; flag: string };
 }) => {
+  const foregroundColor = useThemeColor({}, "foreground");
   return (
-    <TouchableOpacity onPress={navigateToESIMsByRegion(item?.code)}>
+    <TouchableOpacity
+      onPress={navigateToESIMsByRegion(item?.code)}
+      accessibilityRole="button"
+      accessibilityLabel={item?.name || "Region"}
+    >
       <ThemedView
         style={styles.regionItem}
         darkColor={Theme.colors.secondaryBackground}
@@ -104,7 +125,7 @@ const RegionItemRender = ({
           <Ionicons
             name="globe-outline"
             size={16}
-            color={useThemeColor({}, "foreground")}
+            color={foregroundColor}
             style={{ marginRight: 16 }}
           />
           <ThemedText>{item?.name}</ThemedText>
@@ -112,7 +133,7 @@ const RegionItemRender = ({
         <Ionicons
           name="chevron-forward"
           size={16}
-          color={useThemeColor({}, "foreground")}
+          color={foregroundColor}
         />
       </ThemedView>
     </TouchableOpacity>
@@ -129,7 +150,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
     () =>
       _reduce(
         countryConfig,
-        (acc, item) => {
+        (acc: ServiceRegion[], item) => {
           if (
             isSearchTextMatch({
               searchText: sanitizedSearchText,
@@ -190,6 +211,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
   }, [regionConfig, sanitizedSearchText, countries]);
 
   const [scrollOffset, setScrollOffset] = useState(0);
+  const carouselRef = useRef<FlatList>(null);
   const chunkedCountries = _chunk(countries, 2);
   const SNAP_INTERVAL = 160 + SPACING;
   const maxOffset = (chunkedCountries.length - 1) * SNAP_INTERVAL;
@@ -197,17 +219,34 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
   const isAtStart = scrollOffset <= 0;
   const isAtEnd = scrollOffset >= maxOffset - SNAP_INTERVAL;
 
-  const {} = useMemo;
+  const scrollByOnePage = (direction: 1 | -1) => {
+    const target = Math.min(
+      Math.max(scrollOffset + direction * SNAP_INTERVAL, 0),
+      maxOffset
+    );
+    carouselRef.current?.scrollToOffset({ offset: target, animated: true });
+    setScrollOffset(target);
+  };
+
   return (
     <ThemedView style={styles.container}>
       {_size(countries) ? (
         <ThemedView style={styles.countrySectionWrapper}>
           <View style={styles.carouselRow}>
-            <Ionicons name="chevron-back" size={15} color={Theme.colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+            <TouchableOpacity
+              onPress={() => scrollByOnePage(-1)}
+              disabled={isAtStart}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Scroll countries left"
+            >
+              <Ionicons name="chevron-back" size={15} color={Theme.colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+            </TouchableOpacity>
               <FlatList
+                ref={carouselRef}
                 data={_chunk(countries, 2)}
                 renderItem={CountryItemRender}
-                keyExtractor={(item, index) => item?.code || index}
+                keyExtractor={(item, index) => String(item?.[0]?.code || index)}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.countryListContainer}
@@ -217,7 +256,15 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
                 onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.x)}
                 scrollEventThrottle={16}
               />
-            <Ionicons name="chevron-forward" size={15} color={Theme.colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+            <TouchableOpacity
+              onPress={() => scrollByOnePage(1)}
+              disabled={isAtEnd}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Scroll countries right"
+            >
+              <Ionicons name="chevron-forward" size={15} color={Theme.colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+            </TouchableOpacity>
           </View>
         </ThemedView>
       ) : null}
@@ -226,8 +273,8 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
         <ThemedView style={styles.regionListContainer}>
           <FlatList
             data={regions}
-            renderItem={RegionItemRender}
-            keyExtractor={(item, index) => item?.code || index}
+            renderItem={({ item }) => <RegionItemRender item={item} />}
+            keyExtractor={(item, index) => String(item?.[0]?.code || index)}
             ItemSeparatorComponent={() => <View style={{ height: SPACING }} />}
             ListEmptyComponent={RegionEmptyListComponent}
             showsVerticalScrollIndicator={false}
@@ -268,7 +315,7 @@ const styles = StyleSheet.create({
   },
   regionTitle: {
     marginBottom: 12,
-    color: useThemeColor({}, "foreground"),
+    color: Theme.colors.text,
   },
   regionListContainer: {
     borderWidth: 1,

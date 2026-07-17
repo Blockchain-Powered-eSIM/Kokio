@@ -1,146 +1,13 @@
 import { ThemedText } from '@/components/ThemedText';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, Alert, Linking, Pressable, StatusBar } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
+import { useState, useEffect, useMemo } from 'react';
+import { StyleSheet, View, Linking, Pressable, StatusBar } from 'react-native';
 import { Theme } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import { logger } from '@/utils/logger';
 
-export default function QrCodeScreen() {
-  const [facing, setFacing] = useState<CameraType>('back');
-  const [permission, requestPermission] = useCameraPermissions();
-  const [permissionDenied, setPermissionDenied] = useState(false);
-  const [scanned, setScanned] = useState(false);
-  const {firstName,lastName,isEdit,monogramUrl,id} = useLocalSearchParams();
-  const navigation = useNavigation();
-
-  const handleBarCodeScanned = ({ data }:{data:string}) => {
-    if (scanned) return;
-    
-    setScanned(true);
-    console.log('Scanned wallet address:', data);
-
-    if(isEdit === "true"){
-      router.replace({
-        pathname: '/(contacts)/editContact',
-        params: { walletAddress: data,firstName:firstName,lastName:lastName,id:id,monogramUrl:monogramUrl }
-      });
-    }else{
-      router.replace({
-        pathname: '/(contacts)/addContactScreen',
-        params: { walletAddress: data,firstName:firstName,lastName:lastName }
-      });
-    }
-    
-    
-  };
-
-  // Function to handle permission request
-  const handleRequestPermission = async () => {
-    const permissionResult = await requestPermission();
-    
-    // If permissions are still not granted after request
-    if (!permissionResult.granted) {
-      setPermissionDenied(true);
-    } else {
-      setPermissionDenied(false);
-    }
-  };
-
-  // Check permission status on component mount
-  useEffect(() => {
-    if (permission && !permission.granted && permission.canAskAgain === false) {
-      setPermissionDenied(true);
-    }
-  }, [permission]);
-
-  function toggleCameraFacing() {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
-  }
-
-  if (!permission) {
-    // Camera permissions are still loading
-    return <View style={styles.container}><ThemedText>Loading camera permissions...</ThemedText></View>;
-  }
-
-  if (!permission.granted) {
-    // Camera permissions are not granted yet
-    return (
-      <View style={styles.container}>
-        <ThemedText darkColor='white' variant='xl' className='text-center' >We need your permission to show the camera</ThemedText>
-        
-        {permissionDenied && permission.canAskAgain === false ? (
-          // If permission was permanently denied, provide instructions to enable in settings
-          <View>
-            <ThemedText darkColor='white' variant='xl' className='text-center' >
-              Camera permission was denied. Please enable camera access in your device settings.
-            </ThemedText>
-            <Pressable
-              
-              onPress={() => Linking.openSettings()} 
-              className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
-               
-            >
-              <ThemedText bold className='text-center'>Open Settings</ThemedText>
-              </Pressable>
-          </View>
-        ) : (
-          // Standard permission request button
-          <Pressable
-              
-          onPress={handleRequestPermission} 
-          className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
-           
-        >
-          <ThemedText bold className='text-center'>Grant Permission</ThemedText>
-          </Pressable>
-        )}
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <StatusBar hidden />
-      
-      <CameraView 
-        style={StyleSheet.absoluteFillObject} 
-        facing='back'
-        onBarcodeScanned={handleBarCodeScanned}
-      >
-        {/* QR code scan overlay */}
-        <View style={styles.overlay}>
-          {/* Semi-transparent backgrounds */}
-          <View style={styles.overlayTop} />
-          <View style={styles.horizontalContainer}>
-            <View style={styles.overlaySide} />
-            
-            {/* Scan area with frame */}
-            <View style={styles.scanArea}>
-              <View style={styles.cornerTopLeft} />
-              <View style={styles.cornerTopRight} />
-              <View style={styles.cornerBottomLeft} />
-              <View style={styles.cornerBottomRight} />
-            </View>
-            
-            <View style={styles.overlaySide} />
-          </View>
-          <View style={styles.overlayBottom} />
-        </View>
-        
-        {/* Back button */}
-        {/* <TouchableOpacity style={styles.backButton} onPress={()=>router.back()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity> */}
-        
-       
-      </CameraView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -232,3 +99,133 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 });
+
+export default function QrCodeScreen() {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const {firstName,lastName,isEdit,monogramUrl,id} = useLocalSearchParams();
+
+  const handleBarCodeScanned = ({ data }:{data:string}) => {
+    if (scanned) return;
+    
+    setScanned(true);
+    logger.debug('WALLET_ADDRESS_SCANNED', { data });
+
+    if(isEdit === "true"){
+      router.replace({
+        pathname: '/(tabs)/(wallet)/(contacts)/editContact',
+        params: { walletAddress: data,firstName:firstName,lastName:lastName,id:id,monogramUrl:monogramUrl }
+      });
+    }else{
+      router.replace({
+        pathname: '/(tabs)/(wallet)/(contacts)/addContactScreen',
+        params: { walletAddress: data,firstName:firstName,lastName:lastName }
+      });
+    }
+    
+    
+  };
+
+  // Function to handle permission request
+  const handleRequestPermission = async () => {
+    const permissionResult = await requestPermission();
+    
+    // If permissions are still not granted after request
+    if (!permissionResult.granted) {
+      setPermissionDenied(true);
+    } else {
+      setPermissionDenied(false);
+    }
+  };
+
+  // Check permission status on component mount
+  useEffect(() => {
+    if (permission && !permission.granted && permission.canAskAgain === false) {
+      setPermissionDenied(true);
+    }
+  }, [permission]);
+
+  if (!permission) {
+    // Camera permissions are still loading
+    return <View style={styles.container}><ThemedText>Loading camera permissions...</ThemedText></View>;
+  }
+
+  if (!permission.granted) {
+    // Camera permissions are not granted yet
+    return (
+      <View style={styles.container}>
+        <ThemedText darkColor='white' variant='xl' className='text-center' >We need your permission to show the camera</ThemedText>
+        
+        {permissionDenied && permission.canAskAgain === false ? (
+          // If permission was permanently denied, provide instructions to enable in settings
+          <View>
+            <ThemedText darkColor='white' variant='xl' className='text-center' >
+              Camera permission was denied. Please enable camera access in your device settings.
+            </ThemedText>
+            <Pressable
+              
+              onPress={() => Linking.openSettings()} 
+              className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
+               
+            >
+              <ThemedText bold className='text-center'>Open Settings</ThemedText>
+              </Pressable>
+          </View>
+        ) : (
+          // Standard permission request button
+          <Pressable
+              
+          onPress={handleRequestPermission} 
+          className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
+           
+        >
+          <ThemedText bold className='text-center'>Grant Permission</ThemedText>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <StatusBar hidden />
+      
+      <CameraView 
+        style={StyleSheet.absoluteFillObject} 
+        facing='back'
+        onBarcodeScanned={handleBarCodeScanned}
+      >
+        {/* QR code scan overlay */}
+        <View style={styles.overlay}>
+          {/* Semi-transparent backgrounds */}
+          <View style={styles.overlayTop} />
+          <View style={styles.horizontalContainer}>
+            <View style={styles.overlaySide} />
+            
+            {/* Scan area with frame */}
+            <View style={styles.scanArea}>
+              <View style={styles.cornerTopLeft} />
+              <View style={styles.cornerTopRight} />
+              <View style={styles.cornerBottomLeft} />
+              <View style={styles.cornerBottomRight} />
+            </View>
+            
+            <View style={styles.overlaySide} />
+          </View>
+          <View style={styles.overlayBottom} />
+        </View>
+        
+        {/* Back button */}
+        {/* <TouchableOpacity style={styles.backButton} onPress={()=>router.back()}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity> */}
+        
+       
+      </CameraView>
+    </View>
+  );
+}
+

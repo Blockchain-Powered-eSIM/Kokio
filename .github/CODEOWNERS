@@ -1,0 +1,4 @@
+# Default code owners for all files.
+# These users will be automatically requested for review on PRs to default branch.
+* @ManulParihar
+* @ArpitxGit

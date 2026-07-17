@@ -15,10 +15,13 @@ import { openBrowserAsync } from "expo-web-browser";
 import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
+import { logger } from '@/utils/logger';
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -36,21 +39,197 @@ const formatWalletAddress = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
+const createStyles = () => StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay,
+    paddingTop: 0,
+  },
+  modalContainer: {
+    alignItems: "center",
+    width: "100%",
+    flex: 1,
+  },
+  contentContainerWrapper: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  contentContainer: {
+    width: "80%",
+    borderRadius: 20,
+    paddingTop: 32,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  description: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 48,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    marginTop: 28,
+  },
+  laterButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRightWidth: 1,
+  },
+  laterButtonText: {
+    fontSize: 16,
+    fontWeight: "400",
+  },
+  continueButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  loadingContainer: {
+    paddingBottom: 16,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 16,
+    lineHeight: 22,
+  },
+  errorContainer: {
+    paddingBottom: 16,
+    paddingHorizontal: 24,
+    alignItems: "center",
+  },
+  errorIcon: {
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  errorDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 24,
+  },
+  warningContainer: {
+    flexDirection: "row",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  warningText: {
+    fontWeight: "600",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  warningIconTopRight: {
+    position: "absolute",
+    top: -12,
+    right: 14,
+    zIndex: 1,
+  },
+  recoveryCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  recoveryTitle: {
+    fontSize: 18,
+    marginBottom: 12,
+  },
+  addressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  clickableAddressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addressText: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  linkIcon: {
+    marginLeft: 4,
+  },
+  recoveryDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  emailInput: {
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  recoveryButtonContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  remindLaterButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  remindLaterText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  doneButton: {
+    flex: 1,
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  expandedContainer: {
+    paddingTop: 20,
+    backgroundColor: "transparent",
+  },
+});
+
 const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   visible,
   onClose,
   onContinue,
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
-  const [email, setEmail] = useState("");
+  const [eoaAddress, setEoaAddress] = useState("");
   const [walletAddress, setWalletAddress] = useState<string | undefined>(
     undefined
   );
   const modalRef = React.useRef<Modal>(null);
   const { kokio, setupKokioUserWallet } = useKokio();
   const { showMessage } = useToast();
+  const textColor = useThemeColor({}, "text");
+  const foregroundColor = useThemeColor({}, "foreground");
+  const mutedColor = useThemeColor({}, "muted");
 
   const handleAddressPress = useCallback(async () => {
     if (walletAddress) {
@@ -58,7 +237,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       try {
         await openBrowserAsync(url);
       } catch (error) {
-        console.error("Error opening browser:", error);
+        logger.error('BROWSER_OPEN_FAILED', { error });
       }
     }
   }, [walletAddress]);
@@ -69,7 +248,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
     const { deviceWalletAddress, deviceUID, userPasskey, rawSalt, sdk } = kokio;
 
-    console.log('[wallet] handleContinue state:', {
+    logger.debug('WALLET_CONTINUE_STATE', {
       deviceWalletAddress: !!deviceWalletAddress,
       deviceUID: !!deviceUID,
       hasX: !!userPasskey?.x,
@@ -79,7 +258,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     });
 
     if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !rawSalt || !sdk) {
-      console.warn('[wallet] guard failed — missing:', {
+      logger.warn('WALLET_SETUP_GUARD_FAILED — Missing', {
         deviceWalletAddress,
         x: userPasskey?.x,
         y: userPasskey?.y,
@@ -99,7 +278,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
       const salt = BigInt(rawSalt);
 
-      console.log('[wallet] getSmartWallet inputs:', {
+      logger.debug('GET_SMART_WALLET_INPUTS', {
         deviceUID,
         ownerKeyX: userPasskey.x,
         ownerKeyY: userPasskey.y,
@@ -118,7 +297,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       const deviceWalletClient = await sdk.smartAccount.getSmartWalletClient(deviceWallet);
 
       const sdkAddress = deviceWalletClient.account?.address;
-      console.log('[wallet] getSmartWallet result:', {
+      logger.debug('GET_SMART_WALLET_RESULT', {
         sdkAddress,
         serverAddress: deviceWalletAddress,
         match: sdkAddress?.toLowerCase() === deviceWalletAddress.toLowerCase(),
@@ -126,8 +305,31 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
       // A no-op userOp that includes the initCode on first send, deploying the contract.
       // This triggers Passkey.get() inside the SDK's _stamp() — the biometric prompt.
+      /**
+       * ERROR SIGNATURE HERE
+       * components/ui/WalletSetupModal.tsx:307:50 - error TS2345: Argument of type '{ uo: { target: `0x${string}`; data: "0x"; value: bigint; }; overrides: { preVerificationGas: number; }; }' is not assignable to parameter of type 'SendUserOperationParameters<SmartContractAccount | undefined, UserOperationContext | undefined, keyof EntryPointRegistryBase<unknown>>'.
+       * Property 'account' is missing in type '{ uo: { target: `0x${string}`; data: "0x"; value: bigint; }; overrides: { preVerificationGas: number; }; }' but required in type '{ account: SmartContractAccount<string, keyof EntryPointRegistryBase<unknown>>; }'.
+       * 307       await deviceWalletClient.sendUserOperation({                                            ~
+       * 308         uo: {
+       *          ~~~~~~~~~~~~~
+       *          ... 
+       * 313              overrides: { preVerificationGas: 0xeeee },
+       *          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       * 314       });
+       *          ~~~~~~~
+       *
+       * node_modules/@aa-sdk/core/dist/types/account/smartContractAccount.d.ts:29:50
+       * 29     account: TAccountOverride;
+       *        ~~~~~~~
+       *        'account' is declared here.
+       *        components/ui/WalletSetupModal.tsx:309:19 - error TS18048: 'deviceWalletClient.account' is possibly 'undefined'.
+       * 309           target: deviceWalletClient.account.address,
+       */
+      // @ts-expect-error Ownership with wallet features (ideally protected against empty accounts, but should be explicit)
       await deviceWalletClient.sendUserOperation({
         uo: {
+          // error TS18048: 'deviceWalletClient.account' is possibly 'undefined'
+          // @ts-expect-error
           target: deviceWalletClient.account.address,
           data: '0x',
           value: 0n,
@@ -138,7 +340,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       await setupKokioUserWallet(deviceUID, deviceWallet);
       setShowRecovery(true);
     } catch (err: unknown) {
-      console.error('[wallet] deployment error:', err);
+      logger.error('WALLET_DEPLOYMENT_FAILED', { err });
       const message = err instanceof AuthError
         ? err.userMessage
         : err instanceof Error
@@ -155,7 +357,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(false);
     setShowRecovery(false);
     setShowRetry(false);
-    setEmail("");
+    setEoaAddress("");
     setWalletAddress(undefined);
     onClose();
   }, [onClose]);
@@ -163,40 +365,44 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const initialContent = useMemo(
     () => (
       <>
-        <ThemedText bold style={styles.title}>
+        <ThemedText bold style={[styles.title, { color: textColor }]}>
           Device Wallet
         </ThemedText>
 
-        <Text style={styles.description}>
-          Press "Continue" to setup your device wallet.
+        <Text style={[styles.description, { color: foregroundColor }]}>
+          Press &quot;Continue&quot; to setup your device wallet.
         </Text>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.laterButton} onPress={handleClose}>
-            <Text style={styles.laterButtonText}>Later</Text>
+        <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
+          <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
+            <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Later</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.continueButton}
             onPress={handleContinue}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={[styles.continueButtonText, { color: Theme.colors.primary }]}>Continue</Text>
           </TouchableOpacity>
         </View>
       </>
     ),
-    [handleClose, handleContinue]
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handleClose, handleContinue, foregroundColor, textColor]
   );
 
   const loadingContent = useMemo(
     () => (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size={90} color={Theme.colors.primary} />
-        <Text style={styles.loadingText}>
+        <Text style={[styles.loadingText, { color: foregroundColor }]}>
           Please wait while your wallet is being deployed...
         </Text>
       </View>
     ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -210,80 +416,83 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             color={Theme.colors.destructive}
             style={styles.errorIcon}
           />
-          <ThemedText bold style={styles.errorTitle}>
+          <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
             Wallet Creation Failed
           </ThemedText>
-          <Text style={styles.errorDescription}>
+          <Text style={[styles.errorDescription, { color: foregroundColor }]}>
             There was an error creating your wallet. Please try again.
           </Text>
         </View>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.laterButton} onPress={handleClose}>
-            <Text style={styles.laterButtonText}>Cancel</Text>
+        <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
+          <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
+            <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.continueButton}
             onPress={handleContinue}
           >
-            <Text style={styles.continueButtonText}>Retry</Text>
+            <Text style={[styles.continueButtonText, { color: Theme.colors.primary }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </>
     ),
-    [handleClose, handleContinue]
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handleClose, handleContinue, foregroundColor, textColor]
   );
 
   const handleRemindLater = useCallback(() => {
     setShowRecovery(false);
-    setEmail("");
+    setEoaAddress("");
     setWalletAddress(undefined);
     onClose();
   }, [onClose]);
 
-  const onChangeUserEmail = useCallback(async () => {
-    // TODO: save recovery email via Kokio API once endpoint is available
-    if (!email) return;
-  }, [email]);
+  const onSaveEOA = useCallback(async () => {
+    // No BFF endpoint exists yet to persist a recovery EOA (see docs/tasks.md
+    // for the backend ask) — don't let the user believe it was saved when it
+    // wasn't; tell them plainly instead of silently closing as if it succeeded.
+    if (!eoaAddress) return;
+    showMessage("Recovery address saving isn't available yet — it wasn't saved. This will be added in a future update.", 'info');
+  }, [eoaAddress, showMessage]);
 
   const handleDone = useCallback(() => {
-    // if email is provided, save it for recovery purpose
-    onChangeUserEmail();
+    onSaveEOA();
     setShowRecovery(false);
-    setEmail("");
+    setEoaAddress("");
     onContinue();
-  }, [onContinue]);
+  }, [onContinue, onSaveEOA]);
 
   const recoveryContent = useMemo(
     () => (
       <>
-        <View style={styles.warningContainer}>
+        <View style={[styles.warningContainer, { backgroundColor: Theme.colors.popover }]}>
           <MaterialCommunityIcons
             name="comment-alert"
             size={32}
             color={Theme.colors.primary}
             style={styles.warningIconTopRight}
           />
-          <Text style={styles.warningText}>
-            If you no longer have your device, you'll need this email address or
-            EOA to restore access to your wallet.
+          <Text style={[styles.warningText, { color: textColor }]}>
+            If you no longer have your device, you&#39;ll need this EOA to restore access to your wallet.
           </Text>
         </View>
 
-        <View style={styles.recoveryCard}>
+        <View style={[styles.recoveryCard, { backgroundColor: Theme.colors.popover }]}>
           <ThemedText bold style={styles.recoveryTitle}>
             Wallet Recovery
           </ThemedText>
 
           <View style={styles.addressContainer}>
-            <Text style={styles.addressText}>Address: </Text>
+            <Text style={[styles.addressText, { color: foregroundColor }]}>Address: </Text>
             <TouchableOpacity
               style={styles.clickableAddressContainer}
               onPress={handleAddressPress}
               disabled={!walletAddress}
             >
-              <Text style={styles.addressText}>
+              <Text style={[styles.addressText, { color: foregroundColor }]}>
                 {formatWalletAddress(walletAddress)}
               </Text>
               {walletAddress && (
@@ -297,37 +506,39 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.recoveryDescription}>
-            You may optionally provide an email address or EOA for recovery
+          <Text style={[styles.recoveryDescription, { color: foregroundColor }]}>
+            You may optionally provide an EOA for recovery
             purpose and to restore access to your device wallet
           </Text>
 
           <TextInput
-            style={styles.emailInput}
-            placeholder="Email id"
-            placeholderTextColor={Theme.colors.accentForeground}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
+            style={[styles.emailInput, { backgroundColor: Theme.colors.inputBackground, color: textColor }]}
+            placeholder="EOA (Externally-owned Account)"
+            placeholderTextColor={mutedColor}
+            value={eoaAddress}
+            onChangeText={setEoaAddress}
+            keyboardType="default"
             autoCapitalize="none"
           />
         </View>
 
         <View style={styles.recoveryButtonContainer}>
           <TouchableOpacity
-            style={styles.remindLaterButton}
+            style={[styles.remindLaterButton, { borderColor: Theme.colors.primary }]}
             onPress={handleRemindLater}
           >
-            <Text style={styles.remindLaterText}>Remind me later</Text>
+            <Text style={[styles.remindLaterText, { color: Theme.colors.primary }]}>Remind me later</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-            <Text style={styles.doneButtonText}>Done</Text>
+          <TouchableOpacity style={[styles.doneButton, { backgroundColor: Theme.colors.primary }]} onPress={handleDone}>
+            <Text style={[styles.doneButtonText, { color: Theme.colors.cardForeground }]}>Done</Text>
           </TouchableOpacity>
         </View>
       </>
     ),
-    [email, handleRemindLater, handleDone, walletAddress]
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [eoaAddress, handleAddressPress, handleRemindLater, handleDone, walletAddress, foregroundColor]
   );
 
   const renderContent = () => {
@@ -347,7 +558,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       ref={modalRef}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: Theme.colors.walletModalBackground }]}>
           <KeyboardAvoidingView
             style={[styles.contentContainerWrapper]}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -356,6 +567,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             <View
               style={[
                 styles.contentContainer,
+                { backgroundColor: Theme.colors.popover },
                 showRecovery && styles.expandedContainer,
               ]}
             >
@@ -368,198 +580,5 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: Theme.colors.overlay,
-    paddingTop: 0,
-  },
-  modalContainer: {
-    backgroundColor: Theme.colors.modalBackground,
-    alignItems: "center",
-    width: "100%",
-    flex: 1,
-  },
-  contentContainerWrapper: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  contentContainer: {
-    width: "80%",
-    backgroundColor: Theme.colors.background,
-    borderRadius: 20,
-    paddingTop: 32,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 14,
-    color: Theme.colors.foreground,
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 48,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.muted,
-    marginTop: 28,
-  },
-  laterButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderRightWidth: 1,
-    borderRightColor: Theme.colors.muted,
-  },
-  laterButtonText: {
-    color: Theme.colors.foreground,
-    fontSize: 16,
-    fontWeight: "400",
-  },
-  continueButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  continueButtonText: {
-    color: Theme.colors.primary,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  loadingContainer: {
-    paddingBottom: 16,
-    paddingHorizontal: 24,
-  },
-  loadingText: {
-    color: Theme.colors.foreground,
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 16,
-    lineHeight: 22,
-  },
-  errorContainer: {
-    paddingBottom: 16,
-    paddingHorizontal: 24,
-    alignItems: "center",
-  },
-  errorIcon: {
-    marginBottom: 16,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  errorDescription: {
-    fontSize: 14,
-    color: Theme.colors.foreground,
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 24,
-  },
-  warningContainer: {
-    flexDirection: "row",
-    backgroundColor: Theme.colors.background,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  warningText: {
-    color: Theme.colors.text,
-    fontWeight: "600",
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  warningIconTopRight: {
-    position: "absolute",
-    top: -12,
-    right: 14,
-    zIndex: 1,
-  },
-  recoveryCard: {
-    backgroundColor: Theme.colors.background,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-  },
-  recoveryTitle: {
-    fontSize: 18,
-    color: Theme.colors.text,
-    marginBottom: 12,
-  },
-  addressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  clickableAddressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  addressText: {
-    color: Theme.colors.foreground,
-    fontSize: 14,
-    marginRight: 8,
-  },
-  linkIcon: {
-    marginLeft: 4,
-  },
-  recoveryDescription: {
-    color: Theme.colors.foreground,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  emailInput: {
-    backgroundColor: Theme.colors.inputBackground,
-    borderRadius: 8,
-    padding: 12,
-    color: Theme.colors.text,
-    fontSize: 16,
-  },
-  recoveryButtonContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  remindLaterButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Theme.colors.primary,
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  remindLaterText: {
-    color: Theme.colors.primary,
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  doneButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  doneButtonText: {
-    color: Theme.colors.cardForeground,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  expandedContainer: {
-    paddingTop: 20,
-    backgroundColor: "transparent",
-  },
-});
 
 export default WalletSetupModal;

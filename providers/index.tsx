@@ -1,18 +1,29 @@
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AuthRelayProvider } from "./authProvider";
-import { KokioProvider } from "./kokioProvider";
-import React from "react";
+import React, { ReactNode } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from "@react-navigation/native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "@/contexts/ToastContext";
-import { useColorScheme } from "@/hooks/useColorScheme";
+} from '@react-navigation/native';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const queryClient = new QueryClient({
+import { AuthRelayProvider } from './authProvider';
+import { KokioProvider } from './kokioProvider';
+import { KokioStripeProvider } from './StripeProvider';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
+
+// ─── Persisted query keys ──────────────────────────────────────────────────────
+const PERSISTED_KEYS: Set<string> = new Set([DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY]);
+
+// ─── QueryClient ──────────────────────────────────────────────────────────────
+
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
@@ -20,20 +31,40 @@ const queryClient = new QueryClient({
   },
 });
 
-export const Providers = ({ children }: { children: React.ReactNode }) => {
+// ─── AsyncStorage persister ───────────────────────────────────────────────────
+// Single flat key in AsyncStorage.
+// The dehydrateOptions filter below ensures only PERSISTED_KEYS queries are written.
+
+export const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key:     'kokio.rq.cache',
+});
+
+export const Providers = ({ children }: { children: ReactNode }) => {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SafeAreaProvider>
-        <GestureHandlerRootView>
-          <QueryClientProvider client={queryClient}>
-            <AuthRelayProvider>
-              <KokioProvider>
-                <ToastProvider>{children}</ToastProvider>
-              </KokioProvider>
-            </AuthRelayProvider>
-          </QueryClientProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+              persister: asyncStoragePersister,
+              dehydrateOptions: {
+                shouldDehydrateQuery: (query) =>
+                  PERSISTED_KEYS.has(query.queryKey[0] as string),
+              },
+            }}
+          >
+            <KokioStripeProvider>
+              <AuthRelayProvider>
+                <KokioProvider>
+                  <ToastProvider>{children}</ToastProvider>
+                </KokioProvider>
+              </AuthRelayProvider>
+            </KokioStripeProvider>
+          </PersistQueryClientProvider>
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </ThemeProvider>

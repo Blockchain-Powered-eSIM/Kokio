@@ -17,20 +17,111 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface CheckoutSuccessModalProps {
   visible: boolean;
   loading?: boolean;
   onClose?: () => void;
-  onInstallESIM: () => void;
+  variant?: "install" | "topup";
+  onInstallESIM?: () => void;
+  onDone?: () => void;
+  /** Label of the plan just purchased, e.g. "United Arab Emirates · 7 Days · 1GB" — topup variant only. */
+  topupFromLabel?: string;
+  /** Label of the existing eSIM the top-up was applied to — topup variant only. */
+  topupToLabel?: string;
 }
+
+const createStyles = () => StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: Theme.colors.overlay,
+    paddingTop: 0,
+  },
+  modalContainer: {
+    paddingHorizontal: 16,
+    alignItems: "center",
+    width: "100%",
+    flex: 1,
+  },
+  contentContainerWrapper: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  contentContainer: {
+    width: "80%",
+    borderRadius: 20,
+    padding: 24,
+    paddingTop: 32,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 24,
+    lineHeight: 22,
+  },
+  loadingSubText: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  successIcon: {
+    borderRadius: 24,
+    position: "absolute",
+    top: -22,
+    right: 30,
+    zIndex: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  description: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  installButton: {
+    borderRadius: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    width: "100%",
+    marginBottom: 16,
+  },
+  installButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+});
 
 const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   visible,
   loading = false,
   onClose = () => {},
+  variant = "install",
   onInstallESIM,
+  onDone,
+  topupFromLabel,
+  topupToLabel,
 }) => {
+  const { isDark } = useTheme();
+  const styles = useMemo(createStyles, [isDark]);
+  const textColor = useThemeColor({}, "text");
+
   const scale = useSharedValue(0);
 
   useEffect(() => {
@@ -50,7 +141,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
     } else {
       scale.value = 0;
     }
-  }, [visible, loading]);
+  }, [visible, loading, scale]);
 
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -66,6 +157,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
         </ThemedText>
       </View>
     ),
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -80,30 +173,47 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
           />
         </Animated.View>
 
-        <ThemedText bold style={styles.title}>
-          Transaction Successful
+        <ThemedText bold style={[styles.title, { color: textColor }]}>
+          {variant === "topup" ? "Top-up Successful" : "Transaction Successful"}
         </ThemedText>
 
-        <ThemedText style={styles.subtitle}>
-          It's now time to install your newly purchased eSIM.
-        </ThemedText>
+        {variant === "topup" ? (
+          <ThemedText style={[styles.subtitle, { color: textColor }]}>
+            {`Top-up of ${topupFromLabel ?? "your new plan"} is applied to ${topupToLabel ?? "your eSIM"}.`}
+          </ThemedText>
+        ) : (
+          <>
+            <ThemedText style={[styles.subtitle, { color: textColor }]}>
+              It&#39;s now time to install your newly purchased eSIM.
+            </ThemedText>
 
-        <ThemedText style={styles.description}>
-          If you are not abroad yet, no worries, the eSIM will only activate
-          once connected to your destination network.
-        </ThemedText>
+            <ThemedText style={styles.description}>
+              If you are not abroad yet, no worries, the eSIM will only activate
+              once connected to your destination network.
+            </ThemedText>
+          </>
+        )}
       </>
     ),
-    [animatedIconStyle]
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [animatedIconStyle, textColor, variant, topupFromLabel, topupToLabel]
   );
 
-  const installButton = useMemo(
+  const actionButton = useMemo(
     () => (
-      <TouchableOpacity style={styles.installButton} onPress={onInstallESIM}>
-        <ThemedText style={styles.installButtonText}>Install eSIM</ThemedText>
+      <TouchableOpacity
+        style={[styles.installButton, { backgroundColor: Theme.colors.shopCta }]}
+        onPress={variant === "topup" ? onDone : onInstallESIM}
+      >
+        <ThemedText style={[styles.installButtonText, { color: Theme.colors.cardForeground }]}>
+          {variant === "topup" ? "Done" : "Install eSIM"}
+        </ThemedText>
       </TouchableOpacity>
     ),
-    [onInstallESIM]
+    // All missing dependencies are of style attributes which are in their on useMemo() call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onInstallESIM, onDone, variant]
   );
 
   return (
@@ -116,101 +226,19 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { backgroundColor: isDark ? Theme.colors.modalBackground : "transparent" }]}>
           <View style={styles.contentContainerWrapper}>
-            <View style={styles.contentContainer}>
+            <View style={[styles.contentContainer, { backgroundColor: Theme.colors.contentBackground }]}>
               {loading ? loadingContent : successContent}
             </View>
           </View>
 
-          {!loading && installButton}
+          {!loading && actionButton}
         </View>
       </View>
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: Theme.colors.overlay,
-    paddingTop: 0,
-  },
-  modalContainer: {
-    backgroundColor: Theme.colors.modalBackground,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    width: "100%",
-    flex: 1,
-  },
-  contentContainerWrapper: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  contentContainer: {
-    width: "80%",
-    backgroundColor: Theme.colors.contentBackground,
-    borderRadius: 20,
-    padding: 24,
-    paddingTop: 32,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginTop: 24,
-    lineHeight: 22,
-  },
-  loadingSubText: {
-    fontSize: 16,
-    color: Theme.colors.text,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  successIcon: {
-    borderRadius: 24,
-    position: "absolute",
-    top: -22,
-    right: 30,
-    zIndex: 10,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Theme.colors.text,
-    textAlign: "center",
-    marginBottom: 16,
-    lineHeight: 22,
-  },
-  description: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  installButton: {
-    backgroundColor: Theme.colors.highlight,
-    borderRadius: 32,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    width: "100%",
-    marginBottom: 16,
-  },
-  installButtonText: {
-    color: Theme.colors.cardForeground,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-});
 
 export default CheckoutSuccessModal;

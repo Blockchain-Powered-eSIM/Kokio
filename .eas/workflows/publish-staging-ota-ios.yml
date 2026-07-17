@@ -1,0 +1,10 @@
+name: Publish staging OTA (iOS)
+
+jobs:
+  publish_ios_update:
+    name: Publish iOS staging OTA update
+    type: update
+    environment: preview
+    params:
+      branch: staging
+      platform: ios

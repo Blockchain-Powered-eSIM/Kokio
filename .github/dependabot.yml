@@ -1,0 +1,107 @@
+# Dependabot configuration for Kokio app.
+# Runs weekly on Monday against default branch (`dev`). 
+# Major version bumps are always individual PRs.
+# Expo SDK packages are grouped to surface coordinated updates as a unit.
+# React Native ecosystem packages are grouped separately as they require native rebuilds.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "UTC"
+    target-branch: "dev"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "ManulParihar"
+      - "ArpitxGit"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+    groups:
+      expo-ecosystem:
+        patterns:
+          - "expo"
+          - "expo-*"
+          - "@expo/*"
+          - "jest-expo"
+        update-types:
+          - "minor"
+          - "patch"
+      react-native-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-native"
+          - "react-native-*"
+          - "@react-native-*"
+          - "@react-navigation/*"
+          - "nativewind"
+          - "tailwind-merge"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-tooling:
+        patterns:
+          - "typescript"
+          - "eslint"
+          - "eslint-*"
+          - "@typescript-eslint/*"
+          - "jest"
+          - "@types/*"
+          - "@babel/*"
+          - "babel-*"
+          - "audit-ci"
+          - "tailwindcss"
+          - "openapi-typescript"
+          - "patch-package"
+        update-types:
+          - "minor"
+          - "patch"
+      production-deps:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "expo"
+          - "expo-*"
+          - "@expo/*"
+          - "jest-expo"
+          - "react"
+          - "react-dom"
+          - "react-native"
+          - "react-native-*"
+          - "@react-native-*"
+          - "@react-navigation/*"
+          - "nativewind"
+          - "tailwind-merge"
+          - "typescript"
+          - "eslint"
+          - "eslint-*"
+          - "@typescript-eslint/*"
+          - "jest"
+          - "@types/*"
+          - "@babel/*"
+          - "babel-*"
+          - "audit-ci"
+          - "tailwindcss"
+          - "openapi-typescript"
+          - "patch-package"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "UTC"
+    target-branch: "dev"
+    open-pull-requests-limit: 5
+    labels:
+      - "ci"
+    commit-message:
+      prefix: "ci"

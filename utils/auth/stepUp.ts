@@ -4,6 +4,7 @@ import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
+import { logger } from '@/utils/logger';
 
 // ─── Response envelope helper (mirrors passkeyLogin.ts) ──────────────────────
 
@@ -13,12 +14,6 @@ function assertData<T>(raw: unknown, fallbackCode: string): T {
   const body = raw as ApiBody<T>;
   if (!body.data) throw new AuthError(body.code ?? fallbackCode, undefined, body.message);
   return body.data;
-}
-
-// ─── Telemetry ────────────────────────────────────────────────────────────────
-
-function logEvent(event: string, data?: Record<string, unknown>): void {
-  if (__DEV__) console.log('[stepup]', event, data ?? '');
 }
 
 // ─── Step-up ceremony ─────────────────────────────────────────────────────────
@@ -32,11 +27,11 @@ function logEvent(event: string, data?: Record<string, unknown>): void {
 // rejectStepUp(new StepUpCancelledError()) on user cancel (see httpService.ts).
 
 export async function performStepUp(): Promise<void> {
-  logEvent('stepup.started');
+  logger.debug('[STEPUP] Stepup started');
 
   const current = useAuthStore.getState().tokens;
   if (!current) {
-    logEvent('stepup.failed', { reason: 'NO_TOKENS' });
+    logger.error('STEP_UP_FAILED', { reason: 'NO_TOKENS' });
     throw new AuthError('STEP_UP_CANCELLED');
   }
 
@@ -58,14 +53,17 @@ export async function performStepUp(): Promise<void> {
       challenge:        opts.challenge,
       rpId:             opts.rpId,
       timeout:          opts.timeout,
-      allowCredentials: opts.allowCredentials as { id: string; type: string }[],
+      // @ts-expect-error react-native-passkey does not export matched type PublicKeyCredentialDescriptor[]
+      allowCredentials: opts.allowCredentials,
       userVerification: opts.userVerification,
     });
 
     // 3. Complete the ceremony; DPoP nonce retry is handled inside kokioAuthClient.
     // htu is provided by authFetch from the actual request URL — do not hardcode it here.
-    const buildProof: DpopProofBuilder = (nonce, htu) =>
-      buildDpopProof({ htu: htu!, htm: 'POST', nonce });
+    const buildProof: DpopProofBuilder = (nonce, htu) => {
+      logger.debug('[STEPUP] buildProof', { htu, nonce: !!nonce });
+      return buildDpopProof({ htu: htu!, htm: 'POST', nonce });
+    };
 
     const resp = assertData<{
       access_token: string;
@@ -77,7 +75,7 @@ export async function performStepUp(): Promise<void> {
         {
           assertionResponse: {
             id:      assertion.id,
-            rawId:   assertion.rawId,
+            rawId:   assertion.rawId ?? assertion.id,
             response: {
               clientDataJSON:    assertion.response.clientDataJSON,
               authenticatorData: assertion.response.authenticatorData,
@@ -96,18 +94,21 @@ export async function performStepUp(): Promise<void> {
 
     // 4. Swap only the AT. The RT is intentionally kept — the server spec states
     //    "No new refresh token is issued" for a step-up grant.
+    // Read the latest store state here (not the pre-biometric snapshot) so that
+    // a background refresh that ran during the prompt doesn't get its RT overwritten.
     const { auth_time } = parseIdToken(resp.id_token);
+    const latest = useAuthStore.getState().tokens ?? current;
     await useAuthStore.getState().setTokens({
-      ...current,
+      ...latest,
       access_token: resp.access_token,
       id_token:     resp.id_token,
       expires_at:   Date.now() + resp.expires_in * 1_000,
       ...(auth_time !== undefined && { auth_time }),
     });
 
-    logEvent('stepup.completed', { auth_time });
+    logger.debug('[STEPUP] Completed', { auth_time });
   } catch (err) {
-    logEvent('stepup.failed', { error: err instanceof Error ? err.message : String(err) });
+    logger.error('STEP_UP_FAILED', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }

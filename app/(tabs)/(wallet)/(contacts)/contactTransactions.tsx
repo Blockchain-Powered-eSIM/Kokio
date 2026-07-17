@@ -1,12 +1,10 @@
-import { View, Text, Image, Pressable } from 'react-native';
-import React, { useEffect ,useState} from 'react';
+import { View, Image, Pressable } from 'react-native';
+import React, { useEffect ,useState, useCallback } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import _ from "lodash"
 import { Theme } from '@/constants/Colors'
-import { useCallback } from 'react';
-
 
 interface Transaction {
     id: string;
@@ -20,15 +18,7 @@ interface Transaction {
     walletId?:string
   }
 
-
-
-
-const shortenId = (address: string | undefined, startLength = 3, endLength = 6) => {
-    if (!address) return "";
-    return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
-};
-
-const contactTransactions = () => {
+const ContactTransactions = () => {
     const router = useRouter();
     const { transactions } = useLocalSearchParams();
     const parsedTransactions: Transaction[] = transactions
@@ -36,7 +26,7 @@ const contactTransactions = () => {
     : [];
 
   // Optional: Use state if you need to manipulate transactions later
-  const [transactionList, setTransactionList] = useState<Transaction[]>(parsedTransactions);
+  const [transactionList] = useState<Transaction[]>(parsedTransactions);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>(
     parsedTransactions.filter((tx) => tx.status === "pending")
   );
@@ -49,17 +39,13 @@ const contactTransactions = () => {
     setPendingTransactions(transactionList.filter((tx) => tx.status === "pending"));
     setCompletedTransactions(transactionList.filter((tx) => tx.status === "completed"));
   }, [transactionList]);
-    
-
-
-
 
     const renderTransaction = useCallback(
         (tr: Transaction, index: number) => (
             tr.status === 'pending' && (
                 <Pressable
                     onPress={() => router.push({
-                        pathname: "/(tabs)/(wallet)/transactionDetails",
+                        pathname: "/(tabs)/(wallet)/TransactionDetails",
                         params: { transaction: JSON.stringify(pendingTransactions[index]) }
                     })}
                     key={tr?.id}
@@ -93,7 +79,7 @@ const contactTransactions = () => {
                 </Pressable>
             )
         ),
-        [router, transactionList] // Dependencies array
+        [router, pendingTransactions] // Dependencies array
     );
 
     return (
@@ -118,11 +104,10 @@ const contactTransactions = () => {
                         {_.map(completedTransactions, (tr, index) => (
                             tr?.status === "completed" && (
                                 <Pressable onPress={() => router.push({
-                                    pathname: "/(tabs)/(wallet)/transactionDetails",
+                                    pathname: "/(tabs)/(wallet)/TransactionDetails",
                                     params: { transaction: JSON.stringify(completedTransactions[index]) }
                                 })} key={index} className='flex-row items-center justify-between  mx-5 '>
                                     <View className='flex-row items-center'>
-
                                         <Image source={tr.type === 'sent' ? require('../../../../assets/images/contacts/sent.png') : require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                                         <View className='flex-col items-start ml-3 '>
                                             <ThemedText variant='xl'>{tr.name}</ThemedText>
@@ -138,7 +123,6 @@ const contactTransactions = () => {
                                             <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.status}</ThemedText>
                                         }
                                     </View>
-
                                 </Pressable>
                             )
                         ))}
@@ -148,10 +132,9 @@ const contactTransactions = () => {
                         No Transactions to show
                     </ThemedText>
                 )}
-
             </ThemedView>
         </ThemedView>
     );
 };
 
-export default contactTransactions;
+export default ContactTransactions;

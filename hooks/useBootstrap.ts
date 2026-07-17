@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { fetchBootstrapDataAPI, healthCheck } from "@/services/general";
+import { getServiceRegions } from "@/utils/bff/catalogue";
+import { checkBffHealth } from "@/utils/bff/health";
 import AppBootstrap from "@/utils/appBootstrap";
-import type { components } from "@/utils/bff/generated/koKioBff";
-
-type ServiceRegion = components["schemas"]["ServiceRegion"];
+import { logger } from '@/utils/logger';
 
 export default function useBootstrap() {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,13 +12,13 @@ export default function useBootstrap() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await healthCheck();
-      console.log("Health status", response);
-      if ((response as any)?.success !== true) {
-        console.error("Non 200 status");
+      const healthy = await checkBffHealth();
+      logger.debug('BFF_HEALTH_STATUS', healthy);
+      if (!healthy) {
+        logger.warn('BFF_HEALTH_NON_200');
       }
     } catch (err) {
-      console.error("Failed to query BFF", err);
+      logger.error('BFF_HEALTH_QUERY_FAILED', { err });
       setError(err);
     } finally {
       setIsLoading(false);
@@ -31,14 +30,10 @@ export default function useBootstrap() {
     setError(null);
 
     try {
-      const response = await fetchBootstrapDataAPI();
-      const { countries, regions } = (response as any)?.data as {
-        countries?: ServiceRegion[];
-        regions?: ServiceRegion[];
-      } || {};
+      const { countries, regions } = await getServiceRegions();
       new AppBootstrap({ countries, regions });
     } catch (err) {
-      console.error("Failed to fetch bootstrap data:", err);
+      logger.error('BOOTSTRAP_FETCH_FAILED', { err });
       setError(err);
     } finally {
       setIsLoading(false);
@@ -47,7 +42,7 @@ export default function useBootstrap() {
 
   // Fetch bootstrap data on mount
   useEffect(() => {
-    fetchHealthData(); // TODO : add UI component to display errors to user
+    fetchHealthData();
     fetchBootstrapData();
   }, []);
 

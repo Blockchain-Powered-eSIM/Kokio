@@ -3,7 +3,13 @@
  *
  * Verifies checkEsimCompatibility: correct endpoint, param forwarding,
  * absence of deviceId, response shape, and BffError propagation.
+ *
+ * esimId is now a path parameter: GET /v1/esim/compatibility/{esimId}
  */
+
+import api from '@/services/httpService';
+import { checkEsimCompatibility } from '../esim';
+import { BffError } from '../errors';
 
 jest.mock('@/services/httpService', () => ({
   __esModule: true,
@@ -13,10 +19,6 @@ jest.mock('@/services/httpService', () => ({
     getConfig: jest.fn(() => ({})),
   },
 }));
-
-import api from '@/services/httpService';
-import { checkEsimCompatibility } from '../esim';
-import { BffError } from '../errors';
 
 const mockGet = api.get as jest.MockedFunction<typeof api.get>;
 
@@ -59,38 +61,48 @@ beforeEach(() => jest.clearAllMocks());
 
 describe('checkEsimCompatibility', () => {
   describe('request shape', () => {
-    it('calls api.get with /v1/esim/compatibility', async () => {
+    it('calls api.get with /v1/esim/compatibility/{esimId} when esimId provided', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope());
-      await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
+      expect(mockGet).toHaveBeenCalledWith(
+        '/v1/esim/compatibility/0xESIM01',
+        expect.any(Object),
+      );
+    });
+
+    it('calls api.get with /v1/esim/compatibility (no esimId) when omitted', async () => {
+      mockGet.mockResolvedValue(compatibilityEnvelope());
+      await checkEsimCompatibility({ planId: 'plan-1' });
       expect(mockGet).toHaveBeenCalledWith(
         '/v1/esim/compatibility',
         expect.any(Object),
       );
     });
 
-    it('forwards planId and esimId as query params', async () => {
+    it('forwards planId as query param — esimId is in the path, not params', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope());
-      await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       const [, params] = mockGet.mock.calls[0];
-      expect(params).toMatchObject({ planId: 'plan-1', esimId: '0xESIM01' });
+      expect(params).toMatchObject({ planId: 'plan-1' });
+      expect(params).not.toHaveProperty('esimId');
     });
 
     it('does not include deviceId in the params', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope());
-      await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       const [, params] = mockGet.mock.calls[0];
       expect(params).not.toHaveProperty('deviceId');
     });
 
     it('calls api.get exactly once', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope());
-      await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       expect(mockGet).toHaveBeenCalledTimes(1);
     });
 
     it('does not pass skipAuth — authenticated endpoint requires DPoP proof', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope());
-      await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       // api.get is called with only (url, params) — no config object with skipAuth
       expect(mockGet.mock.calls[0]).toHaveLength(2);
     });
@@ -99,27 +111,27 @@ describe('checkEsimCompatibility', () => {
   describe('response handling', () => {
     it('returns the compatibility response with results array', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope([COMPATIBLE_RESULT]));
-      const result = await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      const result = await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       expect(result.results).toHaveLength(1);
     });
 
     it('result contains compatible eSIM entries', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope([COMPATIBLE_RESULT]));
-      const result = await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      const result = await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       expect(result.results[0].compatible).toBe(true);
       expect(result.results[0].esimId).toBe('0xESIM01');
     });
 
     it('returns vendor mismatch entries correctly', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope([VENDOR_MISMATCH_RESULT]));
-      const result = await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM02' });
+      const result = await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM02');
       expect(result.results[0].vendorMismatch).toBe(true);
       expect(result.results[0].compatible).toBe(false);
     });
 
     it('returns check-error entries correctly', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope([CHECK_ERROR_RESULT]));
-      const result = await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM03' });
+      const result = await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM03');
       expect(result.results[0].checkError).toBe(true);
     });
 
@@ -127,13 +139,13 @@ describe('checkEsimCompatibility', () => {
       mockGet.mockResolvedValue(
         compatibilityEnvelope([COMPATIBLE_RESULT, VENDOR_MISMATCH_RESULT, CHECK_ERROR_RESULT]),
       );
-      const result = await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      const result = await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       expect(result.results).toHaveLength(3);
     });
 
     it('handles empty results array', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope([]));
-      const result = await checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' });
+      const result = await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       expect(result.results).toEqual([]);
     });
   });
@@ -142,21 +154,21 @@ describe('checkEsimCompatibility', () => {
     it('throws BffError when success: false', async () => {
       mockGet.mockResolvedValue(bffError('ESIM_NOT_FOUND_FOR_DEVICE'));
       await expect(
-        checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' }),
+        checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01'),
       ).rejects.toBeInstanceOf(BffError);
     });
 
     it('thrown BffError carries ESIM_NOT_FOUND_FOR_DEVICE code', async () => {
       mockGet.mockResolvedValue(bffError('ESIM_NOT_FOUND_FOR_DEVICE'));
       await expect(
-        checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' }),
+        checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01'),
       ).rejects.toMatchObject({ code: 'ESIM_NOT_FOUND_FOR_DEVICE' });
     });
 
     it('thrown BffError carries TOPUP_COMPATIBILITY_CHECK_FAILED code', async () => {
       mockGet.mockResolvedValue(bffError('TOPUP_COMPATIBILITY_CHECK_FAILED'));
       await expect(
-        checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' }),
+        checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01'),
       ).rejects.toMatchObject({
         code:        'TOPUP_COMPATIBILITY_CHECK_FAILED',
         userMessage: 'Could not check top-up compatibility. Please try again.',
@@ -167,7 +179,7 @@ describe('checkEsimCompatibility', () => {
       const err = new Error('Request timeout');
       mockGet.mockRejectedValue(err);
       await expect(
-        checkEsimCompatibility({ planId: 'plan-1', esimId: '0xESIM01' }),
+        checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01'),
       ).rejects.toBe(err);
     });
   });

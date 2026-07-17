@@ -1,21 +1,19 @@
 import 'react-native-get-random-values';
-import { View, Text, Image, TextInput, Button, KeyboardAvoidingView, ActivityIndicator, Alert } from 'react-native'
+import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { Pressable } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'uuid';
-import { useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
-import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
+import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import ColorPaletteModal from '@/components/ui/modals/colorPalleteModal';
 import { Theme } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
+import { logger } from '@/utils/logger';
 
-const editContact = () => {
+const EditContact = () => {
+    const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [walletAddress, setWalletAddress] = useState("");
@@ -29,8 +27,6 @@ const editContact = () => {
         const handleSelectColor = (color:string)=>{
             setNewColor(color);
         }
-    
-    
         useEffect(() => {
             // This will capture the wallet address when returning from the QR scan
             const unsubscribe = navigation.addListener('focus', () => {
@@ -44,56 +40,37 @@ const editContact = () => {
                     setLastName(params.lastName as string);
                 }
                 if (params.monogramUrl) {
-                    const match = params.monogramUrl.match(/background=([0-9a-fA-F]+)/);
+                    const match = (params.monogramUrl as string).match(/background=([0-9a-fA-F]+)/);
                     const backgroundColor = match ? match[1] : null;
                     if (backgroundColor) {
                       setNewColor(backgroundColor);
                     }
                   }
-                  
-                  
             });
-    
             return unsubscribe;
         }, [navigation, params]);
 
         useEffect(()=>{
-            console.log()
         },[])
-
-
-   
-
-    
-
     const handleScan = async () => {
-
         // if (!isPermissionGranted) {
         //   await requestPermission();
         //   return; 
         // }
-
-
         // if (!isPermissionGranted) {
         //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
         // } else {
-
-        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName, isEdit:"true",monogramUrl:params.monogramUrl,id:params.id } });
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { firstName: firstName, lastName: lastName, isEdit:"true",monogramUrl:params.monogramUrl,id:params.id } });
         // }
     };
-
-    
-
     const handleSave = async () => {
         if (firstName === "" || walletAddress === "") {
-          Alert.alert("Please fill the first Name and Address to Proceed");
+          showMessage("Please fill in first name and address to proceed", "error");
           return;
         }
-      
         setIsLoading(true);
         try {
           const contactId = params.id;
-      
           // Fetch the existing contact to preserve createdAt
           const existingContactJson = await AsyncStorage.getItem(`contact_${contactId}`);
           const existingContact = existingContactJson ? JSON.parse(existingContactJson) : null;
@@ -103,7 +80,6 @@ const editContact = () => {
           }
       
           const url =  `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=${newColor}&color=ffffff&rounded=true&size=216`;
-      
           const editedContactObj = {
             id: contactId,
             firstName: firstName,
@@ -120,13 +96,12 @@ const editContact = () => {
       
           // No need to update contactIds since this is an update, not a new contact
           // (The contactId should already exist in contactIds)
-      
           // Optional: Show success message
-          Alert.alert("Success", "Contact updated successfully");
+          showMessage("Contact updated successfully", "info");
       
           // Navigate to contactDetails with updated info
           router.replace({
-            pathname: '/(tabs)/(wallet)/contactDetails',
+            pathname: '/(tabs)/(wallet)/(contacts)/contactDetails',
             params: {
               firstName: editedContactObj.firstName,
               lastName: editedContactObj.lastName,
@@ -135,15 +110,12 @@ const editContact = () => {
               id:params.id
             },
           });
+          logger.debug('CONTACT_UPDATED', { editedContactObj });
       
-          console.log("Updated contact:", editedContactObj);
-      
-          // Reset form fields
-          
-      
+        // Reset form fields
         } catch (error) {
-          console.log("Error updating contact:", error);
-          Alert.alert("Error", "Failed to update contact");
+          logger.error('CONTACT_UPDATE_FAILED', { error });
+          showMessage("Failed to update contact", "error");
         } finally {
           setIsLoading(false);
           setFirstName("");
@@ -222,7 +194,7 @@ const editContact = () => {
                         <ThemedView className='flex-row justify-center mt-[50]  fixed items-center  mb-5'>
                             <Pressable
                                 className="border border-primaryOrange px-6 py-3 w-[48%] rounded-3xl items-center justify-center"
-                                onPress={() => console.log('Button pressed!')}
+                                onPress={() => logger.debug('BUTTON_PRESSED')}
                             >
                                 <ThemedText className="text-primaryOrange">Cancel</ThemedText>
                             </Pressable>
@@ -249,4 +221,4 @@ const editContact = () => {
     )
 }
 
-export default editContact;
+export default EditContact;

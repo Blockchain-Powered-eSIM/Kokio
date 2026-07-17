@@ -1,23 +1,26 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-
-// Allow callers to opt out of auth header injection for public endpoints,
-// or to override the htu claim for routes with path parameters.
-declare module 'axios' {
-  interface InternalAxiosRequestConfig {
-    skipAuth?: boolean;
-    dpopHtu?: string;
-  }
-}
 import qs from 'qs';
 import { v4 as uuidv4 } from 'uuid';
 import { router } from 'expo-router';
+import { logger } from '@/utils/logger';
 
 import { Config } from '@/appKeys';
 import { useAuthStore } from '@/stores/authStore';
 import { buildDpopProof } from '@/utils/auth/dpopProof';
 import { refreshAccessToken, TokenFamilyRevokedError } from '@/utils/auth/refresh';
 import { StepUpCancelledError } from '@/utils/auth/errors';
+import { markAccountDeleted } from '@/utils/auth/accountDeleted';
+import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
+
+// Allow callers to opt out of auth header injection for public endpoints,
+// or to override the htu claim for routes with path parameters.
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuth?: boolean;
+    dpopHtu?: string;
+  }
+}
 
 // ─── Auth event callbacks ─────────────────────────────────────────────────────
 // Register these in your root provider before any authenticated request fires.
@@ -27,15 +30,15 @@ import { StepUpCancelledError } from '@/utils/auth/errors';
 export type StepUpHint = {
   /** e.g. "POST /v1/order" — for UX telemetry / copy. */
   operationName: string;
-  /** Seconds since last biometric auth that the server requires (from 401 body). */
-  requiredAuthTimeAge?: number;
 };
 
 let _onStepUpNeeded: ((hint: StepUpHint) => void) | null = null;
 let _onUnauthenticated: (() => void) | null = null;
+let _onAccountDeleted: (() => void) | null = null;
 
 export function setStepUpHandler(fn: (hint: StepUpHint) => void): void { _onStepUpNeeded    = fn; }
-export function setUnauthenticatedHandler(fn: () => void): void        { _onUnauthenticated = fn; }
+export function setUnauthenticatedHandler(fn: () => void): void { _onUnauthenticated = fn; }
+export function setAccountDeletedHandler(fn: () => void): void { _onAccountDeleted = fn; }
 
 // ─── Step-up queue (AUTH-502) ─────────────────────────────────────────────────
 // All concurrent requests that hit STEP_UP_REQUIRED park here. AUTH-502 calls
@@ -97,7 +100,8 @@ function bffOrigin(): string | null {
 type RetryableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 // ─── Axios instance ───────────────────────────────────────────────────────────
-
+// This is standard axios usage pattern
+// eslint-disable-next-line import/no-named-as-default-member
 const instance: AxiosInstance = axios.create({
   timeout: 30_000,
   paramsSerializer: (params) => qs.stringify(params),
@@ -107,10 +111,15 @@ const instance: AxiosInstance = axios.create({
 // 1. Proactive refresh if expires_at - now < 60 s.
 // 2. Attach Authorization: DPoP <AT> and DPoP: <proof> (with ath).
 instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-  config.headers['x-correlation-id'] = uuidv4();
   config.baseURL ??= Config.API_BASE_URL;
 
-  if (config.skipAuth) return config; // public endpoint — skip auth entirely
+  if (config.skipAuth) return config; // public endpoint — skip auth + correlation id
+
+  // Preserve a caller-supplied idempotency key, otherwise mint one.
+  const correlationId = (config.headers['x-correlation-id'] as string | undefined) ?? uuidv4();
+  config.headers['x-correlation-id'] = correlationId;
+
+  logger.debug('HTTP_REQUEST', { method: (config.method ?? 'GET').toUpperCase(), url: config.url, correlationId });
 
   const stored = useAuthStore.getState().tokens;
   if (!stored) return config; // unauthenticated request — no auth headers
@@ -159,19 +168,32 @@ instance.interceptors.response.use(
     const origin = bffOrigin();
     if (nonce && origin) _bffNonceCache.set(origin, nonce);
 
-    return res.data as unknown;
+    return res.data;
   },
 
   async (error: AxiosError) => {
     const cfg    = error.config as RetryableConfig | undefined;
     const status = error.response?.status;
-    const body   = error.response?.data as { code?: string; error?: string; required_auth_time_age?: number } | undefined;
+    const body   = error.response?.data as { code?: string; error?: string } | undefined;
     const wwwAuth = (error.response?.headers?.['www-authenticate'] as string | undefined) ?? '';
 
     // Cache any nonce from the error response too (RFC 9449 §8).
     const errNonce = error.response?.headers?.['dpop-nonce'] as string | undefined;
     const origin   = bffOrigin();
     if (errNonce && origin) _bffNonceCache.set(origin, errNonce);
+
+    // Terminal state, valid on ANY authenticated endpoint — not just DELETE /account.
+    if (
+      status === 404 &&
+      (body?.code === 'ACCOUNT_DELETED' || body?.error === 'ACCOUNT_DELETED')
+    ) {
+      await markAccountDeleted();
+      await useAuthStore.getState().clearTokens();
+      await purgeAccountLocalState();
+      _onAccountDeleted?.();
+      router.replace('/');
+      return Promise.reject(error.response ?? error);
+    }
 
     // Non-401 or already retried — pass through.
     if (status !== 401 || !cfg || cfg._retried) {
@@ -191,7 +213,6 @@ instance.interceptors.response.use(
     if (body?.code === 'STEP_UP_REQUIRED' || body?.error === 'STEP_UP_REQUIRED') {
       const hint: StepUpHint = {
         operationName:       `${(cfg.method ?? 'GET').toUpperCase()} ${cfg.url ?? ''}`,
-        requiredAuthTimeAge: body?.required_auth_time_age,
       };
       try {
         await waitForStepUp(hint);
@@ -261,20 +282,20 @@ const api = {
       paramsSerializer: (params: Record<string, unknown>) => qs.stringify(params),
     };
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get(url: string, params: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  get(url: string, params: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.get(url, { ...config, params });
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  post(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  post(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.post(url, data, config);
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.put(url, data, config);
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete(url: string, config: AxiosRequestConfig = this.getConfig()): Promise<any> {
+   
+  delete(url: string, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.delete(url, config);
   },
 };

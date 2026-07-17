@@ -1,4 +1,4 @@
-import { View, Text, Image } from 'react-native'
+import { View, Image } from 'react-native'
 import React from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -23,7 +23,7 @@ const Tokens = () => {
 
         {_.size(tokens) === 0 ? (
           <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
-            You don't hold any tokens yet.
+            You don&#39;t hold any tokens yet.
           </ThemedText>
         ) : (
           <View className='gap-y-3 mt-5 mb-3'>

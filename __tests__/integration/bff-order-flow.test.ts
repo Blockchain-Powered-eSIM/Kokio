@@ -6,6 +6,13 @@
  * payment variants, coupon application, and error propagation.
  */
 
+import api from '@/services/httpService';
+import { getCatalogue }            from '@/utils/bff/catalogue';
+import { checkEsimCompatibility }  from '@/utils/bff/esim';
+import { createOrder, getOrderStatus } from '@/utils/bff/order';
+import { getCoupon }               from '@/utils/bff/coupon';
+import { BffError }                from '@/utils/bff/errors';
+
 jest.mock('@/services/httpService', () => ({
   __esModule: true,
   default: {
@@ -14,13 +21,6 @@ jest.mock('@/services/httpService', () => ({
     getConfig: jest.fn(() => ({})),
   },
 }));
-
-import api from '@/services/httpService';
-import { getCatalogue }            from '@/utils/bff/catalogue';
-import { checkEsimCompatibility }  from '@/utils/bff/esim';
-import { createOrder }             from '@/utils/bff/order';
-import { getCoupon }               from '@/utils/bff/coupon';
-import { BffError }                from '@/utils/bff/errors';
 
 const mockGet  = api.get  as jest.MockedFunction<typeof api.get>;
 const mockPost = api.post as jest.MockedFunction<typeof api.post>;
@@ -38,11 +38,18 @@ const EXTERNAL_ADDR = '0xExternalWallet01';
 const TXN_HASH      = '0xabc123transactionhash';
 
 const ORDER_RESPONSE = {
-  orderId:   'ord-new-001',
-  esimId:    '0xNewESIM01',
-  iccid:     '89012601234567890',
+  orderId: 'ord-new-001',
+};
+
+const ORDER_STATUS_RESPONSE = {
+  orderId:      'ord-new-001',
+  planId:       'us-5gb-30d',
+  orderStatus:  'COMPLETED' as const,
+  paymentMethod: 'CRYPTO' as const,
+  esimId:       '0xNewESIM01',
+  iccid:        '89012601234567890',
   installationDetails: {
-    qrcode:              'LPA:1$sm.kokio.app$ACTIVATION',
+    qrcode:               'LPA:1$sm.kokio.app$ACTIVATION',
     appleInstallationUrl: 'https://esimsetup.apple.com/esim_qrcode_provision?body=LPA:1$...',
   },
 };
@@ -84,11 +91,12 @@ describe('compatibility check → new eSIM purchase', () => {
   it('full flow: check compatibility (none found) → create new eSIM order', async () => {
     // 1. Check: no compatible eSIMs for this device
     mockGet.mockResolvedValueOnce(compatEnvelope([]));
-    const compat = await checkEsimCompatibility({ planId: PLAN.catalogueId, esimId: '0xMyESIM' });
+    const compat = await checkEsimCompatibility({ planId: PLAN.catalogueId }, '0xMyESIM');
     expect(compat.results).toHaveLength(0);
 
-    // 2. No compatible eSIM → must buy new
+    // 2. No compatible eSIM → must buy new; poll status for installation details
     mockPost.mockResolvedValueOnce(orderEnvelope());
+    mockGet.mockResolvedValueOnce({ success: true, correlationId: null, message: '', data: ORDER_STATUS_RESPONSE });
     const order = await createOrder({
       catalogueId:    PLAN.catalogueId,
       currency:       'USD',
@@ -96,11 +104,12 @@ describe('compatibility check → new eSIM purchase', () => {
       isCryptoPayment: true,
       payeeAddress:   DEVICE_WALLET,
     } as any);
+    const status = await getOrderStatus(order.orderId);
 
     expect(order.orderId).toBe('ord-new-001');
-    expect(order.installationDetails.qrcode).toBeTruthy();
-    // Total: 1 GET (compat) + 1 POST (order)
-    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(status.installationDetails?.qrcode).toBeTruthy();
+    // Total: 2 GETs (compat + status) + 1 POST (order)
+    expect(mockGet).toHaveBeenCalledTimes(2);
     expect(mockPost).toHaveBeenCalledTimes(1);
   });
 

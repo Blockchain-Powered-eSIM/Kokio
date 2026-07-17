@@ -64,7 +64,7 @@ describe('DPoP nonce: retry on use_dpop_nonce challenge', () => {
       .mockResolvedValueOnce(success());
     global.fetch = mockFetch;
 
-    const noncesReceived: Array<string | undefined> = [];
+    const noncesReceived: (string | undefined)[] = [];
     const buildProof = jest.fn(async (nonce?: string) => {
       noncesReceived.push(nonce);
       return `proof-${nonce ?? 'none'}`;
@@ -145,7 +145,7 @@ describe('DPoP nonce: proactive caching', () => {
       .mockResolvedValueOnce(makeResponse(200, SUCCESS_BODY, { 'dpop-nonce': 'cached-nonce' }))
       .mockResolvedValueOnce(success());
 
-    const noncesReceived: Array<string | undefined> = [];
+    const noncesReceived: (string | undefined)[] = [];
     const buildProof = jest.fn(async (nonce?: string) => {
       noncesReceived.push(nonce);
       return `proof-${nonce ?? 'none'}`;
@@ -165,7 +165,7 @@ describe('DPoP nonce: proactive caching', () => {
       .mockResolvedValueOnce(makeResponse(200, SUCCESS_BODY, { 'dpop-nonce': 'stale' }))
       .mockResolvedValueOnce(success());
 
-    const noncesReceived: Array<string | undefined> = [];
+    const noncesReceived: (string | undefined)[] = [];
     const buildProof = jest.fn(async (nonce?: string) => {
       noncesReceived.push(nonce);
       return `proof-${nonce ?? 'none'}`;
@@ -215,7 +215,7 @@ describe('DPoP nonce: non-nonce 401 does not trigger retry', () => {
     );
     global.fetch = mockFetch;
 
-    await kokioAuthClient.loginBegin();
+    await kokioAuthClient.loginBegin({ deviceWalletAddress: '0xDeviceWallet' });
 
     expect(mockFetch).toHaveBeenCalledTimes(1); // no retry
   });

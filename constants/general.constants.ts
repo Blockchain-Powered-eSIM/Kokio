@@ -72,13 +72,13 @@ export const REGION_CONFIG: Record<string, RegionConfigEntry> = {
     imagePath: require("@/assets/images/europe.png"),
   },
   [REGION.OCEANIA]: {
-    imagePath: require("@/assets/images/australia.png"),
+    imagePath: require("@/assets/images/oceania.png"),
   },
   [REGION.MIDDLE_EAST]: {
-    imagePath: require("@/assets/images/australia.png"),
+    imagePath: require("@/assets/images/middle-east.png"),
   },
   [REGION.CARIBBEAN_ISLANDS]: {
-    imagePath: require("@/assets/images/australia.png"),
+    imagePath: require("@/assets/images/caribbean.png"),
   },
 };
 
@@ -146,6 +146,3 @@ export const OP_SEPOLIA_TESTNET =
   "https://sepolia-optimism.etherscan.io/address";
 
 export const BASE_SEPOLIA_TESTNET = "https://sepolia.basescan.org/address";
-
-// Chain ID required by Wallet Connect
-export const WC_BASE_SEPOLIA = "eip155:84532";

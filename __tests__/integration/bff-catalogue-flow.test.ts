@@ -9,15 +9,6 @@
  * BFF response without a real network.
  */
 
-jest.mock('@/services/httpService', () => ({
-  __esModule: true,
-  default: {
-    get:       jest.fn(),
-    post:      jest.fn(),
-    getConfig: jest.fn(() => ({})),
-  },
-}));
-
 import api from '@/services/httpService';
 import {
   getCatalogue,
@@ -26,6 +17,15 @@ import {
   clearServiceRegionsCache,
 } from '@/utils/bff/catalogue';
 import { BffError } from '@/utils/bff/errors';
+
+jest.mock('@/services/httpService', () => ({
+  __esModule: true,
+  default: {
+    get:       jest.fn(),
+    post:      jest.fn(),
+    getConfig: jest.fn(() => ({})),
+  },
+}));
 
 const mockGet = api.get as jest.MockedFunction<typeof api.get>;
 

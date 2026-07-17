@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import _get from "lodash/get";
@@ -28,7 +28,7 @@ export default function ShopStack() {
       />
       <Stack.Screen
         name={ROUTE_NAMES.BY_COUNTRY}
-        options={({ route, navigation }: any) => {
+        options={({ route }: any) => {
           const countryConfig = appBootstrap.getCountryConfig;
           const countryLabel =
             _get(countryConfig, [route?.params?.id, "name"]) || "";
@@ -47,7 +47,7 @@ export default function ShopStack() {
       />
       <Stack.Screen
         name={ROUTE_NAMES.BY_REGION}
-        options={({ route, navigation }: any) => {
+        options={({ route }: any) => {
           const regionConfig = appBootstrap.getRegionConfig;
           const regionLabel =
             _get(regionConfig, [route?.params?.id, "name"]) || "";
@@ -73,6 +73,25 @@ export default function ShopStack() {
             header: () => <CheckoutHeader id={id} eSimDetails={item} />,
           };
         }}
+      />
+      <Stack.Screen
+        name={ROUTE_NAMES.COVERAGE}
+        options={({ route }: any) => ({
+          header: () => (
+            <SafeAreaView edges={["top"]}>
+              <Header
+                title="Network Coverage"
+                hasBack
+                style={{ justifyContent: "center" }}
+                goBackHandler={
+                  route?.params?.from === "orders"
+                    ? () => router.navigate("/(tabs)/orders")
+                    : undefined
+                }
+              />
+            </SafeAreaView>
+          ),
+        })}
       />
     </Stack>
   );

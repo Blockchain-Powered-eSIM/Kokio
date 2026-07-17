@@ -2,24 +2,34 @@ import React, { useCallback, useMemo } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import _get from "lodash/get";
-
 import { Theme } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import CountryFlag from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
 export interface Esim {
   catalogueId: string;
-  actualSellingPrice?: number;
+  actualSellingPrice: number;
   isUnlimited: boolean;
-  serviceRegionCode: string;
-  serviceRegionFlag: string;
-  serviceRegionName: string;
+  // Optional: not present on display items built from ESimDocument/PlanHistoryEntry.
+  serviceRegionCode?: string;
+  serviceRegionFlag?: string | null;
+  serviceRegionName?: string | null;
   coverageType: string;
-  data: number;
-  sms: number | null;
-  validity: number;
-  voice: number | null;
+  data?: number | null;
+  sms?: number | null;
+  validity: number | null;
+  voice?: number | null;
+  planType?: "DATA" | "DATA_CALLS_SMS";
+  isTopupAvailable?: boolean;
+  isAutoStart?: boolean;
+  isKycRequired?: boolean;
+  info?: string | null;
+  countryWiseNetworkCoverages?: {
+    countryCode?: string;
+    countryName?: string;
+    networks?: { name?: string; type?: string }[];
+  }[];
 }
 
 const ESIMItem = ({
@@ -29,10 +39,12 @@ const ESIMItem = ({
   onPress,
 }: {
   item: Esim;
-  showBuyButton: Boolean;
-  containerStyle?: Object;
+  showBuyButton: boolean;
+  containerStyle?: object;
   onPress?: () => void;
 }) => {
+  const { isDark } = useTheme();
+
   const handleBuyCTAClick = useCallback(
     (id: string) => () => {
       router.navigate({
@@ -50,19 +62,21 @@ const ESIMItem = ({
     () => (
       <>
         <View style={styles.flagContainer}>
-          {/* <View style={[styles.flag, { backgroundColor: item.flagColor }]} /> */}
-          {/* TODO: Use flag from API response and fallback to this if not present */}
-          {item?.coverageType === "LOCAL" && item?.serviceRegionCode && (
-            <CountryFlag
-              style={[showBuyButton && styles.flag]}
-              isoCode={item?.serviceRegionCode}
-              flagUrl={item?.serviceRegionFlag}
-              size={40}
-            />
-          )}
+          {item?.coverageType === "LOCAL" &&
+            (item?.serviceRegionCode || item?.serviceRegionFlag) && (
+              <CountryFlag
+                style={[showBuyButton && styles.flag]}
+                isoCode={item?.serviceRegionCode ?? ""}
+                //@ts-expect-error - null values are handled in the component
+                flagUrl={item?.serviceRegionFlag}
+                size={40}
+              />
+            )}
         </View>
         <View style={[styles.esimItem, { backgroundColor: Theme.colors.card }]}>
-          <Text style={[styles.country, { color: Theme.colors.cardForeground }]}>{item.serviceRegionName}</Text>
+          <Text style={[styles.country, { color: Theme.colors.cardForeground }]}>
+            {item.serviceRegionName}
+          </Text>
           <View style={styles.detailsContainer}>
             <DetailItem
               iconName="calendar-outline"
@@ -87,8 +101,10 @@ const ESIMItem = ({
           </View>
           {showBuyButton && (
             <TouchableOpacity
-              style={[styles.buyButton, { backgroundColor: Theme.colors.goldenYellow }]}
+              style={[styles.buyButton, { backgroundColor: Theme.colors.shopCta }]}
               onPress={handleBuyCTAClick(item.catalogueId)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${item.serviceRegionName || "plan"} for $${(item.actualSellingPrice || 0).toFixed(2)}`}
             >
               <DetailItem
                 prefix="$"
@@ -96,7 +112,6 @@ const ESIMItem = ({
               />
               <View style={styles.buyButtonText}>
                 <Ionicons name="cart-outline" size={20} color={Theme.colors.cardForeground} />
-                {/* replaced "Buy" with "View" */}
                 <Text style={[styles.details, { color: Theme.colors.cardForeground }]}>View</Text>
               </View>
             </TouchableOpacity>
@@ -104,7 +119,10 @@ const ESIMItem = ({
         </View>
       </>
     ),
-    [item, showBuyButton, handleBuyCTAClick]
+    // isDark is required here, useTheme() does not change the element on regional, global and homepage
+    // It only works on the local tab of the shop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [item, showBuyButton, handleBuyCTAClick, isDark]
   );
 
   if (onPress) {
@@ -113,6 +131,8 @@ const ESIMItem = ({
         style={[styles.esimItemContainer, containerStyle]}
         onPress={onPress}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${item?.serviceRegionName || "eSIM"} plan`}
       >
         {content}
       </TouchableOpacity>

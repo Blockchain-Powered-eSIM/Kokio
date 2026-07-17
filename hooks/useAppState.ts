@@ -1,9 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { AppState } from "react-native";
-import { useAuthRelay } from "./useAuthRelayer";
+import { logger } from '@/utils/logger';
 
 export function useAppState(reauth?: boolean) {
-  const { reauthenticate } = useAuthRelay();
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
   
@@ -13,23 +12,23 @@ export function useAppState(reauth?: boolean) {
         appState.current.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
-        console.log("Kokio App has come to the foreground!");
+        logger.debug('APPSTATE_FOREGROUND');
       } else {
         if (reauth) {
           // reauthenticate();
-          console.log("App has gone to the background!");
+          logger.debug('APPSTATE_BACKGROUND');
         }
       }
       
       appState.current = nextAppState;
       setAppStateVisible(appState.current);
-      console.log("AppState", appState.current);
+      logger.debug('APPSTATE_CHANGE', { state: appState.current });
     });
     
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [reauth]);
 
   return appStateVisible;
 }

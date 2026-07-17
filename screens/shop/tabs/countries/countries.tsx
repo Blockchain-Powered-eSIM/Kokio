@@ -1,9 +1,9 @@
 import { StyleSheet, View, TouchableOpacity, FlatList, Dimensions } from "react-native";
-import { router } from "expo-router";
 
 import _map from "lodash/map";
 
 import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { Theme } from "@/constants/Colors";
 import appBootstrap from "@/utils/appBootstrap";
@@ -15,6 +15,12 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const COLUMN_GAP = 16;
 const ITEM_WIDTH = (SCREEN_WIDTH * 0.9 - COLUMN_GAP) / COLUMN_COUNT;
 
+const EmptyListComponent = () => (
+  <ThemedText style={{ textAlign: "center", flex: 1, paddingTop: 42 }}>
+    No countries found
+  </ThemedText>
+);
+
 export default function Countries() {
   const list = appBootstrap.getCountries;
 
@@ -22,6 +28,8 @@ export default function Countries() {
     <TouchableOpacity
       onPress={navigateToESIMsByCountry(item?.code)}
       style={{ width: ITEM_WIDTH, alignItems: "center" }}
+      accessibilityRole="button"
+      accessibilityLabel={item?.name || "Country"}
     >
       <View key={item?.code || index} style={styles.country}>
         <CountryFlag
@@ -36,7 +44,7 @@ export default function Countries() {
   );
 
   return (
-    <View style={styles.tabWrapper}>
+    <ThemedView style={styles.tabWrapper}>
       <ThemedText style={styles.tabTitle}>{"Popular Destinations"}</ThemedText>
       <View style={styles.countriesWrapper}>
         <FlatList
@@ -44,12 +52,13 @@ export default function Countries() {
           numColumns={2}
           renderItem={renderItem}
           columnWrapperStyle={styles.columnWrapperStyle}
-          keyExtractor={(item, index) => item?.code || index}
+          keyExtractor={(item, index) => String(item?.code || index)}
           contentContainerStyle={{ paddingBottom: 100 }}
           style={{ backgroundColor: "transparent" }}
+          ListEmptyComponent={EmptyListComponent}
         />
       </View>
-    </View>
+    </ThemedView>
   );
 }
 
@@ -63,12 +72,10 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     paddingTop: 12,
-    backgroundColor: "transparent",
   },
   countriesWrapper: {
     width: "90%",
     flex: 1,
-    backgroundColor: "transparent",
   },
   country: {
     flexDirection: "column",

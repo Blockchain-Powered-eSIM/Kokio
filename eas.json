@@ -1,19 +1,26 @@
 {
   "cli": {
-    "version": ">= 3.10.2"
+    "version": ">= 3.10.2",
+    "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "node": "24.18.0"
+    },
     "development": {
+      "extends": "base",
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "credentialsSource": "local"
       },
       "ios": {},
       "channel": "development"
     },
     "development-simulator": {
+      "extends": "base",
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
@@ -23,32 +30,37 @@
       "channel": "development"
     },
     "staging": {
-      "environment": "staging",
+      "extends": "base",
+      "environment": "preview",
       "distribution": "store",
       "channel": "staging",
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "credentialsSource": "remote"
       },
       "ios": {}
     },
     "preview": {
+      "extends": "base",
       "environment": "preview",
       "distribution": "internal",
       "channel": "preview",
       "android": {
         "buildType": "apk",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       }
     },
     "production": {
+      "extends": "base",
       "channel": "production",
       "environment": "production",
       "distribution": "store",
       "autoIncrement": true,
       "ios": {},
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "credentialsSource": "remote"
       }
     }
   },

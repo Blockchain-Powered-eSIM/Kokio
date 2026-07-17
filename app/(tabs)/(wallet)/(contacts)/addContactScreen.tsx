@@ -1,27 +1,25 @@
 import 'react-native-get-random-values';
-import { View, Text, Image, TextInput, Button, KeyboardAvoidingView, ActivityIndicator, Alert } from 'react-native'
+import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { Pressable } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
-import { useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
-import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
+import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import { Theme } from '@/constants/Colors';
+import { useToast } from '@/contexts/ToastContext';
+import { logger } from '@/utils/logger';
 
-const addContactScreen = () => {
+const AddContactScreen = () => {
+    const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [walletAddress, setWalletAddress] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const navigation = useNavigation();
     const params = useLocalSearchParams();
-
 
     useEffect(() => {
         // This will capture the wallet address when returning from the QR scan
@@ -51,17 +49,14 @@ const addContactScreen = () => {
     ];
 
     const handleScan = async () => {
-
         // if (!isPermissionGranted) {
         //   await requestPermission();
         //   return; 
         // }
-
-
         // if (!isPermissionGranted) {
         //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
         // } else {
-        router.push({ pathname: "/(tabs)/(wallet)/qrCodeScreen", params: { firstName: firstName, lastName: lastName,isEdit:"false" } });
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { firstName: firstName, lastName: lastName,isEdit:"false" } });
         // }
     };
 
@@ -72,7 +67,7 @@ const addContactScreen = () => {
 
     const handleAdd = async () => {
         if (firstName === "" || walletAddress === "") {
-            Alert.alert("Please fill the first Name and Address to Proceed")
+            showMessage("Please fill in first name and address to proceed", "error");
             return;
         }
 
@@ -105,14 +100,14 @@ const addContactScreen = () => {
             await AsyncStorage.setItem('contactIds', JSON.stringify(contactIds));
 
             // Optional: Show success message
-            Alert.alert("Success", "Contact added successfully");
-            router.replace({pathname:'/(tabs)/(wallet)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
-            console.log(contactObj);
+            showMessage("Contact added successfully", "info");
+            router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
+            logger.debug('CONTACT_SAVE_OBJECT', { contactObj });
             
 
         } catch (error) {
-            console.log("Error saving contact:", error);
-            Alert.alert("Error", "Failed to add contact");
+            logger.error('CONTACT_SAVE_FAILED', { error });
+            showMessage("Failed to add contact", "error");
         } finally {
             setIsLoading(false);
             setFirstName("");
@@ -179,7 +174,7 @@ const addContactScreen = () => {
                         <ThemedView className='flex-row justify-center mt-[140]  fixed items-center mb-5'>
                             <Pressable
                                 className="border border-primaryOrange px-6 py-3 w-[48%] rounded-3xl items-center justify-center"
-                                onPress={() => console.log('Button pressed!')}
+                                onPress={() => logger.debug('BUTTON_PRESSED')}
                             >
                                 <ThemedText className="text-primaryOrange">Cancel</ThemedText>
                             </Pressable>
@@ -199,4 +194,4 @@ const addContactScreen = () => {
     )
 }
 
-export default addContactScreen;
+export default AddContactScreen;

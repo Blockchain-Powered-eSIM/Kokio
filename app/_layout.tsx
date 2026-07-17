@@ -1,7 +1,9 @@
 // Add global shims
 import "react-native-get-random-values";
 import "@ethersproject/shims";
-import { install as installQuickCrypto } from "react-native-quick-crypto";
+// utils/nativeRuntimeSetup.ts exists and exports {}, it is a bundler resolution alias edge case
+// eslint-disable-next-line import/no-unresolved
+import "@/utils/nativeRuntimeSetup";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
@@ -10,7 +12,6 @@ import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import "../global.css";
 import useBootstrap from "@/hooks/useBootstrap";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
@@ -26,11 +27,7 @@ import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
-import { THEME_STORAGE_KEY, applyTheme } from "@/constants/Colors";
-
-// Polyfill global.crypto.subtle for jose / DPoP key generation.
-// index.js is not used when "main" = "expo-router/entry", so this must live here.
-installQuickCrypto();
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -40,14 +37,7 @@ export default function RootLayout() {
   const pathname = usePathname();
 
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
-  const [themeLoaded, setThemeLoaded] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem(THEME_STORAGE_KEY).then((val) => {
-      applyTheme(val !== "light");
-      setThemeLoaded(true);
-    });
-  }, []);
+  const [bootstrapDismissed, setBootstrapDismissed] = useState(false);
   const [loaded] = useFonts({
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
@@ -57,7 +47,7 @@ export default function RootLayout() {
     "Lexend-Black": require("../assets/fonts/Lexend-Black.ttf"),
   });
 
-  const { isLoading } = useBootstrap();
+  const { isLoading, error: bootstrapError, refresh: refreshBootstrap } = useBootstrap();
 
   // Use refs to avoid recreating the NetInfo listener on every pathname change
   const pathnameRef = useRef(pathname);
@@ -71,19 +61,40 @@ export default function RootLayout() {
   useEffect(() => {
     useAuthStore.getState().loadPersistedTokens();
     setUnauthenticatedHandler(() => router.replace("/" as any));
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Initial connectivity check
   useEffect(() => {
+    let settled = false;
+
+    // On some devices isInternetReachable can stay null indefinitely (the
+    // reachability probe never resolves). Without a bound here, _isNull(isConnected)
+    // keeps FullScreenLoader up forever. Give up after 6s and assume online —
+    // the listener below still corrects this and redirects to Offline if a
+    // later reading confirms we're actually offline.
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        setIsConnected(true);
+      }
+    }, 6000);
+
     NetInfo.fetch().then((state) => {
+      if (settled) return;
       if (_isNull(state.isInternetReachable)) {
         // Network state is still being determined
         setIsConnected(null);
       } else {
+        settled = true;
+        clearTimeout(timeoutId);
         const online = !!state.isConnected && !!state.isInternetReachable;
         setIsConnected(online);
       }
     });
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
@@ -117,8 +128,9 @@ export default function RootLayout() {
         }
       }
     });
-
     return () => unsubscribe();
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hide splash screen after fonts and bootstrap complete
@@ -128,23 +140,34 @@ export default function RootLayout() {
     }
   }, [loaded, isLoading]);
 
-  // Wait until ready
-  if (!loaded || _isNull(isConnected) || !themeLoaded) {
-    return <FullScreenLoader />;
-  }
+  const showLoader = !bootstrapDismissed && (!loaded || _isNull(isConnected) || isLoading || !!bootstrapError);
 
-  return (
-    <Providers>
+  const inner =
+    showLoader ? (
+      <FullScreenLoader
+        error={bootstrapError}
+        onRetry={bootstrapError ? refreshBootstrap : undefined}
+        onContinue={bootstrapError ? () => setBootstrapDismissed(true) : undefined}
+      />
+    ) : (
+      <Providers>
       <ServiceStatusBanner />
       <View style={{ flex: 1 }}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
           <Stack.Screen name="Offline" options={{ headerShown: false }} />
+          <Stack.Screen name="moonpay-return" options={{ headerShown: false }} />
+          <Stack.Screen name="wc-connect" options={{ headerShown: false }} />
+          <Stack.Screen name="wc-session" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="esim-detail" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="coverage-modal" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
       </View>
       <AuthenticationModal />
       <StepUpPromptModal />
     </Providers>
-  );
+    );
+
+  return <ThemeProvider>{inner}</ThemeProvider>;
 }

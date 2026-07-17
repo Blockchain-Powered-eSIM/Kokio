@@ -1,29 +1,27 @@
-import { View, Text, Image, Pressable, Platform, StyleSheet, ActivityIndicator } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator , KeyboardAvoidingView } from 'react-native'
+import React, { useEffect, useState , useRef, useMemo } from 'react'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import { KeyboardAvoidingView } from 'react-native'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { router, useLocalSearchParams } from 'expo-router'
 import { TextInput } from 'react-native-gesture-handler'
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { useRef, useMemo } from 'react'
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Alert } from 'react-native'
 import { useToast } from '@/contexts/ToastContext'
 import { Theme } from '@/constants/Colors'
+import { useTheme } from '@/contexts/ThemeContext'
+import { logger } from '@/utils/logger';
 
 interface Token {
     id: string;
     name: string
     symbol: string;
     value: string;
-    icon: string
-
-
+    icon: string;
 }
+
 interface Transaction {
     id: string;
     dateTime: string | Date; // Can adjust based on how you want to store it
@@ -32,7 +30,7 @@ interface Transaction {
     amount: string;
     status: "pending" | "completed"; // Union type for valid statuses
     type: "sent" | "received"; // Union type for valid types
-    icon: string;
+    icon: string | string [];
   }
   interface Contact {
     id: string;
@@ -45,16 +43,26 @@ interface Transaction {
     transactions: Transaction[];
   }
 
-const sendToContact = () => {
+const createStyles = () => StyleSheet.create({
+    contentContainer: {
+        backgroundColor: Theme.colors.background,
+        padding: 0,
+        elevation: 50,
+    },
+})
+
+const SendToContact = () => {
+    const { isDark } = useTheme();
+    const styles = useMemo(createStyles, [isDark]);
     const params = useLocalSearchParams();
     const [amount, setAmount] = useState("0");
     const [token, setToken] = useState<Token | null>(null);
     const [tokens, setTokens] = useState<Token[]>([]);
     const [isLoading,setIsLoading] = useState(false);
-    const {showToast} = useToast();
+    const { showToast, showMessage } = useToast();
 
 
-    const sheetRef = useRef(null);
+    const sheetRef = useRef<BottomSheet>(null);
 
 
     const snapPoints = useMemo(() => ['96.5%', '97%'], []);
@@ -99,14 +107,13 @@ const sendToContact = () => {
           // Save back to AsyncStorage
           await AsyncStorage.setItem(`contact_${contactId}`, JSON.stringify(updatedContact));
     
-          console.log("Transaction added successfully:", newTransaction);
-          router.push({pathname:"/(tabs)/(wallet)/transactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
-    
-          
+          logger.debug('TRANSACTION_ADDED', { newTransaction });
+          router.push({pathname:"/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
+          //@ts-expect-error non-reachable code for now, should be fixed when enabled
           showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',params?.firstName,params.monogramUrl)
         } catch (error) {
-          console.error("Error adding transaction:", error);
-          Alert.alert("Error", "Failed to send transaction");
+          logger.error('TRANSACTION_ADD_FAILED', { error });
+          showMessage("Failed to send transaction", "error");
         } finally {
           setIsLoading(false);
           setAmount('0');
@@ -136,7 +143,7 @@ const sendToContact = () => {
             setTokens(mappedTokens);
             setToken(mappedTokens[0]);
         } catch (error) {
-            console.error('Error fetching tokens:', error);
+            logger.error('TOKENS_FETCH_FAILED', { error });
         }
     };
 
@@ -220,7 +227,7 @@ const sendToContact = () => {
                     <BottomSheetScrollView contentContainerStyle={styles.contentContainer}>
                         {_.size(tokens) === 0 ? (
                             <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
-                                You don't hold any tokens yet.
+                                You don&#39;t hold any tokens yet.
                             </ThemedText>
                         ) : (
                             <ThemedView darkColor={Theme.colors.background} className='gap-y-3 mt-3 mb-3 px-4'>
@@ -259,12 +266,4 @@ const sendToContact = () => {
         </KeyboardAwareScrollView>
     )
 }
-const styles = StyleSheet.create({
-    contentContainer: {
-        backgroundColor: Theme.colors.background,
-        padding: 0,
-        elevation: 50,
-    },
-})
-
-export default sendToContact;
+export default SendToContact;

@@ -2,6 +2,8 @@ export const RADIO_KEYS = {
   E_SIM_WALLET: "E_SIM_WALLET",
   CREDIT_CARD: "CREDIT_CARD",
   APPLE_PAY: "APPLE_PAY",
+  // EXTERNAL_WALLET: "EXTERNAL_WALLET", // not fully working yet
+  EXTERNAL_WALLET_BROWSER: "EXTERNAL_WALLET_BROWSER",
 } as const;
 
 export type RadioKey = (typeof RADIO_KEYS)[keyof typeof RADIO_KEYS];
@@ -30,6 +32,7 @@ type EsimExtraDetail = {
   formatter: (value: any) => string;
   isFlexColumn?: boolean;
   dataContainerStyles?: object;
+  hideWhenNullish?: boolean;
 };
 
 export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
@@ -51,7 +54,7 @@ export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
     iconType: "MCI",
     iconName: "signal-cellular-outline",
     key: "countryWiseNetworkCoverages",
-    label: "Network",
+    label: "Coverage",
     formatter: (value: NetworkCoverage[]) =>
       value
         .reduce<string[]>((acc, item) => {
@@ -91,10 +94,11 @@ export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
   // NOTE: Not currently consumed
   {
     iconName: "information-outline",
-    key: "ADDITIONAL_INFORMATION",
+    key: "info",
     label: "Additional Information",
-    formatter: () => "N/A",
+    formatter: (value: string) => value,
     isFlexColumn: true,
     dataContainerStyles: { marginLeft: 22 },
+    hideWhenNullish: true,
   },
 ];

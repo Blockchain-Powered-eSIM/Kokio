@@ -1,5 +1,5 @@
-import { View } from "react-native";
-import { useNavigation } from "expo-router";
+import { Pressable, View } from "react-native";
+import { useNavigation, router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import _isFunction from "lodash/isFunction";
@@ -32,7 +32,7 @@ const Header = ({
     }
 
     if (goBackFallBack) {
-      navigation.navigate(goBackFallBack);
+      router.navigate(goBackFallBack);
     }
   };
 
@@ -56,12 +56,18 @@ const Header = ({
       {/* left — back button or empty spacer */}
       <View style={{ width: SIDE_WIDTH }}>
         {hasBack && (
-          <Ionicons
-            name="chevron-back-outline"
-            size={25}
-            color={iconColor}
+          <Pressable
             onPress={handleBack}
-          />
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons
+              name="chevron-back-outline"
+              size={25}
+              color={iconColor}
+            />
+          </Pressable>
         )}
       </View>
 

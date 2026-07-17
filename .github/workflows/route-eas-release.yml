@@ -1,0 +1,164 @@
+name: Route EAS Release
+
+#   - Android is always released.
+#   - iOS is opt-in: add the `ios` label to the promotion PR.
+#     iOS workflow files configured to stay dormant until an Apple Developer account is connected.
+on:
+  pull_request_target:
+    branches:
+      - staging
+      - production
+    types:
+      - closed
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA or ref to route to EAS
+        required: true
+        type: string
+      workflow_file:
+        description: Optional explicit EAS workflow file path (bypasses platform resolution)
+        required: false
+        default: ""
+        type: string
+      base_branch:
+        description: Branch to route for when workflow_file is not provided
+        required: false
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      ota:
+        description: Route to OTA workflow instead of binary build workflow
+        required: false
+        default: false
+        type: boolean
+      platforms:
+        description: Platforms to release
+        required: false
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+
+jobs:
+  route-release:
+    name: Route Release To EAS Workflow
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Checkout workflow branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Upgrade npm
+        run: npm install -g npm@^11
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Select EAS workflows
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          LABELS_JSON: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
+          INPUT_OTA: ${{ inputs.ota }}
+          INPUT_WORKFLOW_FILE: ${{ inputs.workflow_file }}
+          INPUT_REF: ${{ inputs.ref }}
+          INPUT_PLATFORMS: ${{ inputs.platforms }}
+          MERGE_COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          node - <<'EOF'
+          const fs = require("node:fs");
+
+          const labels     = JSON.parse(process.env.LABELS_JSON || "[]");
+          const isManual   = process.env.EVENT_NAME === "workflow_dispatch";
+
+          const hasOtaLabel = isManual
+            ? process.env.INPUT_OTA === "true"
+            : labels.includes("ota");
+
+          const baseBranch = isManual
+            ? process.env.INPUT_BASE_BRANCH
+            : process.env.BASE_BRANCH;
+
+          const targetRef = isManual
+            ? process.env.INPUT_REF
+            : process.env.MERGE_COMMIT_SHA;
+
+          const manualWorkflow = (process.env.INPUT_WORKFLOW_FILE || "").trim();
+
+          let platforms;
+          if (isManual) {
+            const choice = process.env.INPUT_PLATFORMS || "android";
+            platforms = choice === "both" ? ["android", "ios"] : [choice];
+          } else {
+            platforms = ["android"];
+            if (labels.includes("ios")) platforms.push("ios");
+          }
+
+          // ── Workflow file resolution ──────────────────────────────────────
+          const fileFor = (platform) =>
+            hasOtaLabel
+              ? `.eas/workflows/publish-${baseBranch}-ota-${platform}.yml`
+              : `.eas/workflows/deploy-${baseBranch}-${platform}.yml`;
+
+          // An explicit manual workflow_file bypasses resolution entirely.
+          const workflows = manualWorkflow
+            ? [manualWorkflow]
+            : platforms.map(fileFor);
+
+          const out = [
+            `base_branch=${baseBranch}`,
+            `is_ota=${hasOtaLabel}`,
+            `target_ref=${targetRef}`,
+            `platforms=${platforms.join(" ")}`,
+            `workflows=${workflows.join(" ")}`,
+          ].join("\n");
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, out + "\n");
+          console.log(out);
+          EOF
+
+      - name: Verify OTA preflight
+        if: steps.select.outputs.is_ota == 'true'
+        env:
+          RELEASE_BASE_BRANCH: ${{ steps.select.outputs.base_branch }}
+          RELEASE_HAS_OTA_LABEL: "true"
+          OTA_PLATFORMS: ${{ steps.select.outputs.platforms }}
+        run: node scripts/verify-ota-preflight.mjs
+
+      - name: Run EAS workflows
+        env:
+          WORKFLOWS: ${{ steps.select.outputs.workflows }}
+          TARGET_REF: ${{ steps.select.outputs.target_ref }}
+        run: |
+          set -euo pipefail
+          for workflow in $WORKFLOWS; do
+            echo "::group::eas workflow:run $workflow"
+            eas workflow:run "$workflow" --ref "$TARGET_REF" --non-interactive
+            echo "::endgroup::"
+          done

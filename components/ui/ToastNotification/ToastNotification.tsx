@@ -4,7 +4,6 @@ import { ThemedView } from '@/components/ThemedView';
 import { Theme } from '@/constants/Colors';
 import Animated, {
   FadeInUp,
-  useAnimatedGestureHandler,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
@@ -13,9 +12,17 @@ import Animated, {
   FadeOutUp
 } from 'react-native-reanimated';
 import { ThemedText } from '@/components/ThemedText';
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
-const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
+// Props interface:
+interface ToastProps {
+  handleToastVisible: (v: boolean) => void;
+  amount: string;
+  ethAmount: string;
+  type: string;
+}
+
+const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: ToastProps) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const isAnimating = useSharedValue(false);
@@ -31,6 +38,8 @@ const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
       cancelAnimation(translateX);
       cancelAnimation(translateY);
     };
+    // reanimated SharedValue refs don't trigger re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleToastVisible]);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -48,36 +57,27 @@ const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
     }
   };
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: () => {
-      isAnimating.value = false;
-    },
-    onActive: (event) => {
+  const panGesture = Gesture.Pan()
+    .onStart(() => { isAnimating.value = false; })
+    .onUpdate((event) => {
       translateX.value = event.translationX;
       translateY.value = event.translationY;
-    },
-    onEnd: (event) => {
+    })
+    .onEnd((event) => {
       const swipeThreshold = 50;
-
       if (Math.abs(event.translationX) > swipeThreshold || event.translationY < -swipeThreshold) {
         isAnimating.value = true;
-
         const targetX = event.translationX > 0 ? 500 : -500;
         const targetY = event.translationY < -swipeThreshold ? -500 : 0;
-
         translateX.value = withTiming(targetX, { duration: 300 });
         translateY.value = withTiming(targetY, { duration: 300 }, (finished) => {
-          if (finished) {
-            isAnimating.value = false;
-            runOnJS(handleClose)();
-          }
+          if (finished) runOnJS(handleClose)();
         });
       } else {
         translateX.value = withTiming(0);
         translateY.value = withTiming(0);
       }
-    },
-  });
+    });
 
   return (
     <Animated.View
@@ -86,7 +86,7 @@ const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
       className="w-[100%] absolute items-center top-[35]"
       
     >
-      <PanGestureHandler onGestureEvent={gestureHandler}>
+      <GestureDetector gesture={panGesture}>
         <Animated.View style={animatedStyle} className="w-full items-center">
           <ThemedView
             className='w-[95%] rounded-3xl items-center h-[115px] flex-row'
@@ -113,7 +113,7 @@ const ToastNotification = ({ handleToastVisible,amount,ethAmount,type }) => {
             </View>
           </ThemedView>
         </Animated.View>
-      </PanGestureHandler>
+      </GestureDetector>
     </Animated.View>
   );
 };

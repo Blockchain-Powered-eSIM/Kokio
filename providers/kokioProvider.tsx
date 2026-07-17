@@ -1,83 +1,27 @@
-import { ReactNode, createContext, useEffect, useReducer } from "react";
-import _pick from "lodash/pick";
-import _get from "lodash/get";
+import React, { ReactNode, createContext, useEffect, useReducer, useRef } from "react";
+import { router } from "expo-router";
 import { Kokio } from "kokio-sdk";
 import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
-import { createWalletClient, http, type Hex } from "viem";
-import { baseSepolia } from "viem/chains";
+import { createWalletClient, http, type Address, type Hex } from "viem";
+import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
-import { AppExtraConfig } from "@/appKeys";
-const extra = Constants.expoConfig?.extra as AppExtraConfig;
-
+import { AppExtraConfig, Config } from "@/appKeys";
 import { SmartContractAccount } from "@aa-sdk/core";
-
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Esim } from "@/components/ESIMItem";
+import { getAccount } from "@/utils/bff/account";
+import {
+  getWcSignClient,
+  setPendingProposal,
+} from "@/utils/walletconnect/signClient";
+import { logger } from "@/utils/logger";
+import { checkWalletDeployed } from "@/utils/wallet/checkWalletDeployed";
+import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
+import { isAccountDeletedError } from "@/utils/bff/errors";
 
-export interface StoredTransactionData {
-  orderId: string;
-  iccid: string;
-  installationDetails: {
-    qrcode: string;
-    appleInstallationUrl: string;
-  };
-}
+const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
-export interface StoredPurchasedESIM {
-  eSimItem: Esim;
-  transactionData: StoredTransactionData;
-}
-
-const reduceESimDataForStorage = (
-  eSimItem: Esim,
-  transactionData: any
-): StoredPurchasedESIM => {
-  const reducedESimItem = _pick(eSimItem, [
-    "catalogueId",
-    "data",
-    "sms",
-    "voice",
-    "validity",
-    "isUnlimited",
-    "coverageType",
-    "serviceRegionCode",
-    "serviceRegionName",
-    "serviceRegionFlag",
-  ]) as Esim;
-
-  const reducedTransactionData: StoredTransactionData = {
-    orderId: _get(transactionData, "orderId", ""),
-    iccid: _get(transactionData, "iccid", ""),
-    installationDetails: {
-      qrcode: _get(transactionData, "installationDetails.qrcode", ""),
-      appleInstallationUrl: _get(
-        transactionData,
-        "installationDetails.appleInstallationUrl",
-        ""
-      ),
-    },
-  };
-
-  return {
-    eSimItem: reducedESimItem,
-    transactionData: reducedTransactionData,
-  };
-};
-
-type AuthActionType =
-  | { type: "ERROR"; payload: string }
-  | { type: "CLEAR_ERROR" }
-  | { type: "SET_KOKIO"; payload: any }
-  | { type: "SET_DEVICE_UID"; payload: string }
-  | { type: "SET_DEVICE_WALLET_ADDRESS"; payload: string }
-  | { type: "SET_RAW_SALT"; payload: string }
-  | { type: "SET_KOKIO_USER"; payload: UserData }
-  | { type: "SET_KOKIO_PASSKEY"; payload: UserPasskey }
-  | { type: "SET_USER_WALLET"; payload: SmartContractAccount }
-  | { type: "SET_PURCHASED_ESIMS"; payload: StoredPurchasedESIM[] }
-  | { type: "CLEAR_KOKIO" }
-  | { type: "CLEAR_KOKIO_USER" };
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UserPasskey {
   credentialId: string;
@@ -92,6 +36,20 @@ interface UserData {
   id: string;
   wallets: { address: string }[];
 }
+
+type AuthActionType =
+  | { type: "ERROR"; payload: string }
+  | { type: "CLEAR_ERROR" }
+  | { type: "SET_KOKIO"; payload: Kokio }
+  | { type: "SET_DEVICE_UID"; payload: string }
+  | { type: "SET_DEVICE_WALLET_ADDRESS"; payload: string }
+  | { type: "SET_RAW_SALT"; payload: string }
+  | { type: "SET_KOKIO_USER"; payload: UserData }
+  | { type: "SET_KOKIO_PASSKEY"; payload: UserPasskey }
+  | { type: "SET_USER_WALLET"; payload: SmartContractAccount }
+  | { type: "CLEAR_KOKIO" }
+  | { type: "CLEAR_KOKIO_USER" };
+
 interface KokioState {
   error: string;
   sdk?: Kokio;
@@ -101,7 +59,6 @@ interface KokioState {
   userData?: UserData;
   userPasskey?: UserPasskey;
   userWallet?: SmartContractAccount;
-  purchasedESIMs: StoredPurchasedESIM[];
 }
 
 const initialState: KokioState = {
@@ -113,7 +70,6 @@ const initialState: KokioState = {
   userData: undefined,
   userPasskey: undefined,
   userWallet: undefined,
-  purchasedESIMs: [],
 };
 
 function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
@@ -136,13 +92,8 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
       return { ...kokio, userPasskey: action.payload };
     case "SET_USER_WALLET":
       return { ...kokio, userWallet: action.payload };
-    case "SET_PURCHASED_ESIMS":
-      return { ...kokio, purchasedESIMs: action.payload };
     case "CLEAR_KOKIO":
-      return {
-        ...kokio,
-        sdk: undefined,
-      };
+      return { ...kokio, sdk: undefined };
     case "CLEAR_KOKIO_USER":
       return {
         ...kokio,
@@ -152,28 +103,29 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
         userPasskey: undefined,
         userData: undefined,
         userWallet: undefined,
-        purchasedESIMs: [],
       };
     default:
       return kokio;
   }
 }
 
+// ─── Context shape ────────────────────────────────────────────────────────────
+
 export interface KokioProviderType {
   kokio: KokioState;
   clearError: () => void;
   setupKokio: () => void;
   setupKokioDeviceUID: (deviceUID: string) => Promise<void>;
-  setupKokioUserWallet: (
-    deviceUID: string,
-    wallet: SmartContractAccount
+  setupKokioUserWallet: (deviceUID: string, wallet: SmartContractAccount) => Promise<void>;
+  setupKokioRegistration: (
+    deviceWalletAddress: string,
+    deviceUniqueIdentifier: string,
+    credentialId: string,
+    publicKeyX: Hex,
+    publicKeyY: Hex,
+    rawSalt: string,
   ) => Promise<void>;
-  savePurchasedESIM: (
-    deviceUID: string,
-    eSimItem: Esim,
-    transactionData: any // TODO: Create a type for this once BE contract is finalized
-  ) => Promise<void>;
-  setupKokioRegistration: (deviceWalletAddress: string, deviceUniqueIdentifier: string, credentialId: string, publicKeyX: Hex, publicKeyY: Hex, rawSalt: string) => Promise<void>;
+  setupKokioRecovery: (deviceWalletAddress: string, credentialId: string) => Promise<void>;
   clearKokio: () => void;
   clearKokioUser: () => Promise<void>;
 }
@@ -184,8 +136,8 @@ export const KokioContext = createContext<KokioProviderType>({
   setupKokio: async () => Promise.resolve(),
   setupKokioDeviceUID: async () => Promise.resolve(),
   setupKokioUserWallet: async () => Promise.resolve(),
-  savePurchasedESIM: async () => Promise.resolve(),
   setupKokioRegistration: async (_a, _b, _c, _d, _e, _f) => Promise.resolve(),
+  setupKokioRecovery: async (_a, _b) => Promise.resolve(),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
 });
@@ -194,8 +146,12 @@ interface KokioProviderProps {
   children: ReactNode;
 }
 
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
 export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   const [kokio, dispatch] = useReducer(kokioReducer, initialState);
+
+  // ── SecureStore helpers ───────────────────────────────────────────────────
 
   const saveValueForDeviceUID = async (key: string, value: string) => {
     await SecureStore.setItemAsync(key, JSON.stringify(value));
@@ -205,96 +161,30 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     await SecureStore.setItemAsync(key, JSON.stringify(value));
   };
 
-  const saveValueForUserWallet = async (
-    key: string,
-    value: SmartContractAccount
-  ) => {
+  const saveValueForUserWallet = async (key: string, value: SmartContractAccount) => {
     await SecureStore.setItemAsync(key, JSON.stringify(value));
   };
 
-  const getValueForDeviceUID = async (key: string) => {
-    let result = await SecureStore.getItemAsync(key);
-    if (result) {
-      const parsedResult: string = JSON.parse(result);
-      return parsedResult;
-    }
+  const getValueForDeviceUID = async (key: string): Promise<string | undefined> => {
+    const result = await SecureStore.getItemAsync(key);
+    if (result) return JSON.parse(result) as string;
   };
 
-  const getValueForUserData = async (key: string) => {
-    let result = await SecureStore.getItemAsync(key);
-    if (result) {
-      const parsedResult: UserData = JSON.parse(result);
-      return parsedResult;
-    }
+  const getValueForUserData = async (key: string): Promise<UserData | undefined> => {
+    const result = await SecureStore.getItemAsync(key);
+    if (result) return JSON.parse(result) as UserData;
   };
 
-  const getValueForUserWallet = async (
-    key: string
-  ): Promise<SmartContractAccount | void> => {
-    let result = await SecureStore.getItemAsync(key);
-    if (result) {
-      const parsedResult: SmartContractAccount = JSON.parse(result);
-      return parsedResult;
-    }
+  const getValueForUserWallet = async (key: string): Promise<SmartContractAccount | undefined> => {
+    const result = await SecureStore.getItemAsync(key);
+    if (result) return JSON.parse(result) as SmartContractAccount;
   };
 
-  const saveValueForPurchasedESIMs = async (
-    key: string,
-    value: StoredPurchasedESIM[]
-  ) => {
-    try {
-      await AsyncStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error("Error saving purchased eSIMs to AsyncStorage:", error);
-    }
-  };
-
-  const getValueForPurchasedESIMs = async (
-    key: string
-  ): Promise<StoredPurchasedESIM[] | void> => {
-    try {
-      const result = await AsyncStorage.getItem(key);
-      if (result) {
-        const parsedResult: StoredPurchasedESIM[] = JSON.parse(result);
-        return parsedResult;
-      }
-    } catch (error) {
-      console.error(
-        "Error retrieving purchased eSIMs from AsyncStorage:",
-        error
-      );
-    }
-  };
-
-  const deleteValueForPurchasedESIMs = async (key: string): Promise<void> => {
-    try {
-      await AsyncStorage.removeItem(key);
-    } catch (error) {
-      console.error("Error deleting purchased eSIMs from AsyncStorage:", error);
-    }
-  };
-
-  const deleteValueForUser = async (key: string): Promise<void> => {
+  const deleteValueForUser = async (key: string) => {
     await SecureStore.deleteItemAsync(key);
   };
 
-  // TODO: BFF does not yet expose GET /v1/orders. When it does:
-  //   1. Fetch order history: await api.get('/v1/orders')
-  //   2. Map BFF orders to StoredPurchasedESIM shape
-  //   3. Merge with local list (prefer BFF as source of truth; keep local for offline access)
-  //   4. Persist merged list via saveValueForPurchasedESIMs and dispatch SET_PURCHASED_ESIMS
-  //   5. lastSyncedAt (written below) lets callers detect stale local data
-  const syncPurchasedEsimsWithBff = async (deviceUID: string): Promise<void> => {
-    // no-op — awaiting GET /v1/orders BFF endpoint
-    try {
-      await AsyncStorage.setItem(
-        `esimLastSync-${deviceUID}`,
-        new Date().toISOString(),
-      );
-    } catch {
-      // non-critical — timestamp failure should not surface to the user
-    }
-  };
+  // ── Boot hydration ────────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -305,20 +195,14 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
       const deviceUID = await getValueForDeviceUID("deviceUID");
 
-      // Guard: deviceUID without deviceWalletAddress means orphaned state
-      // (e.g. old Turnkey installation, or a crashed registration). Purge it
-      // so the modal correctly routes to sign-up instead of a broken login attempt.
       if (deviceUID && !storedWalletAddress) {
         await SecureStore.deleteItemAsync("deviceUID");
         await SecureStore.deleteItemAsync("credentialId");
-        if (__DEV__) console.log('[kokio] purged orphaned deviceUID (no deviceWalletAddress)');
+        logger.debug('KOKIO_PURGED_ORPHAN_DEVICEUID');
       }
 
       if (deviceUID && storedWalletAddress) {
-        dispatch({
-          type: "SET_DEVICE_UID",
-          payload: deviceUID,
-        });
+        dispatch({ type: "SET_DEVICE_UID", payload: deviceUID });
 
         const userData = await getValueForUserData(`userData-${deviceUID}`);
         if (userData) {
@@ -333,47 +217,170 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
             },
           });
         }
+
         const credentialId = await SecureStore.getItemAsync('credentialId');
-        const publicKeyX = await SecureStore.getItemAsync('publicKeyX');
-        const publicKeyY = await SecureStore.getItemAsync('publicKeyY');
+        const publicKeyX   = await SecureStore.getItemAsync('publicKeyX');
+        const publicKeyY   = await SecureStore.getItemAsync('publicKeyY');
+        logger.debug('KOKIO_SECURESTORE_HYDRATION', {
+          hasDeviceWalletAddress: !!storedWalletAddress,
+          hasCredentialId:        !!credentialId,
+          hasPublicKeyX:          !!publicKeyX,
+          hasPublicKeyY:          !!publicKeyY,
+          hasRawSalt:             !!(await SecureStore.getItemAsync('rawSalt')),
+          hasDeviceUID:           !!deviceUID,
+        });
+
         if (credentialId && publicKeyX && publicKeyY) {
-          dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX as Hex, y: publicKeyY as Hex } });
+          dispatch({
+            type: "SET_KOKIO_PASSKEY",
+            payload: { credentialId, x: publicKeyX as Hex, y: publicKeyY as Hex },
+          });
         }
+
         const rawSalt = await SecureStore.getItemAsync('rawSalt');
         if (rawSalt) {
           dispatch({ type: "SET_RAW_SALT", payload: rawSalt });
         }
-        const userWallet = await getValueForUserWallet(
-          `userWallet-${deviceUID}`
-        );
-        if (userWallet) {
-          dispatch({
-            type: "SET_USER_WALLET",
-            payload: userWallet,
-          });
-        }
-        const purchasedESIMs = await getValueForPurchasedESIMs(
-          `purchasedESIMs-${deviceUID}`
-        );
-        if (purchasedESIMs) {
-          dispatch({
-            type: "SET_PURCHASED_ESIMS",
-            payload: purchasedESIMs,
-          });
-        }
 
-        // Fire-and-forget: local data already dispatched above; sync runs in background
-        syncPurchasedEsimsWithBff(deviceUID);
+        const userWallet = await getValueForUserWallet(`userWallet-${deviceUID}`);
+        if (userWallet) {
+          dispatch({ type: "SET_USER_WALLET", payload: userWallet });
+        }
       }
     };
     fetchUserData();
   }, []);
 
+  /**
+   * Reset in-memory Kokio state when the account is deleted — either explicitly via Settings,
+   * or when ANY authed endpoint returns 404 ACCOUNT_DELETED (the interceptor path, where no screen is involved).
+   *
+   * State-only by design: storage is owned by purgeAccountLocalState, which runs in the same sequence.
+   * Calling clearKokioUser() here would race it.
+   */
+  useEffect(
+    () =>
+      subscribeAccountDeleted((deleted) => {
+        if (!deleted) return;
+        dispatch({ type: 'CLEAR_KOKIO_USER' });
+        dispatch({ type: 'CLEAR_KOKIO' });
+      }),
+    [],
+  );
+
+  /**
+   * ── SDK initialisation + wallet auto-derivation ───────────────────────────
+   *
+   * Two-step effect:
+   *   Step 1   —   Initialise the SDK when deviceUID + userPasskey are available but sdk is not constructed.
+   *                setupKokio dispatches SET_KOKIO and returns; 
+   *                the effect re-fires with kokio.sdk populated.
+   *
+   *   Step 2   —   When sdk is ready and userWallet is absent, 
+   *                call checkWalletDeployed (Registry.isDeviceWalletValid) to distinguish:
+   *                - New registration  : wallet not yet deployed on-chain ->
+   *                  Registry returns false -> skip auto-derivation ->
+   *                  WalletSetupModal drives deployment via sendUserOperation.
+   *                - Recovery after reinstall  : wallet deployed on-chain ->
+   *                  Registry returns true -> auto-derive SmartContractAccount
+   *                  via getSmartWallet and persist via setupKokioUserWallet.
+   */
+
   useEffect(() => {
-    if (!kokio.sdk && kokio.deviceUID && kokio.userPasskey) {
-      setupKokio();
-    }
-  }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk]);
+    const initSdkAndDeriveWallet = async () => {
+      if (!kokio.sdk && kokio.deviceUID && kokio.userPasskey) {
+        await setupKokio();
+        return;
+      }
+      if (
+        kokio.sdk &&
+        kokio.deviceUID &&
+        kokio.userPasskey?.x &&
+        kokio.userPasskey?.y &&
+        kokio.rawSalt &&
+        kokio.deviceWalletAddress &&
+        !kokio.userWallet
+      ) {
+        try {
+          const KokioConstants = await kokio.sdk.constants;
+          const deployed = await checkWalletDeployed(
+            kokio.deviceWalletAddress,
+            kokio.sdk.viemWalletClient,
+            KokioConstants.factoryAddresses.REGISTRY as Address,
+          );
+
+          if (!deployed) {
+            // New registration
+            logger.debug('WALLET_AUTO_DERIVE_SKIPPED', { reason: 'not_deployed' });
+            return;
+          }
+          // Recovery
+          const ownerKey: [Hex, Hex] = [kokio.userPasskey.x, kokio.userPasskey.y];
+          const salt = BigInt(kokio.rawSalt);
+
+          const deviceWallet = await kokio.sdk.smartAccount.getSmartWallet(
+            kokio.deviceUID,
+            ownerKey,
+            salt,
+          );
+
+          await setupKokioUserWallet(kokio.deviceUID, deviceWallet);
+          logger.debug('WALLET_AUTO_DERIVED', { deviceUID: kokio.deviceUID });
+        } catch (err) {
+          // Non-fatal: wallet card stays in setup-prompt state.
+          logger.error('WALLET_AUTO_DERIVE_FAILED', { err });
+        }
+      }
+    };
+
+    initSdkAndDeriveWallet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk, kokio.rawSalt, kokio.userWallet, kokio.deviceWalletAddress]);
+
+  // ── WalletConnect initialisation ──────────────────────────────────────────
+
+  const wcInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!kokio.sdk || !kokio.userWallet || wcInitialized.current) return;
+    wcInitialized.current = true;
+
+    const walletAddress = (kokio.userWallet as any).address ?? "";
+
+    getWcSignClient().then((client) => {
+      client.on("session_proposal", (proposal) => {
+        setPendingProposal(proposal);
+        router.push("/wc-session" as any);
+      });
+
+      client.on("session_request", async (event) => {
+        const { topic, params, id } = event;
+        const { request } = params;
+        try {
+          void walletAddress;
+          throw new Error(`Method not yet implemented: ${request.method}`);
+        } catch (err) {
+          await client.respond({
+            topic,
+            response: {
+              id,
+              jsonrpc: "2.0",
+              error: { code: 4001, message: (err as Error).message },
+            },
+          });
+        }
+      });
+
+      client.on("session_delete", ({ topic }) => {
+        logger.debug('WC_SESSION_DELETED', { topic });
+      });
+    }).catch((err) => {
+      wcInitialized.current = false;
+      logger.error('WC_INIT_FAILED', { err });
+    });
+  }, [kokio.sdk, kokio.userWallet]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
 
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });
@@ -381,11 +388,54 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
   const setupKokioDeviceUID = async (deviceUID: string) => {
     await saveValueForDeviceUID("deviceUID", deviceUID);
+    dispatch({ type: "SET_DEVICE_UID", payload: deviceUID });
+  };
 
-    dispatch({
-      type: "SET_DEVICE_UID",
-      payload: deviceUID,
+  const setupKokio = async () => {
+    const credentialId =
+      kokio.userPasskey?.credentialId ??
+      await SecureStore.getItemAsync('credentialId') ??
+      null;
+
+    if (!credentialId) {
+      dispatch({ type: "ERROR", payload: "Credential ID not found" });
+      return;
+    }
+
+    const resolvedAddress =
+      kokio.deviceWalletAddress ||
+      await SecureStore.getItemAsync('deviceWalletAddress');
+
+    if (!resolvedAddress) {
+      dispatch({ type: "ERROR", payload: "Device wallet address not found" });
+      return;
+    }
+
+    const signerAddress    = resolvedAddress as `0x${string}`;
+    const chainId          = Config.CHAIN_ID ?? baseSepolia.id;
+    const chain            = chainId === base.id ? base : baseSepolia;
+    const alchemySubdomain = chainId === base.id ? 'base-mainnet' : 'base-sepolia';
+
+    const rpcUrl = extra.alchemyApiKey
+      ? `https://${alchemySubdomain}.g.alchemy.com/v2/${extra.alchemyApiKey}`
+      : (Config.CHAIN_RPC_URL ?? chain.rpcUrls.default.http[0]);
+
+    const viemClient = createWalletClient({
+      chain,
+      transport: http(rpcUrl),
+      account: signerAddress,
     });
+
+    const kokioSDK = new Kokio(
+      viemClient,
+      credentialId,
+      PASSKEY_CONFIG.RP_ID,
+      '',
+      extra.pimlicoApiKey ?? '',
+      extra.gasManagerPolicyId ?? '',
+    );
+
+    dispatch({ type: "SET_KOKIO", payload: kokioSDK });
   };
 
   const setupKokioRegistration = async (
@@ -412,95 +462,45 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     };
     await saveValueForUserData(`userData-${deviceUniqueIdentifier}`, userData);
 
-    dispatch({ type: "SET_DEVICE_UID", payload: deviceUniqueIdentifier });
+    dispatch({ type: "SET_DEVICE_UID",            payload: deviceUniqueIdentifier });
     dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
-    dispatch({ type: "SET_RAW_SALT", payload: rawSalt });
-    dispatch({ type: "SET_KOKIO_USER", payload: userData });
-    dispatch({ type: "SET_KOKIO_PASSKEY", payload: { credentialId, x: publicKeyX, y: publicKeyY } });
+    dispatch({ type: "SET_RAW_SALT",              payload: rawSalt });
+    dispatch({ type: "SET_KOKIO_USER",            payload: userData });
+    dispatch({ type: "SET_KOKIO_PASSKEY",         payload: { credentialId, x: publicKeyX, y: publicKeyY } });
   };
 
-  const setupKokioUserWallet = async (
-    deviceUID: string,
-    wallet: SmartContractAccount
-  ) => {
+  const setupKokioUserWallet = async (deviceUID: string, wallet: SmartContractAccount) => {
     await saveValueForUserWallet(`userWallet-${deviceUID}`, wallet);
-
-    dispatch({
-      type: "SET_USER_WALLET",
-      payload: wallet,
-    });
+    dispatch({ type: "SET_USER_WALLET", payload: wallet });
   };
 
-  const savePurchasedESIM = async (
-    deviceUID: string,
-    eSimItem: Esim,
-    transactionData: any
-  ) => {
-    const existingESIMs = await getValueForPurchasedESIMs(
-      `purchasedESIMs-${deviceUID}`
-    );
-    const currentESIMs = existingESIMs || [];
+  const setupKokioRecovery = async (deviceWalletAddress: string, credentialId: string) => {
+    await SecureStore.setItemAsync('deviceWalletAddress', deviceWalletAddress);
+    await SecureStore.setItemAsync('credentialId', credentialId);
+    dispatch({ type: 'SET_DEVICE_WALLET_ADDRESS', payload: deviceWalletAddress });
 
-    const reducedPurchasedESIM = reduceESimDataForStorage(
-      eSimItem,
-      transactionData
-    );
-
-    const updatedESIMs = [...currentESIMs, reducedPurchasedESIM];
-
-    await saveValueForPurchasedESIMs(
-      `purchasedESIMs-${deviceUID}`,
-      updatedESIMs
-    );
-
-    dispatch({
-      type: "SET_PURCHASED_ESIMS",
-      payload: updatedESIMs,
-    });
-  };
-
-  const setupKokio = async () => {
-    // Prefer state (populated at mount or registration); fall back to SecureStore
-    // for the case where setupKokio() is called before hydration completes.
-    const credentialId =
-      kokio.userPasskey?.credentialId ??
-      await SecureStore.getItemAsync('credentialId') ??
-      null;
-
-    if (!credentialId) {
-      dispatch({ type: "ERROR", payload: "Credential ID not found" });
-      return;
+    try {
+      const account = await getAccount();
+      await saveValueForDeviceUID('deviceUID', account.deviceUniqueIdentifier);
+      await SecureStore.setItemAsync('publicKeyX', account.pubKeyX);
+      await SecureStore.setItemAsync('publicKeyY', account.pubKeyY);
+      await SecureStore.setItemAsync('rawSalt',    account.salt);
+  
+      dispatch({ type: 'SET_DEVICE_UID',    payload: account.deviceUniqueIdentifier });
+      dispatch({ type: 'SET_RAW_SALT',      payload: account.salt });
+      dispatch({
+        type: 'SET_KOKIO_PASSKEY',
+        payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
+      });
+      // userWallet is intentionally NOT set here.
+      // The initSdkAndDeriveWallet useEffect calls checkWalletDeployed once the SDK is ready.
+    } catch (err) {
+      if ( isAccountDeletedError(err) ) {
+        // Terminal
+        logger.debug('RECOVERY_ABORTED_ACCOUNT_DELETED');
+        throw err;
+      }
     }
-
-    // The SDK requires client.account to be set — it uses client.account.address as
-    // the `signWith` arg in signTypedData (a TODO stub). Real signing happens via
-    // Passkey.get() inside _stamp(), so the address value is irrelevant for deployment.
-    const signerAddress = (
-      kokio.deviceWalletAddress ||
-      await SecureStore.getItemAsync('deviceWalletAddress') ||
-      '0x0000000000000000000000000000000000000000'
-    ) as `0x${string}`;
-
-    const rpcUrl = extra.alchemyApiKey
-      ? `https://base-sepolia.g.alchemy.com/v2/${extra.alchemyApiKey}`
-      : 'https://sepolia.base.org';
-
-    const viemClient = createWalletClient({
-      chain: baseSepolia,
-      transport: http(rpcUrl),
-      account: signerAddress,
-    });
-
-    const kokioSDK = new Kokio(
-      viemClient,
-      credentialId,
-      PASSKEY_CONFIG.RP_ID,
-      '',
-      extra.pimlicoApiKey ?? '',
-      extra.gasManagerPolicyId ?? '',
-    );
-
-    dispatch({ type: "SET_KOKIO", payload: kokioSDK });
   };
 
   const clearKokio = () => {
@@ -509,15 +509,15 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
   const clearKokioUser = async () => {
     dispatch({ type: "CLEAR_KOKIO_USER" });
-    await deleteValueForUser(`userWallet-${kokio.deviceUID}`);
-    await deleteValueForUser(`userData-${kokio.deviceUID}`);
-    await deleteValueForPurchasedESIMs(`purchasedESIMs-${kokio.deviceUID}`);
-    await deleteValueForUser("deviceUID");
-    await SecureStore.deleteItemAsync("deviceWalletAddress");
-    await SecureStore.deleteItemAsync("credentialId");
-    await SecureStore.deleteItemAsync("publicKeyX");
-    await SecureStore.deleteItemAsync("publicKeyY");
-    await SecureStore.deleteItemAsync("rawSalt");
+    await deleteValueForUser(`userWallet-${kokio.deviceUID}`).catch(() => {});
+    await deleteValueForUser(`userData-${kokio.deviceUID}`).catch(() => {});
+    await AsyncStorage.removeItem(`purchasedESIMs-${kokio.deviceUID}`).catch(() => {});
+    await deleteValueForUser("deviceUID").catch(() => {});
+    await SecureStore.deleteItemAsync("deviceWalletAddress").catch(() => {});
+    await SecureStore.deleteItemAsync("credentialId").catch(() => {});
+    await SecureStore.deleteItemAsync("publicKeyX").catch(() => {});
+    await SecureStore.deleteItemAsync("publicKeyY").catch(() => {});
+    await SecureStore.deleteItemAsync("rawSalt").catch(() => {});
     clearKokio();
   };
 
@@ -529,8 +529,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         setupKokio,
         setupKokioDeviceUID,
         setupKokioUserWallet,
-        savePurchasedESIM,
         setupKokioRegistration,
+        setupKokioRecovery,
         clearKokio,
         clearKokioUser,
       }}
