@@ -103,7 +103,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
-    "@babel/plugin-syntax-import-assertions": "7.28.6",
+    "@babel/plugin-syntax-import-assertions": "7.29.7",
     "@types/jest": "29.5.14",
     "@types/lodash": "4.17.24",
     "@types/qs": "6.15.1",
