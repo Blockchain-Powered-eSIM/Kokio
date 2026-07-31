@@ -56,7 +56,6 @@ module.exports = ({ config }) => {
         backgroundColor: "#242427",
       },
       package: "app.kokio.mobile",
-      edgeToEdgeEnabled: true,
       version,
       intentFilters: [
         {
