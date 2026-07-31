@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { MaterialTopTabBarProps } from "@react-navigation/material-top-tabs";
+import { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
 
 import { Theme } from "@/constants/Colors";
 

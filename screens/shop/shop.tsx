@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import { useNavigation } from "expo-router";
 
 import _debounce from "lodash/debounce";

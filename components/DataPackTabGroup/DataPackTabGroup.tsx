@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { StyleSheet, FlatList } from "react-native";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 
 import _get from "lodash/get";
 import _groupBy from "lodash/groupBy";
