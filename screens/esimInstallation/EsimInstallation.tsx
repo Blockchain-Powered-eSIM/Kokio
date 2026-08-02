@@ -95,7 +95,9 @@ const warningStyles = StyleSheet.create({
 
 const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const handleCopyQRData = async () => {
     try {
       await Clipboard.setStringAsync(text);
@@ -247,7 +249,9 @@ const createStyles = () => StyleSheet.create({
 
 const EsimInstallation = () => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const { qrcode, appleInstallationUrl: rawAppleUrl } = useLocalSearchParams();
   const appleInstallationUrl = Array.isArray(rawAppleUrl) ? rawAppleUrl[0] : (rawAppleUrl ?? "");
   const router = useRouter();

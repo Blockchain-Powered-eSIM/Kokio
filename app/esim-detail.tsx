@@ -239,7 +239,7 @@ const createStyles = () =>
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const Chip = ({ label, color }: { label: string; color: string }) => {
-  const styles = useMemo(createStyles, []);
+  const styles = useMemo(() => createStyles(), []);
   return (
     <View style={[styles.chip, { backgroundColor: color + "22" }]}>
       <Text style={[styles.chipText, { color }]}>{label}</Text>
@@ -256,7 +256,7 @@ const CopyRow = ({
   value: string;
   last?: boolean;
 }) => {
-  const styles = useMemo(createStyles, []);
+  const styles = useMemo(() => createStyles(), []);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -290,7 +290,9 @@ const CopyRow = ({
 
 export default function EsimDetailScreen() {
   const { isDark } = useTheme();
-  const styles     = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles     = useMemo(() => createStyles(), [isDark]);
   const bg         = useThemeColor({}, "background");
   const router     = useRouter();
 

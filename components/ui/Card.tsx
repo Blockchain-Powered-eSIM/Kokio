@@ -47,7 +47,9 @@ const createCardStyle = () => StyleSheet.create({
 function Card(props: ThemedViewProps) {
   const { style, lightColor, darkColor, children, ...otherProps } = props;
   const { isDark } = useTheme();
-  const cardStyle = useMemo(createCardStyle, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const cardStyle = useMemo(() => createCardStyle(), [isDark]);
   const backgroundColor = useThemeColor(
     { light: lightColor, dark: darkColor },
     "card"

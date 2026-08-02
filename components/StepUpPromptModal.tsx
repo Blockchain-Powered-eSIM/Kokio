@@ -126,7 +126,9 @@ function friendlyOperation(raw: string | undefined): string {
 
 export function StepUpPromptModal() {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const { stepUpVisible, stepUpHint, stepUpError, stepUp, dismissStepUp } =
     useAuthRelay();
   const [loading, setLoading] = useState(false);

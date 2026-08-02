@@ -98,7 +98,9 @@ function toDisplayItem(doc: ESimDocument): Esim {
 // No props — self-fetching via useEsims().
 const ActiveESIMsScroll = () => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
 
   const { esims, isLoading } = useEsims();
 

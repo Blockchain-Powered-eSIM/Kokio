@@ -37,7 +37,9 @@ const ExpandableContent = ({
   onContentSizeChange?: (w: number, h: number) => void;
 }) => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const isMultiCountry = eSimItem?.coverageType !== "LOCAL";
 
   return (
@@ -177,7 +179,9 @@ const createStyles = () => StyleSheet.create({
 
 const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const insets = useSafeAreaInsets();
 
   const computedHeaderHeight = useMemo(() => {

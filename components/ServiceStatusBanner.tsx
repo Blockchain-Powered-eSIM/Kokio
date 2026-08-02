@@ -26,7 +26,9 @@ const createStyles = () => StyleSheet.create({
 
 export function ServiceStatusBanner() {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const { isHealthy } = useBffHealth();
   const insets = useSafeAreaInsets();
 

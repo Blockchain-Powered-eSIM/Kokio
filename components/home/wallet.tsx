@@ -136,7 +136,9 @@ const createStyles = () => StyleSheet.create({
 
 const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps) => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const handleAddressPress = async () => {
     if (walletId) {
       const url = `${BASE_SEPOLIA_TESTNET}/${walletId}`;

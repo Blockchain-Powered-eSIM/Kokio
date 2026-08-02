@@ -148,7 +148,9 @@ const MenuItem = ({
   disabled?: boolean;
 }) => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   return (
   <TouchableOpacity
     style={[styles.menuItem, disabled && { opacity: DISABLED_OPACITY }]}
@@ -185,7 +187,9 @@ const MenuItem = ({
 
 const AboutContent = ({ onClose }: { onClose: () => void }) => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
   const handleLinkPress = useCallback(async (url: string) => {
     try {
       await openBrowserAsync(url);
@@ -242,7 +246,9 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 
 const ContactContent = ({ onClose }: { onClose: () => void }) => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
 
   return (
     <View style={styles.aboutContainer}>
@@ -287,7 +293,9 @@ export default function MenuScreen() {
   const [showContact, setShowContact] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const bg = useThemeColor({}, "background");
-  const styles = useMemo(createStyles, [isDark]);
+  // TODO: Fix the theming engine to deprecate this usage pattern
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => createStyles(), [isDark]);
 
   const menuItems = [
     {
