@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { StyleSheet, FlatList } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
+import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
 
 import _get from "lodash/get";
 import _groupBy from "lodash/groupBy";
@@ -96,7 +97,7 @@ function DataPackTabGroup({
   const TabsNavigator = () => {
     return (
       <Tab.Navigator
-        tabBar={(props) => <TabBar {...props} />}
+        tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
         screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
       >
         <Tab.Screen

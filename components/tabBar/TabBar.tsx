@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
+import type { Route } from "expo-router/react-navigation";
 
 import { Theme } from "@/constants/Colors";
 
@@ -8,7 +9,7 @@ const TabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
   return (
     <View style={styles.tabBarContainer}>
       <View style={[styles.tabBarStyle, { backgroundColor: Theme.colors.secondaryBackground }]}>
-        {state.routes.map((route, index) => {
+        {state.routes.map((route: Route<string>, index: number) => {
           const { options } = descriptors[route.key];
           const label = options.tabBarLabel || options.title || route.name;
 

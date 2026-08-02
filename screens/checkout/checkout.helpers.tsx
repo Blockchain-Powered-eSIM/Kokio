@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { Platform } from "react-native";
 import { RadioButtonProps } from "react-native-radio-buttons-group";
 

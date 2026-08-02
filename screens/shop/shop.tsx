@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
+import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
 import { useNavigation } from "expo-router";
 
 import _debounce from "lodash/debounce";
@@ -23,7 +24,7 @@ const TabsNavigator = () => {
   const { isDark } = useTheme();
   return (
     <Tab.Navigator
-      tabBar={(props) => <TabBar {...props} />}
+      tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
       screenOptions={{ sceneStyle: { backgroundColor: isDark ? "transparent" : Theme.colors.background } }}
     >
       <Tab.Screen
