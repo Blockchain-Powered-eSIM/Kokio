@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StyleSheet, View, Text, Dimensions, Platform, Pressable, ScrollView } from "react-native";
+import { StyleSheet, View, Text, Dimensions, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, router } from "expo-router";
 import _get from "lodash/get";
@@ -181,10 +181,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   const insets = useSafeAreaInsets();
 
   const computedHeaderHeight = useMemo(() => {
-    if (Platform.OS === "android") {
-      return HEADER_MIN_HEIGHT + insets.top;
-    }
-    return HEADER_MIN_HEIGHT;
+    return HEADER_MIN_HEIGHT + insets.top;
   }, [insets.top]);
 
   const eSimItem = React.useMemo(() => {
@@ -400,7 +397,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
               <Ionicons name="chevron-down" size={12} color={Theme.colors.handleArrow} />
             </Animated.View>
             <Animated.View
-              style={[StyleSheet.absoluteFillObject, styles.arrowCenter, animatedArrowUpStyle]}
+              style={[StyleSheet.absoluteFill, styles.arrowCenter, animatedArrowUpStyle]}
             >
               <Ionicons name="chevron-up" size={12} color={Theme.colors.handleArrow} />
             </Animated.View>

@@ -162,7 +162,7 @@ const createStyles = () => StyleSheet.create({
   discountErrorContainer:  { marginTop: 8, padding: 12, backgroundColor: Theme.colors.destructiveBackground, borderRadius: 8 },
   discountErrorText:       { color: Theme.colors.destructive, fontSize: 14 },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject, backgroundColor: Theme.colors.overlay,
+    ...StyleSheet.absoluteFill, backgroundColor: Theme.colors.overlay,
     justifyContent: 'center', alignItems: 'center', gap: 16, zIndex: 10,
   },
   loadingText: { color: '#FFFFFF', fontSize: 15, fontWeight: '500' },

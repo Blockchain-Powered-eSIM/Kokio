@@ -270,7 +270,7 @@ const PurchaseDetailsModal = ({
   >
     <View style={pdStyles.overlay}>
       <TouchableOpacity
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         onPress={onClose}
         activeOpacity={1}
       />

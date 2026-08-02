@@ -194,7 +194,7 @@ export default function QrCodeScreen() {
       <StatusBar hidden />
       
       <CameraView 
-        style={StyleSheet.absoluteFillObject} 
+        style={StyleSheet.absoluteFill} 
         facing='back'
         onBarcodeScanned={handleBarCodeScanned}
       >

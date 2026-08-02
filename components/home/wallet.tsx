@@ -66,7 +66,7 @@ const createStyles = () => StyleSheet.create({
     overflow: "hidden",
   },
   backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     marginLeft: 70,
     width: "auto",
   },
