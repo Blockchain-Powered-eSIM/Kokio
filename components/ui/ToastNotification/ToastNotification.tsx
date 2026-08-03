@@ -60,7 +60,11 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
   const panGesture = Gesture.Pan()
     .onStart(() => { isAnimating.value = false; })
     .onUpdate((event) => {
+      // reanimated shared value mutation inside a gesture worklet
+      // eslint-disable-next-line react-hooks/immutability
       translateX.value = event.translationX;
+      // reanimated shared value mutation inside a gesture worklet
+      // eslint-disable-next-line react-hooks/immutability
       translateY.value = event.translationY;
     })
     .onEnd((event) => {
@@ -69,7 +73,11 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
         isAnimating.value = true;
         const targetX = event.translationX > 0 ? 500 : -500;
         const targetY = event.translationY < -swipeThreshold ? -500 : 0;
+        // reanimated shared value mutation inside a gesture worklet
+        // eslint-disable-next-line react-hooks/immutability
         translateX.value = withTiming(targetX, { duration: 300 });
+        // reanimated shared value mutation inside a gesture worklet
+        // eslint-disable-next-line react-hooks/immutability
         translateY.value = withTiming(targetY, { duration: 300 }, (finished) => {
           if (finished) runOnJS(handleClose)();
         });
