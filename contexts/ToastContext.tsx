@@ -32,7 +32,7 @@ const MESSAGE_DISPLAY_MS: Record<MessageVariant, number> = {
 };
 
 function MessageToast({ message, variant, onHide }: { message: string; variant: MessageVariant; onHide: () => void }) {
-  const opacity = React.useMemo(new Animated.Value(0)).current;
+  const opacity = React.useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     Animated.sequence([
