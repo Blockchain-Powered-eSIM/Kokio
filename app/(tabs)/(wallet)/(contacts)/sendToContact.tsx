@@ -64,9 +64,7 @@ const SendToContact = () => {
   const [isLoading,setIsLoading] = useState(false);
   const { showToast, showMessage } = useToast();
 
-
   const sheetRef = useRef<BottomSheet>(null);
-
 
   const snapPoints = useMemo(() => ['96.5%', '97%'], []);
   const handleShowSheet = () => {
@@ -151,6 +149,8 @@ const SendToContact = () => {
   };
 
   useEffect(() => {
+    // TODO: This pattern should not be used once this is enabled
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     getAllTokens();
   }, [])
 

@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { StyleSheet, View, Linking, Pressable, StatusBar } from 'react-native';
 import { Theme } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -106,7 +106,8 @@ export default function QrCodeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const styles = useMemo(() => createStyles(), [isDark]);
   const [permission, requestPermission] = useCameraPermissions();
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const permissionDenied = 
+    !!permission && !permission.granted && permission.canAskAgain === false;
   const [scanned, setScanned] = useState(false);
   const {firstName,lastName,isEdit,monogramUrl,id} = useLocalSearchParams();
 
@@ -133,22 +134,8 @@ export default function QrCodeScreen() {
 
   // Function to handle permission request
   const handleRequestPermission = async () => {
-    const permissionResult = await requestPermission();
-    
-    // If permissions are still not granted after request
-    if (!permissionResult.granted) {
-      setPermissionDenied(true);
-    } else {
-      setPermissionDenied(false);
-    }
+    await requestPermission();
   };
-
-  // Check permission status on component mount
-  useEffect(() => {
-    if (permission && !permission.granted && permission.canAskAgain === false) {
-      setPermissionDenied(true);
-    }
-  }, [permission]);
 
   if (!permission) {
     // Camera permissions are still loading
@@ -160,7 +147,6 @@ export default function QrCodeScreen() {
     return (
       <View style={styles.container}>
         <ThemedText darkColor='white' variant='xl' className='text-center' >We need your permission to show the camera</ThemedText>
-        
         {permissionDenied && permission.canAskAgain === false ? (
           // If permission was permanently denied, provide instructions to enable in settings
           <View>
@@ -168,10 +154,8 @@ export default function QrCodeScreen() {
               Camera permission was denied. Please enable camera access in your device settings.
             </ThemedText>
             <Pressable
-              
               onPress={() => Linking.openSettings()} 
               className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
-               
             >
               <ThemedText bold className='text-center'>Open Settings</ThemedText>
               </Pressable>
@@ -179,11 +163,9 @@ export default function QrCodeScreen() {
         ) : (
           // Standard permission request button
           <Pressable
-              
-          onPress={handleRequestPermission} 
-          className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
-           
-        >
+            onPress={handleRequestPermission} 
+            className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
+          >
           <ThemedText bold className='text-center'>Grant Permission</ThemedText>
           </Pressable>
         )}
@@ -194,7 +176,6 @@ export default function QrCodeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar hidden />
-      
       <CameraView 
         style={StyleSheet.absoluteFill} 
         facing='back'
@@ -224,8 +205,6 @@ export default function QrCodeScreen() {
         {/* <TouchableOpacity style={styles.backButton} onPress={()=>router.back()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity> */}
-        
-       
       </CameraView>
     </View>
   );

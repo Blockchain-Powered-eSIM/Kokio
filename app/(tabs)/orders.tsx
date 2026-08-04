@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   FlatList,
@@ -505,6 +505,7 @@ export default function OrdersScreen() {
   }, [orders, esims]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const autoExpandedRef = useRef(false);
 
   // Collapse all cards when leaving the Orders tab.
   useFocusEffect(
@@ -516,14 +517,18 @@ export default function OrdersScreen() {
   // Auto-expand the card referenced by the URL param.
   // Matches on idempotencyKey, orderId, or esimId
   useEffect(() => {
-    if (!expandOrderId || enrichedOrders.length === 0) return;
+    if (autoExpandedRef.current || !expandOrderId || enrichedOrders.length === 0) return;
     const matched = enrichedOrders.find(
       (o) =>
         o.idempotencyKey === expandOrderId ||
         o.orderId        === expandOrderId ||
         o.esimId         === expandOrderId,
     );
-    if (matched) setExpandedId(getOrderKey(matched));
+    if (matched) {
+      autoExpandedRef.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setExpandedId(getOrderKey(matched));
+    }
   }, [expandOrderId, enrichedOrders]);
 
   const handleInstall = useCallback((lpa: string) => {

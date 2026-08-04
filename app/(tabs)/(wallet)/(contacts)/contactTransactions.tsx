@@ -1,5 +1,5 @@
 import { View, Image, Pressable } from 'react-native';
-import React, { useEffect ,useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,20 +25,13 @@ const ContactTransactions = () => {
     ? JSON.parse(transactions as string) // Cast to string since it’s a single string
     : [];
 
-  // Optional: Use state if you need to manipulate transactions later
   const [transactionList] = useState<Transaction[]>(parsedTransactions);
-  const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>(
-    parsedTransactions.filter((tx) => tx.status === "pending")
-  );
-  const [completedTransactions, setCompletedTransactions] = useState<Transaction[]>(
-    parsedTransactions.filter((tx) => tx.status === "completed")
-  );
-
+  // Optional: Use state if you need to manipulate transactions later
+  const pendingTransactions = useMemo(
+    () => transactionList.filter((tx) => tx.status === "pending"), [transactionList]);
   // Optional: Sync pendingTransactions when transactionList changes
-  useEffect(() => {
-    setPendingTransactions(transactionList.filter((tx) => tx.status === "pending"));
-    setCompletedTransactions(transactionList.filter((tx) => tx.status === "completed"));
-  }, [transactionList]);
+  const completedTransactions = useMemo(
+    () => transactionList.filter((tx) => tx.status === "completed"), [transactionList]);
 
     const renderTransaction = useCallback(
         (tr: Transaction, index: number) => (
