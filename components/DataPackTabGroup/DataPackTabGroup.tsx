@@ -94,37 +94,6 @@ function DataPackTabGroup({
     </ThemedView>
   );
 
-  const TabsNavigator = () => {
-    return (
-      <Tab.Navigator
-        tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
-        screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
-      >
-        <Tab.Screen
-          name="Data"
-          component={DataTab}
-          options={{ tabBarLabel: "Data" }}
-        />
-        {/* NOTE: DATA_CALLS_SMS is disabled until needed */}
-        <Tab.Screen
-          name="DataCallsSMS"
-          component={DataCallsSMSTab}
-          options={{
-            tabBarLabel: "Data+Calls+SMS",
-            tabBarAccessibilityLabel: "Data+Calls+SMS (disabled)",
-            tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: Theme.colors.inactive }],
-          }}
-          listeners={{
-            tabPress: (e) => {
-              // Prevent default action to disable the tab
-              e.preventDefault();
-            },
-          }}
-        />
-      </Tab.Navigator>
-    );
-  };
-
   return (
     <ThemedView style={[styles.container, containerStyle]}>
       {_isEmpty(eSimsByData) || _isEmpty(eSimsByDataCallsSMS) ? (
@@ -133,7 +102,24 @@ function DataPackTabGroup({
           isLoading={isLoading}
         />
       ) : (
-        <TabsNavigator />
+        <Tab.Navigator
+          tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
+          screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
+        >
+          <Tab.Screen name="Data" component={DataTab} options={{ tabBarLabel: "Data" }} />
+          <Tab.Screen name="DataCallsSMS" component={DataCallsSMSTab} options={{ 
+            tabBarLabel: "Data+Calls+SMS",
+            tabBarAccessibilityLabel: "Data+Calls+SMS (disabled)",
+            tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: Theme.colors.inactive }],
+          }}
+          listeners={{
+            tabPress: (e) => {
+              // Prevent default action to disable tab
+              e.preventDefault();
+            },
+          }} 
+          />
+        </Tab.Navigator>
       )}
     </ThemedView>
   );

@@ -289,11 +289,11 @@ const Checkout = () => {
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
   const bg = useThemeColor({}, "background");
 
-  useEffect(() => {
-    if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
-      setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
-    }
-  }, [compatibleEsims, compatibleTopUpEsimId]);
+  // useEffect(() => {
+  //   if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
+  //     setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
+  //   }
+  // }, [compatibleEsims, compatibleTopUpEsimId]);
 
   // Build a human-readable label for a compatible topup eSIM.
   // Source of truth is the live ESimDocument from useEsims() (server-truth),
@@ -517,7 +517,7 @@ const Checkout = () => {
         setSelectedPaymentMethod(value);
       }
     },
-    [kokio?.userWallet],
+    [kokio.userWallet],
   );
 
   const handleDiscountCodeChange = useCallback((text: string) => {

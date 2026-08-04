@@ -19,7 +19,7 @@ const DetailItem = ({
   highlight = true,
   containerStyles,
 }: any) => {
-  const IconRenderer =
+  const IconComponent =
     _get(ICON_TYPE_VS_RENDERER, iconType) || ICON_TYPE_VS_RENDERER.ION;
 
   if (_isNil(value)) {
@@ -28,7 +28,7 @@ const DetailItem = ({
 
   return (
     <View style={[styles.detailItem, containerStyles]}>
-      {iconName && <IconRenderer name={iconName} size={20} color={Theme.colors.cardForeground} />}
+      {iconName && React.createElement(IconComponent, { name: iconName, size: 20, color: Theme.colors.cardForeground })}
       {prefix && <Text style={[styles.text, { color: Theme.colors.cardForeground }]}>{prefix}</Text>}
       <Text style={[styles.details, { color: Theme.colors.cardForeground }, highlight && { fontWeight: "800" }]}>
         {value ?? ""}
