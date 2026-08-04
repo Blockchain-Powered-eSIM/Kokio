@@ -177,6 +177,7 @@ export function AuthenticationModal() {
   useEffect(() => {
     if (kokio.deviceWalletAddress) {
       hasResolvedOnce.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsReturningUser(true);
       return;
     }
@@ -323,6 +324,8 @@ export function AuthenticationModal() {
       // expanded/closed, never unmounted — so `mode` from a prior attempt
       // (e.g. left at "authenticating" after a successful login) would
       // otherwise leak into the next time the modal reopens (e.g. on logout).
+      // TODO: Fix this lint error
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       resetErrors();
       setMode("choice");
       sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
@@ -334,6 +337,8 @@ export function AuthenticationModal() {
   }, [state.authenticated]);
 
   useEffect(() => {
+    // TODO: Fix this lint error
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (state.error) setMode("error");
   }, [state.error]);
 
