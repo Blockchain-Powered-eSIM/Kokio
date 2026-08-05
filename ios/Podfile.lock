@@ -1886,8 +1886,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-randombytes (3.6.2):
-    - React-Core
   - react-native-safe-area-context (5.7.0):
     - hermes-engine
     - RCTRequired
@@ -2951,7 +2949,6 @@ DEPENDENCIES:
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-passkey (from `../node_modules/react-native-passkey`)
   - react-native-quick-base64 (from `../node_modules/react-native-quick-base64`)
-  - react-native-randombytes (from `../node_modules/react-native-randombytes`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-view-shot (from `../node_modules/react-native-view-shot`)
   - react-native-webview (from `../node_modules/react-native-webview`)
@@ -3190,8 +3187,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-passkey"
   react-native-quick-base64:
     :path: "../node_modules/react-native-quick-base64"
-  react-native-randombytes:
-    :path: "../node_modules/react-native-randombytes"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-view-shot:
@@ -3377,7 +3372,6 @@ SPEC CHECKSUMS:
   react-native-pager-view: da68cd8d95b22605bfeda00d3cfb71ca500a61e3
   react-native-passkey: 74898935a037f844e6713eda4d46eb5345ccddf3
   react-native-quick-base64: 3c5c526747acdd10088a2702f17a6a86866d5d0b
-  react-native-randombytes: ddf6edfd3fb9091af8c6ed1b35e57c308b5f5f2c
   react-native-safe-area-context: a2325922b8594ddd27f98fb13437aec126be2502
   react-native-view-shot: 4a40eb5ceb823ee9b9d7dbec0916e7c55ce0d5b0
   react-native-webview: 474aeef432561cbd160483cc48796a212f4a9e22

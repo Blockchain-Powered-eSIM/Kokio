@@ -32,11 +32,9 @@ jobs:
       # expo-doctor runs the full SDK/config/dependency check set as a blocking
       # gate. Two checks are intentionally scoped out via the expo.doctor block
       # in package.json, each justified there:
-      #   - reactNativeDirectoryCheck excludes react-native-randombytes
-      #     (unmaintained; transitive via node-libs-react-native; drop this
-      #     exclude once the node-libs reduction task removes it).
       #   - appConfigFieldsNotSyncedCheck disabled: committed native android/
       #     and ios/ (non-CNG) is a deliberate posture, not a config-sync gap.     
+
       - name: Expo doctor
         run: npx expo-doctor
 
