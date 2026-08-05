@@ -6,6 +6,16 @@
     "node": "24.x",
     "npm": ">=11.16.0"
   },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": ["react-native-randombytes"]
+      },
+      "appConfigFieldsNotSyncedCheck": {
+        "enabled": false
+      }
+    }
+  },
   "scripts": {
     "start": "expo start --dev-client",
     "reset-project": "node ./scripts/reset-project.js",
@@ -43,28 +53,28 @@
     "@walletconnect/sign-client": "2.23.10",
     "axios": "1.19.0",
     "clsx": "2.1.1",
-    "expo": "57.0.9",
+    "expo": "57.0.10",
     "expo-application": "57.0.2",
     "expo-asset": "57.0.8",
-    "expo-auth-session": "57.0.5",
+    "expo-auth-session": "57.0.6",
     "expo-blur": "57.0.2",
     "expo-build-properties": "57.0.8",
     "expo-camera": "57.0.3",
     "expo-clipboard": "57.0.1",
-    "expo-constants": "57.0.8",
+    "expo-constants": "57.0.9",
     "expo-dev-client": "57.0.10",
     "expo-file-system": "57.0.1",
     "expo-font": "57.0.1",
     "expo-linear-gradient": "57.0.1",
-    "expo-linking": "57.0.4",
-    "expo-router": "57.0.9",
+    "expo-linking": "57.0.5",
+    "expo-router": "57.0.10",
     "expo-secure-store": "57.0.1",
     "expo-splash-screen": "57.0.5",
     "expo-system-ui": "57.0.2",
-    "expo-updates": "57.0.11",
+    "expo-updates": "57.0.12",
     "expo-web-browser": "57.0.2",
     "jose": "6.2.7",
-    "kokio-sdk": "0.1.4",
+    "kokio-sdk": "1.1.0",
     "lodash": "4.18.1",
     "lucide-react-native": "1.28.0",
     "nativewind": "4.2.4",
