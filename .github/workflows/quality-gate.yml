@@ -28,22 +28,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-      
-      # Deferred
-      # expo-doctor and expo install --check are stubbed until the SDK 56 upgrade.
-      # Current failures are:
-      #   1. Patch/minor version mismatches across 18 SDK-55 packages.
-      #      Resolvable by `npx expo install --fix` during the SDK 56 upgrade.
-      #   2. react-native-randombytes unmaintained.
-      #      Transitive from node-libs-react-native.
-      #   3. CNG/native-folder structural warning.
-      #      This is a deliberate project posture, not a quality concern.
-      #
-      # - name: Expo doctor
-      #   run: npx expo-doctor
-      #
-      # - name: Expo dependency version check
-      #   run: npx expo install --check
+
+      # expo-doctor runs the full SDK/config/dependency check set as a blocking
+      # gate. Two checks are intentionally scoped out via the expo.doctor block
+      # in package.json, each justified there:
+      #   - reactNativeDirectoryCheck excludes react-native-randombytes
+      #     (unmaintained; transitive via node-libs-react-native; drop this
+      #     exclude once the node-libs reduction task removes it).
+      #   - appConfigFieldsNotSyncedCheck disabled: committed native android/
+      #     and ios/ (non-CNG) is a deliberate posture, not a config-sync gap.     
+      - name: Expo doctor
+        run: npx expo-doctor
 
       - name: Type check
         run: npx tsc --noEmit
