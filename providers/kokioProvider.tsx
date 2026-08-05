@@ -1,4 +1,4 @@
-import React, { ReactNode, createContext, useEffect, useReducer, useRef } from "react";
+import React, { ReactNode, createContext, useCallback, useEffect, useReducer, useRef } from "react";
 import { router } from "expo-router";
 import { Kokio } from "kokio-sdk";
 import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
@@ -143,43 +143,43 @@ interface KokioProviderProps {
   children: ReactNode;
 }
 
+// ── SecureStore helpers ───────────────────────────────────────────────────
+
+const saveValueForDeviceUID = async (key: string, value: string) => {
+  await SecureStore.setItemAsync(key, JSON.stringify(value));
+};
+
+const saveValueForUserData = async (key: string, value: UserData) => {
+  await SecureStore.setItemAsync(key, JSON.stringify(value));
+};
+
+const saveValueForUserWallet = async (key: string, value: SmartContractAccount) => {
+  await SecureStore.setItemAsync(key, JSON.stringify(value));
+};
+
+const getValueForDeviceUID = async (key: string): Promise<string | undefined> => {
+  const result = await SecureStore.getItemAsync(key);
+  if (result) return JSON.parse(result) as string;
+};
+
+const getValueForUserData = async (key: string): Promise<UserData | undefined> => {
+  const result = await SecureStore.getItemAsync(key);
+  if (result) return JSON.parse(result) as UserData;
+};
+
+const getValueForUserWallet = async (key: string): Promise<SmartContractAccount | undefined> => {
+  const result = await SecureStore.getItemAsync(key);
+  if (result) return JSON.parse(result) as SmartContractAccount;
+};
+
+const deleteValueForUser = async (key: string) => {
+  await SecureStore.deleteItemAsync(key);
+};
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   const [kokio, dispatch] = useReducer(kokioReducer, initialState);
-
-  // ── SecureStore helpers ───────────────────────────────────────────────────
-
-  const saveValueForDeviceUID = async (key: string, value: string) => {
-    await SecureStore.setItemAsync(key, JSON.stringify(value));
-  };
-
-  const saveValueForUserData = async (key: string, value: UserData) => {
-    await SecureStore.setItemAsync(key, JSON.stringify(value));
-  };
-
-  const saveValueForUserWallet = async (key: string, value: SmartContractAccount) => {
-    await SecureStore.setItemAsync(key, JSON.stringify(value));
-  };
-
-  const getValueForDeviceUID = async (key: string): Promise<string | undefined> => {
-    const result = await SecureStore.getItemAsync(key);
-    if (result) return JSON.parse(result) as string;
-  };
-
-  const getValueForUserData = async (key: string): Promise<UserData | undefined> => {
-    const result = await SecureStore.getItemAsync(key);
-    if (result) return JSON.parse(result) as UserData;
-  };
-
-  const getValueForUserWallet = async (key: string): Promise<SmartContractAccount | undefined> => {
-    const result = await SecureStore.getItemAsync(key);
-    if (result) return JSON.parse(result) as SmartContractAccount;
-  };
-
-  const deleteValueForUser = async (key: string) => {
-    await SecureStore.deleteItemAsync(key);
-  };
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
@@ -192,7 +192,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     dispatch({ type: "SET_DEVICE_UID", payload: deviceUID });
   };
 
-  const setupKokio = async () => {
+  const setupKokio = useCallback(async () => {
     const credentialId =
       kokio.userPasskey?.credentialId ??
       await SecureStore.getItemAsync('credentialId') ??
@@ -237,7 +237,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     );
 
     dispatch({ type: "SET_KOKIO", payload: kokioSDK });
-  };
+  }, [kokio.userPasskey, kokio.deviceWalletAddress]);
 
   const setupKokioRegistration = async (
     deviceWalletAddress: string,
@@ -267,10 +267,10 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     dispatch({ type: "SET_KOKIO_PASSKEY",         payload: { credentialId, x: publicKeyX, y: publicKeyY } });
   };
 
-  const setupKokioUserWallet = async (deviceUID: string, wallet: SmartContractAccount) => {
+  const setupKokioUserWallet = useCallback(async (deviceUID: string, wallet: SmartContractAccount) => {
     await saveValueForUserWallet(`userWallet-${deviceUID}`, wallet);
     dispatch({ type: "SET_USER_WALLET", payload: wallet });
-  };
+  }, []);
 
   const setupKokioRecovery = async (deviceWalletAddress: string, credentialId: string) => {
     await SecureStore.setItemAsync('deviceWalletAddress', deviceWalletAddress);
@@ -466,8 +466,16 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     };
 
     initSdkAndDeriveWallet();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kokio.deviceUID, kokio.userPasskey, kokio.sdk, kokio.rawSalt, kokio.userWallet, kokio.deviceWalletAddress]);
+  }, [
+    kokio.deviceUID,
+    kokio.userPasskey,
+    kokio.sdk,
+    kokio.rawSalt,
+    kokio.userWallet,
+    kokio.deviceWalletAddress,
+    setupKokio,
+    setupKokioUserWallet
+  ]);
 
   // ── WalletConnect initialisation ──────────────────────────────────────────
 
