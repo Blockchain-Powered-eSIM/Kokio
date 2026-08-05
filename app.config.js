@@ -30,11 +30,6 @@ module.exports = ({ config }) => {
     icon: "./assets/images/icon.png",
     scheme: "kokio",
     userInterfaceStyle: "automatic",
-    splash: {
-      image: "./assets/images/splash.png",
-      resizeMode: "contain",
-      backgroundColor: "#242427",
-    },
     runtimeVersion: version,
     ios: {
       supportsTablet: true,
