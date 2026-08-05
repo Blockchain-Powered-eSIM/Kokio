@@ -67,11 +67,11 @@ const ESIMsFlatList = React.memo(ESIMsFlatListComponent);
 function DataPackTabGroup({
   esims,
   containerStyle,
-  isLoading,
+  isLoading = false,
 }: {
   esims: Esim[];
   containerStyle?: any;
-  isLoading?: any;
+  isLoading?: boolean;
 }) {
   const { eSimsByData, eSimsByDataCallsSMS } = useMemo(() => {
     const eSimsGroupedByPlanType = _groupBy(esims, "planType");

@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { Pressable, View, ViewStyle, TextStyle } from "react-native";
 import { useNavigation, router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -9,6 +9,16 @@ import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { Theme } from "@/constants/Colors";
 
+interface HeaderProps {
+  title: string;
+  style?: ViewStyle;
+  titleStyle?: TextStyle;
+  containerStyle?: ViewStyle;
+  hasBack?: boolean;
+  goBackFallBack?: Parameters<typeof router.navigate>[0];
+  goBackHandler?: () => void;
+}
+
 const Header = ({
   title,
   style = {},
@@ -17,7 +27,7 @@ const Header = ({
   hasBack,
   goBackFallBack,
   goBackHandler,
-}: any) => {
+}: HeaderProps) => {
   const navigation = useNavigation();
 
   const handleBack = () => {
