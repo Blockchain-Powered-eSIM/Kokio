@@ -20,7 +20,11 @@ const repoRoot = process.cwd();
 const SOURCE_DIRS = [
   "app",
   "components",
+  "constants",
+  "contexts",
+  "helpers",
   "hooks",
+  "lib",
   "providers",
   "screens",
   "services",
