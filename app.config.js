@@ -39,7 +39,6 @@ module.exports = ({ config }) => {
         usesNonExemptEncryption: false,
       },
       version,
-      buildNumber: "1",
       infoPlist: {
         NSPhotoLibraryUsageDescription:
           "This app may access your photo library when selecting or sharing images.",
