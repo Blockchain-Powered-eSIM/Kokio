@@ -6,9 +6,9 @@ import _isEmpty from "lodash/isEmpty";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useEsims } from "@/hooks/useDeviceEsims";
-import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
-import type { Esim } from "@/components/ESIMItem";
 import ESIMItem from "@/components/ESIMItem";
+import type { ESimDocument } from "@/utils/bff/esim";
+import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -64,35 +64,6 @@ const createStyles = () =>
     },
   });
 
-// ─── ESimDocument -> ESim display adapter ──────────────────────────────────────
-/**
- * Maps the server eSIM document to the minimal shape ESIMItem renders.
- * Uses the most-recent PlanHistoryEntry for plan metadata (data, validity, region name/flag).
- * The server snapshots these at fulfilment time so they are self-contained.
- * serviceRegionCode is not on ESimDocument; the flag renders via serviceRegionFlag when available.
- * ESIMItem accepts an absent serviceRegionCode since the guard was updated to accept flagUrl alone.
- */
-
-function toDisplayItem(doc: ESimDocument): Esim {
-  const entries: PlanHistoryEntry[] = doc.planHistory ?? [];
-  const latest = entries[entries.length - 1] as PlanHistoryEntry | undefined;
-
-  return {
-    catalogueId:        '',          // not needed — display-only, no buy button
-    actualSellingPrice: 0,           // not needed — display-only
-    isUnlimited:        latest?.isUnlimited    ?? false,
-    serviceRegionCode:  undefined,   // not on ESimDocument; flag renders via URL
-    serviceRegionFlag:  latest?.serviceRegionFlag  ?? null,
-    serviceRegionName:  latest?.serviceRegionName  ?? null,
-    coverageType:       latest?.coverageType       ?? 'LOCAL',
-    data:               latest?.data               ?? null,
-    sms:                latest?.sms                ?? null,
-    voice:              latest?.voice              ?? null,
-    validity:           latest?.validity           ?? null,
-    info:               null,
-  };
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 // No props — self-fetching via useEsims().
@@ -147,7 +118,7 @@ const ActiveESIMsScroll = () => {
         renderItem={({ item }) => (
           <View style={styles.itemWrapper}>
             <ESIMItem
-              item={toDisplayItem(item)}
+              item={esimDocToDisplayItem(item)}
               showBuyButton={false}
               onPress={handleESIMPress(item)}
             />

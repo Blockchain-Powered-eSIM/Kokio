@@ -18,11 +18,12 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
-import type { OrderListItem } from "@/utils/bff/order";
 import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
+import type { ESimDocument } from "@/utils/bff/esim";
+import type { OrderListItem } from "@/utils/bff/order";
 import ESIMItem from "@/components/ESIMItem";
 import type { Esim } from "@/components/ESIMItem";
+import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,27 +38,6 @@ type EnrichedOrder = OrderListItem & {
 // Key used for FlatList and expand/collapse tracking.
 const getOrderKey = (item: EnrichedOrder): string =>
   item.idempotencyKey ?? item.orderId ?? "";
-
-// Builds the minimal Esim display shape from an ESimDocument for ESIMItem.
-// Uses the most-recent PlanHistoryEntry for plan metadata.
-function toDisplayItem(doc: ESimDocument): Esim {
-  const entries: PlanHistoryEntry[] = doc.planHistory ?? [];
-  const latest = entries[entries.length - 1] as PlanHistoryEntry | undefined;
-  return {
-    catalogueId:        '',
-    actualSellingPrice: 0,
-    isUnlimited:        latest?.isUnlimited   ?? false,
-    serviceRegionCode:  undefined,
-    serviceRegionFlag:  latest?.serviceRegionFlag ?? null,
-    serviceRegionName:  latest?.serviceRegionName ?? null,
-    coverageType:       latest?.coverageType      ?? 'LOCAL',
-    data:               latest?.data              ?? null,
-    sms:                latest?.sms               ?? null,
-    voice:              latest?.voice             ?? null,
-    validity:           latest?.validity          ?? null,
-    info:               null,
-  };
-}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -391,7 +371,7 @@ const OrderCard = ({
 
   // Display card: built from the linked ESimDocument when available.
   // Falls back to a minimal placeholder when the eSIM doc hasn't been provisioned yet
-  const displayItem: Esim | null = order.esim ? toDisplayItem(order.esim) : null;
+  const displayItem: Esim | null = order.esim ? esimDocToDisplayItem(order.esim) : null;
 
   return (
     <View style={styles.orderCardWrapper}>

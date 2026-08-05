@@ -42,7 +42,7 @@ import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
+import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import * as WebBrowser from "expo-web-browser";
 import {
   MoonpayCommerceProvider,
@@ -176,26 +176,6 @@ function formatPlanLabel(plan?: Esim | null): string | undefined {
   if (plan.isUnlimited) parts.push('Unlimited');
   else if (plan.data) parts.push(`${plan.data}GB`);
   return parts.join(' · ');
-}
-
-// Builds a minimal Esim display shape from an ESimDocument's latest PlanHistoryEntry.
-function esimDocToDisplayItem(doc: ESimDocument): Esim {
-  const entries: PlanHistoryEntry[] = doc.planHistory ?? [];
-  const latest = entries[entries.length - 1] as PlanHistoryEntry | undefined;
-  return {
-    catalogueId:        '',
-    actualSellingPrice: 0,
-    isUnlimited:        latest?.isUnlimited      ?? false,
-    serviceRegionCode:  undefined,
-    serviceRegionFlag:  latest?.serviceRegionFlag ?? null,
-    serviceRegionName:  latest?.serviceRegionName ?? null,
-    coverageType:       latest?.coverageType      ?? 'LOCAL',
-    data:               latest?.data              ?? null,
-    sms:                latest?.sms               ?? null,
-    voice:              latest?.voice             ?? null,
-    validity:           latest?.validity          ?? null,
-    info:               null,
-  };
 }
 
 const Checkout = () => {
