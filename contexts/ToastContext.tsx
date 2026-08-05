@@ -1,9 +1,11 @@
 // src/context/ToastContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastNotification from '../components/ui/ToastNotification/ToastNotification';
 import { Theme } from '@/constants/Colors';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 type MessageVariant = 'error' | 'info';
 
@@ -104,7 +106,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         </View>
       )}
       {msgToast && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10000, pointerEvents: 'none' }}>
+        <View style={{ position: 'absolute', bottom: SCREEN_HEIGHT * 0.07, left: 0, right: 0, zIndex: 10000, pointerEvents: 'none' }}>
           <MessageToast
             key={msgToast.key}
             message={msgToast.message}

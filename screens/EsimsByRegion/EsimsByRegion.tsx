@@ -13,7 +13,7 @@ export default function EsimsByRegion() {
   const { data, isLoading, error, refetch } = useCatalogueByRegion(region);
 
   if (isLoading) {
-    return <DataPackTabGroup esims={[]} isLoading containerStyle={styles.container} />;
+    return <DataPackTabGroup plans={[]} isLoading containerStyle={styles.container} />;
   }
 
   if (error) {
@@ -37,7 +37,7 @@ export default function EsimsByRegion() {
 
   return (
     <DataPackTabGroup
-      esims={data.plans}
+      plans={data.plans}
       containerStyle={styles.container}
     />
   );

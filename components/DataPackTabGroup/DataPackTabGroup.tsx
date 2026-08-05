@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { StyleSheet, FlatList } from "react-native";
+import React, { createContext, useContext, useMemo } from "react";
+import { StyleSheet, FlatList, StyleProp, ViewStyle } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
 
@@ -11,6 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import EsimItemSkeleton from "@/components/EsimItemSkeleton";
+import { useToast } from "@/contexts/ToastContext";
 
 import ESIMItem, { Esim } from "../ESIMItem";
 import TabBar from "../tabBar";
@@ -64,62 +65,98 @@ const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading
 };
 const ESIMsFlatList = React.memo(ESIMsFlatListComponent);
 
+/**
+ * Tab scene data is supplied via context so DataTab / DataCallsSMSTab can live at module scope with stable identities.
+ * Inline (render-local) components passed to Tab.Screen's `component` remount the scene on every parent render,
+ * losing FlatList scroll and re-initialising the list.
+ * Hoisting + context keeps identity stable and turns data changes into in-place re-renders, not remounts.
+ */
+type TabSceneData = {
+  plansByData: Esim[];
+  plansByDataCallsSMS: Esim[];
+  isLoading: boolean;
+};
+
+const TabSceneDataContext = createContext<TabSceneData>({
+  plansByData: [],
+  plansByDataCallsSMS: [],
+  isLoading: false,
+});
+
+const DataTab = () => {
+  const { plansByData, isLoading } = useContext(TabSceneDataContext);
+  return (
+    <ThemedView style={styles.tabScene}>
+      <ESIMsFlatList esims={plansByData} isLoading={isLoading} />
+    </ThemedView>
+  );
+};
+
+const DataCallsSMSTab = () => {
+  const { plansByDataCallsSMS, isLoading } = useContext(TabSceneDataContext);
+  return (
+    <ThemedView style={styles.tabScene}>
+      <ESIMsFlatList esims={plansByDataCallsSMS} isLoading={isLoading} />
+    </ThemedView>
+  );
+};
+
 function DataPackTabGroup({
-  esims,
+  plans,
   containerStyle,
   isLoading = false,
 }: {
-  esims: Esim[];
-  containerStyle?: any;
+  plans: Esim[];
+  containerStyle?: StyleProp<ViewStyle>;
   isLoading?: boolean;
 }) {
-  const { eSimsByData, eSimsByDataCallsSMS } = useMemo(() => {
-    const eSimsGroupedByPlanType = _groupBy(esims, "planType");
-    const eSimsByData = _get(eSimsGroupedByPlanType, TAB_KEYS.DATA);
-    const eSimsByDataCallsSMS = _get(
-      eSimsGroupedByPlanType,
+  const { showMessage } = useToast();
+  const { plansByData, plansByDataCallsSMS } = useMemo(() => {
+    const plansGroupedByPlanType = _groupBy(plans, "planType");
+    const plansByData = _get(plansGroupedByPlanType, TAB_KEYS.DATA);
+    const plansByDataCallsSMS = _get(
+      plansGroupedByPlanType,
       TAB_KEYS.DATA_CALLS_SMS
     );
-    return { eSimsByData, eSimsByDataCallsSMS };
-  }, [esims]);
+    return { plansByData, plansByDataCallsSMS };
+  }, [plans]);
 
-  const DataTab = () => (
-    <ThemedView style={styles.tabScene}>
-      <ESIMsFlatList esims={eSimsByData} isLoading={isLoading} />
-    </ThemedView>
-  );
-  const DataCallsSMSTab = () => (
-    <ThemedView style={styles.tabScene}>
-      <ESIMsFlatList esims={eSimsByDataCallsSMS} isLoading={isLoading} />
-    </ThemedView>
+  const tabSceneData = useMemo(
+    () => ({ plansByData, plansByDataCallsSMS, isLoading }),
+    [plansByData, plansByDataCallsSMS, isLoading]
   );
 
   return (
     <ThemedView style={[styles.container, containerStyle]}>
-      {_isEmpty(eSimsByData) || _isEmpty(eSimsByDataCallsSMS) ? (
+      {_isEmpty(plansByData) || _isEmpty(plansByDataCallsSMS) ? (
         <ESIMsFlatList
-          esims={eSimsByData || eSimsByDataCallsSMS}
+          esims={plansByData || plansByDataCallsSMS}
           isLoading={isLoading}
         />
       ) : (
-        <Tab.Navigator
-          tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
-          screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
-        >
-          <Tab.Screen name="Data" component={DataTab} options={{ tabBarLabel: "Data" }} />
-          <Tab.Screen name="DataCallsSMS" component={DataCallsSMSTab} options={{ 
-            tabBarLabel: "Data+Calls+SMS",
-            tabBarAccessibilityLabel: "Data+Calls+SMS (disabled)",
-            tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: Theme.colors.inactive }],
-          }}
-          listeners={{
-            tabPress: (e) => {
-              // Prevent default action to disable tab
-              e.preventDefault();
-            },
-          }} 
-          />
-        </Tab.Navigator>
+        <TabSceneDataContext.Provider value={tabSceneData}>
+          <Tab.Navigator
+            tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
+            screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
+          >
+            <Tab.Screen name="Data" component={DataTab} options={{ tabBarLabel: "Data" }} />
+            <Tab.Screen
+              name="DataCallsSMS"
+              component={DataCallsSMSTab}
+              options={{
+                tabBarLabel: "Data+Calls+SMS",
+                tabBarAccessibilityLabel: "Data+Calls+SMS (disabled)",
+                tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: Theme.colors.inactive }],
+              }}
+              listeners={{
+                tabPress: (e) => {
+                  e.preventDefault();
+                  showMessage("Coming Soon!", "info");
+                },
+              }}
+            />
+          </Tab.Navigator>
+        </TabSceneDataContext.Provider>
       )}
     </ThemedView>
   );
