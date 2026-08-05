@@ -9,7 +9,7 @@ jobs:
       profile: staging
 
   submit_android:
-    name: Submit Android to open testing
+    name: Submit Android to Internal Testing
     needs: [build_android]
     type: submit
     environment: preview
