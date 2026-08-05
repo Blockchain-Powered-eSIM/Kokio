@@ -30,9 +30,6 @@ export interface UserPasskey {
 }
 
 interface UserData {
-  userName: string;
-  email: string;
-  organizationId: string;
   id: string;
   wallets: { address: string }[];
 }
@@ -259,9 +256,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
     const userData: UserData = {
       id: deviceUniqueIdentifier,
-      userName: "",
-      email: "",
-      organizationId: "",
       wallets: [{ address: deviceWalletAddress }],
     };
     await saveValueForUserData(`userData-${deviceUniqueIdentifier}`, userData);
@@ -350,9 +344,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
           dispatch({
             type: "SET_KOKIO_USER",
             payload: {
-              userName: userData.userName,
-              email: userData.email,
-              organizationId: userData.organizationId,
               id: userData.id,
               wallets: userData.wallets,
             },
