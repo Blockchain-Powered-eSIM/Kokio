@@ -23,7 +23,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import appBootstrap from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import {
   navigateToESIMsByCountry,
   navigateToESIMsByRegion,
@@ -36,7 +36,6 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH * 0.8;
 const SPACING = 8;
 
-type ServiceRegion = { code: string; name: string; flag?: string };
 const isSearchTextMatch = ({
   searchText,
   item,
@@ -46,12 +45,8 @@ const isSearchTextMatch = ({
   item: ServiceRegion;
   keyExtractor: string;
 }) => _includes(_lowerCase(_get(item, keyExtractor)), searchText);
-//const isSearchTextMatch = ({ searchText, item, keyExtractor }) =>
-//  _includes(_lowerCase(_get(item, keyExtractor)), searchText);
 
 const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
-  //const firstItem = _get(item, "0", {});
-  //const secondItem = _get(item, "1", {});
   const firstItem = item[0];
   const secondItem = item[1];
 
@@ -105,7 +100,7 @@ const RegionEmptyListComponent = () => (
 const RegionItemRender = ({
   item,
 }: {
-  item: { name?: string; code: string; flag: string };
+  item: ServiceRegion;
 }) => {
   const foregroundColor = useThemeColor({}, "foreground");
   return (
@@ -184,7 +179,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
           }
           return acc;
         },
-        [] as any[]
+        [] as ServiceRegion[]
       );
     }
 
@@ -202,7 +197,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
         if (regionCodesSet.has(item.code)) acc.push(item);
         return acc;
       },
-      [] as any[]
+      [] as ServiceRegion[]
     );
 
     // Always append the Global option when countries are found
@@ -245,7 +240,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
               <FlatList
                 ref={carouselRef}
                 data={_chunk(countries, 2)}
-                renderItem={CountryItemRender}
+                renderItem={({ item }) => <CountryItemRender item={item} />}
                 keyExtractor={(item, index) => String(item?.[0]?.code || index)}
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -274,7 +269,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
           <FlatList
             data={regions}
             renderItem={({ item }) => <RegionItemRender item={item} />}
-            keyExtractor={(item, index) => String(item?.[0]?.code || index)}
+            keyExtractor={(item, index) => String(item?.code || index)}
             ItemSeparatorComponent={() => <View style={{ height: SPACING }} />}
             ListEmptyComponent={RegionEmptyListComponent}
             showsVerticalScrollIndicator={false}

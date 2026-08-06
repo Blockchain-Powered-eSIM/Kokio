@@ -1,4 +1,11 @@
-import { StyleSheet, View, TouchableOpacity, FlatList, Dimensions } from "react-native";
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  type ListRenderItem
+} from "react-native";
 
 import _map from "lodash/map";
 
@@ -6,7 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { Theme } from "@/constants/Colors";
-import appBootstrap from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import { navigateToESIMsByCountry } from "@/utils/general";
 
 
@@ -24,7 +31,7 @@ const EmptyListComponent = () => (
 export default function Countries() {
   const list = appBootstrap.getCountries;
 
-  const renderItem = ({ item, index }: any) => (
+  const renderItem: ListRenderItem<ServiceRegion> = ({ item, index }: any) => (
     <TouchableOpacity
       onPress={navigateToESIMsByCountry(item?.code)}
       style={{ width: ITEM_WIDTH, alignItems: "center" }}

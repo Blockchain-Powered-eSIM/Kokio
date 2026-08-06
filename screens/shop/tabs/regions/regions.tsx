@@ -4,6 +4,7 @@ import {
   View,
   FlatList,
   TouchableOpacity,
+  type ListRenderItem
 } from "react-native";
 
 import _get from "lodash/get";
@@ -13,7 +14,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import { REGION_CONFIG } from "@/constants/general.constants";
-import appBootstrap from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import { navigateToESIMsByRegion } from "@/utils/general";
 
 const EmptyListComponent = () => (
@@ -25,7 +26,7 @@ const EmptyListComponent = () => (
 export default function Regions() {
   const list = appBootstrap.getRegions;
 
-  const renderItem = ({ item, index }: any) => {
+  const renderItem: ListRenderItem<ServiceRegion> = ({ item, index }: any) => {
     const imagePath = _get(REGION_CONFIG, [item?.code, "imagePath"]);
     return (
       <TouchableOpacity
