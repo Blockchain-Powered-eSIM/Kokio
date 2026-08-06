@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
@@ -99,4 +99,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(Shop);
+export default Shop;

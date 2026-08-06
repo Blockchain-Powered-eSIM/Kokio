@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
 import { StyleSheet, FlatList, StyleProp, ViewStyle } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
@@ -63,7 +63,7 @@ const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading
     />
   );
 };
-const ESIMsFlatList = React.memo(ESIMsFlatListComponent);
+const ESIMsFlatList = ESIMsFlatListComponent;
 
 /**
  * Tab scene data is supplied via context so DataTab / DataCallsSMSTab can live at module scope with stable identities.
@@ -190,4 +190,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(DataPackTabGroup);
+export default DataPackTabGroup;

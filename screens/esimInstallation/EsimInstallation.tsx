@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useCallback } from "react";
+import { useRef, useState, useMemo, useCallback } from "react";
 import {
   Linking,
   Platform,
@@ -510,4 +510,4 @@ const EsimInstallation = () => {
   );
 };
 
-export default React.memo(EsimInstallation);
+export default EsimInstallation;

@@ -1,4 +1,3 @@
-import React from "react";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -63,4 +62,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(EsimsByCountry);
+export default EsimsByCountry;

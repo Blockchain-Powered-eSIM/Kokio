@@ -422,4 +422,4 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
   );
 };
 
-export default React.memo(CheckoutHeader);
+export default CheckoutHeader;
