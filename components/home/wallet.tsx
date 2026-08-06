@@ -8,7 +8,6 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from "react-native";
-import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
@@ -17,6 +16,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { logger } from '@/utils/logger';
 
 interface WalletProps {
@@ -150,15 +150,7 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
     }
   };
 
-  const handleCopyAddress = async () => {
-    if (walletId) {
-      try {
-        await Clipboard.setStringAsync(walletId);
-      } catch (error) {
-        logger.error('CLIPBOARD_COPY_FAILED', { error });
-      }
-    }
-  };
+  const { copied, copy } = useCopyFeedback();
 
   return (
     <View style={{ marginVertical: 12 }}>
@@ -217,14 +209,18 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={handleCopyAddress}
+                    onPress={() => walletId && copy(walletId)}
                     disabled={!walletId}
                     style={styles.iconButton}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     accessibilityRole="button"
                     accessibilityLabel="Copy wallet address"
                   >
-                    <Ionicons name="copy-outline" size={16} color={Theme.colors.foreground} />
+                    <Ionicons
+                      name={copied ? "checkmark" : "copy-outline"}
+                      size={16}
+                      color={copied ? Theme.colors.success : Theme.colors.foreground}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>

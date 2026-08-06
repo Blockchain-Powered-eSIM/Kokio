@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { labelForStatus } from "@/utils/orderStatus";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 
 interface OrderFailureModalProps {
   visible: boolean;
@@ -122,13 +122,10 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
   // TODO: Fix the theming engine to deprecate this usage pattern
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const styles = useMemo(() => createStyles(), [isDark]);
-  const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
-    if (!referenceId) return;
-    await Clipboard.setStringAsync(referenceId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const { copied, copy } = useCopyFeedback();
+  const handleCopy = () => {
+    if (referenceId) copy(referenceId);
   };
 
   const handleGoToOrders = () => {

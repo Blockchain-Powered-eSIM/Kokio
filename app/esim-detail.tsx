@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 
 import { Theme } from "@/constants/Colors";
@@ -21,6 +20,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import { logger } from "@/utils/logger";
 
@@ -257,17 +257,11 @@ const CopyRow = ({
   last?: boolean;
 }) => {
   const styles = useMemo(() => createStyles(), []);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    await Clipboard.setStringAsync(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }, [value]);
+  const { copied, copy } = useCopyFeedback();
 
   return (
     <TouchableOpacity
-      onPress={handleCopy}
+      onPress={() => copy(value)}
       style={[styles.copyRow, last && { borderBottomWidth: 0 }]}
       activeOpacity={0.7}
     >

@@ -12,13 +12,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import type { ESimDocument } from "@/utils/bff/esim";
 import type { OrderListItem } from "@/utils/bff/order";
 import ESIMItem from "@/components/ESIMItem";
@@ -198,14 +198,9 @@ const pdStyles = StyleSheet.create({
 // ─── CopyRow ──────────────────────────────────────────────────────────────────
 
 const CopyRow = ({ label, value }: { label: string; value: string }) => {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = async () => {
-    await Clipboard.setStringAsync(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  const { copied, copy } = useCopyFeedback();
   return (
-    <TouchableOpacity onPress={handleCopy} style={pdStyles.copyRow} activeOpacity={0.7}>
+    <TouchableOpacity onPress={() => copy(value)} style={pdStyles.copyRow} activeOpacity={0.7}>
       <View style={{ flex: 1, marginRight: 12 }}>
         <Text style={[pdStyles.copyLabel, { color: Theme.colors.inactive }]}>{label}</Text>
         <Text
