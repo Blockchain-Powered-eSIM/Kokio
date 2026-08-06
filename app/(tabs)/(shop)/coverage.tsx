@@ -173,9 +173,12 @@ export default function CoverageScreen() {
 
       <FlatList
         data={filtered}
-        keyExtractor={(_, i) => i.toString()}
+        keyExtractor={(item, i) => item.countryCode ?? String(i)}
         renderItem={({ item }) => <CoverageRow entry={item} styles={styles} />}
         style={styles.list}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={8}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={

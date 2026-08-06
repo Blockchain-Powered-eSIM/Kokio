@@ -60,6 +60,9 @@ export default function Countries() {
           renderItem={renderItem}
           columnWrapperStyle={styles.columnWrapperStyle}
           keyExtractor={(item, index) => String(item?.code || index)}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={8}
           contentContainerStyle={{ paddingBottom: 100 }}
           style={{ backgroundColor: "transparent" }}
           ListEmptyComponent={EmptyListComponent}
