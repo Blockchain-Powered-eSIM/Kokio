@@ -141,25 +141,15 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
 
   const sanitizedSearchText = _lowerCase(_trim(searchText));
 
-  const countries = useMemo(
-    () =>
-      _reduce(
-        countryConfig,
-        (acc: ServiceRegion[], item) => {
-          if (
-            isSearchTextMatch({
-              searchText: sanitizedSearchText,
-              item,
-              keyExtractor: "name",
-            })
-          ) {
-            acc.push(item);
-          }
-          return acc;
-        },
-        []
-      ),
-    [countryConfig, sanitizedSearchText]
+  const countries = _reduce(
+    countryConfig,
+    (acc: ServiceRegion[], item) => {
+      if (isSearchTextMatch({ searchText: sanitizedSearchText, item, keyExtractor: "name" })) {
+        acc.push(item);
+      }
+      return acc;
+    },
+    []
   );
 
   const regions = useMemo(() => {

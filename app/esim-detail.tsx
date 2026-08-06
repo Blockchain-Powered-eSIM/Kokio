@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -295,32 +295,27 @@ export default function EsimDetailScreen() {
   // Read ESimDocument from the React Query cache populated by useEsims().
   // No additional network call (card press implies the eSIM is in the active list).
   const { esims } = useEsims();
-  const doc = useMemo(
-    () => esims.find((e) => e.esimId === esimId),
-    [esims, esimId],
-  );
+  const doc = esims.find((e) => e.esimId === esimId)
 
   const { usage, isLoading: usageLoading, isError: isFetchError, usageUnavailable, refetch: refetchUsage } =
     useEsimUsage(esimId);
 
-  const latest = useMemo<PlanHistoryEntry | undefined>(() => {
-    const history = doc?.planHistory ?? [];
-    return history[history.length - 1];
-  }, [doc]);
+  const history = doc?.planHistory ?? [];
+  const latest: PlanHistoryEntry | undefined = history[history.length - 1];
 
   const lpa        = doc ? buildLpa(doc) : null;
   const appleUrl   = lpa ? buildAppleUrl(lpa) : null;
 
-  const handleAppleInstall = useCallback(async () => {
+  const handleAppleInstall = async () => {
     if (!appleUrl) return;
     try {
       await Linking.openURL(appleUrl);
     } catch (err) {
       logger.error('ESIM_APPLE_INSTALL_FAILED', { err });
     }
-  }, [appleUrl]);
+  };
 
-  const handleViewOrder = useCallback(() => {
+  const handleViewOrder = () => {
     router.back();
     // Small delay so the modal dismiss animation completes before navigation.
     setTimeout(() => {
@@ -329,7 +324,7 @@ export default function EsimDetailScreen() {
         params: { expandOrderId: esimId },
       });
     }, 300);
-  }, [router, esimId]);
+  };
 
   // ── Usage bar colour ──────────────────────────────────────────────────────
 

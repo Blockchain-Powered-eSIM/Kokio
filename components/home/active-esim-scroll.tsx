@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 import { View, Text, FlatList, StyleSheet, Dimensions } from "react-native";
 import { router } from "expo-router";
 import _isEmpty from "lodash/isEmpty";
@@ -75,21 +75,20 @@ const ActiveESIMsScroll = () => {
 
   const { esims, isLoading } = useEsims();
 
-  const activeEsims = useMemo(
-    () => esims.filter((e) => ACTIVE_STATUSES.has(e.activationStatus)),
-    [esims],
+  const activeEsims = esims.filter((e) =>
+    ACTIVE_STATUSES.has(e.activationStatus),
   );
 
   // Navigate to the Orders tab, expanding the card for this eSIM.
   // Uses esimId as the expand key — orders.tsx matches on esimId.
-  const handleESIMPress = useCallback((doc: ESimDocument) => {
+  const handleESIMPress = (doc: ESimDocument) => {
     return () => {
       router.push({
         pathname: "/esim-detail",
         params: { esimId: doc.esimId },
       });
     };
-  }, []);
+  };
 
   // Show the same empty-state card while loading and when no active eSIMs exist.
   // Silent on error — the user can check the Orders tab for the authoritative list.
