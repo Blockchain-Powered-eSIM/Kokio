@@ -118,6 +118,7 @@ module.exports = ({ config }) => {
     ],
     experiments: {
       typedRoutes: true,
+      reactCompiler: true,
     },
     updates: {
       url: "https://u.expo.dev/8dc9c10c-4c1d-4711-9ffd-39264bc209e1",
