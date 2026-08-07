@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, View, TouchableOpacity } from "react-native";
-import { Theme } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
+import { useColors } from "@/hooks/useColors";
 
 interface FullScreenLoaderProps {
   color?: string;
@@ -11,54 +11,6 @@ interface FullScreenLoaderProps {
   onRetry?: () => void;
   onContinue?: () => void;
 }
-
-const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
-  color,
-  containerStyle,
-  error,
-  onRetry,
-  onContinue,
-}) => {
-  return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: Theme.colors.background },
-        containerStyle,
-      ]}
-    >
-      {error ? (
-        <View style={styles.errorContainer}>
-          <ThemedText bold style={styles.errorTitle}>
-            Couldn&apos;t start the app
-          </ThemedText>
-          <ThemedText style={[styles.errorDescription, { color: Theme.colors.foreground }]}>
-            Check your connection and try again.
-          </ThemedText>
-          {onRetry && (
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: Theme.colors.primary }]}
-              onPress={onRetry}
-            >
-              <ThemedText style={[styles.buttonText, { color: Theme.colors.primaryForeground }]}>
-                Retry
-              </ThemedText>
-            </TouchableOpacity>
-          )}
-          {onContinue && (
-            <TouchableOpacity style={styles.continueButton} onPress={onContinue}>
-              <ThemedText style={[styles.continueButtonText, { color: Theme.colors.primary }]}>
-                Continue Anyway
-              </ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        <ActivityIndicator size="large" color={color ?? Theme.colors.highlight} />
-      )}
-    </View>
-  );
-};
 
 const styles = StyleSheet.create({
   container: {
@@ -101,5 +53,54 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
+
+const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
+  color,
+  containerStyle,
+  error,
+  onRetry,
+  onContinue,
+}) => {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+        containerStyle,
+      ]}
+    >
+      {error ? (
+        <View style={styles.errorContainer}>
+          <ThemedText bold style={styles.errorTitle}>
+            Couldn&apos;t start the app
+          </ThemedText>
+          <ThemedText style={[styles.errorDescription, { color: colors.foreground }]}>
+            Check your connection and try again.
+          </ThemedText>
+          {onRetry && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.primary }]}
+              onPress={onRetry}
+            >
+              <ThemedText style={[styles.buttonText, { color: colors.primaryForeground }]}>
+                Retry
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+          {onContinue && (
+            <TouchableOpacity style={styles.continueButton} onPress={onContinue}>
+              <ThemedText style={[styles.continueButtonText, { color: colors.primary }]}>
+                Continue Anyway
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        <ActivityIndicator size="large" color={color ?? colors.highlight} />
+      )}
+    </View>
+  );
+};
 
 export default FullScreenLoader;

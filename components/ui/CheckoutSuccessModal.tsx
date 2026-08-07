@@ -16,9 +16,11 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 
 interface CheckoutSuccessModalProps {
   visible: boolean;
@@ -33,10 +35,10 @@ interface CheckoutSuccessModalProps {
   topupToLabel?: string;
 }
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
     paddingTop: 0,
   },
   modalContainer: {
@@ -118,10 +120,9 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   topupFromLabel,
   topupToLabel,
 }) => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const isDark = useTheme();
   const textColor = useThemeColor({}, "text");
 
   const scale = useSharedValue(0);
@@ -152,7 +153,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   const loadingContent = useMemo(
     () => (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size={90} color={Theme.colors.highlight} />
+        <ActivityIndicator size={90} color={colors.highlight} />
         <ThemedText style={styles.loadingText}>Placing your order.</ThemedText>
         <ThemedText style={styles.loadingSubText}>
           Do not go back or close the app while loading...
@@ -171,7 +172,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
           <MaterialCommunityIcons
             name="check-decagram"
             size={42}
-            color={Theme.colors.success}
+            color={colors.success}
           />
         </Animated.View>
 
@@ -205,10 +206,10 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
   const actionButton = useMemo(
     () => (
       <TouchableOpacity
-        style={[styles.installButton, { backgroundColor: Theme.colors.shopCta }]}
+        style={[styles.installButton, { backgroundColor: colors.shopCta }]}
         onPress={variant === "topup" ? onDone : onInstallESIM}
       >
-        <ThemedText style={[styles.installButtonText, { color: Theme.colors.cardForeground }]}>
+        <ThemedText style={[styles.installButtonText, { color: colors.cardForeground }]}>
           {variant === "topup" ? "Done" : "Install eSIM"}
         </ThemedText>
       </TouchableOpacity>
@@ -228,9 +229,9 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: isDark ? Theme.colors.modalBackground : "transparent" }]}>
+        <View style={[styles.modalContainer, { backgroundColor: isDark ? colors.modalBackground : "transparent" }]}>
           <View style={styles.contentContainerWrapper}>
-            <View style={[styles.contentContainer, { backgroundColor: Theme.colors.contentBackground }]}>
+            <View style={[styles.contentContainer, { backgroundColor: colors.contentBackground }]}>
               {loading ? loadingContent : successContent}
             </View>
           </View>

@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, Text, FlatList, StyleSheet, Dimensions } from "react-native";
 import { router } from "expo-router";
 import _isEmpty from "lodash/isEmpty";
 
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import ESIMItem from "@/components/ESIMItem";
 import type { ESimDocument } from "@/utils/bff/esim";
@@ -22,14 +23,14 @@ const SPACING      = 8;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = () =>
+const createStyles = (colors: Palette) =>
   StyleSheet.create({
     container: {
       marginVertical: 12,
     },
     title: {
       fontSize: 16,
-      color: Theme.colors.text,
+      color: colors.text,
       paddingLeft: 20,
     },
     listContainer: {
@@ -41,7 +42,7 @@ const createStyles = () =>
     emptyCard: {
       marginHorizontal: SPACING,
       marginTop: 8,
-      backgroundColor: Theme.colors.card,
+      backgroundColor: colors.card,
       borderRadius: 18,
       paddingVertical: 12,
       paddingHorizontal: 16,
@@ -55,11 +56,11 @@ const createStyles = () =>
     emptyTitle: {
       fontSize: 16,
       fontWeight: "700",
-      color: Theme.colors.text,
+      color: colors.text,
     },
     emptySubtitle: {
       fontSize: 14,
-      color: Theme.colors.foreground,
+      color: colors.foreground,
       textAlign: "center",
     },
   });
@@ -68,10 +69,8 @@ const createStyles = () =>
 
 // No props — self-fetching via useEsims().
 const ActiveESIMsScroll = () => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
 
   const { esims, isLoading } = useEsims();
 
@@ -95,13 +94,13 @@ const ActiveESIMsScroll = () => {
   if (isLoading || _isEmpty(activeEsims)) {
     return (
       <View style={styles.container}>
-        <Text style={[styles.title, { color: Theme.colors.text }]}>eSIMs</Text>
-        <View style={[styles.emptyCard, { backgroundColor: Theme.colors.card }]}>
+        <Text style={[styles.title, { color: colors.text }]}>eSIMs</Text>
+        <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
           <Text style={styles.emptyIcon}>📶</Text>
-          <Text style={[styles.emptyTitle, { color: Theme.colors.text }]}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
             No active eSIMs
           </Text>
-          <Text style={[styles.emptySubtitle, { color: Theme.colors.foreground }]}>
+          <Text style={[styles.emptySubtitle, { color: colors.foreground }]}>
             Your purchased eSIMs will appear here
           </Text>
         </View>

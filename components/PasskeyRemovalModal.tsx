@@ -6,12 +6,13 @@
  * The user can "log in" forever and every authenticated call will return ACCOUNT_DELETED (404).
  * Removing the credential is a step only the user can perform, in their platform password manager.
  */
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Modal, View, Pressable, Platform, StyleSheet, Linking } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/ThemedText';
-import { Theme } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { logger } from '@/utils/logger';
 
 interface Props {
@@ -33,18 +34,16 @@ const STEPS = Platform.select({
   default: ['Open your password manager and delete the passkey for kokio.app.'],
 }) as string[];
 
-// Built inside useMemo(…, [isDark]) — Theme.colors.* must resolve at call time,
-// not at module load, or the palette freezes on whichever theme was active first.
-const createStyles = (isDark: boolean) =>
+const createStyles = (colors: Palette) =>
   StyleSheet.create({
     scrim: {
       flex: 1,
       justifyContent: 'center',
       padding: 20,
-      backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.25)',
+      backgroundColor: 'rgba(0,0,0,0.40)',
     },
     card: {
-      backgroundColor: Theme.colors.modalBackground,
+      backgroundColor: colors.modalBackground,
       borderRadius: 25,
       padding: 22,
     },
@@ -52,7 +51,7 @@ const createStyles = (isDark: boolean) =>
       fontSize: 22,
       fontWeight: '300',
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.text,
+      color: colors.text,
       marginBottom: 12,
     },
     body: {
@@ -60,7 +59,7 @@ const createStyles = (isDark: boolean) =>
       lineHeight: 20,
       fontWeight: '300',
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.text,
+      color: colors.text,
       marginBottom: 12,
     },
     steps: { marginVertical: 8 },
@@ -69,14 +68,14 @@ const createStyles = (isDark: boolean) =>
       lineHeight: 22,
       fontWeight: '300',
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.foreground,
+      color: colors.foreground,
     },
     note: {
       fontSize: 12,
       lineHeight: 18,
       fontWeight: '300',
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.foreground,
+      color: colors.foreground,
       marginTop: 12,
     },
     actions: {
@@ -95,15 +94,15 @@ const createStyles = (isDark: boolean) =>
     },
     btnGhost: {
       borderWidth: 1,
-      borderColor: Theme.colors.foreground,
+      borderColor: colors.foreground,
     },
     btnGhostText: {
       fontSize: 16,
       fontWeight: '300',
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.foreground,
+      color: colors.foreground,
     },
-    btnPrimary: { backgroundColor: Theme.colors.highlight },
+    btnPrimary: { backgroundColor: colors.highlight },
     btnPrimaryText: {
       fontSize: 16,
       fontWeight: '600',
@@ -113,8 +112,8 @@ const createStyles = (isDark: boolean) =>
   });
 
 export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(() => createStyles(isDark), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const isDark = useTheme();
 
   const openSettings = () => {
     Linking.openSettings().catch((err) =>

@@ -3,15 +3,13 @@ import {
   View as DefaultView,
   StyleSheet,
 } from "react-native";
-import { useMemo } from "react";
 
 import type { ThemedTextProps } from "@/components/ThemedText";
 import type { ThemedViewProps } from "@/components/ThemedView";
-import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 
-// Static layout styles — no Theme.colors, safe at module level
 const staticStyles = StyleSheet.create({
   cardHeader: {
     alignItems: "center",
@@ -36,20 +34,17 @@ const staticStyles = StyleSheet.create({
   },
 });
 
-const createCardStyle = () => StyleSheet.create({
+const createCardStyle = (colors: Palette) => StyleSheet.create({
   card: {
     width: "100%",
-    backgroundColor: Theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: 21,
   },
 });
 
 function Card(props: ThemedViewProps) {
   const { style, lightColor, darkColor, children, ...otherProps } = props;
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const cardStyle = useMemo(() => createCardStyle(), [isDark]);
+  const cardStyle = useThemedStyles(createCardStyle);
   const backgroundColor = useThemeColor(
     { light: lightColor, dark: darkColor },
     "card"

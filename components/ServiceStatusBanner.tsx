@@ -1,15 +1,14 @@
-import { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { useBffHealth } from '@/hooks/useBffHealth';
-import { Theme } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   banner: {
-    backgroundColor: Theme.colors.warning,
+    backgroundColor: colors.warning,
     flexDirection:   'row',
     alignItems:      'center',
     paddingHorizontal: 16,
@@ -17,7 +16,7 @@ const createStyles = () => StyleSheet.create({
     gap:             8,
   },
   text: {
-    color:      Theme.colors.destructiveForeground,
+    color:      colors.destructiveForeground,
     fontSize:   13,
     fontWeight: '500',
     flex:       1,
@@ -25,10 +24,7 @@ const createStyles = () => StyleSheet.create({
 });
 
 export function ServiceStatusBanner() {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
   const { isHealthy } = useBffHealth();
   const insets = useSafeAreaInsets();
 
@@ -36,11 +32,10 @@ export function ServiceStatusBanner() {
 
   return (
     <View style={[styles.banner, { paddingTop: insets.top + 8 }]}>
-      <Ionicons name="warning-outline" size={16} color={Theme.colors.destructiveForeground} />
+      <Ionicons name="warning-outline" size={16} color={styles.text.color} />
       <ThemedText style={styles.text}>
         Service experiencing issues. Some features may be unavailable.
       </ThemedText>
     </View>
   );
 }
-

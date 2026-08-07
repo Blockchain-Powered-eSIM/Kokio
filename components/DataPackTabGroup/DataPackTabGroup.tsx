@@ -10,6 +10,7 @@ import _isEmpty from "lodash/isEmpty";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
+import { useColors } from "@/hooks/useColors";
 import EsimItemSkeleton from "@/components/EsimItemSkeleton";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -111,6 +112,7 @@ function DataPackTabGroup({
   isLoading?: boolean;
 }) {
   const { showMessage } = useToast();
+  const colors = useColors();
   const { plansByData, plansByDataCallsSMS } = useMemo(() => {
     const plansGroupedByPlanType = _groupBy(plans, "planType");
     const plansByData = _get(plansGroupedByPlanType, TAB_KEYS.DATA);
@@ -146,7 +148,7 @@ function DataPackTabGroup({
               options={{
                 tabBarLabel: "Data+Calls+SMS",
                 tabBarAccessibilityLabel: "Data+Calls+SMS (disabled)",
-                tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: Theme.colors.inactive }],
+                tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: colors.inactive }],
               }}
               listeners={{
                 tabPress: (e) => {

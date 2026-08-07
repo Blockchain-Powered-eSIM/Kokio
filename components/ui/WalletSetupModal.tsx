@@ -14,9 +14,10 @@ import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { openBrowserAsync } from "expo-web-browser";
 import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
@@ -39,10 +40,10 @@ const formatWalletAddress = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
     paddingTop: 0,
   },
   modalContainer: {
@@ -215,10 +216,8 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   onClose,
   onContinue,
 }) => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
@@ -384,7 +383,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             style={styles.continueButton}
             onPress={handleContinue}
           >
-            <Text style={[styles.continueButtonText, { color: Theme.colors.primary }]}>Continue</Text>
+            <Text style={[styles.continueButtonText, { color: colors.primary }]}>Continue</Text>
           </TouchableOpacity>
         </View>
       </>
@@ -397,7 +396,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const loadingContent = useMemo(
     () => (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size={90} color={Theme.colors.primary} />
+        <ActivityIndicator size={90} color={colors.primary} />
         <Text style={[styles.loadingText, { color: foregroundColor }]}>
           Please wait while your wallet is being deployed...
         </Text>
@@ -415,7 +414,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           <MaterialCommunityIcons
             name="alert-circle"
             size={60}
-            color={Theme.colors.destructive}
+            color={colors.destructive}
             style={styles.errorIcon}
           />
           <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
@@ -435,7 +434,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             style={styles.continueButton}
             onPress={handleContinue}
           >
-            <Text style={[styles.continueButtonText, { color: Theme.colors.primary }]}>Retry</Text>
+            <Text style={[styles.continueButtonText, { color: colors.primary }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </>
@@ -470,11 +469,11 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const recoveryContent = useMemo(
     () => (
       <>
-        <View style={[styles.warningContainer, { backgroundColor: Theme.colors.popover }]}>
+        <View style={[styles.warningContainer, { backgroundColor: colors.popover }]}>
           <MaterialCommunityIcons
             name="comment-alert"
             size={32}
-            color={Theme.colors.primary}
+            color={colors.primary}
             style={styles.warningIconTopRight}
           />
           <Text style={[styles.warningText, { color: textColor }]}>
@@ -482,7 +481,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           </Text>
         </View>
 
-        <View style={[styles.recoveryCard, { backgroundColor: Theme.colors.popover }]}>
+        <View style={[styles.recoveryCard, { backgroundColor: colors.popover }]}>
           <ThemedText bold style={styles.recoveryTitle}>
             Wallet Recovery
           </ThemedText>
@@ -501,7 +500,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
                 <MaterialIcons
                   name="open-in-new"
                   size={16}
-                  color={Theme.colors.foreground}
+                  color={colors.foreground}
                   style={styles.linkIcon}
                 />
               )}
@@ -514,7 +513,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
           </Text>
 
           <TextInput
-            style={[styles.emailInput, { backgroundColor: Theme.colors.inputBackground, color: textColor }]}
+            style={[styles.emailInput, { backgroundColor: colors.inputBackground, color: textColor }]}
             placeholder="EOA (Externally-owned Account)"
             placeholderTextColor={mutedColor}
             value={eoaAddress}
@@ -526,14 +525,14 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
         <View style={styles.recoveryButtonContainer}>
           <TouchableOpacity
-            style={[styles.remindLaterButton, { borderColor: Theme.colors.primary }]}
+            style={[styles.remindLaterButton, { borderColor: colors.primary }]}
             onPress={handleRemindLater}
           >
-            <Text style={[styles.remindLaterText, { color: Theme.colors.primary }]}>Remind me later</Text>
+            <Text style={[styles.remindLaterText, { color: colors.primary }]}>Remind me later</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.doneButton, { backgroundColor: Theme.colors.primary }]} onPress={handleDone}>
-            <Text style={[styles.doneButtonText, { color: Theme.colors.cardForeground }]}>Done</Text>
+          <TouchableOpacity style={[styles.doneButton, { backgroundColor: colors.primary }]} onPress={handleDone}>
+            <Text style={[styles.doneButtonText, { color: colors.cardForeground }]}>Done</Text>
           </TouchableOpacity>
         </View>
       </>
@@ -560,7 +559,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       ref={modalRef}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: Theme.colors.walletModalBackground }]}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.walletModalBackground }]}>
           <KeyboardAvoidingView
             style={[styles.contentContainerWrapper]}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -569,7 +568,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
             <View
               style={[
                 styles.contentContainer,
-                { backgroundColor: Theme.colors.popover },
+                { backgroundColor: colors.popover },
                 showRecovery && styles.expandedContainer,
               ]}
             >

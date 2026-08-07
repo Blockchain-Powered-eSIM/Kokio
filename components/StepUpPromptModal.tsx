@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -9,20 +9,21 @@ import {
   View,
 } from "react-native";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Theme.colors.overlayMedium,
+    backgroundColor: colors.overlayMedium,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
   },
   card: {
     width: "100%",
-    backgroundColor: Theme.colors.background,
+    backgroundColor: colors.background,
     borderRadius: 20,
     paddingTop: 28,
     paddingHorizontal: 24,
@@ -31,21 +32,21 @@ const createStyles = () => StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "600",
-    color: Theme.colors.text,
+    color: colors.text,
     fontFamily: "Lexend-SemiBold",
     textAlign: "center",
     marginBottom: 16,
   },
   body: {
     fontSize: 14,
-    color: Theme.colors.foreground,
+    color: colors.foreground,
     fontFamily: "Lexend-Light",
     textAlign: "center",
     lineHeight: 20,
   },
   operation: {
     fontSize: 13,
-    color: Theme.colors.highlight,
+    color: colors.highlight,
     fontFamily: "Lexend",
     textAlign: "center",
     marginTop: 4,
@@ -53,7 +54,7 @@ const createStyles = () => StyleSheet.create({
   },
   error: {
     fontSize: 13,
-    color: Theme.colors.destructive,
+    color: colors.destructive,
     fontFamily: "Lexend-Light",
     textAlign: "center",
     marginBottom: 16,
@@ -66,18 +67,18 @@ const createStyles = () => StyleSheet.create({
     gap: 10,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: Theme.colors.muted,
+    borderTopColor: colors.muted,
     marginTop: 4,
   },
   loadingText: {
-    color: Theme.colors.foreground,
+    color: colors.foreground,
     fontSize: 14,
     fontFamily: "Lexend-Light",
   },
   buttonRow: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: Theme.colors.muted,
+    borderTopColor: colors.muted,
     marginTop: 4,
   },
   cancelBtn: {
@@ -85,10 +86,10 @@ const createStyles = () => StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     borderRightWidth: 1,
-    borderRightColor: Theme.colors.muted,
+    borderRightColor: colors.muted,
   },
   cancelText: {
-    color: Theme.colors.foreground,
+    color: colors.foreground,
     fontSize: 16,
     fontFamily: "Lexend-Light",
   },
@@ -98,7 +99,7 @@ const createStyles = () => StyleSheet.create({
     alignItems: "center",
   },
   confirmText: {
-    color: Theme.colors.highlight,
+    color: colors.highlight,
     fontSize: 16,
     fontFamily: "Lexend-SemiBold",
   },
@@ -125,10 +126,8 @@ function friendlyOperation(raw: string | undefined): string {
 }
 
 export function StepUpPromptModal() {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const { stepUpVisible, stepUpHint, stepUpError, stepUp, dismissStepUp } =
     useAuthRelay();
   const [loading, setLoading] = useState(false);
@@ -177,7 +176,7 @@ export function StepUpPromptModal() {
 
           {loading ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color={Theme.colors.highlight} />
+              <ActivityIndicator color={colors.highlight} />
               <Text style={styles.loadingText}>Confirming…</Text>
             </View>
           ) : (

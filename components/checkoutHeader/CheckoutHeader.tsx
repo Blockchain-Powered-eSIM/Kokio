@@ -15,7 +15,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
 import CountryFlag from "@/components/ui/CountryFlag";
 
@@ -27,88 +29,7 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
 const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
 
-const ExpandableContent = ({
-  eSimItem = {},
-  onNetworkPress,
-  onContentSizeChange,
-}: {
-  eSimItem?: any;
-  onNetworkPress: () => void;
-  onContentSizeChange?: (w: number, h: number) => void;
-}) => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
-  const isMultiCountry = eSimItem?.coverageType !== "LOCAL";
-
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      scrollEnabled={true}
-      contentContainerStyle={{ gap: 12 }}
-      onContentSizeChange={onContentSizeChange}
-    >
-      {ESIM_EXTRA_DETAILS.map((item, index) => {
-        const value = _get(eSimItem, item.key);
-
-        if (item.hideWhenNullish && (value === null || value === undefined)) {
-          return null;
-        }
-
-        const isNetworkRow = item.key === "countryWiseNetworkCoverages";
-
-        if (isNetworkRow && isMultiCountry) {
-          const coverage: any[] = value || [];
-          return (
-            <View key={index} style={styles.expandedItem}>
-              <DetailItem
-                iconType={item.iconType}
-                iconName={item.iconName}
-                value={item.label}
-                highlight={false}
-                containerStyles={styles.extraContentLabel}
-              />
-              <Pressable
-                onPress={onNetworkPress}
-                style={styles.networkLink}
-                hitSlop={8}
-              >
-                <Text style={styles.networkLinkText}>
-                  {coverage.length} {coverage.length === 1 ? "country" : "countries"}
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={14}
-                  color={Theme.colors.cardForeground}
-                />
-              </Pressable>
-            </View>
-          );
-        }
-
-        return (
-          <View key={index} style={[!item.isFlexColumn && styles.expandedItem]}>
-            <DetailItem
-              iconType={item.iconType}
-              iconName={item.iconName}
-              value={item.label}
-              highlight={false}
-              containerStyles={styles.extraContentLabel}
-            />
-            <DetailItem
-              value={item.formatter?.(value)}
-              highlight={false}
-              containerStyles={item.dataContainerStyles}
-            />
-          </View>
-        );
-      })}
-    </ScrollView>
-  );
-};
-
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   header: {
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
@@ -155,7 +76,7 @@ const createStyles = () => StyleSheet.create({
     paddingVertical: 12,
   },
   pillHandle: {
-    backgroundColor: Theme.colors.handle,
+    backgroundColor: colors.handle,
     borderRadius: 10,
     height: 20,
     alignItems: "center",
@@ -173,15 +94,92 @@ const createStyles = () => StyleSheet.create({
   networkLinkText: {
     fontSize: 14,
     fontWeight: "800",
-    color: Theme.colors.cardForeground,
+    color: colors.cardForeground,
   },
 });
 
+const ExpandableContent = ({
+  eSimItem = {},
+  onNetworkPress,
+  onContentSizeChange,
+}: {
+  eSimItem?: any;
+  onNetworkPress: () => void;
+  onContentSizeChange?: (w: number, h: number) => void;
+}) => {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const isMultiCountry = eSimItem?.coverageType !== "LOCAL";
+
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      scrollEnabled={true}
+      contentContainerStyle={{ gap: 12 }}
+      onContentSizeChange={onContentSizeChange}
+    >
+      {ESIM_EXTRA_DETAILS.map((item, index) => {
+        const value = _get(eSimItem, item.key);
+
+        if (item.hideWhenNullish && (value === null || value === undefined)) {
+          return null;
+        }
+
+        const isNetworkRow = item.key === "countryWiseNetworkCoverages";
+
+        if (isNetworkRow && isMultiCountry) {
+          const coverage: any[] = value || [];
+          return (
+            <View key={index} style={styles.expandedItem}>
+              <DetailItem
+                iconType={item.iconType}
+                iconName={item.iconName}
+                value={item.label}
+                highlight={false}
+                containerStyles={styles.extraContentLabel}
+              />
+              <Pressable
+                onPress={onNetworkPress}
+                style={styles.networkLink}
+                hitSlop={8}
+              >
+                <Text style={styles.networkLinkText}>
+                  {coverage.length} {coverage.length === 1 ? "country" : "countries"}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={colors.cardForeground}
+                />
+              </Pressable>
+            </View>
+          );
+        }
+
+        return (
+          <View key={index} style={[!item.isFlexColumn && styles.expandedItem]}>
+            <DetailItem
+              iconType={item.iconType}
+              iconName={item.iconName}
+              value={item.label}
+              highlight={false}
+              containerStyles={styles.extraContentLabel}
+            />
+            <DetailItem
+              value={item.formatter?.(value)}
+              highlight={false}
+              containerStyles={item.dataContainerStyles}
+            />
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+};
+
 const CheckoutHeader = ({ eSimDetails = {} }: any) => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const insets = useSafeAreaInsets();
 
   const computedHeaderHeight = useMemo(() => {
@@ -281,12 +279,12 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
             <Ionicons
               name="chevron-back-outline"
               size={36}
-              color={Theme.colors.background}
+              color={colors.background}
               style={{ marginRight: Theme.spacing.sm }}
             />
           </Pressable>
           <Text
-            style={[styles.countryText, { color: Theme.colors.cardForeground }]}
+            style={[styles.countryText, { color: colors.cardForeground }]}
             numberOfLines={2}
             adjustsFontSizeToFit
           >
@@ -379,7 +377,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
       <Animated.View
         style={[
           styles.header,
-          { paddingTop: insets.top + 16, backgroundColor: Theme.colors.card },
+          { paddingTop: insets.top + 16, backgroundColor: colors.card },
           animatedHeaderStyle,
         ]}
       >
@@ -398,12 +396,12 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         <View style={styles.expandIndicatorRow}>
           <Animated.View style={[styles.pillHandle, animatedPillWidth]}>
             <Animated.View style={animatedArrowDownStyle}>
-              <Ionicons name="chevron-down" size={12} color={Theme.colors.handleArrow} />
+              <Ionicons name="chevron-down" size={12} color={colors.handleArrow} />
             </Animated.View>
             <Animated.View
               style={[StyleSheet.absoluteFill, styles.arrowCenter, animatedArrowUpStyle]}
             >
-              <Ionicons name="chevron-up" size={12} color={Theme.colors.handleArrow} />
+              <Ionicons name="chevron-up" size={12} color={colors.handleArrow} />
             </Animated.View>
           </Animated.View>
         </View>
