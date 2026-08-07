@@ -9,6 +9,7 @@ import _debounce from "lodash/debounce";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
 
@@ -22,10 +23,11 @@ const Tab = createMaterialTopTabNavigator();
 
 const TabsNavigator = () => {
   const { isDark } = useTheme();
+  const bg = useThemeColor({}, "background");
   return (
     <Tab.Navigator
       tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
-      screenOptions={{ sceneStyle: { backgroundColor: isDark ? "transparent" : Theme.colors.background } }}
+      screenOptions={{ sceneStyle: { backgroundColor: isDark ? "transparent" : bg } }}
     >
       <Tab.Screen
         name="Countries"

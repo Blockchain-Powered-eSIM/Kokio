@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 import {
   Linking,
   Platform,
@@ -22,47 +22,10 @@ import _split from "lodash/split";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
 import { logger } from "@/utils/logger";
 
 type TabType = "Direct" | "QR" | "Manual";
-
-const WarningCards = () => (
-  <>
-    <View style={[warningStyles.warningCard, { backgroundColor: Theme.colors.surface }]}>
-      <MaterialCommunityIcons
-        name="comment-alert"
-        size={32}
-        color={Theme.colors.primary}
-        style={warningStyles.warningIconTopRight}
-      />
-      <View style={warningStyles.warningContent}>
-        <Text style={[warningStyles.warningTitle, { color: Theme.colors.text }]}>
-          Most eSIMs can only be installed once.
-        </Text>
-        <Text style={[warningStyles.warningDescription, { color: Theme.colors.inactive }]}>
-          If you remove the eSIM from your device, you cannot install it again.
-        </Text>
-      </View>
-    </View>
-
-    <View style={[warningStyles.warningCard, { backgroundColor: Theme.colors.surface }]}>
-      <MaterialCommunityIcons
-        name="comment-alert"
-        size={32}
-        color={Theme.colors.primary}
-        style={warningStyles.warningIconTopRight}
-      />
-      <View style={warningStyles.warningContent}>
-        <Text style={[warningStyles.warningTitle, { color: Theme.colors.text }]}>
-          Make sure your device has a stable internet connection before installing.
-        </Text>
-        <Text style={[warningStyles.warningDescription, { color: Theme.colors.inactive }]}>
-          Note that the eSIM installation process must not be interrupted.
-        </Text>
-      </View>
-    </View>
-  </>
-);
 
 const warningStyles = StyleSheet.create({
   warningCard: {
@@ -93,34 +56,7 @@ const warningStyles = StyleSheet.create({
   },
 });
 
-const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
-  const handleCopyQRData = async () => {
-    try {
-      await Clipboard.setStringAsync(text);
-    } catch (error) {
-      logger.error('CLIPBOARD_COPY_FAILED', { error });
-    }
-  };
-  return (
-    <View style={styles.textCopyContainer}>
-      <Text style={[styles.manualDetailsHeader, { color: Theme.colors.inactive }]}>{label}</Text>
-      <View style={styles.manualDetailsContent}>
-        <View style={styles.manualDetailsTextContainer}>
-          <Text style={[styles.manualDetailsText, { color: Theme.colors.text }]}>{text}</Text>
-        </View>
-        <TouchableOpacity style={styles.copyButton} onPress={handleCopyQRData}>
-          <Ionicons name="copy-outline" size={16} color={Theme.colors.text} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
-const createStyles = () => StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -247,11 +183,33 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
+const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
+  const colors = useColors();
+  const handleCopyQRData = async () => {
+    try {
+      await Clipboard.setStringAsync(text);
+    } catch (error) {
+      logger.error('CLIPBOARD_COPY_FAILED', { error });
+    }
+  };
+  return (
+    <View style={styles.textCopyContainer}>
+      <Text style={[styles.manualDetailsHeader, { color: colors.inactive }]}>{label}</Text>
+      <View style={styles.manualDetailsContent}>
+        <View style={styles.manualDetailsTextContainer}>
+          <Text style={[styles.manualDetailsText, { color: colors.text }]}>{text}</Text>
+        </View>
+        <TouchableOpacity style={styles.copyButton} onPress={handleCopyQRData}>
+          <Ionicons name="copy-outline" size={16} color={colors.text} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 const EsimInstallation = () => {
   const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const colors = useColors();
   const { qrcode, appleInstallationUrl: rawAppleUrl } = useLocalSearchParams();
   const appleInstallationUrl = Array.isArray(rawAppleUrl) ? rawAppleUrl[0] : (rawAppleUrl ?? "");
   const router = useRouter();
@@ -266,20 +224,20 @@ const EsimInstallation = () => {
 
   if (!hasQrData) {
     return (
-      <View style={[styles.container, styles.missingQrContainer, { backgroundColor: Theme.colors.background }]}>
-        <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>
+      <View style={[styles.container, styles.missingQrContainer, { backgroundColor: colors.background }]}>
+        <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
           Installation details unavailable
         </ThemedText>
-        <Text style={[styles.sectionDescription, { color: Theme.colors.inactive, textAlign: "center", marginBottom: 0 }]}>
+        <Text style={[styles.sectionDescription, { color: colors.inactive, textAlign: "center", marginBottom: 0 }]}>
           We couldn&apos;t find the installation QR code for this eSIM. Please go back and try again from Orders.
         </Text>
         <TouchableOpacity
-          style={[styles.shareButton, { borderColor: Theme.colors.muted }]}
+          style={[styles.shareButton, { borderColor: colors.muted }]}
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={[styles.shareButtonText, { color: Theme.colors.text }]}>Go Back</Text>
+          <Text style={[styles.shareButtonText, { color: colors.text }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -317,37 +275,37 @@ const EsimInstallation = () => {
       <ScrollView style={styles.content}>
         <WarningCards />
         {/* Install eSIM Section */}
-        <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
-          <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>QR Installation</ThemedText>
-          <Text style={[styles.sectionDescription, { color: Theme.colors.inactive }]}>
+        <View style={[styles.installSection, { backgroundColor: colors.surface }]}>
+          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>QR Installation</ThemedText>
+          <Text style={[styles.sectionDescription, { color: colors.inactive }]}>
             Scan the QR code by printing out or displaying the code on another
             device to install your eSIM.
           </Text>
 
           {/* QR Code */}
-          <ViewShot style={[styles.qrContainer, { backgroundColor: Theme.colors.surface }]} ref={qrViewRef}>
+          <ViewShot style={[styles.qrContainer, { backgroundColor: colors.surface }]} ref={qrViewRef}>
             <QRCode
               value={qrData}
               size={200}
-              color={Theme.colors.text}
-              backgroundColor={Theme.colors.surface}
+              color={colors.text}
+              backgroundColor={colors.surface}
             />
           </ViewShot>
 
           {/* Share Button */}
-          <TouchableOpacity style={[styles.shareButton, { borderColor: Theme.colors.muted }]} onPress={handleShareQR}>
-            <Text style={[styles.shareButtonText, { color: Theme.colors.text }]}>Share QR code</Text>
-            <Ionicons name="share-outline" size={20} color={Theme.colors.text} />
+          <TouchableOpacity style={[styles.shareButton, { borderColor: colors.muted }]} onPress={handleShareQR}>
+            <Text style={[styles.shareButtonText, { color: colors.text }]}>Share QR code</Text>
+            <Ionicons name="share-outline" size={20} color={colors.text} />
           </TouchableOpacity>
 
           {/* Instructions */}
           <View style={styles.instructionsContainer}>
-            <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
+            <Text style={[styles.instructionText, { color: colors.inactive }]}>
               {
                 "1. Go to Settings > Cellular/Mobile Data > Add eSIM or Set up Cellular/Mobile Service > Use QR Code on your device."
               }
             </Text>
-            <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
+            <Text style={[styles.instructionText, { color: colors.inactive }]}>
               {" 2. Scan the QR code or take a screenshot."}
             </Text>
           </View>
@@ -356,17 +314,55 @@ const EsimInstallation = () => {
     );
   };
 
+  const WarningCards = () => (
+    <>
+      <View style={[warningStyles.warningCard, { backgroundColor: colors.surface }]}>
+        <MaterialCommunityIcons
+          name="comment-alert"
+          size={32}
+          color={colors.primary}
+          style={warningStyles.warningIconTopRight}
+        />
+        <View style={warningStyles.warningContent}>
+          <Text style={[warningStyles.warningTitle, { color: colors.text }]}>
+            Most eSIMs can only be installed once.
+          </Text>
+          <Text style={[warningStyles.warningDescription, { color: colors.inactive }]}>
+            If you remove the eSIM from your device, you cannot install it again.
+          </Text>
+        </View>
+      </View>
+  
+      <View style={[warningStyles.warningCard, { backgroundColor: colors.surface }]}>
+        <MaterialCommunityIcons
+          name="comment-alert"
+          size={32}
+          color={colors.primary}
+          style={warningStyles.warningIconTopRight}
+        />
+        <View style={warningStyles.warningContent}>
+          <Text style={[warningStyles.warningTitle, { color: colors.text }]}>
+            Make sure your device has a stable internet connection before installing.
+          </Text>
+          <Text style={[warningStyles.warningDescription, { color: colors.inactive }]}>
+            Note that the eSIM installation process must not be interrupted.
+          </Text>
+        </View>
+      </View>
+    </>
+  );
+
   const ManualScene = () => (
     <ScrollView style={styles.content}>
       <WarningCards />
-      <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
-        <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>Manual Installation</ThemedText>
-        <Text style={[styles.sectionDescription, { color: Theme.colors.inactive }]}>
+      <View style={[styles.installSection, { backgroundColor: colors.surface }]}>
+        <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>Manual Installation</ThemedText>
+        <Text style={[styles.sectionDescription, { color: colors.inactive }]}>
           Enter the details manually if you cannot scan the QR code.
         </Text>
 
         {/* Manual Installation Details */}
-        <View style={[styles.manualDetailsCard, { backgroundColor: Theme.colors.surfaceElevated }]}>
+        <View style={[styles.manualDetailsCard, { backgroundColor: colors.surfaceElevated }]}>
           <TextWithCopy
             label="SM-DP+ ADDRESS & ACTIVATION CODE"
             text={qrData}
@@ -379,9 +375,9 @@ const EsimInstallation = () => {
             <TextWithCopy label="ACTIVATION CODE" text={activationCode} />
           )}
 
-          <View style={[styles.divider, { backgroundColor: Theme.colors.muted }]} />
+          <View style={[styles.divider, { backgroundColor: colors.muted }]} />
 
-          <Text style={[styles.manualInstructionText, { color: Theme.colors.inactive }]}>
+          <Text style={[styles.manualInstructionText, { color: colors.inactive }]}>
             Copy this information and enter details manually to install your
             eSIM. *Make sure your device has a stable internet connection before
             installing.
@@ -390,7 +386,7 @@ const EsimInstallation = () => {
 
         {/* Manual Instructions */}
         <View style={styles.instructionsContainer}>
-          <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
+          <Text style={[styles.instructionText, { color: colors.inactive }]}>
             {"Steps: Go to Settings > Network & internet and select the plus sign (&quot;+&quot;) next to your SIM — if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
           </Text>
         </View>
@@ -412,12 +408,12 @@ const EsimInstallation = () => {
     return (
       <ScrollView style={styles.content}>
         <WarningCards />
-        <View style={[styles.installSection, { backgroundColor: Theme.colors.surface }]}>
-          <ThemedText style={[styles.sectionTitle, { color: Theme.colors.text }]}>
+        <View style={[styles.installSection, { backgroundColor: colors.surface }]}>
+          <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
             Direct Installation
           </ThemedText>
   
-          <Text style={[styles.instructionText, { color: Theme.colors.inactive }]}>
+          <Text style={[styles.instructionText, { color: colors.inactive }]}>
             {isEnabled
               ? "Tap Install eSIM to begin. Do not close the app — installation may take a few minutes. Select Allow/OK when prompted."
               : "Select Install eSIM and wait — do not close the app, installation may take a few minutes. Select Allow/OK, when prompted."}
@@ -427,7 +423,7 @@ const EsimInstallation = () => {
             style={[
               styles.shareButton,
               {
-                borderColor: isEnabled ? Theme.colors.primary : Theme.colors.muted,
+                borderColor: isEnabled ? colors.primary : colors.muted,
                 opacity:     isEnabled ? 1 : 0.5,
               },
             ]}
@@ -440,7 +436,7 @@ const EsimInstallation = () => {
             <Text
               style={[
                 styles.shareButtonText,
-                { color: isEnabled ? Theme.colors.text : Theme.colors.inactive },
+                { color: isEnabled ? colors.text : colors.inactive },
               ]}
             >
               {isEnabled ? "Install eSIM" : "Coming soon"}
@@ -457,7 +453,7 @@ const EsimInstallation = () => {
     return (
       <View style={styles.tabBarOuterContainer}>
         <View style={[styles.tabBarContainer, {
-          backgroundColor: isDark ? Theme.colors.muted : Theme.colors.input,
+          backgroundColor: isDark ? colors.muted : colors.input,
         }]}>
           {tabs.map((tab) => (
             <TouchableOpacity
@@ -467,7 +463,7 @@ const EsimInstallation = () => {
               activeOpacity={0.7}
             >
               {activeTab === tab && <View style={[styles.tabIndicator, {
-                backgroundColor: isDark ? Theme.colors.secondaryBackground : Theme.colors.card,
+                backgroundColor: isDark ? colors.secondaryBackground : colors.card,
               }]} />}
               <Text
                 style={[
@@ -475,8 +471,8 @@ const EsimInstallation = () => {
                   {
                     color:
                       activeTab === tab
-                        ? Theme.colors.text
-                        : Theme.colors.inactive,
+                        ? colors.text
+                        : colors.inactive,
                   },
                 ]}
               >
@@ -503,7 +499,7 @@ const EsimInstallation = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: Theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {renderTabBar()}
       {renderContent()}
     </View>

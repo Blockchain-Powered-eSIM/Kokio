@@ -1,11 +1,11 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Image, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   labelContainer: {
     flex: 1,
     marginLeft: 8,
@@ -14,7 +14,7 @@ const createStyles = () => StyleSheet.create({
     justifyContent: "space-between",
   },
   textContent: {
-    color: Theme.colors.foreground,
+    color: colors.foreground,
   },
   smallText: {
     fontSize: 12,
@@ -34,10 +34,7 @@ const createStyles = () => StyleSheet.create({
 });
 
 const ESimWallet = () => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
@@ -49,10 +46,7 @@ const ESimWallet = () => {
 };
 
 const CreditCard = () => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Credit Card</ThemedText>
@@ -65,10 +59,7 @@ const CreditCard = () => {
 };
 
 const ApplePay = () => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Apple Pay</ThemedText>
@@ -81,10 +72,7 @@ const ApplePay = () => {
 };
 
 const ExternalWallet = () => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>External Wallet</ThemedText>
@@ -97,10 +85,7 @@ const ExternalWallet = () => {
 };
 
 const ExternalWalletBrowser = () => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>External Wallet (via Moonpay)</ThemedText>
