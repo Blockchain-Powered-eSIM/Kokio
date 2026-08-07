@@ -10,9 +10,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import SearchBar from "@/components/SearchInput";
 
@@ -30,7 +30,7 @@ const SEARCH_THRESHOLD = 3;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = () =>
+const createStyles = (colors: Palette) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -42,12 +42,12 @@ const createStyles = () =>
       paddingHorizontal: 16,
       paddingVertical:   12,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: Theme.colors.muted,
+      borderBottomColor: colors.muted,
     },
     headerTitle: {
       fontSize:   17,
       fontWeight: "600",
-      color:      Theme.colors.text,
+      color:      colors.text,
     },
     closeButton: {
       padding: 4,
@@ -69,7 +69,7 @@ const createStyles = () =>
       paddingVertical:   14,
       paddingHorizontal: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: Theme.colors.muted,
+      borderBottomColor: colors.muted,
       gap:               12,
     },
     leftCol: {
@@ -82,7 +82,7 @@ const createStyles = () =>
       flex:       1,
       fontSize:   14,
       fontWeight: "500",
-      color:      Theme.colors.text,
+      color:      colors.text,
     },
     rightCol: {
       flex:            1,
@@ -95,7 +95,7 @@ const createStyles = () =>
     networkTag: {
       flexDirection:   "row",
       alignItems:      "center",
-      backgroundColor: Theme.colors.itemBackground,
+      backgroundColor: colors.itemBackground,
       borderRadius:    5,
       paddingHorizontal: 7,
       paddingVertical:   3,
@@ -103,18 +103,18 @@ const createStyles = () =>
     },
     networkName: {
       fontSize: 12,
-      color:    Theme.colors.mutedForeground,
+      color:    colors.mutedForeground,
     },
     networkType: {
       fontSize:   10,
       fontWeight: "700",
-      color:      Theme.colors.highlight,
+      color:      colors.highlight,
     },
     emptyText: {
       textAlign:    "center",
       paddingVertical: 48,
       fontSize:     14,
-      color:        Theme.colors.mutedForeground,
+      color:        colors.mutedForeground,
     },
   });
 
@@ -161,10 +161,7 @@ const CoverageRow = ({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CoverageModal() {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles     = useMemo(() => createStyles(), [isDark]);
+  const styles     = useThemedStyles(createStyles);
   const bg         = useThemeColor({}, "background");
   const router     = useRouter();
 
@@ -212,7 +209,7 @@ export default function CoverageModal() {
           <Ionicons
             name="close-circle"
             size={26}
-            color={Theme.colors.mutedForeground}
+            color={styles.networkName.color}
           />
         </TouchableOpacity>
       </View>

@@ -2,13 +2,26 @@ import React from "react";
 import { Tabs, router, useLocalSearchParams } from "expo-router";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { StyleSheet } from "react-native";
-import { Theme, createStyles } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { getRouteName, getIsTabBarVisible } from "@/helpers/navigator.helper";
 import Header from "@/components/Header";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const styles = createStyles(StyleSheet);
+const createStyles = (colors: Palette) => StyleSheet.create({
+  tabBar: {
+    backgroundColor: colors.secondaryBackground,
+    borderTopColor: colors.border,
+    height: 60,
+    paddingBottom: Theme.spacing.xs,
+  },
+  tabBarIcon: {
+    marginTop: Theme.spacing.xs,
+  },
+});
 
 function InstallationHeader() {
   const { from } = useLocalSearchParams<{ from?: string }>();
@@ -44,6 +57,8 @@ const TAB_ENABLED = {
 const DISABLED_TAB_OPACITY = 0.3;
 
 export default function TabLayout() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   return (
     <Tabs
       screenOptions={({ navigation }) => {
@@ -52,10 +67,10 @@ export default function TabLayout() {
         const tabBarVisible = getIsTabBarVisible(routeName);
 
         return {
-          tabBarActiveTintColor: Theme.colors.highlight,
-          tabBarInactiveTintColor: Theme.colors.inactive,
+          tabBarActiveTintColor: colors.highlight,
+          tabBarInactiveTintColor: colors.inactive,
           tabBarStyle: tabBarVisible
-            ? [styles.tabBar, { backgroundColor: Theme.colors.secondaryBackground }]
+            ? [styles.tabBar, { backgroundColor: colors.secondaryBackground }]
             : { display: "none" },
           tabBarShowLabel: false,
           headerShown: false,
@@ -96,7 +111,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
               name={focused ? "wallet" : "wallet-outline"}
-              color={TAB_ENABLED.WALLET ? color : Theme.colors.inactive}
+              color={TAB_ENABLED.WALLET ? color : colors.inactive}
               style={[
                 styles.tabBarIcon,
                 !TAB_ENABLED.WALLET && { opacity: DISABLED_TAB_OPACITY },

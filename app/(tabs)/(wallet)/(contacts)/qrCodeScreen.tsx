@@ -1,13 +1,13 @@
 import { ThemedText } from '@/components/ThemedText';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View, Linking, Pressable, StatusBar } from 'react-native';
-import { Theme } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { logger } from '@/utils/logger';
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -16,7 +16,7 @@ const createStyles = () => StyleSheet.create({
   },
   overlayTop: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
   },
   horizontalContainer: {
     flexDirection: 'row',
@@ -24,7 +24,7 @@ const createStyles = () => StyleSheet.create({
   },
   overlaySide: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
   },
   scanArea: {
     width: 250,
@@ -33,7 +33,7 @@ const createStyles = () => StyleSheet.create({
   },
   overlayBottom: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
   },
   cornerTopLeft: {
     position: 'absolute',
@@ -43,7 +43,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderTopWidth: 3,
     borderLeftWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   cornerTopRight: {
     position: 'absolute',
@@ -53,7 +53,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderTopWidth: 3,
     borderRightWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   cornerBottomLeft: {
     position: 'absolute',
@@ -63,7 +63,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderBottomWidth: 3,
     borderLeftWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   cornerBottomRight: {
     position: 'absolute',
@@ -73,7 +73,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderBottomWidth: 3,
     borderRightWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   backButton: {
     position: 'absolute',
@@ -93,7 +93,7 @@ const createStyles = () => StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    backgroundColor: Theme.colors.overlayDark,
+    backgroundColor: colors.overlayDark,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
@@ -101,10 +101,7 @@ const createStyles = () => StyleSheet.create({
 });
 
 export default function QrCodeScreen() {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
   const [permission, requestPermission] = useCameraPermissions();
   const permissionDenied = 
     !!permission && !permission.granted && permission.canAskAgain === false;

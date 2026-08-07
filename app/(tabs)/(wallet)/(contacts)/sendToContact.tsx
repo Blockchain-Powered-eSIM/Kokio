@@ -10,8 +10,9 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useToast } from '@/contexts/ToastContext'
-import { Theme } from '@/constants/Colors'
-import { useTheme } from '@/contexts/ThemeContext'
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { logger } from '@/utils/logger';
 
 interface Token {
@@ -44,19 +45,17 @@ interface Contact {
   transactions: Transaction[];
 }
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   contentContainer: {
-    backgroundColor: Theme.colors.background,
+    backgroundColor: colors.background,
     padding: 0,
     elevation: 50,
   },
 })
 
 const SendToContact = () => {
-  const { isDark } = useTheme();
-  // TODO: Fix the theming engine to deprecate this usage pattern
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const styles = useMemo(() => createStyles(), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const params = useLocalSearchParams();
   const [amount, setAmount] = useState("0");
   const [token, setToken] = useState<Token | null>(null);
@@ -174,7 +173,7 @@ const SendToContact = () => {
           </View>
         </ThemedView>
         <View className='flex-1 mt-10 items-center'>
-          <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2 flex-row py-3 rounded-3xl '>
+          <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2 flex-row py-3 rounded-3xl '>
             <View className='w-[67%]'>
               <ThemedText light className='ml-6 mt-2'>Amount</ThemedText>
               <TextInput
@@ -196,7 +195,7 @@ const SendToContact = () => {
             </View>
           </ThemedView>
           <ThemedText className='mt-3' >Balance: 100 {token?.symbol}</ThemedText>
-          <ThemedView darkColor={Theme.colors.itemBackground} className='w-[97%] mt-3 mx-2 px-6 py-5 rounded-3xl '>
+          <ThemedView darkColor={colors.itemBackground} className='w-[97%] mt-3 mx-2 px-6 py-5 rounded-3xl '>
             <View className='flex-row justify-between'>
               <ThemedText>Estimated Gas Fee:</ThemedText>
               <ThemedText> 0.0014 {token?.symbol}</ThemedText>
@@ -206,7 +205,7 @@ const SendToContact = () => {
               <ThemedText>{(parseFloat(amount) + 0.0014).toFixed(4)} {token?.symbol}</ThemedText>
             </View>
           </ThemedView>
-          <Pressable onPress={handleSend} className='w-[97%] fixed py-3  mt-[200] rounded-3xl' style={{ backgroundColor: Theme.colors.secondary }}>
+          <Pressable onPress={handleSend} className='w-[97%] fixed py-3  mt-[200] rounded-3xl' style={{ backgroundColor: colors.secondary }}>
             {isLoading?<ActivityIndicator size='small'/>:
             <ThemedText darkColor='black' className='text-center'>Confirm & Send {amount} {token?.symbol} </ThemedText>}
           </Pressable>
@@ -218,16 +217,16 @@ const SendToContact = () => {
         snapPoints={snapPoints}
         enablePanDownToClose
         style={{ paddingBottom: 10, borderRadius: 25 }}
-        backgroundStyle={{ backgroundColor: Theme.colors.sheetBackground }}
+        backgroundStyle={{ backgroundColor: colors.sheetBackground }}
       >
-        <ThemedText variant='xl' className='text-center pt-2 pb-4' style={{ backgroundColor: Theme.colors.background }}>Select Token</ThemedText>
+        <ThemedText variant='xl' className='text-center pt-2 pb-4' style={{ backgroundColor: colors.background }}>Select Token</ThemedText>
         <BottomSheetScrollView contentContainerStyle={styles.contentContainer}>
           {_.size(tokens) === 0 ? (
-            <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
+            <ThemedText darkColor={colors.foreground} className='mt-5 ml-2 mb-2'>
                 You don&#39;t hold any tokens yet.
             </ThemedText>
           ) : (
-            <ThemedView darkColor={Theme.colors.background} className='gap-y-3 mt-3 mb-3 px-4'>
+            <ThemedView darkColor={colors.background} className='gap-y-3 mt-3 mb-3 px-4'>
               {_.map(tokens, (tk, index) => (
                 <Pressable
                   onPress={() => setToken(tokens[index])}
@@ -239,7 +238,7 @@ const SendToContact = () => {
                   <ThemedText
                     bold
                     variant="xl"
-                    darkColor={token?.id === tk.id ? Theme.colors.primary : Theme.colors.text}
+                    darkColor={token?.id === tk.id ? colors.primary : colors.text}
                     className="ml-3"
                   >
                   {tk?.symbol}
@@ -248,7 +247,7 @@ const SendToContact = () => {
                 <View className="flex-col items-end">
                   <ThemedText
                     variant="xl"
-                    darkColor={token?.id === tk.id ? Theme.colors.primary : Theme.colors.text}
+                    darkColor={token?.id === tk.id ? colors.primary : colors.text}
                   >
                   {tk?.value}
                   </ThemedText>
