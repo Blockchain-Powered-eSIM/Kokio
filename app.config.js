@@ -111,7 +111,7 @@ module.exports = ({ config }) => {
         "@stripe/stripe-react-native",
         {
           merchantIdentifier:
-            process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
+            process.env.STRIPE_MERCHANT_IDENTIFIER,
           enableGooglePay: true,
         },
       ],
