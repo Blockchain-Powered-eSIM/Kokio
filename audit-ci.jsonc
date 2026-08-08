@@ -3,5 +3,27 @@
   "moderate": true,
   "high": true,
   "critical": true,
-  "allowlist": []
+  "allowlist": [
+    // GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq — image-size: denial of service
+    // via infinite loops in the ICNS, JXL and HEIF parsers (CWE-835).
+    // No fixed version exists: image-size is archived upstream and its terminal
+    // release is in the vulnerable range, so there is nothing to override *to*.
+    // Deliberately NOT pinned via `overrides`: with no patched release, an
+    // override could only fork Metro onto an older line, which would silently
+    // outlive the upstream fix and become drift — the empty-allowlist/overrides
+    // model assumes a real fixed version to pin, which this advisory lacks.
+    // Build-time only — reached solely through Metro (the bundler), never present
+    // in the shipped app bundle. Two prod-tree chains, both terminating at metro:
+    //   1) expo <- @expo/metro-config <- @expo/metro <- metro <- image-size
+    //   2) react-native <- @react-native/community-cli-plugin <- metro <- image-size
+    // Root cause for 10 of the 12 HIGH findings in this audit (every @expo/*,
+    // metro*, react-native entry is propagation of this, not a separate vuln;
+    // the remaining 2, js-yaml + @redocly/openapi-core, are fixed via override).
+    // npm's only offered remediation is an expo 53 downgrade — two majors back,
+    // not viable.
+    // Remove once the Expo/Metro cluster drops or replaces image-size; the grouped
+    // Expo Dependabot PRs will surface that bump (expected imminently).
+    "GHSA-w3rx-r6r6-pgpr",
+    "GHSA-5p2g-fcmc-qvqq"
+  ]
 }
