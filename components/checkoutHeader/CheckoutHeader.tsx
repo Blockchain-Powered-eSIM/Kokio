@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StyleSheet, View, Text, Dimensions, Pressable, ScrollView } from "react-native";
+import { StyleSheet, View, Text, Dimensions, Pressable, ScrollView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, router } from "expo-router";
 import _get from "lodash/get";
@@ -23,7 +23,7 @@ import CountryFlag from "@/components/ui/CountryFlag";
 
 import DetailItem from "../ui/DetailItem";
 
-const PILL_ROW_HEIGHT = 40;
+const PILL_ROW_HEIGHT = (Platform.OS === "ios" ? 16 : 40);
 const HEADER_MIN_HEIGHT = 150 + PILL_ROW_HEIGHT;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
@@ -377,7 +377,8 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
       <Animated.View
         style={[
           styles.header,
-          { paddingTop: insets.top + 16, backgroundColor: colors.card },
+          // iOS includes the notch/dynamic island height in insets.top
+          { paddingTop: insets.top + (Platform.OS === "ios" ? 8 : 16), backgroundColor: colors.card },
           animatedHeaderStyle,
         ]}
       >

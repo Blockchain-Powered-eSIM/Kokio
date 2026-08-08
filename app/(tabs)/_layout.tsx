@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs, router, useLocalSearchParams } from "expo-router";
 
@@ -59,7 +59,7 @@ const TAB_ENABLED = {
 const DISABLED_TAB_OPACITY = 0.3;
 
 export default function TabLayout() {
-  const navbarInset = useNavBarInset();
+  const navBarInset = useNavBarInset();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   return (
@@ -77,8 +77,9 @@ export default function TabLayout() {
               styles.tabBar,
               {
                 backgroundColor: colors.secondaryBackground,
-                height: 60 + navbarInset,
-                paddingBottom: Theme.spacing.xs + navbarInset,
+                // iOS does not hav a nav bar to account against
+                height: 60 + (Platform.OS === "android" ? navBarInset : 0),
+                paddingBottom: Theme.spacing.xs + (Platform.OS === "android" ? navBarInset : 0),
               },
             ]
           : { display: "none" },

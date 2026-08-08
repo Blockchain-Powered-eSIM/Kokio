@@ -74,7 +74,7 @@ const Header = ({
           >
             <Ionicons
               name="chevron-back-outline"
-              size={25}
+              size={28}
               color={iconColor}
             />
           </Pressable>
@@ -85,7 +85,7 @@ const Header = ({
       <View style={{ flex: 1, alignItems: "center", ...style }}>
         <ThemedText
           style={{ color: headerTextColor, ...titleStyle }}
-          className="text-[16px] font-Lexend"
+          className="text-[18px] font-Lexend"
         >
           {title || ""}
         </ThemedText>

@@ -52,7 +52,6 @@ export default function Countries() {
 
   return (
     <ThemedView style={styles.tabWrapper}>
-      <ThemedText style={styles.tabTitle}>{"Popular Destinations"}</ThemedText>
       <View style={styles.countriesWrapper}>
         <FlatList
           data={list}
@@ -63,7 +62,7 @@ export default function Countries() {
           initialNumToRender={12}
           maxToRenderPerBatch={12}
           windowSize={8}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 100 }}
           style={{ backgroundColor: "transparent" }}
           ListEmptyComponent={EmptyListComponent}
         />

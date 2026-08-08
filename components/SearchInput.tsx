@@ -15,7 +15,7 @@ import { Theme } from "@/constants/Colors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 
-const ICON_SIZE = 16;
+const ICON_SIZE = 28;
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
