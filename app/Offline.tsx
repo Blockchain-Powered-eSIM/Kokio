@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -10,15 +10,15 @@ import { useRouter } from "expo-router";
 import _isNull from "lodash/isNull";
 import NetInfo from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/ThemedText";
-import { Colors, Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { useToast } from "@/contexts/ToastContext";
 import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -30,14 +30,14 @@ const createStyles = () => StyleSheet.create({
     resizeMode: "contain",
   },
   heading: {
-    color: Theme.colors.text,
+    color: colors.text,
     fontSize: 35,
     textAlign: "center",
     marginBottom: 12,
     lineHeight: 36,
   },
   description: {
-    color: Theme.colors.text,
+    color: colors.text,
     fontSize: 14,
     textAlign: "center",
     paddingHorizontal: 56,
@@ -49,7 +49,7 @@ const createStyles = () => StyleSheet.create({
     marginBottom: 40,
   },
   retryButton: {
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: 30,
     alignSelf: "stretch",
     marginHorizontal: 56,
@@ -58,12 +58,12 @@ const createStyles = () => StyleSheet.create({
     paddingVertical: 11,
   },
   retryButtonText: {
-    color: Theme.colors.cardForeground,
+    color: colors.cardForeground,
     fontSize: 16,
     fontFamily: "Lexend",
   },
   continueButton: {
-    borderColor: Colors.dark.card,
+    borderColor: colors.card,
     borderWidth: 2,
     borderRadius: 30,
     paddingVertical: 11,
@@ -72,15 +72,14 @@ const createStyles = () => StyleSheet.create({
     alignItems: "center",
   },
   continueButtonText: {
-    color: Colors.dark.card,
+    color: colors.card,
     fontSize: 16,
     fontFamily: "Lexend",
   },
 });
 
 const OfflineScreen: React.FC = () => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { showMessage } = useToast();
 

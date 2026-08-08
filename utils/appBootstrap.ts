@@ -1,7 +1,7 @@
 import _keyBy from "lodash/keyBy";
 import type { components } from "@/utils/bff/generated/koKioBff";
 
-type ServiceRegion = components["schemas"]["ServiceRegion"];
+export type ServiceRegion = components["schemas"]["ServiceRegion"];
 
 type AppBootstrapInstance = {
   initialized: boolean;

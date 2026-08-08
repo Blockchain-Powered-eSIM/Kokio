@@ -210,7 +210,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
        * The credential won't be locally indexed for ~1s. 
        * Wait 1500ms so the first login attempt succeeds without dialog.
        */
-      await new Promise<void>(resolve => setTimeout(resolve, 500));
+      await new Promise<void>(resolve => setTimeout(resolve, 1500));
 
       /**
        * Registration creates the credential and derives the wallet, but does not establish a session.
@@ -273,6 +273,8 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     dispatch({ type: "REAUTHENTICATE" });
   };
 
+  // React Compiler is off for the project, useCallback is a functional requirement here
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const logout = useCallback(async () => {
     // Revoke the refresh token server-side (RFC 7009).
     // Server always returns 200; clear locally regardless of network errors.

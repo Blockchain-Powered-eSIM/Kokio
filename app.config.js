@@ -30,11 +30,6 @@ module.exports = ({ config }) => {
     icon: "./assets/images/icon.png",
     scheme: "kokio",
     userInterfaceStyle: "automatic",
-    splash: {
-      image: "./assets/images/splash.png",
-      resizeMode: "contain",
-      backgroundColor: "#242427",
-    },
     runtimeVersion: version,
     ios: {
       supportsTablet: true,
@@ -44,7 +39,6 @@ module.exports = ({ config }) => {
         usesNonExemptEncryption: false,
       },
       version,
-      buildNumber: "1",
       infoPlist: {
         NSPhotoLibraryUsageDescription:
           "This app may access your photo library when selecting or sharing images.",
@@ -56,7 +50,6 @@ module.exports = ({ config }) => {
         backgroundColor: "#242427",
       },
       package: "app.kokio.mobile",
-      edgeToEdgeEnabled: true,
       version,
       intentFilters: [
         {
@@ -82,6 +75,7 @@ module.exports = ({ config }) => {
           android: {
             compileSdkVersion: 36,
             targetSdkVersion: 36,
+            minSdkVersion: 24,
             kotlinVersion: "2.1.20",
           },
           ios: {
@@ -117,13 +111,14 @@ module.exports = ({ config }) => {
         "@stripe/stripe-react-native",
         {
           merchantIdentifier:
-            process.env.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio",
+            process.env.STRIPE_MERCHANT_IDENTIFIER,
           enableGooglePay: true,
         },
       ],
     ],
     experiments: {
       typedRoutes: true,
+      reactCompiler: true,
     },
     updates: {
       url: "https://u.expo.dev/8dc9c10c-4c1d-4711-9ffd-39264bc209e1",

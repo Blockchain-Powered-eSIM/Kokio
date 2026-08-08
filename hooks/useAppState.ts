@@ -4,7 +4,7 @@ import { logger } from '@/utils/logger';
 
 export function useAppState(reauth?: boolean) {
   const appState = useRef(AppState.currentState);
-  const [appStateVisible, setAppStateVisible] = useState(appState.current);
+  const [appStateVisible, setAppStateVisible] = useState(AppState.currentState);
   
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {

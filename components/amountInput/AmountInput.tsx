@@ -1,24 +1,23 @@
-import React, { useMemo } from "react";
 import { Dimensions, Image, StyleSheet, View } from "react-native";
 import CurrencyInput from "react-native-currency-input";
 
 import { ThemedText } from "../ThemedText";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CONTAINER_WIDTH = SCREEN_WIDTH - 24;
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   labelText: {
-    color: Theme.colors.foreground,
+    color: colors.foreground,
     fontSize: 14,
   },
   buttonStyle: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: CONTAINER_WIDTH,
-    backgroundColor: Theme.colors.inputBackground,
+    backgroundColor: colors.inputBackground,
     paddingVertical: 16,
     paddingHorizontal: 24,
     marginHorizontal: 0,
@@ -27,7 +26,7 @@ const createStyles = () => StyleSheet.create({
   },
   input: {
     fontSize: 18,
-    color: Theme.colors.text,
+    color: colors.text,
   },
   logoImage: {
     width: 24,
@@ -43,8 +42,7 @@ const AmountInput = ({
   value: number | null;
   onChangeValue: (num: number | null) => void;
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.buttonStyle}>
       <View>

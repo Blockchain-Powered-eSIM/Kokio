@@ -1,8 +1,9 @@
+import type { JSX } from "react";
 import { Platform } from "react-native";
 import { RadioButtonProps } from "react-native-radio-buttons-group";
 
 import { RADIO_KEYS } from "@/constants/checkout.constants";
-import { Theme } from "@/constants/Colors";
+import type { Palette } from "@/constants/Colors";
 
 import { ApplePay, CreditCard, ESimWallet, ExternalWallet, ExternalWalletBrowser } from "./components/radioLabels";
 
@@ -17,7 +18,8 @@ const radioButtonComponents: Record<string, JSX.Element> = {
 
 export const createRadioButtons = (
   selectedId: string | undefined,
-  buttonStyles = {}
+  buttonStyles = {},
+  colors: Palette
 ): RadioButtonProps[] =>
   Object.keys(RADIO_KEYS)
     .filter((key) => !(key === RADIO_KEYS.APPLE_PAY && Platform.OS !== "ios"))
@@ -27,12 +29,12 @@ export const createRadioButtons = (
         id: key,
         label: radioButtonComponents[key],
         value: key,
-        borderColor: Theme.colors.mutedForeground,
-        color: Theme.colors.secondary,
+        borderColor: colors.mutedForeground,
+        color: colors.secondary,
         disabled: isDisabled,
         containerStyle: [
           buttonStyles,
-          selectedId === key && { backgroundColor: Theme.colors.inputBackground },
+          selectedId === key && { backgroundColor: colors.inputBackground },
           isDisabled && { opacity: 0.4 },
         ],
       };

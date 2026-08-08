@@ -23,7 +23,7 @@ export default function TestScreen() {
   const { kokio, clearKokioUser } = useKokio();
 
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState(kokio.userData?.email ?? "");
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
 
   const [dpopResult, setDpopResult] = useState<string | null>(null);
@@ -174,7 +174,7 @@ export default function TestScreen() {
 
       {kokio.userData && (
         <Text style={styles.userText}>
-          Welcome User: {kokio.userData.userName}
+          Welcome User: Placeholder 
         </Text>
       )}
 

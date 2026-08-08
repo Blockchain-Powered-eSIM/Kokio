@@ -1,16 +1,11 @@
-// styles.ts
-import { StyleSheet } from "react-native";
-
-const tintColorLight = "#2A8FA0";
-
 export const Colors = {
   light: {
     text: "#1A3D4F",           // deep navy
     background: "#A8D8E8",     // sky blue — app bg
-    tint: tintColorLight,
+    tint: "#2A8FA0",
     icon: "#2A8FA0",
     tabIconDefault: "#7ABCCC",
-    tabIconSelected: tintColorLight,
+    tabIconSelected: "#2A8FA0",
     headerText: "#4A8090",
     foreground: "#4A8090",     // slate — secondary text
     card: "#FFFFFF",           // white — main cards
@@ -44,39 +39,25 @@ export const Colors = {
     highlight: "#FFCC00",
     secondaryBackground: "#242427",
     inactive: "#777777",
-
-    // background: '#ffffff',
     foreground: "#AEAEB2",
-
     card: "#FFD60A",
     cardForeground: "#000000",
-
     goldenYellow: "#FFAF01",
-
     popover: "#242427",
     popoverForeground: "#E5E5EA",
-
     primary: "#FF9F0A",
     primaryForeground: "#000000",
-
     secondary: "#FFD60A",
     secondaryForeground: "#000000",
-
     muted: "#46464B",
     mutedForeground: "#AEAEB2",
-
     accent: "#767680",
     accentForeground: "#8E8E93",
-
     destructive: "#FF453A",
     destructiveForeground: "#ffffff",
-
     border: "#FF9F0A",
-
     input: "#46464B",
-
     ring: "#006FEE",
-
     success: "#30D158",
   },
 };
@@ -104,21 +85,21 @@ const EXTRA_TOKENS = {
   sheetBackground: "rgba(37, 37, 37, 0.95)",
 };
 
-const DARK_TOKENS = {
+export const DARK_TOKENS = {
   ...Colors.dark,
   ...EXTRA_TOKENS,
-  background: "#242427",
+  background: "#000000",
   inputBackground: "#7676803D",
   surface: "#1a1a1a",
   surfaceElevated: "#2a2a2a",
   skeletonBase: "#5C5C61",
   skeletonHighlight: "#E0E0E0",
-  shopCta: "#FFAF01",           // dark: keeps current goldenYellow
-  payButton: "#FFD60A",         // dark: keeps current secondary
+  shopCta: "#FFAF01",               // dark: keeps current goldenYellow
+  payButton: "#FFD60A",             // dark: keeps current secondary
   walletModalBackground: "rgba(60, 60, 60, 0.9)", // dark: same as modalBackground
 };
 
-const LIGHT_TOKENS = {
+export const LIGHT_TOKENS = {
   ...Colors.light,
   ...EXTRA_TOKENS,
   background: "#A8D8E8",
@@ -131,7 +112,7 @@ const LIGHT_TOKENS = {
   secondaryBackground: "#FFFFFF",   // white tab bar
   goldenYellow: "#E8614A",          // coral — no yellow in light theme
   shopCta: "#7ABCCC",               // light: muted sky blue
-  payButton: "#FFFFFF",             // light: white
+  payButton: "#E8614A",             // light: white
   cardForeground: "#1A3D4F",
   highlight: "#E8614A",             // coral active tab tint
   inactive: "#7ABCCC",
@@ -145,11 +126,10 @@ const LIGHT_TOKENS = {
 };
 
 export const THEME_STORAGE_KEY = "@kokio_theme";
-
+export type Palette = typeof DARK_TOKENS & typeof LIGHT_TOKENS;
 export let isDarkTheme = true;
 
 export const Theme = {
-  colors: { ...DARK_TOKENS } as typeof DARK_TOKENS & typeof LIGHT_TOKENS,
   spacing: {
     xs: 4,
     sm: 8,
@@ -165,62 +145,45 @@ export const Theme = {
   },
 };
 
-export function applyTheme(isDark: boolean) {
-  isDarkTheme = isDark;
-  const tokens = isDark ? DARK_TOKENS : LIGHT_TOKENS;
-  Object.assign(Theme.colors, tokens);
-}
-
-export const createStyles = (StyleSheet: any) =>
-  StyleSheet.create({
-    tabBar: {
-      backgroundColor: Theme.colors.secondaryBackground,
-      borderTopColor: Theme.colors.border,
-      height: 60,
-      paddingBottom: Theme.spacing.xs,
-    },
-    tabBarIcon: {
-      marginTop: Theme.spacing.xs,
-    },
-  });
-
-export const globalStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.background,
-    padding: 10,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  list: {
-    backgroundColor: Theme.colors.secondaryBackground,
-    borderRadius: 25,
-    maxHeight: "auto",
-    padding: 10,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  menuItem: {
-    padding: 16,
-  },
-  menuItemContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  menuItemText: {
-    color: Colors.dark.text,
-    fontSize: 16,
-    fontWeight: "500",
-    flex: 1,
-  },
-  iconLeft: {
-    marginRight: 16,
-  },
-  iconRight: {
-    marginLeft: 16,
-  },
-  tabBar: {
-    backgroundColor: Theme.colors.secondaryBackground,
-    borderTopColor: Theme.colors.secondaryBackground,
-  },
-});
+// NOTE: This export is not used anywhere in the codebase
+// Edit this note if this changes
+// export const globalStyles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: Theme.colors.background,
+//     padding: 10,
+//     paddingTop: 20,
+//     paddingBottom: 40,
+//   },
+//   list: {
+//     backgroundColor: Theme.colors.secondaryBackground,
+//     borderRadius: 25,
+//     maxHeight: "auto",
+//     padding: 10,
+//     paddingTop: 20,
+//     paddingBottom: 40,
+//   },
+//   menuItem: {
+//     padding: 16,
+//   },
+//   menuItemContent: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//   },
+//   menuItemText: {
+//     color: Colors.dark.text,
+//     fontSize: 16,
+//     fontWeight: "500",
+//     flex: 1,
+//   },
+//   iconLeft: {
+//     marginRight: 16,
+//   },
+//   iconRight: {
+//     marginLeft: 16,
+//   },
+//   tabBar: {
+//     backgroundColor: Theme.colors.secondaryBackground,
+//     borderTopColor: Theme.colors.secondaryBackground,
+//   },
+// });

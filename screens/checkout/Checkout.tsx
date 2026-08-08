@@ -19,10 +19,12 @@ import _subtract from "lodash/subtract";
 import _toNumber from "lodash/toNumber";
 import _toUpper from "lodash/toUpper";
 
-import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
+import { ThemedText } from "@/components/ThemedText";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
@@ -42,7 +44,7 @@ import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
+import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import * as WebBrowser from "expo-web-browser";
 import {
   MoonpayCommerceProvider,
@@ -53,6 +55,50 @@ import { logger } from "@/utils/logger";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
+
+const createStyles = (colors: Palette) => StyleSheet.create({
+  container:              { flex: 1 },
+  scrollContent:          { flex: 1, paddingHorizontal: 12 },
+  scrollContentContainer: { paddingBottom: 20 },
+  checkoutButton: {
+    borderRadius: 32, paddingVertical: 12, flexDirection: "row",
+    alignItems: "center", justifyContent: "center",
+  },
+  checkoutButtonText: { fontSize: 16, fontWeight: "600" },
+  logoImage:          { width: 24, height: 24, objectFit: "contain" },
+  containerStyle:     { flex: 1, alignItems: "flex-start" },
+  buttonStyle: {
+    flexDirection: "row", justifyContent: "space-between", width: RADIO_WIDTH,
+    backgroundColor: colors.inputBackground, paddingVertical: 16, paddingHorizontal: 24,
+    marginHorizontal: 0, marginVertical: 2, borderRadius: 12, borderWidth: 1,
+  },
+  discountContainer:       { flexDirection: "row", marginTop: 12, gap: 8 },
+  discountInput: {
+    flex: 1, backgroundColor: colors.inputBackground, borderRadius: 12,
+    paddingVertical: 8, paddingHorizontal: 16, color: colors.foreground,
+    fontSize: 16, borderWidth: 1, borderColor: "transparent",
+  },
+  applyButton:             { borderRadius: 12, paddingVertical: 8, paddingHorizontal: 24, justifyContent: "center", alignItems: "center" },
+  applyButtonText:         { color: colors.secondaryForeground, fontSize: 16, fontWeight: "600" },
+  discountAppliedContainer:{ marginTop: 8, padding: 12, backgroundColor: colors.successBackground, borderRadius: 8 },
+  discountAppliedContent:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  discountAppliedText:     { color: colors.success, fontSize: 14 },
+  topupOptionRow: {
+    marginTop: 4, padding: 12, borderRadius: 8, borderWidth: 1,
+    backgroundColor: colors.inputBackground, borderColor: colors.mutedForeground,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+  },
+  topupOptionRowSelected:  { borderColor: colors.success, borderWidth: 2 },
+  topupOptionText:         { color: colors.foreground, fontSize: 14 },
+  removeDiscountButton:    { padding: 4, backgroundColor: colors.destructiveBackground, borderRadius: 32 },
+  discountErrorContainer:  { marginTop: 8, padding: 12, backgroundColor: colors.destructiveBackground, borderRadius: 8 },
+  discountErrorText:       { color: colors.destructive, fontSize: 14 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFill, backgroundColor: colors.overlay,
+    justifyContent: 'center', alignItems: 'center', gap: 16, zIndex: 10,
+  },
+  loadingText: { color: '#FFFFFF', fontSize: 15, fontWeight: '500' },
+});
 
 // ── ExternalWalletCheckout ────────────────────────────────────────────────────
 // SDK "as is" pattern per Helio docs. Must render inside MoonpayCommerceProvider.
@@ -118,56 +164,6 @@ const ExternalWalletCheckout = ({
   return null;
 };
 
-const createStyles = () => StyleSheet.create({
-  container:              { flex: 1 },
-  scrollContent:          { flex: 1, paddingHorizontal: 12 },
-  scrollContentContainer: { paddingBottom: 20 },
-  bottomButtonContainer: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 8 : 16,
-  },
-  checkoutButton: {
-    borderRadius: 32, paddingVertical: 12, flexDirection: "row",
-    alignItems: "center", justifyContent: "center",
-  },
-  checkoutButtonText: { fontSize: 16, fontWeight: "600" },
-  logoImage:          { width: 24, height: 24, objectFit: "contain" },
-  containerStyle:     { flex: 1, alignItems: "flex-start" },
-  buttonStyle: {
-    flexDirection: "row", justifyContent: "space-between", width: RADIO_WIDTH,
-    backgroundColor: Theme.colors.inputBackground, paddingVertical: 16, paddingHorizontal: 24,
-    marginHorizontal: 0, marginVertical: 2, borderRadius: 12, borderWidth: 1,
-  },
-  discountContainer:       { flexDirection: "row", marginTop: 12, gap: 8 },
-  discountInput: {
-    flex: 1, backgroundColor: Theme.colors.inputBackground, borderRadius: 12,
-    paddingVertical: 8, paddingHorizontal: 16, color: Theme.colors.foreground,
-    fontSize: 16, borderWidth: 1, borderColor: "transparent",
-  },
-  applyButton:             { borderRadius: 12, paddingVertical: 8, paddingHorizontal: 24, justifyContent: "center", alignItems: "center" },
-  applyButtonText:         { color: Theme.colors.secondaryForeground, fontSize: 16, fontWeight: "600" },
-  discountAppliedContainer:{ marginTop: 8, padding: 12, backgroundColor: Theme.colors.successBackground, borderRadius: 8 },
-  discountAppliedContent:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  discountAppliedText:     { color: Theme.colors.success, fontSize: 14 },
-  topupOptionRow: {
-    marginTop: 4, padding: 12, borderRadius: 8, borderWidth: 1,
-    backgroundColor: Theme.colors.inputBackground, borderColor: Theme.colors.mutedForeground,
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-  },
-  topupOptionRowSelected:  { borderColor: Theme.colors.success, borderWidth: 2 },
-  topupOptionText:         { color: Theme.colors.foreground, fontSize: 14 },
-  removeDiscountButton:    { padding: 4, backgroundColor: Theme.colors.destructiveBackground, borderRadius: 32 },
-  discountErrorContainer:  { marginTop: 8, padding: 12, backgroundColor: Theme.colors.destructiveBackground, borderRadius: 8 },
-  discountErrorText:       { color: Theme.colors.destructive, fontSize: 14 },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject, backgroundColor: Theme.colors.overlay,
-    justifyContent: 'center', alignItems: 'center', gap: 16, zIndex: 10,
-  },
-  loadingText: { color: '#FFFFFF', fontSize: 15, fontWeight: '500' },
-});
-
 // e.g. "United Arab Emirates · 7 Days · 1GB"
 function formatPlanLabel(plan?: Esim | null): string | undefined {
   if (!plan?.serviceRegionName) return undefined;
@@ -178,29 +174,9 @@ function formatPlanLabel(plan?: Esim | null): string | undefined {
   return parts.join(' · ');
 }
 
-// Builds a minimal Esim display shape from an ESimDocument's latest PlanHistoryEntry.
-function esimDocToDisplayItem(doc: ESimDocument): Esim {
-  const entries: PlanHistoryEntry[] = doc.planHistory ?? [];
-  const latest = entries[entries.length - 1] as PlanHistoryEntry | undefined;
-  return {
-    catalogueId:        '',
-    actualSellingPrice: 0,
-    isUnlimited:        latest?.isUnlimited      ?? false,
-    serviceRegionCode:  undefined,
-    serviceRegionFlag:  latest?.serviceRegionFlag ?? null,
-    serviceRegionName:  latest?.serviceRegionName ?? null,
-    coverageType:       latest?.coverageType      ?? 'LOCAL',
-    data:               latest?.data              ?? null,
-    sms:                latest?.sms               ?? null,
-    voice:              latest?.voice             ?? null,
-    validity:           latest?.validity          ?? null,
-    info:               null,
-  };
-}
-
 const Checkout = () => {
-  const { isDark } = useTheme();
-  const styles     = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const { item: eSimDetails } = useLocalSearchParams();
 
   const eSimItem: Esim = React.useMemo(() => {
@@ -237,10 +213,10 @@ const Checkout = () => {
   } | null>(null);
 
   const radioButtons: RadioButtonProps[] = useMemo(
-    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle),
+    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors),
     // All missing dependencies are of style attributes which are in their on useMemo() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedPaymentMethod],
+    [selectedPaymentMethod, colors],
   );
 
   const { showMessage }       = useToast();
@@ -287,11 +263,11 @@ const Checkout = () => {
   const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
   const bg = useThemeColor({}, "background");
 
-  useEffect(() => {
-    if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
-      setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
-    }
-  }, [compatibleEsims, compatibleTopUpEsimId]);
+  // useEffect(() => {
+  //   if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
+  //     setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
+  //   }
+  // }, [compatibleEsims, compatibleTopUpEsimId]);
 
   // Build a human-readable label for a compatible topup eSIM.
   // Source of truth is the live ESimDocument from useEsims() (server-truth),
@@ -515,7 +491,7 @@ const Checkout = () => {
         setSelectedPaymentMethod(value);
       }
     },
-    [kokio?.userWallet],
+    [kokio.userWallet],
   );
 
   const handleDiscountCodeChange = useCallback((text: string) => {
@@ -563,7 +539,7 @@ const Checkout = () => {
           <ThemedText>eSIM & Network</ThemedText>
           <View style={{ flexDirection: "row", marginTop: 12 }}>
             <Checkbox onChange={setIsESimEnabled} checked={isESimEnabled} />
-            <Text style={{ color: Theme.colors.foreground, marginLeft: 8 }}>
+            <Text style={{ color: colors.foreground, marginLeft: 8 }}>
               I confirm my device is eSIM compatible and network-enabled.
             </Text>
           </View>
@@ -589,15 +565,15 @@ const Checkout = () => {
               value={discountCode}
               onChangeText={handleDiscountCodeChange}
               placeholder="Enter coupon code"
-              placeholderTextColor={Theme.colors.muted}
+              placeholderTextColor={colors.muted}
               autoCapitalize="characters"
               maxLength={8}
             />
           </View>
           {isCouponLoading && (
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
-              <ActivityIndicator size="small" color={Theme.colors.foreground} />
-              <ThemedText style={{ marginLeft: 8, color: Theme.colors.muted, fontSize: 14 }}>
+              <ActivityIndicator size="small" color={colors.foreground} />
+              <ThemedText style={{ marginLeft: 8, color: colors.muted, fontSize: 14 }}>
                 Validating coupon…
               </ThemedText>
             </View>
@@ -632,7 +608,7 @@ const Checkout = () => {
                   accessibilityRole="button"
                   accessibilityLabel="Remove discount"
                 >
-                  <Ionicons name="close" size={16} color={Theme.colors.destructive} />
+                  <Ionicons name="close" size={16} color={colors.destructive} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -656,8 +632,8 @@ const Checkout = () => {
 
         {isCheckingTopup && (
           <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center" }}>
-            <ActivityIndicator size="small" color={Theme.colors.foreground} />
-            <ThemedText style={{ marginLeft: 8, color: Theme.colors.muted }}>
+            <ActivityIndicator size="small" color={colors.foreground} />
+            <ThemedText style={{ marginLeft: 8, color: colors.muted }}>
               Checking top-up compatibility…
             </ThemedText>
           </View>
@@ -690,7 +666,7 @@ const Checkout = () => {
         {!isCheckingTopup && isTopupCompatible && (
           <View style={{ marginTop: 16 }}>
             <ThemedText>Apply as Top-up</ThemedText>
-            <Text style={{ color: Theme.colors.foreground, marginTop: 4, marginBottom: 12 }}>
+            <Text style={{ color: colors.foreground, marginTop: 4, marginBottom: 12 }}>
               Select an eSIM to top up, or leave unselected to buy a new one
             </Text>
             {topupEsimOptions.map((r) => {
@@ -708,7 +684,7 @@ const Checkout = () => {
                   accessibilityLabel={`Apply this plan as a top-up to ${r.label}`}
                 >
                   <ThemedText style={styles.topupOptionText}>{r.label}</ThemedText>
-                  {isSelected && <Ionicons name="checkmark-circle" size={18} color={Theme.colors.success} />}
+                  {isSelected && <Ionicons name="checkmark-circle" size={18} color={colors.success} />}
                 </TouchableOpacity>
               );
             })}
@@ -716,22 +692,24 @@ const Checkout = () => {
         )}
       </KeyboardAwareScrollView>
 
-      <TouchableOpacity
-        key={`total-checkout-${canCheckout}`}
-        style={[styles.bottomButtonContainer, !canCheckout && { opacity: 0.5 }]}
-        onPress={canCheckout ? handleCheckout : undefined}
-        disabled={!canCheckout}
-        accessibilityRole="button"
-        accessibilityLabel={`Pay ${totalAmount} USD`}
-        accessibilityState={{ disabled: !canCheckout }}
-      >
-        <DetailItem
-          prefix="Pay "
-          value={totalAmount}
-          suffix="USD"
-          containerStyles={[styles.checkoutButton, { backgroundColor: Theme.colors.payButton }]}
-        />
-      </TouchableOpacity>
+      <BottomActionBar>
+        <TouchableOpacity
+          key={`total-checkout-${canCheckout}`}
+          style={!canCheckout && { opacity: 0.5 }}
+          onPress={canCheckout ? handleCheckout : undefined}
+          disabled={!canCheckout}
+          accessibilityRole="button"
+          accessibilityLabel={`Pay ${totalAmount} USD`}
+          accessibilityState={{ disabled: !canCheckout }}
+        >
+          <DetailItem
+            prefix="Pay "
+            value={totalAmount}
+            suffix="USD"
+            containerStyles={[styles.checkoutButton, { backgroundColor: colors.payButton }]}
+          />
+        </TouchableOpacity>
+      </BottomActionBar>
 
       {isCheckoutLoading && !!loadingMessage && (
         <View style={styles.loadingOverlay}>

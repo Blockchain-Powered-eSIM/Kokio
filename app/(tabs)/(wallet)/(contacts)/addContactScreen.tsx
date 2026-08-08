@@ -8,7 +8,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 import { router , useNavigation, useLocalSearchParams } from 'expo-router';
-import { Theme } from '@/constants/Colors';
+import { useColors } from "@/hooks/useColors";
 import { useToast } from '@/contexts/ToastContext';
 import { logger } from '@/utils/logger';
 
@@ -20,6 +20,7 @@ const AddContactScreen = () => {
     const [isLoading, setIsLoading] = useState(false);
     const navigation = useNavigation();
     const params = useLocalSearchParams();
+    const colors = useColors();
 
     useEffect(() => {
         // This will capture the wallet address when returning from the QR scan
@@ -133,8 +134,8 @@ const AddContactScreen = () => {
 
                     </View>
                     <View className='flex-1 gap-y-3 mt-[50]'>
-                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>First Name</ThemedText>
+                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={colors.foreground} className=' ml-6'>First Name</ThemedText>
                             <TextInput
                                 value={firstName}
                                 placeholder='Enter first name'
@@ -143,8 +144,8 @@ const AddContactScreen = () => {
                                 onChangeText={(text) => setFirstName(text)}
                             />
                         </ThemedView>
-                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Last Name</ThemedText>
+                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={colors.foreground} className=' ml-6'>Last Name</ThemedText>
                             <TextInput
                                 value={lastName}
                                 placeholder='Enter last name'
@@ -153,8 +154,8 @@ const AddContactScreen = () => {
                                 onChangeText={(text) => setLastName(text)}
                             />
                         </ThemedView>
-                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
+                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
                             <TextInput
                                 value={walletAddress}
                                 placeholder='Enter wallet address or scan QR code'

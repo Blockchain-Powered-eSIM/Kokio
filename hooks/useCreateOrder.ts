@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
+import * as Linking from 'expo-linking';
 
 import { submitOrder, pollOrderStatus, OrderNotFoundError } from '@/utils/bff/order';
 import type { CreateOrderRequest, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
@@ -102,9 +103,10 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
           merchantDisplayName: 'Kokio',
           paymentIntentClientSecret: data.clientSecret,
           customFlow: true,
-          applePay: { merchantCountryCode: 'US' },
-          googlePay: { merchantCountryCode: 'US', testEnv: __DEV__ },
+          applePay: { merchantCountryCode: 'SG' },
+          googlePay: { merchantCountryCode: 'SG', testEnv: __DEV__ },
           style: 'alwaysDark',
+          returnURL: Linking.createURL('stripe-redirect'),
         });
         if (initError) throw new StripeSheetError(initError.message);
 

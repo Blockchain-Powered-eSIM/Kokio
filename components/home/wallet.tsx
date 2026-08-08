@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   StyleSheet,
   Image,
@@ -8,15 +8,16 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from "react-native";
-import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { logger } from '@/utils/logger';
 
 interface WalletProps {
@@ -34,7 +35,7 @@ const shortenId = (
   return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
 };
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   headingText: {
     fontSize: 16,
     paddingLeft: 20,
@@ -43,10 +44,10 @@ const createStyles = () => StyleSheet.create({
   shadowContainer: {
     marginHorizontal: 8,
     borderRadius: 21,
-    backgroundColor: Theme.colors.text,
+    backgroundColor: colors.text,
     ...Platform.select({
       ios: {
-        shadowColor: Theme.colors.text,
+        shadowColor: colors.text,
         shadowOffset: {
           width: 0,
           height: 5,
@@ -56,7 +57,7 @@ const createStyles = () => StyleSheet.create({
       },
       android: {
         elevation: 6,
-        shadowColor: Theme.colors.text,
+        shadowColor: colors.text,
       },
     }),
   },
@@ -66,7 +67,7 @@ const createStyles = () => StyleSheet.create({
     overflow: "hidden",
   },
   backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     marginLeft: 70,
     width: "auto",
   },
@@ -82,7 +83,7 @@ const createStyles = () => StyleSheet.create({
     paddingLeft: 16,
     fontSize: 22,
     fontWeight: "500",
-    color: Theme.colors.text,
+    color: colors.text,
   },
   logo: {
     width: 32,
@@ -135,8 +136,9 @@ const createStyles = () => StyleSheet.create({
 });
 
 const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  
   const handleAddressPress = async () => {
     if (walletId) {
       const url = `${BASE_SEPOLIA_TESTNET}/${walletId}`;
@@ -148,22 +150,14 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
     }
   };
 
-  const handleCopyAddress = async () => {
-    if (walletId) {
-      try {
-        await Clipboard.setStringAsync(walletId);
-      } catch (error) {
-        logger.error('CLIPBOARD_COPY_FAILED', { error });
-      }
-    }
-  };
+  const { copied, copy } = useCopyFeedback();
 
   return (
     <View style={{ marginVertical: 12 }}>
-      <Text style={[styles.headingText, { color: Theme.colors.text }]}>Device Wallet</Text>
+      <Text style={[styles.headingText, { color: colors.text }]}>Device Wallet</Text>
       <View style={styles.shadowContainer}>
         <LinearGradient
-          colors={[Theme.colors.gradientDark, Theme.colors.background]}
+          colors={[colors.gradientDark, colors.background]}
           start={{ x: 0.2, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.gradient}
@@ -211,18 +205,22 @@ const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps
                     <MaterialIcons
                       name="open-in-new"
                       size={16}
-                      color={Theme.colors.foreground}
+                      color={colors.foreground}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={handleCopyAddress}
+                    onPress={() => walletId && copy(walletId)}
                     disabled={!walletId}
                     style={styles.iconButton}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     accessibilityRole="button"
                     accessibilityLabel="Copy wallet address"
                   >
-                    <Ionicons name="copy-outline" size={16} color={Theme.colors.foreground} />
+                    <Ionicons
+                      name={copied ? "checkmark" : "copy-outline"}
+                      size={16}
+                      color={copied ? colors.success : colors.foreground}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>

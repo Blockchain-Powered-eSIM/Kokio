@@ -1,4 +1,3 @@
-import React from "react";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -14,7 +13,7 @@ function EsimsByCountry() {
   const { data, isLoading, error, refetch } = useCatalogueByCountry(countryCode);
 
   if (isLoading) {
-    return <DataPackTabGroup esims={[]} isLoading containerStyle={styles.container} />;
+    return <DataPackTabGroup plans={[]} isLoading containerStyle={styles.container} />;
   }
 
   if (error) {
@@ -38,7 +37,7 @@ function EsimsByCountry() {
 
   return (
     <DataPackTabGroup
-      esims={data.plans}
+      plans={data.plans}
       containerStyle={styles.container}
     />
   );
@@ -63,4 +62,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(EsimsByCountry);
+export default EsimsByCountry;

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -13,14 +13,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import { logger } from "@/utils/logger";
 
@@ -39,45 +40,9 @@ function buildAppleUrl(lpa: string): string {
   return `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${lpa}`;
 }
 
-// ─── Status chip config ───────────────────────────────────────────────────────
-
-type ActivationStatus = ESimDocument["activationStatus"];
-
-const ACTIVATION_LABEL: Record<ActivationStatus, string> = {
-  RELEASED:    "Ready to Install",
-  INSTALLED:   "Active",
-  UNAVAILABLE: "Unavailable",
-  DEACTIVATED: "Deactivated",
-};
-
-const ACTIVATION_COLOR: Record<ActivationStatus, string> = {
-  RELEASED:    Theme.colors.info,
-  INSTALLED:   Theme.colors.success,
-  UNAVAILABLE: Theme.colors.warning,
-  DEACTIVATED: Theme.colors.destructive,
-};
-
-type BundleStatus = PlanHistoryEntry["bundleStatus"];
-
-const BUNDLE_LABEL: Record<BundleStatus, string> = {
-  QUEUED:   "Queued",
-  ACTIVE:   "Active",
-  FINISHED: "Finished",
-  EXPIRED:  "Expired",
-  UNKNOWN:  "Unknown",
-};
-
-const BUNDLE_COLOR: Record<BundleStatus, string> = {
-  QUEUED:   Theme.colors.info,
-  ACTIVE:   Theme.colors.success,
-  FINISHED: Theme.colors.warning,
-  EXPIRED:  Theme.colors.destructive,
-  UNKNOWN:  Theme.colors.mutedForeground,
-};
-
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = () =>
+const createStyles = (colors: Palette) =>
   StyleSheet.create({
     safeArea:       { flex: 1 },
     header: {
@@ -87,14 +52,14 @@ const createStyles = () =>
       paddingHorizontal: 16,
       paddingVertical:   12,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: Theme.colors.muted,
+      borderBottomColor: colors.muted,
     },
     headerLeft:    { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
     headerFlag:    { width: 32, height: 22, borderRadius: 3 },
     headerRegion: {
       fontSize:   17,
       fontWeight: "600",
-      color:      Theme.colors.text,
+      color:      colors.text,
       flexShrink: 1,
     },
     chip: {
@@ -109,7 +74,7 @@ const createStyles = () =>
 
     // Section card
     section: {
-      backgroundColor: Theme.colors.surface,
+      backgroundColor: colors.surface,
       borderRadius:    14,
       padding:         14,
       gap:             10,
@@ -119,7 +84,7 @@ const createStyles = () =>
       fontWeight:   "700",
       letterSpacing: 0.5,
       textTransform: "uppercase",
-      color:         Theme.colors.mutedForeground,
+      color:         colors.mutedForeground,
       marginBottom:  2,
     },
 
@@ -127,7 +92,7 @@ const createStyles = () =>
     usageBarTrack: {
       height:       8,
       borderRadius: 4,
-      backgroundColor: Theme.colors.muted,
+      backgroundColor: colors.muted,
       overflow:     "hidden",
     },
     usageBarFill: {
@@ -139,9 +104,9 @@ const createStyles = () =>
       justifyContent: "space-between",
       alignItems:     "center",
     },
-    usageLabel:  { fontSize: 13, color: Theme.colors.mutedForeground },
-    usageValue:  { fontSize: 13, fontWeight: "600", color: Theme.colors.text },
-    usageExpiry: { fontSize: 12, color: Theme.colors.mutedForeground, marginTop: 2 },
+    usageLabel:  { fontSize: 13, color: colors.mutedForeground },
+    usageValue:  { fontSize: 13, fontWeight: "600", color: colors.text },
+    usageExpiry: { fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
 
     // Degraded state
     degradedBox: {
@@ -152,7 +117,7 @@ const createStyles = () =>
       borderRadius:    8,
       padding:         10,
     },
-    degradedText: { flex: 1, fontSize: 13, color: Theme.colors.warning },
+    degradedText: { flex: 1, fontSize: 13, color: colors.warning },
 
     // Copy row
     copyRow: {
@@ -160,19 +125,19 @@ const createStyles = () =>
       alignItems:     "center",
       paddingVertical: 10,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: Theme.colors.muted,
+      borderBottomColor: colors.muted,
     },
     copyLabel: {
       fontSize:      11,
       fontWeight:    "600",
       letterSpacing: 0.3,
       textTransform: "uppercase",
-      color:         Theme.colors.mutedForeground,
+      color:         colors.mutedForeground,
       marginBottom:  2,
     },
     copyValue: {
       fontSize:      13,
-      color:         Theme.colors.text,
+      color:         colors.text,
       fontFamily:    Platform.OS === "ios" ? "Menlo" : "monospace",
     },
 
@@ -185,27 +150,27 @@ const createStyles = () =>
       alignItems:      "center",
       justifyContent:  "center",
       gap:             8,
-      backgroundColor: Theme.colors.primary,
+      backgroundColor: colors.primary,
       borderRadius:    12,
       paddingVertical: 12,
     },
-    appleBtnText: { fontSize: 15, fontWeight: "600", color: Theme.colors.primaryForeground },
+    appleBtnText: { fontSize: 15, fontWeight: "600", color: colors.primaryForeground },
 
     // Plan history entry
     historyEntry: {
       paddingVertical:   8,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: Theme.colors.muted,
+      borderBottomColor: colors.muted,
       gap:               4,
     },
     historyEntryTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-    historyPlanId:   { fontSize: 13, fontWeight: "500", color: Theme.colors.text, flexShrink: 1 },
-    historyDate:     { fontSize: 12, color: Theme.colors.mutedForeground },
-    historyAllowance:{ fontSize: 12, color: Theme.colors.mutedForeground, marginTop: 2 },
+    historyPlanId:   { fontSize: 13, fontWeight: "500", color: colors.text, flexShrink: 1 },
+    historyDate:     { fontSize: 12, color: colors.mutedForeground },
+    historyAllowance:{ fontSize: 12, color: colors.mutedForeground, marginTop: 2 },
 
     // Row — icon + label
     iconRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    iconRowText: { fontSize: 13, color: Theme.colors.text },
+    iconRowText: { fontSize: 13, color: colors.text },
 
     // Buttons
     primaryBtn: {
@@ -213,33 +178,33 @@ const createStyles = () =>
       alignItems:      "center",
       justifyContent:  "center",
       gap:             8,
-      backgroundColor: Theme.colors.primary,
+      backgroundColor: colors.primary,
       borderRadius:    14,
       paddingVertical: 14,
       marginTop:       4,
     },
-    primaryBtnText: { fontSize: 16, fontWeight: "600", color: Theme.colors.primaryForeground },
+    primaryBtnText: { fontSize: 16, fontWeight: "600", color: colors.primaryForeground },
     outlineBtn: {
       flexDirection:   "row",
       alignItems:      "center",
       justifyContent:  "center",
       gap:             8,
       borderWidth:     1,
-      borderColor:     Theme.colors.muted,
+      borderColor:     colors.muted,
       borderRadius:    14,
       paddingVertical: 14,
     },
-    outlineBtnText: { fontSize: 16, fontWeight: "500", color: Theme.colors.text },
+    outlineBtnText: { fontSize: 16, fontWeight: "500", color: colors.text },
 
     // Not found
     notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8 },
-    notFoundText: { fontSize: 15, color: Theme.colors.mutedForeground },
+    notFoundText: { fontSize: 15, color: colors.mutedForeground },
   });
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const Chip = ({ label, color }: { label: string; color: string }) => {
-  const styles = useMemo(createStyles, []);
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.chip, { backgroundColor: color + "22" }]}>
       <Text style={[styles.chipText, { color }]}>{label}</Text>
@@ -256,18 +221,13 @@ const CopyRow = ({
   value: string;
   last?: boolean;
 }) => {
-  const styles = useMemo(createStyles, []);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    await Clipboard.setStringAsync(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }, [value]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const { copied, copy } = useCopyFeedback();
 
   return (
     <TouchableOpacity
-      onPress={handleCopy}
+      onPress={() => copy(value)}
       style={[styles.copyRow, last && { borderBottomWidth: 0 }]}
       activeOpacity={0.7}
     >
@@ -280,7 +240,7 @@ const CopyRow = ({
       <Ionicons
         name={copied ? "checkmark-circle" : "copy-outline"}
         size={18}
-        color={copied ? Theme.colors.success : Theme.colors.mutedForeground}
+        color={copied ? colors.success : colors.mutedForeground}
       />
     </TouchableOpacity>
   );
@@ -289,42 +249,37 @@ const CopyRow = ({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function EsimDetailScreen() {
-  const { isDark } = useTheme();
-  const styles     = useMemo(createStyles, [isDark]);
-  const bg         = useThemeColor({}, "background");
-  const router     = useRouter();
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const bg = useThemeColor({}, "background");
+  const router = useRouter();
 
   const { esimId } = useLocalSearchParams<{ esimId: string }>();
 
   // Read ESimDocument from the React Query cache populated by useEsims().
   // No additional network call (card press implies the eSIM is in the active list).
   const { esims } = useEsims();
-  const doc = useMemo(
-    () => esims.find((e) => e.esimId === esimId),
-    [esims, esimId],
-  );
+  const doc = esims.find((e) => e.esimId === esimId)
 
   const { usage, isLoading: usageLoading, isError: isFetchError, usageUnavailable, refetch: refetchUsage } =
     useEsimUsage(esimId);
 
-  const latest = useMemo<PlanHistoryEntry | undefined>(() => {
-    const history = doc?.planHistory ?? [];
-    return history[history.length - 1];
-  }, [doc]);
+  const history = doc?.planHistory ?? [];
+  const latest: PlanHistoryEntry | undefined = history[history.length - 1];
 
   const lpa        = doc ? buildLpa(doc) : null;
   const appleUrl   = lpa ? buildAppleUrl(lpa) : null;
 
-  const handleAppleInstall = useCallback(async () => {
+  const handleAppleInstall = async () => {
     if (!appleUrl) return;
     try {
       await Linking.openURL(appleUrl);
     } catch (err) {
       logger.error('ESIM_APPLE_INSTALL_FAILED', { err });
     }
-  }, [appleUrl]);
+  };
 
-  const handleViewOrder = useCallback(() => {
+  const handleViewOrder = () => {
     router.back();
     // Small delay so the modal dismiss animation completes before navigation.
     setTimeout(() => {
@@ -333,17 +288,53 @@ export default function EsimDetailScreen() {
         params: { expandOrderId: esimId },
       });
     }, 300);
-  }, [router, esimId]);
+  };
 
+  // ─── Status chip config ───────────────────────────────────────────────────────
+  
+  type ActivationStatus = ESimDocument["activationStatus"];
+  
+  const ACTIVATION_LABEL: Record<ActivationStatus, string> = {
+    RELEASED:    "Ready to Install",
+    INSTALLED:   "Active",
+    UNAVAILABLE: "Unavailable",
+    DEACTIVATED: "Deactivated",
+  };
+  
+  const ACTIVATION_COLOR: Record<ActivationStatus, string> = {
+    RELEASED:    colors.info,
+    INSTALLED:   colors.success,
+    UNAVAILABLE: colors.warning,
+    DEACTIVATED: colors.destructive,
+  };
+  
+  type BundleStatus = PlanHistoryEntry["bundleStatus"];
+  
+  const BUNDLE_LABEL: Record<BundleStatus, string> = {
+    QUEUED:   "Queued",
+    ACTIVE:   "Active",
+    FINISHED: "Finished",
+    EXPIRED:  "Expired",
+    UNKNOWN:  "Unknown",
+  };
+  
+  const BUNDLE_COLOR: Record<BundleStatus, string> = {
+    QUEUED:   colors.info,
+    ACTIVE:   colors.success,
+    FINISHED: colors.warning,
+    EXPIRED:  colors.destructive,
+    UNKNOWN:  colors.mutedForeground,
+  };
+  
   // ── Usage bar colour ──────────────────────────────────────────────────────
 
   const usageBarColor = useMemo(() => {
-    if (!usage?.remaining || !usage?.total) return Theme.colors.primary;
+    if (!usage?.remaining || !usage?.total) return colors.primary;
     const ratio = usage.remaining / usage.total;
-    if (ratio > 0.4) return Theme.colors.success;
-    if (ratio > 0.15) return Theme.colors.warning;
-    return Theme.colors.destructive;
-  }, [usage]);
+    if (ratio > 0.4) return colors.success;
+    if (ratio > 0.15) return colors.warning;
+    return colors.destructive;
+  }, [usage, colors]);
 
   const usageFillPct = useMemo(() => {
     if (!usage?.remaining || !usage?.total) return 0;
@@ -356,10 +347,10 @@ export default function EsimDetailScreen() {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: bg }]} edges={["top", "bottom"]}>
         <View style={styles.notFound}>
-          <Ionicons name="alert-circle-outline" size={40} color={Theme.colors.mutedForeground} />
+          <Ionicons name="alert-circle-outline" size={40} color={colors.mutedForeground} />
           <Text style={styles.notFoundText}>eSIM not found</Text>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: Theme.colors.link, fontSize: 14 }}>Go back</Text>
+            <Text style={{ color: colors.link, fontSize: 14 }}>Go back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -395,7 +386,7 @@ export default function EsimDetailScreen() {
             accessibilityLabel="Close eSIM detail"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close-circle" size={26} color={Theme.colors.mutedForeground} />
+            <Ionicons name="close-circle" size={26} color={colors.mutedForeground} />
           </TouchableOpacity>
         </View>
       </View>
@@ -411,31 +402,31 @@ export default function EsimDetailScreen() {
           <Text style={styles.sectionTitle}>Data Remaining</Text>
 
           {usageLoading ? (
-            <ActivityIndicator size="small" color={Theme.colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : isFetchError ? (
             // Network/auth error — the BFF call itself failed
             <View style={styles.degradedBox}>
-              <Ionicons name="cloud-offline-outline" size={18} color={Theme.colors.warning} />
+              <Ionicons name="cloud-offline-outline" size={18} color={colors.warning} />
               <Text style={styles.degradedText}>Could not fetch live usage.</Text>
               <TouchableOpacity onPress={refetchUsage} hitSlop={8}>
-                <Text style={{ color: Theme.colors.link, fontSize: 13 }}>Retry</Text>
+                <Text style={{ color: colors.link, fontSize: 13 }}>Retry</Text>
               </TouchableOpacity>
             </View>
           ) : usageUnavailable ? (
             // 200 response but vendor returned an error for this eSIM
             <View style={styles.degradedBox}>
-              <Ionicons name="warning-outline" size={18} color={Theme.colors.warning} />
+              <Ionicons name="warning-outline" size={18} color={colors.warning} />
               <Text style={styles.degradedText}>
                 Live usage data is temporarily unavailable.
               </Text>
               <TouchableOpacity onPress={refetchUsage} hitSlop={8}>
-                <Text style={{ color: Theme.colors.link, fontSize: 13 }}>Retry</Text>
+                <Text style={{ color: colors.link, fontSize: 13 }}>Retry</Text>
               </TouchableOpacity>
             </View>
           ) : usage?.isUnlimited ? (
             <View style={styles.usageRow}>
               <Text style={styles.usageLabel}>Data</Text>
-              <Text style={[styles.usageValue, { color: Theme.colors.success }]}>Unlimited</Text>
+              <Text style={[styles.usageValue, { color: colors.success }]}>Unlimited</Text>
             </View>
           ) : (
             <>
@@ -566,7 +557,7 @@ export default function EsimDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Install eSIM on this iPhone"
                 >
-                  <Ionicons name="phone-portrait-outline" size={18} color={Theme.colors.primaryForeground} />
+                  <Ionicons name="phone-portrait-outline" size={18} color={colors.primaryForeground} />
                   <Text style={styles.appleBtnText}>Install on this iPhone</Text>
                 </TouchableOpacity>
               )}
@@ -574,7 +565,7 @@ export default function EsimDetailScreen() {
           ) : (
             <>
               <CopyRow label="ICCID" value={doc.iccid} last />
-              <Text style={{ fontSize: 13, color: Theme.colors.mutedForeground, marginTop: 4 }}>
+              <Text style={{ fontSize: 13, color: colors.mutedForeground, marginTop: 4 }}>
                 QR code not yet available. Check back after the eSIM is fully provisioned.
               </Text>
             </>
@@ -640,7 +631,7 @@ export default function EsimDetailScreen() {
           accessibilityRole="button"
           accessibilityLabel="View order details"
         >
-          <Ionicons name="receipt-outline" size={18} color={Theme.colors.primaryForeground} />
+          <Ionicons name="receipt-outline" size={18} color={colors.primaryForeground} />
           <Text style={styles.primaryBtnText}>View Order</Text>
         </TouchableOpacity>
 

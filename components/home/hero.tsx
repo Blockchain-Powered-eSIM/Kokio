@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,13 @@ import { router } from "expo-router";
 
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 
 import { Card, CardFooter } from "../ui/Card";
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   backgroundImageContainer: {
     overflow: "hidden",
     width: "100%",
@@ -47,12 +50,12 @@ const createStyles = () => StyleSheet.create({
   header: {
     fontSize: 18,
     fontWeight: "700",
-    color: Theme.colors.cardForeground,
+    color: colors.cardForeground,
   },
   subHeader: {
     fontSize: 10,
     fontWeight: "400",
-    color: Theme.colors.cardForeground,
+    color: colors.cardForeground,
   },
   heroButton: {
     borderRadius: 40,
@@ -68,7 +71,8 @@ const createStyles = () => StyleSheet.create({
 
 const Hero = () => {
   const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const handleShopCTAClick = useCallback(() => {
     router.navigate("/(tabs)/(shop)");
   }, []);
@@ -94,14 +98,14 @@ const Hero = () => {
         </View>
         <TouchableOpacity
           style={[styles.heroButton, {
-            backgroundColor: isDark ? Theme.colors.text : Theme.colors.shopCta,
+            backgroundColor: isDark ? colors.text : colors.shopCta,
           }]}
           onPress={handleShopCTAClick}
           accessibilityRole="button"
           accessibilityLabel="Shop for eSIM plans"
         >
           <Text style={[styles.heroButtonText, {
-            color: isDark ? Theme.colors.background : Theme.colors.secondaryForeground,
+            color: isDark ? colors.background : colors.secondaryForeground,
           }]}>Shop</Text>
         </TouchableOpacity>
       </CardFooter>

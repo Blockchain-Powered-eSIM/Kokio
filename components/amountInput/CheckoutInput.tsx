@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   TextInput,
   StyleSheet,
@@ -8,22 +8,23 @@ import {
   ViewStyle,
 } from "react-native";
 import { ThemedText } from "../ThemedText";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 
 interface CheckoutInputProps extends TextInputProps {
   label: string;
   containerStyle?: StyleProp<ViewStyle>;
 }
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   blurContainer: {
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 12,
   },
   inner: {
-    backgroundColor: Theme.colors.inputBackground,
+    backgroundColor: colors.inputBackground,
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 14,
@@ -32,12 +33,12 @@ const createStyles = () => StyleSheet.create({
     justifyContent: "center",
   },
   label: {
-    color: Theme.colors.accentForeground,
+    color: colors.accentForeground,
     fontSize: 12,
     marginBottom: 6,
   },
   input: {
-    color: Theme.colors.accentForeground,
+    color: colors.accentForeground,
     fontSize: 20,
     padding: 0,
     margin: 0,
@@ -51,8 +52,8 @@ const CheckoutInput: React.FC<CheckoutInputProps> = ({
   value,
   ...props
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   return (
     <View style={[styles.inner, containerStyle]}>
       <ThemedText light style={styles.label}>{label}</ThemedText>
@@ -61,7 +62,7 @@ const CheckoutInput: React.FC<CheckoutInputProps> = ({
         value={value}
         style={styles.input}
         placeholder=""
-        placeholderTextColor={Theme.colors.foreground}
+        placeholderTextColor={colors.foreground}
       />
     </View>
   );

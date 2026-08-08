@@ -1,6 +1,6 @@
 import { ThemedView } from "@/components/ThemedView";
-import { Theme } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
+import { useColors } from "@/hooks/useColors";
 import { Image, Pressable, View } from "react-native";
 import React, { useState, useCallback } from "react";
 import { router , useFocusEffect } from "expo-router";
@@ -21,6 +21,7 @@ interface Contact {
 
 const ContactsScreen = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const colors = useColors();
 
   const getAllContacts = async () => {
     try {
@@ -56,11 +57,11 @@ const ContactsScreen = () => {
   );
   return (
     <ThemedView
-      darkColor={Theme.colors.surface}
+      darkColor={colors.surface}
       className="mx-2 py-3   rounded-3xl mt-5 w-auto"
     >
       <ThemedView
-        darkColor={Theme.colors.surface}
+        darkColor={colors.surface}
         className="gap-y-4 justify-start items-center gap-x-1 flex-wrap bg-slate-50 flex-row mt-7 mb-3"
       >
         {/* add contact btn  */}
@@ -70,7 +71,7 @@ const ContactsScreen = () => {
           }
           className="ml-[-10] justify-center mt-[-19] mr-4 "
         >
-          <View className="ml-8 h-16 items-center justify-center w-16 rounded-full" style={{ backgroundColor: Theme.colors.warning }}>
+          <View className="ml-8 h-16 items-center justify-center w-16 rounded-full" style={{ backgroundColor: colors.warning }}>
             <Image
               source={require("../../assets/images/wallet/add_contact.png")}
               className="h-[32] w-[38]"

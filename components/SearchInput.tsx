@@ -11,9 +11,37 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { Colors, Theme } from "@/constants/Colors";
+import { Theme } from "@/constants/Colors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 
-const ICON_SIZE = 16;
+const ICON_SIZE = 28;
+
+const createStyles = (colors: Palette) => StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: Theme.spacing.sm,
+    paddingVertical: 2,
+    paddingHorizontal: 12,
+    alignSelf: "center",
+    shadowColor: colors.background,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  searchIconContainer: {
+    marginRight: 10,
+  },
+  input: {
+    width: "100%",
+    flex: 1,
+  },
+  clearButton: {
+    padding: Theme.spacing.xs,
+  },
+});
 
 const SearchBar = ({
   placeholder = "Search...",
@@ -28,6 +56,7 @@ const SearchBar = ({
   containerStyle?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
 }) => {
+  const styles = useThemedStyles(createStyles);
   const inputBg = useThemeColor({}, "input");
   const foreground = useThemeColor({}, "foreground");
   const [searchText, setSearchText] = useState("");
@@ -76,31 +105,5 @@ const SearchBar = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: Theme.spacing.sm,
-    paddingVertical: 2,
-    paddingHorizontal: 12,
-    alignSelf: "center",
-    shadowColor: Colors.dark.background,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  searchIconContainer: {
-    marginRight: 10,
-  },
-  input: {
-    width: "100%",
-    flex: 1,
-  },
-  clearButton: {
-    padding: Theme.spacing.xs,
-  },
-});
 
 export default SearchBar;

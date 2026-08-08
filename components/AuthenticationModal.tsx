@@ -13,19 +13,22 @@ import BottomSheet, {
   BottomSheetBackdropProps,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { useBottomInset } from "@/hooks/useBottomInset";
 import { isAccountDeletedCached, subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { ThemedText } from "./ThemedText";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
-import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 import { logger } from '@/utils/logger';
 
 type AuthMode = "choice" | "authenticating" | "error";
 
-const createStyles = () =>
+const createStyles = (colors: Palette) =>
   StyleSheet.create({
     kokioImage: {
       height: 60,
@@ -77,7 +80,7 @@ const createStyles = () =>
     },
     errorText: {
       fontSize: 13,
-      color: Theme.colors.destructive,
+      color: colors.destructive,
       fontFamily: "Lexend-Light",
       textAlign: "center",
       marginTop: 12,
@@ -102,7 +105,7 @@ const createStyles = () =>
       borderRadius: 14,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: Theme.colors.highlight,
+      backgroundColor: colors.highlight,
     },
     primaryButton: {
       flex: 1,
@@ -111,7 +114,7 @@ const createStyles = () =>
       borderRadius: 14,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: Theme.colors.highlight,
+      backgroundColor: colors.highlight,
     },
     primaryButtonText: {
       fontSize: 16,
@@ -127,19 +130,22 @@ const createStyles = () =>
       alignItems: "center",
       justifyContent: "center",
       borderWidth: 1,
-      borderColor: Theme.colors.foreground,
+      borderColor: colors.foreground,
     },
     secondaryButtonText: {
       fontSize: 16,
       fontWeight: "300",
       fontFamily: "Lexend-Light",
-      color: Theme.colors.foreground,
+      color: colors.foreground,
     },
   });
 
 export function AuthenticationModal() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const isDark = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const bottomInset = useBottomInset(20);
+
   const [mode, setMode] = useState<AuthMode>("choice");
   const [accountDeleted, setAccountDeleted] = useState(isAccountDeletedCached());
   const [localError, setLocalError] = useState("");
@@ -175,6 +181,7 @@ export function AuthenticationModal() {
   useEffect(() => {
     if (kokio.deviceWalletAddress) {
       hasResolvedOnce.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsReturningUser(true);
       return;
     }
@@ -321,6 +328,8 @@ export function AuthenticationModal() {
       // expanded/closed, never unmounted — so `mode` from a prior attempt
       // (e.g. left at "authenticating" after a successful login) would
       // otherwise leak into the next time the modal reopens (e.g. on logout).
+      // TODO: Fix this lint error
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       resetErrors();
       setMode("choice");
       sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
@@ -332,6 +341,8 @@ export function AuthenticationModal() {
   }, [state.authenticated]);
 
   useEffect(() => {
+    // TODO: Fix this lint error
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (state.error) setMode("error");
   }, [state.error]);
 
@@ -341,10 +352,10 @@ export function AuthenticationModal() {
         <ActivityIndicator
           size={70}
           style={styles.loadingImage}
-          color={Theme.colors.highlight}
+          color={colors.highlight}
         />
         {mode === "authenticating" && (
-          <ThemedText style={[styles.loadingText, { color: Theme.colors.foreground }]}>
+          <ThemedText style={[styles.loadingText, { color: colors.foreground }]}>
             Authenticating...
           </ThemedText>
         )}
@@ -364,25 +375,25 @@ export function AuthenticationModal() {
       enablePanDownToClose={false}
       animateOnMount={true}
       style={{ borderRadius: 25, flex: 1 }}
-      backgroundStyle={{ backgroundColor: Theme.colors.modalBackground }}
+      backgroundStyle={{ backgroundColor: colors.modalBackground }}
     >
-      <BottomSheetView style={{ alignItems: "center", flex: 1, padding: 20 }}>
+      <BottomSheetView style={{ alignItems: "center", flex: 1, paddingTop: 20, paddingHorizontal: 20, paddingBottom: bottomInset }}>
         <Image
           source={require("@/assets/images/kokio-text.png")}
           style={styles.kokioImage}
         />
-        <ThemedText style={[styles.authRequiredText, { color: Theme.colors.text }]}>
+        <ThemedText style={[styles.authRequiredText, { color: colors.text }]}>
           {accountDeleted ? "Account Deleted" : "Authentication Required"}
         </ThemedText>
 
         {accountDeleted ? (
           <>
-            <ThemedText style={[styles.deletedBody, { color: Theme.colors.foreground }]}>
+            <ThemedText style={[styles.deletedBody, { color: colors.foreground }]}>
               This account has been deleted and cannot be restored. If your Kokio passkey
               is still on this device, remove it from your password manager — it no longer
               grants access to anything.
             </ThemedText>
-            <ThemedText style={[styles.deletedBody, { color: Theme.colors.foreground }]}>
+            <ThemedText style={[styles.deletedBody, { color: colors.foreground }]}>
               To use Kokio again, create a new account. This generates a new passkey and a
               new wallet.
             </ThemedText>
@@ -402,7 +413,7 @@ export function AuthenticationModal() {
           </>
         ) : (
           <>
-            <ThemedText style={[styles.authSubtext, { color: Theme.colors.foreground }]}>
+            <ThemedText style={[styles.authSubtext, { color: colors.foreground }]}>
               {mode === "authenticating"
                 ? "Verifying your identity…"
                 : isReturningUser === null
@@ -449,7 +460,7 @@ export function AuthenticationModal() {
           }}
           style={{ alignSelf: "flex-start", marginTop: 32, marginBottom: 32 }}
         >
-          <ThemedText style={[styles.cancelText, { color: Theme.colors.link }]}>
+          <ThemedText style={[styles.cancelText, { color: colors.link }]}>
             Cancel
           </ThemedText>
         </Pressable>

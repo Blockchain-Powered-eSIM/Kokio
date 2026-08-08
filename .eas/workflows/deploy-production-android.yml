@@ -9,7 +9,7 @@ jobs:
       profile: production
 
   submit_android:
-    name: Submit Android to Play production
+    name: Submit Android to Play Closed Testing (Draft) 
     needs: [build_android]
     type: submit
     environment: production

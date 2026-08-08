@@ -2,22 +2,16 @@
  * Learn more about light and dark modes:
  * https://docs.expo.dev/guides/color-schemes/
  */
-
-import _get from "lodash/get";
-
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
-  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+  colorName: keyof Palette
 ) {
-  const theme = useColorScheme();
-  const colorFromProps = _get(props, theme);
-
-  if (colorFromProps) {
-    return colorFromProps;
-  } else {
-    return _get(Colors, [theme, colorName]);
-  }
+  const { isDark } = useTheme();
+  const colors = useColors();
+  const colorFromProps = isDark ? props.dark : props.light;
+  return colorFromProps ?? colors[colorName];
 }

@@ -1,4 +1,3 @@
-import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -6,18 +5,18 @@ import {
   StyleSheet,
   ImageSourcePropType,
 } from "react-native";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Theme.colors.success,
+    backgroundColor: colors.success,
     overflow: "hidden",
   },
   initials: {
-    color: Theme.colors.text,
+    color: colors.text,
     fontWeight: "bold",
   },
 });
@@ -31,8 +30,7 @@ const Avatar = ({
   name: string;
   size?: number;
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
   const twoLetters = name
     ? name.charAt(0).toUpperCase() + (name.charAt(1) || "").toLowerCase()
     : "NA";

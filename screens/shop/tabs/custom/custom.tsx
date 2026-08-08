@@ -9,7 +9,7 @@ export default function Custom() {
   const { data, isLoading, error, refetch } = useCatalogue({ serviceRegionCode: "CUSTOM_REGIONAL" });
 
   if (isLoading) {
-    return <DataPackTabGroup esims={[]} isLoading />;
+    return <DataPackTabGroup plans={[]} isLoading />
   }
 
   if (error) {
@@ -31,7 +31,7 @@ export default function Custom() {
     );
   }
 
-  return <DataPackTabGroup esims={data.plans} />;
+  return <DataPackTabGroup plans={data.plans} />;
 }
 
 const styles = StyleSheet.create({
