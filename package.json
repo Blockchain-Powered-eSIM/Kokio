@@ -34,7 +34,6 @@
   },
   "dependencies": {
     "@aa-sdk/core": "4.88.4",
-    "@ethersproject/shims": "5.8.0",
     "@expo/vector-icons": "15.1.1",
     "@gorhom/bottom-sheet": "5.2.14",
     "@heliofi/checkout-react-native": "0.2.1",
@@ -50,21 +49,21 @@
     "@walletconnect/sign-client": "2.23.10",
     "axios": "1.19.0",
     "clsx": "2.1.1",
-    "expo": "57.0.10",
+    "expo": "57.0.11",
     "expo-application": "57.0.2",
-    "expo-asset": "57.0.8",
+    "expo-asset": "~57.0.9",
     "expo-auth-session": "57.0.6",
     "expo-blur": "57.0.2",
-    "expo-build-properties": "57.0.8",
+    "expo-build-properties": "57.0.9",
     "expo-camera": "57.0.3",
     "expo-clipboard": "57.0.1",
     "expo-constants": "57.0.9",
     "expo-dev-client": "57.0.10",
-    "expo-file-system": "57.0.1",
+    "expo-file-system": "57.0.2",
     "expo-font": "57.0.1",
     "expo-linear-gradient": "57.0.1",
     "expo-linking": "57.0.5",
-    "expo-router": "57.0.10",
+    "expo-router": "57.0.11",
     "expo-secure-store": "57.0.1",
     "expo-splash-screen": "57.0.5",
     "expo-system-ui": "57.0.2",
@@ -130,7 +129,10 @@
     "ws": "8.21.0",
     "uuid": "14.0.1",
     "js-cookie": "3.0.8",
-    "react-native-passkey": "3.6.0"
+    "react-native-passkey": "3.6.0",
+    "@redocly/openapi-core": {
+      "js-yaml": "4.3.1"
+    }
   },
   "private": true,
   "optionalDependencies": {
