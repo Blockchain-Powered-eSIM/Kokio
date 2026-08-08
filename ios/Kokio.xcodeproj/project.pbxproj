@@ -28,7 +28,7 @@
 		BD3F0B3C5A492197A93F72C5 /* libPods-Kokio.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Kokio.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6D2997FF91EBA78D99FD6B3 /* Pods-Kokio.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Kokio.debug.xcconfig"; path = "Target Support Files/Pods-Kokio/Pods-Kokio.debug.xcconfig"; sourceTree = "<group>"; };
 		CD09B932C599E180C1B899D5 /* Pods-Kokio.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Kokio.release.xcconfig"; path = "Target Support Files/Pods-Kokio/Pods-Kokio.release.xcconfig"; sourceTree = "<group>"; };
-		D160261BB7A46AF122D488CB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Kokio/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D160261BB7A46AF122D488CB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Kokio/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Kokio/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Kokio-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Kokio-Bridging-Header.h"; path = "Kokio/Kokio-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -123,7 +123,6 @@
 				C6D2997FF91EBA78D99FD6B3 /* Pods-Kokio.debug.xcconfig */,
 				CD09B932C599E180C1B899D5 /* Pods-Kokio.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -170,7 +169,6 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						DevelopmentTeam = XSQ2GAB4RW;
 						LastSwiftMigration = 1250;
 						ProvisioningStyle = Automatic;
 					};
@@ -400,13 +398,15 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = XSQ2GAB4RW;
+				DEVELOPMENT_TEAM = 4H5GAVTM93;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = Kokio/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Kokio;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -439,8 +439,10 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = XSQ2GAB4RW;
+				DEVELOPMENT_TEAM = 4H5GAVTM93;
 				INFOPLIST_FILE = Kokio/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Kokio;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -6,7 +6,7 @@
   "build": {
     "base": {
       "node": "24.18.0",
-      "npm": "11.16.0"
+      "corepack": true
     },
     "development": {
       "extends": "base",
@@ -73,8 +73,8 @@
         "changesNotSentForReview": true
       },
       "ios": {
-        "ascAppId": "6755083230",
-        "appleTeamId": "XSQ2GAB4RW"
+        "ascAppId": "6799362847",
+        "appleTeamId": "4H5GAVTM93"
       }
     },
     "production": {
@@ -84,8 +84,8 @@
         "changesNotSentForReview": true
       },
       "ios": {
-        "ascAppId": "6755083230",
-        "appleTeamId": "XSQ2GAB4RW"
+        "ascAppId": "6799362847",
+        "appleTeamId": "4H5GAVTM93"
       }
     }
   }
