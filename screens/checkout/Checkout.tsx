@@ -19,11 +19,12 @@ import _subtract from "lodash/subtract";
 import _toNumber from "lodash/toNumber";
 import _toUpper from "lodash/toUpper";
 
-import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
+import { ThemedText } from "@/components/ThemedText";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
@@ -59,12 +60,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   container:              { flex: 1 },
   scrollContent:          { flex: 1, paddingHorizontal: 12 },
   scrollContentContainer: { paddingBottom: 20 },
-  bottomButtonContainer: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 8 : 16,
-  },
   checkoutButton: {
     borderRadius: 32, paddingVertical: 12, flexDirection: "row",
     alignItems: "center", justifyContent: "center",
@@ -697,22 +692,24 @@ const Checkout = () => {
         )}
       </KeyboardAwareScrollView>
 
-      <TouchableOpacity
-        key={`total-checkout-${canCheckout}`}
-        style={[styles.bottomButtonContainer, !canCheckout && { opacity: 0.5 }]}
-        onPress={canCheckout ? handleCheckout : undefined}
-        disabled={!canCheckout}
-        accessibilityRole="button"
-        accessibilityLabel={`Pay ${totalAmount} USD`}
-        accessibilityState={{ disabled: !canCheckout }}
-      >
-        <DetailItem
-          prefix="Pay "
-          value={totalAmount}
-          suffix="USD"
-          containerStyles={[styles.checkoutButton, { backgroundColor: colors.payButton }]}
-        />
-      </TouchableOpacity>
+      <BottomActionBar>
+        <TouchableOpacity
+          key={`total-checkout-${canCheckout}`}
+          style={!canCheckout && { opacity: 0.5 }}
+          onPress={canCheckout ? handleCheckout : undefined}
+          disabled={!canCheckout}
+          accessibilityRole="button"
+          accessibilityLabel={`Pay ${totalAmount} USD`}
+          accessibilityState={{ disabled: !canCheckout }}
+        >
+          <DetailItem
+            prefix="Pay "
+            value={totalAmount}
+            suffix="USD"
+            containerStyles={[styles.checkoutButton, { backgroundColor: colors.payButton }]}
+          />
+        </TouchableOpacity>
+      </BottomActionBar>
 
       {isCheckoutLoading && !!loadingMessage && (
         <View style={styles.loadingOverlay}>

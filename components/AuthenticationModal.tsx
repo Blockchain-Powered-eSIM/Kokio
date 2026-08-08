@@ -13,6 +13,7 @@ import BottomSheet, {
   BottomSheetBackdropProps,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { useBottomInset } from "@/hooks/useBottomInset";
 import { isAccountDeletedCached, subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { ThemedText } from "./ThemedText";
@@ -143,6 +144,8 @@ export function AuthenticationModal() {
   const isDark = useTheme();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const bottomInset = useBottomInset(20);
+
   const [mode, setMode] = useState<AuthMode>("choice");
   const [accountDeleted, setAccountDeleted] = useState(isAccountDeletedCached());
   const [localError, setLocalError] = useState("");
@@ -374,7 +377,7 @@ export function AuthenticationModal() {
       style={{ borderRadius: 25, flex: 1 }}
       backgroundStyle={{ backgroundColor: colors.modalBackground }}
     >
-      <BottomSheetView style={{ alignItems: "center", flex: 1, padding: 20 }}>
+      <BottomSheetView style={{ alignItems: "center", flex: 1, paddingTop: 20, paddingHorizontal: 20, paddingBottom: bottomInset }}>
         <Image
           source={require("@/assets/images/kokio-text.png")}
           style={styles.kokioImage}

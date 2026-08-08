@@ -11,6 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
+import { useBottomInset } from "@/hooks/useBottomInset";
 import EsimItemSkeleton from "@/components/EsimItemSkeleton";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -37,6 +38,7 @@ const EmptyListComponent = () => (
 );
 
 const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading: boolean }) => {
+  const bottomInset = useBottomInset();
   return isLoading ? (
     <FlatList
       data={[1, 2, 3, 4, 5]}
@@ -44,7 +46,7 @@ const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading
         <EsimItemSkeleton containerStyle={styles.eSimItemContainer} />
       )}
       keyExtractor={(_, index) => index.toString()}
-      contentContainerStyle={styles.flatListContainer}
+      contentContainerStyle={[styles.flatListContainer, { paddingBottom: bottomInset }]}
       style={{ backgroundColor: "transparent" }}
     />
   ) : (
@@ -58,7 +60,7 @@ const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading
         />
       )}
       keyExtractor={(item, index) => item.catalogueId || index.toString()}
-      contentContainerStyle={styles.flatListContainer}
+      contentContainerStyle={[styles.flatListContainer, { paddingBottom: bottomInset }]}
       ListEmptyComponent={EmptyListComponent}
       style={{ backgroundColor: "transparent" }}
     />
