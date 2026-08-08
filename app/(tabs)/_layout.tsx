@@ -1,15 +1,17 @@
 import React from "react";
-import { Tabs, router, useLocalSearchParams } from "expo-router";
-import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Tabs, router, useLocalSearchParams } from "expo-router";
+
 import { Theme } from "@/constants/Colors";
+import { useNavBarInset } from "@/hooks/useBottomInset"; 
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { getRouteName, getIsTabBarVisible } from "@/helpers/navigator.helper";
+import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import Header from "@/components/Header";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   tabBar: {
@@ -57,6 +59,7 @@ const TAB_ENABLED = {
 const DISABLED_TAB_OPACITY = 0.3;
 
 export default function TabLayout() {
+  const navbarInset = useNavBarInset();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   return (
@@ -70,8 +73,15 @@ export default function TabLayout() {
           tabBarActiveTintColor: colors.highlight,
           tabBarInactiveTintColor: colors.inactive,
           tabBarStyle: tabBarVisible
-            ? [styles.tabBar, { backgroundColor: colors.secondaryBackground }]
-            : { display: "none" },
+          ? [
+              styles.tabBar,
+              {
+                backgroundColor: colors.secondaryBackground,
+                height: 60 + navbarInset,
+                paddingBottom: Theme.spacing.xs + navbarInset,
+              },
+            ]
+          : { display: "none" },
           tabBarShowLabel: false,
           headerShown: false,
         };
