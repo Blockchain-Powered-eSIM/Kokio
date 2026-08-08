@@ -1,6 +1,5 @@
 // Add global shims
 import "react-native-get-random-values";
-import "@ethersproject/shims";
 import "@/utils/nativeRuntimeSetup";
 
 import { useFonts } from "expo-font";
@@ -10,22 +9,23 @@ import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
-import "../global.css";
-import useBootstrap from "@/hooks/useBootstrap";
-import FullScreenLoader from "@/components/ui/FullScreenLoader";
 import NetInfo from "@react-native-community/netinfo";
-import {
-  getSkipNextOfflineRedirect,
-  setSkipNextOfflineRedirect,
-} from "@/utils/offlineRedirectFlag";
+import "../global.css";
+
+import useBootstrap from "@/hooks/useBootstrap";
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import { Providers } from "@/providers";
+import FullScreenLoader from "@/components/ui/FullScreenLoader";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
 import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import {
+  getSkipNextOfflineRedirect,
+  setSkipNextOfflineRedirect,
+} from "@/utils/offlineRedirectFlag";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
