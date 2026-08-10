@@ -1,5 +1,10 @@
 name: Deploy staging (iOS)
 
+defaults:
+  tools:
+    node: "24.18.0"
+    corepack: true
+
 jobs:
   build_ios:
     name: Build iOS
