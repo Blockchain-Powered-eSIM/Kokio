@@ -46,6 +46,29 @@ if (baseBranch === "dev") {
   process.exit(0);
 }
 
+const changedFiles = execFileSync(
+  "git",
+  ["diff", "--name-only", baseSha, "HEAD"],
+  { cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+)
+  .split("\n")
+  .map((file) => file.trim())
+  .filter(Boolean);
+
+const ciOnlyPatterns = [".eas/", ".github/"];
+const isCiOnlyChange =
+  changedFiles.length > 0 &&
+  changedFiles.every((file) =>
+    ciOnlyPatterns.some((pattern) => file.startsWith(pattern))
+  );
+
+if (!hasOtaLabel && isCiOnlyChange) {
+  console.log(
+    "PR changes only CI/workflow paths (.eas/, .github/); skipping version and OTA-path checks."
+  );
+  process.exit(0);
+}
+
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
 );
@@ -94,19 +117,6 @@ for (const [label, value] of versionChecks) {
     process.exit(1);
   }
 }
-
-const changedFiles = execFileSync(
-  "git",
-  ["diff", "--name-only", baseSha, "HEAD"],
-  {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }
-)
-  .split("\n")
-  .map((file) => file.trim())
-  .filter(Boolean);
 
 const hasOnlyOtaSafeChanges = changedFiles.every((file) =>
   otaSafePatterns.some((pattern) =>

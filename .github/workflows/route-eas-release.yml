@@ -10,6 +10,9 @@ on:
       - production
     types:
       - closed
+    paths-ignore:
+      - '.eas/**'
+      - '.github/**'
   workflow_dispatch:
     inputs:
       ref:
