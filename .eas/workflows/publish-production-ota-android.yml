@@ -1,5 +1,10 @@
 name: Publish production OTA (Android)
 
+defaults:
+  tools:
+    node: "24.18.0"
+    corepack: true
+
 jobs:
   publish_android_update:
     name: Publish Android production OTA update
