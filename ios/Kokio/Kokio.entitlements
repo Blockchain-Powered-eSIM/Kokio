@@ -7,5 +7,9 @@
       <string>webcredentials:kokio.app</string>
       <string>applinks:kokio.app</string>
     </array>
+    <key>com.apple.developer.in-app-payments</key>
+    <array>
+      <string>merchant.stripe.app.kokio.mobile</string>
+    </array>
   </dict>
 </plist>

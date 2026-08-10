@@ -5,7 +5,8 @@
   },
   "build": {
     "base": {
-      "node": "24.18.0"
+      "node": "24.18.0",
+      "corepack": true
     },
     "development": {
       "extends": "base",
@@ -14,7 +15,7 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       },
       "ios": {},
       "channel": "development"
@@ -67,20 +68,24 @@
   "submit": {
     "staging": {
       "android": {
-        "track": "beta"
+        "track": "internal",
+        "releaseStatus": "completed",
+        "changesNotSentForReview": true
       },
       "ios": {
-        "ascAppId": "6755083230",
-        "appleTeamId": "XSQ2GAB4RW"
+        "ascAppId": "6799362847",
+        "appleTeamId": "4H5GAVTM93"
       }
     },
     "production": {
       "android": {
-        "track": "production"
+        "track": "alpha",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": true
       },
       "ios": {
-        "ascAppId": "6755083230",
-        "appleTeamId": "XSQ2GAB4RW"
+        "ascAppId": "6799362847",
+        "appleTeamId": "4H5GAVTM93"
       }
     }
   }

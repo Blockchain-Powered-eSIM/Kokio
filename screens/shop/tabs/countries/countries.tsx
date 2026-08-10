@@ -1,4 +1,11 @@
-import { StyleSheet, View, TouchableOpacity, FlatList, Dimensions } from "react-native";
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+  type ListRenderItem
+} from "react-native";
 
 import _map from "lodash/map";
 
@@ -6,7 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { Theme } from "@/constants/Colors";
-import appBootstrap from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import { navigateToESIMsByCountry } from "@/utils/general";
 
 
@@ -24,7 +31,7 @@ const EmptyListComponent = () => (
 export default function Countries() {
   const list = appBootstrap.getCountries;
 
-  const renderItem = ({ item, index }: any) => (
+  const renderItem: ListRenderItem<ServiceRegion> = ({ item, index }: any) => (
     <TouchableOpacity
       onPress={navigateToESIMsByCountry(item?.code)}
       style={{ width: ITEM_WIDTH, alignItems: "center" }}
@@ -45,7 +52,6 @@ export default function Countries() {
 
   return (
     <ThemedView style={styles.tabWrapper}>
-      <ThemedText style={styles.tabTitle}>{"Popular Destinations"}</ThemedText>
       <View style={styles.countriesWrapper}>
         <FlatList
           data={list}
@@ -53,7 +59,10 @@ export default function Countries() {
           renderItem={renderItem}
           columnWrapperStyle={styles.columnWrapperStyle}
           keyExtractor={(item, index) => String(item?.code || index)}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={8}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 100 }}
           style={{ backgroundColor: "transparent" }}
           ListEmptyComponent={EmptyListComponent}
         />

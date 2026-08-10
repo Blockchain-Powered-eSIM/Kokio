@@ -6,9 +6,9 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import SearchBar from "@/components/SearchInput";
 
@@ -20,7 +20,7 @@ type CountryNetworkEntry = {
 
 const SEARCH_THRESHOLD = 3;
 
-const createStyles = () =>
+const createStyles = (colors: Palette) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -39,7 +39,7 @@ const createStyles = () =>
       paddingVertical: 14,
       paddingHorizontal: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: Theme.colors.muted,
+      borderBottomColor: colors.muted,
       gap: 12,
     },
     leftCol: {
@@ -52,7 +52,7 @@ const createStyles = () =>
       flex: 1,
       fontSize: 14,
       fontWeight: "500",
-      color: Theme.colors.text,
+      color: colors.text,
     },
     rightCol: {
       flex: 1,
@@ -65,7 +65,7 @@ const createStyles = () =>
     networkTag: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: Theme.colors.itemBackground,
+      backgroundColor: colors.itemBackground,
       borderRadius: 5,
       paddingHorizontal: 7,
       paddingVertical: 3,
@@ -73,28 +73,27 @@ const createStyles = () =>
     },
     networkName: {
       fontSize: 12,
-      color: Theme.colors.mutedForeground,
+      color: colors.mutedForeground,
     },
     networkType: {
       fontSize: 10,
       fontWeight: "700",
-      color: Theme.colors.highlight,
+      color: colors.highlight,
     },
     emptyText: {
       textAlign: "center",
       paddingVertical: 48,
       fontSize: 14,
-      color: Theme.colors.mutedForeground,
+      color: colors.mutedForeground,
     },
   });
 
 const CoverageRow = ({
   entry,
-  styles,
 }: {
   entry: CountryNetworkEntry;
-  styles: ReturnType<typeof createStyles>;
 }) => {
+  const styles = useThemedStyles(createStyles);
   const networks = entry.networks ?? [];
   return (
     <View style={styles.row}>
@@ -130,8 +129,7 @@ const CoverageRow = ({
 };
 
 export default function CoverageScreen() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
   const bg = useThemeColor({}, "background");
   const { data: rawData } = useLocalSearchParams<{ data: string }>();
   const [query, setQuery] = useState("");
@@ -171,9 +169,12 @@ export default function CoverageScreen() {
 
       <FlatList
         data={filtered}
-        keyExtractor={(_, i) => i.toString()}
-        renderItem={({ item }) => <CoverageRow entry={item} styles={styles} />}
+        keyExtractor={(item, i) => item.countryCode ?? String(i)}
+        renderItem={({ item }) => <CoverageRow entry={item} />}
         style={styles.list}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={8}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={

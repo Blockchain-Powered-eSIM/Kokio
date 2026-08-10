@@ -10,7 +10,8 @@ export function KokioStripeProvider({ children }: Props) {
   return (
     <StripeProvider
       publishableKey={Config.STRIPE_PUBLISHABLE_KEY ?? ""}
-      merchantIdentifier={Config.STRIPE_MERCHANT_IDENTIFIER ?? "merchant.app.kokio"}
+      merchantIdentifier={Config.STRIPE_MERCHANT_IDENTIFIER ?? ""}
+      urlScheme={"kokio"}
     >
       {children}
     </StripeProvider>

@@ -3,9 +3,10 @@ import React from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import _ from "lodash";
-import { Theme } from '@/constants/Colors';
+import { useColors } from "@/hooks/useColors";
 
 const Tokens = () => {
+  const colors = useColors();
   const tokens = [
     { id: '1', name: 'USDC', symbol: 'USDC', balance: '0.5', value: '$85.23 USD', icon: require("../../../assets/images/wallet/usdc.png") },
     { id: '2', name: 'Ethereum', symbol: 'ETH', balance: '2.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/eth.png") },
@@ -14,15 +15,15 @@ const Tokens = () => {
   ];
   return (
 
-    <ThemedView darkColor={Theme.colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
+    <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
       <View className="px-4">
         <View className='flex-row justify-between'>
-          <ThemedText darkColor={Theme.colors.foreground} className='ml-2'>Your Tokens</ThemedText>
-          <ThemedText darkColor={Theme.colors.foreground} className='mr-2'>Amount</ThemedText>
+          <ThemedText darkColor={colors.foreground} className='ml-2'>Your Tokens</ThemedText>
+          <ThemedText darkColor={colors.foreground} className='mr-2'>Amount</ThemedText>
         </View>
 
         {_.size(tokens) === 0 ? (
-          <ThemedText darkColor={Theme.colors.foreground} className='mt-5 ml-2 mb-2'>
+          <ThemedText darkColor={colors.foreground} className='mt-5 ml-2 mb-2'>
             You don&#39;t hold any tokens yet.
           </ThemedText>
         ) : (
@@ -35,7 +36,7 @@ const Tokens = () => {
                 </View>
                 <View className='flex-col items-end'>
                   <ThemedText variant='xl'>{token?.balance}</ThemedText>
-                  <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{token?.value}</ThemedText>
+                  <ThemedText darkColor={colors.foreground} variant='sm'>{token?.value}</ThemedText>
                 </View>
               </View>
             ))}
@@ -43,8 +44,6 @@ const Tokens = () => {
         )}
       </View>
     </ThemedView>
-
-
   )
 }
 

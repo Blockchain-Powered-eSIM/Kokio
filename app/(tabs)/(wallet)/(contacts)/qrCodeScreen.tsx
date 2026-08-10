@@ -1,13 +1,13 @@
 import { ThemedText } from '@/components/ThemedText';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View, Linking, Pressable, StatusBar } from 'react-native';
-import { Theme } from '@/constants/Colors';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { logger } from '@/utils/logger';
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -16,7 +16,7 @@ const createStyles = () => StyleSheet.create({
   },
   overlayTop: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
   },
   horizontalContainer: {
     flexDirection: 'row',
@@ -24,7 +24,7 @@ const createStyles = () => StyleSheet.create({
   },
   overlaySide: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
   },
   scanArea: {
     width: 250,
@@ -33,7 +33,7 @@ const createStyles = () => StyleSheet.create({
   },
   overlayBottom: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
   },
   cornerTopLeft: {
     position: 'absolute',
@@ -43,7 +43,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderTopWidth: 3,
     borderLeftWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   cornerTopRight: {
     position: 'absolute',
@@ -53,7 +53,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderTopWidth: 3,
     borderRightWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   cornerBottomLeft: {
     position: 'absolute',
@@ -63,7 +63,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderBottomWidth: 3,
     borderLeftWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   cornerBottomRight: {
     position: 'absolute',
@@ -73,7 +73,7 @@ const createStyles = () => StyleSheet.create({
     height: 30,
     borderBottomWidth: 3,
     borderRightWidth: 3,
-    borderColor: Theme.colors.text,
+    borderColor: colors.text,
   },
   backButton: {
     position: 'absolute',
@@ -93,7 +93,7 @@ const createStyles = () => StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    backgroundColor: Theme.colors.overlayDark,
+    backgroundColor: colors.overlayDark,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
@@ -101,10 +101,10 @@ const createStyles = () => StyleSheet.create({
 });
 
 export default function QrCodeScreen() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
   const [permission, requestPermission] = useCameraPermissions();
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const permissionDenied = 
+    !!permission && !permission.granted && permission.canAskAgain === false;
   const [scanned, setScanned] = useState(false);
   const {firstName,lastName,isEdit,monogramUrl,id} = useLocalSearchParams();
 
@@ -131,22 +131,8 @@ export default function QrCodeScreen() {
 
   // Function to handle permission request
   const handleRequestPermission = async () => {
-    const permissionResult = await requestPermission();
-    
-    // If permissions are still not granted after request
-    if (!permissionResult.granted) {
-      setPermissionDenied(true);
-    } else {
-      setPermissionDenied(false);
-    }
+    await requestPermission();
   };
-
-  // Check permission status on component mount
-  useEffect(() => {
-    if (permission && !permission.granted && permission.canAskAgain === false) {
-      setPermissionDenied(true);
-    }
-  }, [permission]);
 
   if (!permission) {
     // Camera permissions are still loading
@@ -158,7 +144,6 @@ export default function QrCodeScreen() {
     return (
       <View style={styles.container}>
         <ThemedText darkColor='white' variant='xl' className='text-center' >We need your permission to show the camera</ThemedText>
-        
         {permissionDenied && permission.canAskAgain === false ? (
           // If permission was permanently denied, provide instructions to enable in settings
           <View>
@@ -166,10 +151,8 @@ export default function QrCodeScreen() {
               Camera permission was denied. Please enable camera access in your device settings.
             </ThemedText>
             <Pressable
-              
               onPress={() => Linking.openSettings()} 
               className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
-               
             >
               <ThemedText bold className='text-center'>Open Settings</ThemedText>
               </Pressable>
@@ -177,11 +160,9 @@ export default function QrCodeScreen() {
         ) : (
           // Standard permission request button
           <Pressable
-              
-          onPress={handleRequestPermission} 
-          className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
-           
-        >
+            onPress={handleRequestPermission} 
+            className=' w-full mt-5 h-16 items-center justify-center rounded-3xl bg-primaryOrange'
+          >
           <ThemedText bold className='text-center'>Grant Permission</ThemedText>
           </Pressable>
         )}
@@ -192,9 +173,8 @@ export default function QrCodeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar hidden />
-      
       <CameraView 
-        style={StyleSheet.absoluteFillObject} 
+        style={StyleSheet.absoluteFill} 
         facing='back'
         onBarcodeScanned={handleBarCodeScanned}
       >
@@ -222,8 +202,6 @@ export default function QrCodeScreen() {
         {/* <TouchableOpacity style={styles.backButton} onPress={()=>router.back()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity> */}
-        
-       
       </CameraView>
     </View>
   );

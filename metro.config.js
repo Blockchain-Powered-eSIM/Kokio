@@ -20,7 +20,6 @@ const config = getDefaultConfig(__dirname);
 // shims for crypto built into our project
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
-  ...require("node-libs-react-native"),
   crypto: require.resolve("react-native-quick-crypto"),
   stream: require.resolve("stream-browserify"),
 };

@@ -21,9 +21,12 @@ import _size from "lodash/size";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import appBootstrap from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import {
   navigateToESIMsByCountry,
   navigateToESIMsByRegion,
@@ -36,7 +39,60 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = SCREEN_WIDTH * 0.8;
 const SPACING = 8;
 
-type ServiceRegion = { code: string; name: string; flag?: string };
+const createStyles = (colors: Palette) => StyleSheet.create({
+  container: {
+    paddingRight: Theme.spacing.sm,
+    paddingLeft: Theme.spacing.sm,
+    flex: 1,
+  },
+  countrySectionWrapper: { marginTop: 12, marginHorizontal: 24 },
+  regionSectionWrapper: {
+    flex: 1,
+    marginTop: 20,
+    marginHorizontal: 24,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  regionItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    justifyContent: "space-between",
+    flexDirection: "row",
+  },
+  flag: {
+    borderRadius: Theme.borderRadius.large,
+    backgroundColor: "transparent",
+  },
+  countryListContainer: {
+    paddingHorizontal: SPACING,
+    marginTop: 12,
+  },
+  regionTitle: {
+    marginBottom: 12,
+    color: colors.text,
+  },
+  regionListContainer: {
+    borderWidth: 1,
+    borderRadius: 16,
+    marginLeft: 20,
+    overflow: "scroll",
+  },
+  countryItem: {
+    width: ITEM_WIDTH,
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  itemSeperator: { height: SPACING },
+  flagWrapper: {
+    alignItems: "center",
+    gap: 8,
+  },
+  carouselRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+});
+
 const isSearchTextMatch = ({
   searchText,
   item,
@@ -46,12 +102,9 @@ const isSearchTextMatch = ({
   item: ServiceRegion;
   keyExtractor: string;
 }) => _includes(_lowerCase(_get(item, keyExtractor)), searchText);
-//const isSearchTextMatch = ({ searchText, item, keyExtractor }) =>
-//  _includes(_lowerCase(_get(item, keyExtractor)), searchText);
 
 const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
-  //const firstItem = _get(item, "0", {});
-  //const secondItem = _get(item, "1", {});
+  const styles = useThemedStyles(createStyles);
   const firstItem = item[0];
   const secondItem = item[1];
 
@@ -92,8 +145,11 @@ const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
 const RegionEmptyListComponent = () => (
   <ThemedText
     style={[
-      styles.regionItem,
       {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        justifyContent: "space-between",
+        flexDirection: "row",
         textAlign: "center",
       },
     ]}
@@ -105,8 +161,10 @@ const RegionEmptyListComponent = () => (
 const RegionItemRender = ({
   item,
 }: {
-  item: { name?: string; code: string; flag: string };
+  item: ServiceRegion;
 }) => {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const foregroundColor = useThemeColor({}, "foreground");
   return (
     <TouchableOpacity
@@ -116,10 +174,10 @@ const RegionItemRender = ({
     >
       <ThemedView
         style={styles.regionItem}
-        darkColor={Theme.colors.secondaryBackground}
+        darkColor={colors.secondaryBackground}
       >
         <ThemedView
-          darkColor={Theme.colors.secondaryBackground}
+          darkColor={colors.secondaryBackground}
           style={{ flexDirection: "row", alignItems: "center" }}
         >
           <Ionicons
@@ -143,28 +201,20 @@ const RegionItemRender = ({
 const SearchResult = ({ searchText }: { searchText: string }) => {
   const countryConfig = appBootstrap.getCountryConfig;
   const regionConfig = appBootstrap.getRegionConfig;
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
 
   const sanitizedSearchText = _lowerCase(_trim(searchText));
 
-  const countries = useMemo(
-    () =>
-      _reduce(
-        countryConfig,
-        (acc: ServiceRegion[], item) => {
-          if (
-            isSearchTextMatch({
-              searchText: sanitizedSearchText,
-              item,
-              keyExtractor: "name",
-            })
-          ) {
-            acc.push(item);
-          }
-          return acc;
-        },
-        []
-      ),
-    [countryConfig, sanitizedSearchText]
+  const countries = _reduce(
+    countryConfig,
+    (acc: ServiceRegion[], item) => {
+      if (isSearchTextMatch({ searchText: sanitizedSearchText, item, keyExtractor: "name" })) {
+        acc.push(item);
+      }
+      return acc;
+    },
+    []
   );
 
   const regions = useMemo(() => {
@@ -184,7 +234,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
           }
           return acc;
         },
-        [] as any[]
+        [] as ServiceRegion[]
       );
     }
 
@@ -202,7 +252,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
         if (regionCodesSet.has(item.code)) acc.push(item);
         return acc;
       },
-      [] as any[]
+      [] as ServiceRegion[]
     );
 
     // Always append the Global option when countries are found
@@ -240,12 +290,12 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
               accessibilityRole="button"
               accessibilityLabel="Scroll countries left"
             >
-              <Ionicons name="chevron-back" size={15} color={Theme.colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+              <Ionicons name="chevron-back" size={15} color={colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
             </TouchableOpacity>
               <FlatList
                 ref={carouselRef}
                 data={_chunk(countries, 2)}
-                renderItem={CountryItemRender}
+                renderItem={({ item }) => <CountryItemRender item={item} />}
                 keyExtractor={(item, index) => String(item?.[0]?.code || index)}
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -263,7 +313,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
               accessibilityRole="button"
               accessibilityLabel="Scroll countries right"
             >
-              <Ionicons name="chevron-forward" size={15} color={Theme.colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+              <Ionicons name="chevron-forward" size={15} color={colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
             </TouchableOpacity>
           </View>
         </ThemedView>
@@ -274,7 +324,7 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
           <FlatList
             data={regions}
             renderItem={({ item }) => <RegionItemRender item={item} />}
-            keyExtractor={(item, index) => String(item?.[0]?.code || index)}
+            keyExtractor={(item, index) => String(item?.code || index)}
             ItemSeparatorComponent={() => <View style={{ height: SPACING }} />}
             ListEmptyComponent={RegionEmptyListComponent}
             showsVerticalScrollIndicator={false}
@@ -284,59 +334,5 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
     </ThemedView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    paddingRight: Theme.spacing.sm,
-    paddingLeft: Theme.spacing.sm,
-    flex: 1,
-  },
-  countrySectionWrapper: { marginTop: 12, marginHorizontal: 24 },
-  regionSectionWrapper: {
-    flex: 1,
-    marginTop: 20,
-    marginHorizontal: 24,
-    marginBottom: 12,
-    overflow: "hidden",
-  },
-  regionItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    justifyContent: "space-between",
-    flexDirection: "row",
-  },
-  flag: {
-    borderRadius: Theme.borderRadius.large,
-    backgroundColor: "transparent",
-  },
-  countryListContainer: {
-    paddingHorizontal: SPACING,
-    marginTop: 12,
-  },
-  regionTitle: {
-    marginBottom: 12,
-    color: Theme.colors.text,
-  },
-  regionListContainer: {
-    borderWidth: 1,
-    borderRadius: 16,
-    marginLeft: 20,
-    overflow: "scroll",
-  },
-  countryItem: {
-    width: ITEM_WIDTH,
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  itemSeperator: { height: SPACING },
-  flagWrapper: {
-    alignItems: "center",
-    gap: 8,
-  },
-  carouselRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-});
 
 export default SearchResult;

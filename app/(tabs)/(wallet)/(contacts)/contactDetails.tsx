@@ -4,7 +4,7 @@ import { router, useLocalSearchParams , useFocusEffect } from 'expo-router'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Theme } from '@/constants/Colors';
+import { useColors } from "@/hooks/useColors";
 import { logger } from '@/utils/logger';
 
 interface Transaction {
@@ -19,6 +19,7 @@ interface Transaction {
 }
 
 const ContactDetails = () => {
+  const colors = useColors();
   const { id, monogramUrl, firstName, lastName, walletAddress } = useLocalSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -66,21 +67,21 @@ const ContactDetails = () => {
       </View>
       <View className='w-full h-auto  mt-10 gap-x-2 flex-row  mx-2 '>
         <Pressable onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/sendToContact', params: { monogramUrl: monogramUrl, firstName: firstName, lastName: lastName, id: id } })} className='flex-1  items-center'>
-          <ThemedView darkColor={Theme.colors.itemBackground} className='w-[70%] ml-[-30] rounded-3xl py-5  justify-center items-center'>
+          <ThemedView darkColor={colors.itemBackground} className='w-[70%] ml-[-30] rounded-3xl py-5  justify-center items-center'>
 
             <Image source={require("../../../../assets/images/wallet/sendImg.png")} className='h-[32] w-[32]' />
             <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
         </Pressable>
         <Pressable className='flex-1  '>
-          <ThemedView darkColor={Theme.colors.itemBackground} className='w-[70%] ml-[-20] rounded-3xl py-5   justify-center items-center'>
+          <ThemedView darkColor={colors.itemBackground} className='w-[70%] ml-[-20] rounded-3xl py-5   justify-center items-center'>
 
             <Image source={require("../../../../assets/images/wallet/recieveImg.png")} className='h-[32] w-[32]' />
             <ThemedText variant='sm' className='text-white mt-2' bold>Recieve</ThemedText>
           </ThemedView>
         </Pressable>
         <Pressable onPress={() => router.replace({ pathname: "/(tabs)/(wallet)/(contacts)/editContact", params: { firstName: firstName, lastName: lastName, monogramUrl: monogramUrl, id: id, walletAddress: walletAddress } })} className='flex-1'>
-          <ThemedView darkColor={Theme.colors.itemBackground} className='w-[70%] ml-7  rounded-3xl py-5  justify-center items-center'>
+          <ThemedView darkColor={colors.itemBackground} className='w-[70%] ml-7  rounded-3xl py-5  justify-center items-center'>
             <Image source={require("../../../../assets/images/wallet/sampleProfileImg.png")} className='h-[32] w-[32]' />
             <ThemedText variant='sm' className='text-white mt-2' bold>Edit</ThemedText>
           </ThemedView>
@@ -94,11 +95,11 @@ const ContactDetails = () => {
           })
         }
       >
-        <ThemedView darkColor={Theme.colors.itemBackground} className=' h-auto bg-slate-300 mx-2  py-3 rounded-3xl mt-[20] '>
+        <ThemedView darkColor={colors.itemBackground} className=' h-auto bg-slate-300 mx-2  py-3 rounded-3xl mt-[20] '>
           <View className='flex-row justify-between'>
-            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Transactions</ThemedText>
+            <ThemedText darkColor={colors.foreground} className=' ml-6'>Transactions</ThemedText>
             {transactions?.length > 0 &&
-              <ThemedText darkColor={Theme.colors.foreground} className=' mr-5'>See all</ThemedText>}
+              <ThemedText darkColor={colors.foreground} className=' mr-5'>See all</ThemedText>}
           </View>
           {transactions && transactions?.length > 0 ?
             <View className='w-full gap-y-6 mt-5 mb-3'>
@@ -110,22 +111,22 @@ const ContactDetails = () => {
                       <Image source={tr.type === 'sent' ? require('../../../../assets/images/contacts/sent.png') : require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                       <View className='flex-col items-start ml-3 '>
                         <ThemedText variant='xl'>{tr.name}</ThemedText>
-                        {tr.type === "received" ? <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{tr.type}</ThemedText> :
-                          <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.type}</ThemedText>
+                        {tr.type === "received" ? <ThemedText darkColor={colors.foreground} variant='sm'>{tr.type}</ThemedText> :
+                          <ThemedText darkColor={colors.primary} variant='sm'>{tr.type}</ThemedText>
                         }
                       </View>
                     </View>
                     <View className='flex-col items-end '>
                       <ThemedText variant='xl'>{tr.amount}</ThemedText>
-                      {tr.status === "completed" ? <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{tr.status}</ThemedText> :
-                        <ThemedText darkColor={Theme.colors.primary} variant='sm'>{tr.status}</ThemedText>
+                      {tr.status === "completed" ? <ThemedText darkColor={colors.foreground} variant='sm'>{tr.status}</ThemedText> :
+                        <ThemedText darkColor={colors.primary} variant='sm'>{tr.status}</ThemedText>
                       }
                     </View>
                   </View>
                 )
               })}
             </View> :
-            <ThemedText darkColor={Theme.colors.foreground} className=' mt-5 ml-6 mb-2' >No Transactions to show</ThemedText>}
+            <ThemedText darkColor={colors.foreground} className=' mt-5 ml-6 mb-2' >No Transactions to show</ThemedText>}
 
         </ThemedView>
       </Pressable>

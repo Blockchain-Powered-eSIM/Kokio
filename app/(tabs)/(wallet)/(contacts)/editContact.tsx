@@ -8,11 +8,12 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import ColorPaletteModal from '@/components/ui/modals/colorPalleteModal';
-import { Theme } from '@/constants/Colors';
+import { useColors } from "@/hooks/useColors";
 import { useToast } from '@/contexts/ToastContext';
 import { logger } from '@/utils/logger';
 
 const EditContact = () => {
+    const colors = useColors();
     const { showMessage } = useToast();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -139,7 +140,7 @@ const EditContact = () => {
                     <View className='w-auto   items-center mt-8'>
                         <Image source={params.monogramUrl ? { uri:`https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=${newColor}&color=ffffff&rounded=true&size=128` } : require('../../../../assets/images/wallet/sampleProfileImg.png')} className='h-[216px] w-[216px]' />
                         <Pressable 
-                             style={{ backgroundColor: Theme.colors.modalBackground }}
+                             style={{ backgroundColor: colors.modalBackground }}
                              className='justify-center items-center absolute z-20 bottom-[-45] rounded-3xl py-3 px-5'
                              onPress={()=>setModalVisible(true)}
                         >
@@ -149,8 +150,8 @@ const EditContact = () => {
                         </Pressable>
                     </View>
                     <View className='flex-1 gap-y-3 mt-[65]'>
-                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>First Name</ThemedText>
+                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={colors.foreground} className=' ml-6'>First Name</ThemedText>
                             <TextInput
                                 value={firstName}
                                 placeholder='Enter first name'
@@ -159,8 +160,8 @@ const EditContact = () => {
                                 onChangeText={(text) => setFirstName(text)}
                             />
                         </ThemedView>
-                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Last Name</ThemedText>
+                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={colors.foreground} className=' ml-6'>Last Name</ThemedText>
                             <TextInput
                                 value={lastName}
                                 placeholder='Enter last name'
@@ -169,8 +170,8 @@ const EditContact = () => {
                                 onChangeText={(text) => setLastName(text)}
                             />
                         </ThemedView>
-                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={Theme.colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
+                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
                             <TextInput
                                 value={walletAddress}
                                 placeholder='Enter wallet address or scan QR code'
@@ -186,9 +187,9 @@ const EditContact = () => {
 
                             </Pressable>
                         </ThemedView>
-                        <ThemedView darkColor={Theme.colors.itemBackground} className='w-auto mx-2 flex-row  py-5 rounded-3xl '>
+                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2 flex-row  py-5 rounded-3xl '>
                             <Image source={require('../../../../assets/images/wallet/trashIcon.png')} className='h-[24] w-[24] ml-6'/>
-                            <ThemedText className='ml-4'  darkColor={Theme.colors.pink}>Delete Contact</ThemedText>
+                            <ThemedText className='ml-4'  darkColor={colors.pink}>Delete Contact</ThemedText>
                         </ThemedView>
 
                         <ThemedView className='flex-row justify-center mt-[50]  fixed items-center  mb-5'>

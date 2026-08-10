@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
@@ -31,118 +31,6 @@ export interface Esim {
     networks?: { name?: string; type?: string }[];
   }[];
 }
-
-const ESIMItem = ({
-  item,
-  showBuyButton,
-  containerStyle = {},
-  onPress,
-}: {
-  item: Esim;
-  showBuyButton: boolean;
-  containerStyle?: object;
-  onPress?: () => void;
-}) => {
-  const { isDark } = useTheme();
-
-  const handleBuyCTAClick = useCallback(
-    (id: string) => () => {
-      router.navigate({
-        pathname: `/checkout/[id]`,
-        params: {
-          id,
-          item: JSON.stringify(item),
-        },
-      });
-    },
-    [item]
-  );
-
-  const content = useMemo(
-    () => (
-      <>
-        <View style={styles.flagContainer}>
-          {item?.coverageType === "LOCAL" &&
-            (item?.serviceRegionCode || item?.serviceRegionFlag) && (
-              <CountryFlag
-                style={[showBuyButton && styles.flag]}
-                isoCode={item?.serviceRegionCode ?? ""}
-                //@ts-expect-error - null values are handled in the component
-                flagUrl={item?.serviceRegionFlag}
-                size={40}
-              />
-            )}
-        </View>
-        <View style={[styles.esimItem, { backgroundColor: Theme.colors.card }]}>
-          <Text style={[styles.country, { color: Theme.colors.cardForeground }]}>
-            {item.serviceRegionName}
-          </Text>
-          <View style={styles.detailsContainer}>
-            <DetailItem
-              iconName="calendar-outline"
-              value={item.validity}
-              suffix="Days"
-            />
-            <DetailItem
-              iconName="cellular-outline"
-              value={item.isUnlimited ? "Unlimited" : item.data}
-              suffix={item.isUnlimited ? "" : "GB"}
-            />
-            <DetailItem
-              iconName="call-outline"
-              value={item.voice}
-              suffix="Mins"
-            />
-            <DetailItem
-              iconName="chatbox-outline"
-              value={item.sms}
-              suffix="SMS"
-            />
-          </View>
-          {showBuyButton && (
-            <TouchableOpacity
-              style={[styles.buyButton, { backgroundColor: Theme.colors.shopCta }]}
-              onPress={handleBuyCTAClick(item.catalogueId)}
-              accessibilityRole="button"
-              accessibilityLabel={`View ${item.serviceRegionName || "plan"} for $${(item.actualSellingPrice || 0).toFixed(2)}`}
-            >
-              <DetailItem
-                prefix="$"
-                value={(item.actualSellingPrice || 0).toFixed(2)}
-              />
-              <View style={styles.buyButtonText}>
-                <Ionicons name="cart-outline" size={20} color={Theme.colors.cardForeground} />
-                <Text style={[styles.details, { color: Theme.colors.cardForeground }]}>View</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        </View>
-      </>
-    ),
-    // isDark is required here, useTheme() does not change the element on regional, global and homepage
-    // It only works on the local tab of the shop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [item, showBuyButton, handleBuyCTAClick, isDark]
-  );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity
-        style={[styles.esimItemContainer, containerStyle]}
-        onPress={onPress}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={`${item?.serviceRegionName || "eSIM"} plan`}
-      >
-        {content}
-      </TouchableOpacity>
-    );
-  }
-
-  return (
-    <View style={[styles.esimItemContainer, containerStyle]}>{content}</View>
-  );
-};
 
 const styles = StyleSheet.create({
   esimItemContainer: {
@@ -204,5 +92,114 @@ const styles = StyleSheet.create({
     paddingLeft: Theme.spacing.md,
   },
 });
+
+const ESIMItem = ({
+  item,
+  showBuyButton,
+  containerStyle = {},
+  onPress,
+}: {
+  item: Esim;
+  showBuyButton: boolean;
+  containerStyle?: object;
+  onPress?: () => void;
+}) => {
+  const colors = useColors();
+
+  const handleBuyCTAClick = useCallback(
+    (id: string) => () => {
+      router.navigate({
+        pathname: `/checkout/[id]`,
+        params: {
+          id,
+          item: JSON.stringify(item),
+        },
+      });
+    },
+    [item]
+  );
+
+  const content = useMemo(
+    () => (
+      <>
+        <View style={styles.flagContainer}>
+          {item?.coverageType === "LOCAL" &&
+            (item?.serviceRegionCode || item?.serviceRegionFlag) && (
+              <CountryFlag
+                style={[showBuyButton && styles.flag]}
+                isoCode={item?.serviceRegionCode ?? ""}
+                //@ts-expect-error - null values are handled in the component
+                flagUrl={item?.serviceRegionFlag}
+                size={40}
+              />
+            )}
+        </View>
+        <View style={[styles.esimItem, { backgroundColor: colors.card }]}>
+          <Text style={[styles.country, { color: colors.cardForeground }]}>
+            {item.serviceRegionName}
+          </Text>
+          <View style={styles.detailsContainer}>
+            <DetailItem
+              iconName="calendar-outline"
+              value={item.validity}
+              suffix="Days"
+            />
+            <DetailItem
+              iconName="cellular-outline"
+              value={item.isUnlimited ? "Unlimited" : item.data}
+              suffix={item.isUnlimited ? "" : "GB"}
+            />
+            <DetailItem
+              iconName="call-outline"
+              value={item.voice}
+              suffix="Mins"
+            />
+            <DetailItem
+              iconName="chatbox-outline"
+              value={item.sms}
+              suffix="SMS"
+            />
+          </View>
+          {showBuyButton && (
+            <TouchableOpacity
+              style={[styles.buyButton, { backgroundColor: colors.shopCta }]}
+              onPress={handleBuyCTAClick(item.catalogueId)}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${item.serviceRegionName || "plan"} for $${(item.actualSellingPrice || 0).toFixed(2)}`}
+            >
+              <DetailItem
+                prefix="$"
+                value={(item.actualSellingPrice || 0).toFixed(2)}
+              />
+              <View style={styles.buyButtonText}>
+                <Ionicons name="cart-outline" size={20} color={colors.cardForeground} />
+                <Text style={[styles.details, { color: colors.cardForeground }]}>View</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      </>
+    ),
+    [item, showBuyButton, handleBuyCTAClick, colors]
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={[styles.esimItemContainer, containerStyle]}
+        onPress={onPress}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${item?.serviceRegionName || "eSIM"} plan`}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={[styles.esimItemContainer, containerStyle]}>{content}</View>
+  );
+};
 
 export default ESIMItem;
