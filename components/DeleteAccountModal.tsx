@@ -6,7 +6,7 @@
  *   2. Paid eSIMs KEEP WORKING until expiry.
  *   3. On-chain records are immutable and cannot be deleted by anyone.
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Modal,
   View,
@@ -17,8 +17,10 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/ThemedText';
-import { Theme } from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 import { StepUpCancelledError } from '@/utils/auth/errors';
 import { logger } from '@/utils/logger';
 
@@ -30,16 +32,16 @@ interface Props {
   onConfirm: () => Promise<void>;
 }
 
-const createStyles = (isDark: boolean) =>
+const createStyles = (colors: Palette) =>
   StyleSheet.create({
     scrim: {
       flex: 1,
       justifyContent: 'center',
       padding: 20,
-      backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.25)',
+      backgroundColor: 'rgba(0,0,0,0.40)',
     },
     card: {
-      backgroundColor: Theme.colors.modalBackground,
+      backgroundColor: colors.modalBackground,
       borderRadius: 25,
       padding: 22,
     },
@@ -47,7 +49,7 @@ const createStyles = (isDark: boolean) =>
       fontSize: 22,
       fontWeight: '300',
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.text,
+      color: colors.text,
       marginBottom: 12,
     },
     body: {
@@ -55,7 +57,7 @@ const createStyles = (isDark: boolean) =>
       lineHeight: 20,
       fontFamily: 'Lexend-Light',
       fontWeight: '300',
-      color: Theme.colors.text,
+      color: colors.text,
       marginBottom: 14,
     },
     bullets: { marginBottom: 18 },
@@ -64,28 +66,28 @@ const createStyles = (isDark: boolean) =>
       lineHeight: 19,
       fontFamily: 'Lexend-Light',
       fontWeight: '300',
-      color: Theme.colors.foreground,
+      color: colors.foreground,
       marginBottom: 8,
     },
     prompt: {
       fontSize: 13,
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.foreground,
+      color: colors.foreground,
       marginBottom: 8,
     },
     input: {
       borderWidth: 1,
-      borderColor: Theme.colors.foreground,
+      borderColor: colors.foreground,
       borderRadius: 14,
       paddingHorizontal: 14,
       paddingVertical: 12,
-      color: Theme.colors.text,
+      color: colors.text,
       fontFamily: 'Lexend-Light',
       fontSize: 16,
       letterSpacing: 2,
     },
     error: {
-      color: Theme.colors.destructive,
+      color: colors.destructive,
       fontFamily: 'Lexend-Light',
       fontSize: 13,
       marginTop: 10,
@@ -100,15 +102,15 @@ const createStyles = (isDark: boolean) =>
     },
     btnGhost: {
       borderWidth: 1,
-      borderColor: Theme.colors.foreground,
+      borderColor: colors.foreground,
     },
     btnGhostText: {
       fontSize: 16,
       fontWeight: '300',
       fontFamily: 'Lexend-Light',
-      color: Theme.colors.foreground,
+      color: colors.foreground,
     },
-    btnDanger: { backgroundColor: Theme.colors.destructive },
+    btnDanger: { backgroundColor: colors.destructive },
     btnDangerText: {
       fontSize: 16,
       fontWeight: '600',
@@ -119,8 +121,9 @@ const createStyles = (isDark: boolean) =>
   });
 
 export const DeleteAccountModal: React.FC<Props> = ({ visible, onCancel, onConfirm }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(() => createStyles(isDark), [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const isDark = useTheme();
+  const colors = useColors();
 
   const [input, setInput] = useState('');
   const [busy, setBusy]   = useState(false);
@@ -196,7 +199,7 @@ export const DeleteAccountModal: React.FC<Props> = ({ visible, onCancel, onConfi
             autoCorrect={false}
             editable={!busy}
             placeholder={CONFIRM_WORD}
-            placeholderTextColor={Theme.colors.foreground}
+            placeholderTextColor={colors.foreground}
             style={styles.input}
             accessibilityLabel={`Type ${CONFIRM_WORD} to confirm account deletion`}
           />

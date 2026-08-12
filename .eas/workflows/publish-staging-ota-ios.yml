@@ -1,5 +1,10 @@
 name: Publish staging OTA (iOS)
 
+defaults:
+  tools:
+    node: "24.18.0"
+    corepack: true
+
 jobs:
   publish_ios_update:
     name: Publish iOS staging OTA update

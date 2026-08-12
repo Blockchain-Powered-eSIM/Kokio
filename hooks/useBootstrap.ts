@@ -28,7 +28,6 @@ export default function useBootstrap() {
   const fetchBootstrapData = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
       const { countries, regions } = await getServiceRegions();
       new AppBootstrap({ countries, regions });
@@ -42,6 +41,7 @@ export default function useBootstrap() {
 
   // Fetch bootstrap data on mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchHealthData();
     fetchBootstrapData();
   }, []);

@@ -1,9 +1,11 @@
 // src/context/ToastContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastNotification from '../components/ui/ToastNotification/ToastNotification';
-import { Theme } from '@/constants/Colors';
+import { useColors } from "@/hooks/useColors";
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 type MessageVariant = 'error' | 'info';
 
@@ -32,7 +34,8 @@ const MESSAGE_DISPLAY_MS: Record<MessageVariant, number> = {
 };
 
 function MessageToast({ message, variant, onHide }: { message: string; variant: MessageVariant; onHide: () => void }) {
-  const opacity = React.useRef(new Animated.Value(0)).current;
+  const colors = useColors();
+  const opacity = React.useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     Animated.sequence([
@@ -42,7 +45,7 @@ function MessageToast({ message, variant, onHide }: { message: string; variant: 
     ]).start(onHide);
   }, [onHide, opacity, variant]);
 
-  const bg = variant === 'error' ? Theme.colors.destructive : Theme.colors.muted;
+  const bg = variant === 'error' ? colors.destructive : colors.muted;
 
   return (
     <Animated.View style={[styles.messageToast, { backgroundColor: bg, opacity }]}>
@@ -104,7 +107,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         </View>
       )}
       {msgToast && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10000, pointerEvents: 'none' }}>
+        <View style={{ position: 'absolute', bottom: SCREEN_HEIGHT * 0.07, left: 0, right: 0, zIndex: 10000, pointerEvents: 'none' }}>
           <MessageToast
             key={msgToast.key}
             message={msgToast.message}

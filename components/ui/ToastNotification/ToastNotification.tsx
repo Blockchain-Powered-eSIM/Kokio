@@ -1,7 +1,7 @@
 import { View, Image } from 'react-native'
 import React, { useEffect } from 'react'
 import { ThemedView } from '@/components/ThemedView';
-import { Theme } from '@/constants/Colors';
+import { useColors } from "@/hooks/useColors";
 import Animated, {
   FadeInUp,
   useSharedValue,
@@ -26,6 +26,7 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const isAnimating = useSharedValue(false);
+  const colors = useColors();
 
   useEffect(() => {
     // Auto-hide toast after 3 seconds
@@ -60,7 +61,11 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
   const panGesture = Gesture.Pan()
     .onStart(() => { isAnimating.value = false; })
     .onUpdate((event) => {
+      // reanimated shared value mutation inside a gesture worklet
+      // eslint-disable-next-line react-hooks/immutability
       translateX.value = event.translationX;
+      // reanimated shared value mutation inside a gesture worklet
+      // eslint-disable-next-line react-hooks/immutability
       translateY.value = event.translationY;
     })
     .onEnd((event) => {
@@ -69,7 +74,11 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
         isAnimating.value = true;
         const targetX = event.translationX > 0 ? 500 : -500;
         const targetY = event.translationY < -swipeThreshold ? -500 : 0;
+        // reanimated shared value mutation inside a gesture worklet
+        // eslint-disable-next-line react-hooks/immutability
         translateX.value = withTiming(targetX, { duration: 300 });
+        // reanimated shared value mutation inside a gesture worklet
+        // eslint-disable-next-line react-hooks/immutability
         translateY.value = withTiming(targetY, { duration: 300 }, (finished) => {
           if (finished) runOnJS(handleClose)();
         });
@@ -90,7 +99,7 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
         <Animated.View style={animatedStyle} className="w-full items-center">
           <ThemedView
             className='w-[95%] rounded-3xl items-center h-[115px] flex-row'
-            style={{ backgroundColor: Theme.colors.modalBackground }}
+            style={{ backgroundColor: colors.modalBackground }}
           >
             <Image
               source={require("../../../assets/images/wallet/complete.png")}
@@ -105,11 +114,11 @@ const ToastNotification = ({ handleToastVisible, amount, ethAmount, type }: Toas
             </View>
             <View className='ml-[20]'>
               <ThemedText>{amount}</ThemedText>
-              <ThemedText darkColor={Theme.colors.foreground} variant='sm'>{ethAmount}</ThemedText>
+              <ThemedText darkColor={colors.foreground} variant='sm'>{ethAmount}</ThemedText>
             </View>
             <View className='ml-[70]'>
               <ThemedText>{type}</ThemedText>
-              <ThemedText darkColor={Theme.colors.foreground} variant='sm'>Completed</ThemedText>
+              <ThemedText darkColor={colors.foreground} variant='sm'>Completed</ThemedText>
             </View>
           </ThemedView>
         </Animated.View>

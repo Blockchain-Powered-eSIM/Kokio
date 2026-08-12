@@ -1,13 +1,14 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import type { Palette } from "@/constants/Colors";
 import { labelForStatus } from "@/utils/orderStatus";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 
 interface OrderFailureModalProps {
   visible: boolean;
@@ -25,16 +26,16 @@ const REASON_LABELS: Record<string, string> = {
   WALLET_REGISTRATION_FAILED:'Device wallet registration failed.',
 };
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Theme.colors.overlay,
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   container: {
-    backgroundColor: Theme.colors.contentBackground,
+    backgroundColor: colors.contentBackground,
     borderRadius: 20,
     padding: 24,
     width: '100%',
@@ -45,7 +46,7 @@ const createStyles = () => StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Theme.colors.destructiveBackground,
+    backgroundColor: colors.destructiveBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -58,10 +59,10 @@ const createStyles = () => StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
-    color: Theme.colors.mutedForeground,
+    color: colors.mutedForeground,
   },
   refBox: {
-    backgroundColor: Theme.colors.itemBackground,
+    backgroundColor: colors.itemBackground,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -73,7 +74,7 @@ const createStyles = () => StyleSheet.create({
   },
   refLabel: {
     fontSize: 11,
-    color: Theme.colors.mutedForeground,
+    color: colors.mutedForeground,
     marginBottom: 2,
   },
   refValue: {
@@ -83,7 +84,7 @@ const createStyles = () => StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: Theme.colors.border,
+    backgroundColor: colors.border,
     width: '100%',
     opacity: 0.3,
   },
@@ -99,10 +100,10 @@ const createStyles = () => StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   secondaryButton: {
-    backgroundColor: Theme.colors.muted,
+    backgroundColor: colors.muted,
   },
   buttonText: {
     fontSize: 14,
@@ -118,15 +119,12 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
   manualReviewReason,
   onDismiss,
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
-  const [copied, setCopied] = useState(false);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
 
-  const handleCopy = async () => {
-    if (!referenceId) return;
-    await Clipboard.setStringAsync(referenceId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const { copied, copy } = useCopyFeedback();
+  const handleCopy = () => {
+    if (referenceId) copy(referenceId);
   };
 
   const handleGoToOrders = () => {
@@ -148,7 +146,7 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.iconRow}>
-            <MaterialCommunityIcons name="alert-circle" size={28} color={Theme.colors.destructive} />
+            <MaterialCommunityIcons name="alert-circle" size={28} color={colors.destructive} />
           </View>
 
           <ThemedText bold style={styles.title}>Order Under Review</ThemedText>
@@ -159,7 +157,7 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
             {'\n\n'}Our team has been notified and will resolve this. Please contact support with your reference ID below.
           </ThemedText>
 
-          <ThemedText style={[styles.body, { color: Theme.colors.mutedForeground, fontSize: 12 }]}>
+          <ThemedText style={[styles.body, { color: colors.mutedForeground, fontSize: 12 }]}>
             Status: {labelForStatus(orderStatus)}
           </ThemedText>
 
@@ -174,7 +172,7 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
                 <Ionicons
                   name={copied ? 'checkmark' : 'copy-outline'}
                   size={16}
-                  color={copied ? Theme.colors.success : Theme.colors.mutedForeground}
+                  color={copied ? colors.success : colors.mutedForeground}
                 />
               </TouchableOpacity>
             </>

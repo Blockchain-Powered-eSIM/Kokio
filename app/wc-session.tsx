@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -8,8 +8,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { useKokio } from "@/hooks/useKokio";
 import { Config } from "@/appKeys";
 import {
@@ -19,15 +19,15 @@ import {
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/utils/logger";
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: colors.background,
     justifyContent: "center",
     paddingHorizontal: 24,
   },
   card: {
-    backgroundColor: Theme.colors.modalBackground,
+    backgroundColor: colors.modalBackground,
     borderRadius: 24,
     padding: 24,
     alignItems: "center",
@@ -40,34 +40,34 @@ const createStyles = () => StyleSheet.create({
   },
   dappName: {
     fontSize: 20,
-    color: Theme.colors.foreground,
+    color: colors.foreground,
     marginBottom: 4,
   },
   dappUrl: {
     fontSize: 13,
-    color: Theme.colors.muted,
+    color: colors.muted,
     marginBottom: 16,
   },
   divider: {
     width: "100%",
     height: 1,
-    backgroundColor: Theme.colors.muted,
+    backgroundColor: colors.muted,
     opacity: 0.2,
     marginBottom: 16,
   },
   label: {
     fontSize: 13,
-    color: Theme.colors.muted,
+    color: colors.muted,
     marginBottom: 4,
   },
   value: {
     fontSize: 14,
-    color: Theme.colors.foreground,
+    color: colors.foreground,
     marginBottom: 2,
   },
   addressPreview: {
     fontSize: 13,
-    color: Theme.colors.muted,
+    color: colors.muted,
     fontFamily: "Lexend",
     marginBottom: 24,
   },
@@ -83,22 +83,21 @@ const createStyles = () => StyleSheet.create({
     alignItems: "center",
   },
   rejectButton: {
-    backgroundColor: Theme.colors.inputBackground,
+    backgroundColor: colors.inputBackground,
   },
   approveButton: {
-    backgroundColor: Theme.colors.secondary,
+    backgroundColor: colors.secondary,
   },
   rejectText: {
-    color: Theme.colors.foreground,
+    color: colors.foreground,
   },
   approveText: {
-    color: Theme.colors.cardForeground,
+    color: colors.cardForeground,
   },
 });
 
 export default function WcSessionScreen() {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { kokio } = useKokio();
   const [loading, setLoading] = useState(false);
@@ -197,7 +196,7 @@ export default function WcSessionScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={Theme.colors.cardForeground} />
+              <ActivityIndicator color={styles.approveText.color} />
             ) : (
               <ThemedText style={styles.approveText}>Approve</ThemedText>
             )}

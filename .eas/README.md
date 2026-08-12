@@ -34,9 +34,9 @@ The `staging` branch is for release candidate testing.
 - EAS build profile: `staging`
 - EAS environment: `preview`
 - EAS update branch/channel: `staging`
-- Runs OTA updates for PRs labeled `ota` only when they change approved OTA-safe paths and a compatible finished build already exists on Expo for both platforms.
+- Runs OTA updates for PRs labeled `ota` only when they change approved OTA-safe paths and a compatible finished build already exists on Expo for each resolved platform (Android always; iOS only when the `ios` label is present).
 - Falls back to native builds for version, native, config, dependency, and uncertain changes.
-- Submits Android builds to Google Play open testing.
+- Submits Android builds to the Google Play internal testing track (early bug-catching before a production candidate).
 - Distributes iOS builds through TestFlight external testing in the `Public` group (when `ios` is opted in).
 
 ### `production`
@@ -47,15 +47,15 @@ The `production` branch is for real app releases.
 - EAS build profile: `production`
 - EAS environment: `production`
 - EAS update branch/channel: `production`
-- Runs OTA updates for PRs labeled `ota` only when they change approved OTA-safe paths and a compatible finished build already exists on Expo for both platforms.
+- Runs OTA updates for PRs labeled `ota` only when they change approved OTA-safe paths and a compatible finished build already exists on Expo for each resolved platform (Android always; iOS only when the `ios` label is present).
 - Falls back to native builds for version, native, config, dependency, and uncertain changes.
-- Submits Android builds to the Google Play production track.
+- Submits Android builds to the Google Play closed alpha track as a draft. Releases are validated with a trusted-tester group there, then promoted to the production track manually from the Play Console, the pipeline does **NOT** publishes to production directly.
 - Submits iOS builds to App Store Connect (when `ios` is opted in).
 
 ## Release Versioning
 
 - `package.json` is the single source of truth for the Kokio app version.
-- `app.config.ts` derives Expo `version`, `runtimeVersion`, `ios.version`, and `android.version` from `package.json`.
+- `app.config.js` derives Expo `version`, `runtimeVersion`, `ios.version`, and `android.version` from `package.json`.
 - EAS remote build numbers are separate from app version and continue auto-incrementing per profile.
 - PRs to `staging` and `production` use this policy:
   - `ota` label present: `package.json` version must stay the same as the base branch.
@@ -78,9 +78,9 @@ Runs on pushes to `dev`. Builds Android and iOS device builds with the `developm
 
 | File | Runs when | Does |
 |---|---|---|
-| `workflows/deploy-staging-android.yml` | merged PR to `staging`, no `ota` label | Android `staging` build → Google Play open testing |
+| `workflows/deploy-staging-android.yml` | merged PR to `staging`, no `ota` label | Android `staging` build → Google Play Internal testing |
 | `workflows/deploy-staging-ios.yml` | as above **+ `ios` label** | iOS `staging` build → TestFlight (`Public`, beta review submitted) |
-| `workflows/deploy-production-android.yml` | merged PR to `production`, no `ota` label | Android `production` build → Play production track |
+| `workflows/deploy-production-android.yml` | merged PR to `production`, no `ota` label | Android `production` build → Play Closed Testing track (draft, manually promoted to production) |
 | `workflows/deploy-production-ios.yml` | as above **+ `ios` label** | iOS `production` build → App Store Connect |
 
 Staging workflows use the EAS `preview` environment so cloud jobs pull staging-safe environment variables instead of production values.
@@ -121,19 +121,19 @@ OTA is not triggered when any of these are true:
 
 - files outside the OTA-safe allowlist changed
 - the change requires a new runtime version
-- Expo does not have compatible finished builds for both platforms
+- Expo does not have compatible finished builds for each resolved platform
 
 When OTA is not triggered, GitHub routes Kokio to the native build-and-submit workflow instead.
 
 Examples:
 
 - JS-only UI bugfix in `app/`, `components/`, or `screens/` with an `ota` label and an already-existing matching runtime/build: OTA is triggered.
-- Change to `android/`, `ios/`, `app.config.ts`, `eas.json`, `package.json`, `package-lock.json`, workflow files, or any non-allowlisted path: native build is triggered.
+- Change to `android/`, `ios/`, `app.config.js`, `eas.json`, `package.json`, `package-lock.json`, workflow files, or any non-allowlisted path: native build is triggered.
 - Uncertain dependency or release-config change: native build is triggered.
 
 ## Important Cautions
 
-- A production push can submit a real Android production release. Review release PRs carefully before merging.
+- A production push uploads an Android build to the Play Console closed alpha track as a draft, not sent for review. It does not publish to production — promotion to the production track is a manual Play Console step after trusted-tester validation. Review release PRs carefully before merging.
 - iOS submission uploads the build to App Store Connect. Apple review, TestFlight processing, and public release behavior still depend on App Store Connect configuration.
 - `staging` uses store distribution because Google Play open testing requires an app bundle, not an internal APK.
 - `autoIncrement` is enabled for staging and production so repeated store submissions do not fail because of duplicate build numbers.

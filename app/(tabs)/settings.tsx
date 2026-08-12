@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -10,9 +10,11 @@ import {
   Linking,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
-import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
+import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import type { Palette } from "@/constants/Colors";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,7 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 
-const createStyles = () => StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
@@ -44,17 +46,17 @@ const createStyles = () => StyleSheet.create({
     alignItems: "center",
   },
   menuItemText: {
-    color: Theme.colors.text,
+    color: colors.text,
     fontSize: 16,
     fontWeight: "500",
     flex: 1,
   },
   iconLeft: {
-    color: Theme.colors.icon,
+    color: colors.icon,
     marginRight: 16,
   },
   iconRight: {
-    color: Theme.colors.icon,
+    color: colors.icon,
     marginLeft: 16,
   },
   aboutContainer: {
@@ -70,23 +72,23 @@ const createStyles = () => StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.muted,
+    borderBottomColor: colors.muted,
   },
   aboutTitle: {
-    color: Theme.colors.text,
+    color: colors.text,
     fontSize: 24,
     fontWeight: "600",
     paddingTop: 20,
   },
   closeButton: {
-    color: Theme.colors.icon,
+    color: colors.icon,
     paddingTop: 16,
   },
   aboutContent: {
     flex: 1,
   },
   aboutText: {
-    color: Theme.colors.text,
+    color: colors.text,
     fontSize: 15,
     lineHeight: 24,
     marginBottom: 16,
@@ -99,13 +101,13 @@ const createStyles = () => StyleSheet.create({
     marginBottom: 16,
   },
   linkText: {
-    color: Theme.colors.text,
+    color: colors.text,
     fontSize: 15,
     lineHeight: 24,
     opacity: 0.9,
   },
   aboutLink: {
-    color: Theme.colors.link,
+    color: colors.link,
     textDecorationLine: "underline",
     fontSize: 15,
     lineHeight: 24,
@@ -123,7 +125,7 @@ const createStyles = () => StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: "500",
-    color: Theme.colors.text,
+    color: colors.text,
   },
 });
 
@@ -147,8 +149,8 @@ const MenuItem = ({
   action: (() => void) | undefined;
   disabled?: boolean;
 }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   return (
   <TouchableOpacity
     style={[styles.menuItem, disabled && { opacity: DISABLED_OPACITY }]}
@@ -160,13 +162,13 @@ const MenuItem = ({
         /* @ts-ignore */
         name={iconLeft}
         size={24}
-        color={disabled ? Theme.colors.inactive : "white"}
+        color={disabled ? colors.inactive : "white"}
         style={styles.iconLeft}
       />
       <ThemedText
         style={{
           ...styles.menuItemText,
-          ...(disabled && { color: Theme.colors.inactive }),
+          ...(disabled && { color: colors.inactive }),
         }}
       >
         {title}
@@ -175,7 +177,7 @@ const MenuItem = ({
         /* @ts-ignore */
         name={iconRight}
         size={24}
-        color={disabled ? Theme.colors.inactive : "white"}
+        color={disabled ? colors.inactive : "white"}
         style={styles.iconRight}
       />
     </View>
@@ -184,8 +186,7 @@ const MenuItem = ({
 };
 
 const AboutContent = ({ onClose }: { onClose: () => void }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
   const handleLinkPress = useCallback(async (url: string) => {
     try {
       await openBrowserAsync(url);
@@ -241,8 +242,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 const ContactContent = ({ onClose }: { onClose: () => void }) => {
-  const { isDark } = useTheme();
-  const styles = useMemo(createStyles, [isDark]);
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.aboutContainer}>
@@ -286,8 +286,9 @@ export default function MenuScreen() {
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const styles = useThemedStyles(createStyles);
   const bg = useThemeColor({}, "background");
-  const styles = useMemo(createStyles, [isDark]);
+  const colors = useColors();
 
   const menuItems = [
     {
@@ -380,7 +381,7 @@ export default function MenuScreen() {
               <Ionicons
                 name={isDark ? "moon-outline" : "sunny-outline"}
                 size={24}
-                color={Theme.colors.text}
+                color={colors.text}
                 style={styles.iconLeft}
               />
               <ThemedText style={styles.themeLabel}>
@@ -389,8 +390,8 @@ export default function MenuScreen() {
               <Switch
                 value={isDark}
                 onValueChange={toggleTheme}
-                trackColor={{ false: Theme.colors.muted, true: Theme.colors.primary }}
-                thumbColor={Theme.colors.text}
+                trackColor={{ false: colors.muted, true: colors.primary }}
+                thumbColor={colors.text}
               />
             </View> }
           </>

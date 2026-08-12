@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
+import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
 import { useNavigation } from "expo-router";
 
 import _debounce from "lodash/debounce";
@@ -8,6 +9,7 @@ import _debounce from "lodash/debounce";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
 
@@ -21,10 +23,11 @@ const Tab = createMaterialTopTabNavigator();
 
 const TabsNavigator = () => {
   const { isDark } = useTheme();
+  const bg = useThemeColor({}, "background");
   return (
     <Tab.Navigator
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ sceneStyle: { backgroundColor: isDark ? "transparent" : Theme.colors.background } }}
+      tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
+      screenOptions={{ sceneStyle: { backgroundColor: isDark ? "transparent" : bg } }}
     >
       <Tab.Screen
         name="Countries"
@@ -98,4 +101,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(Shop);
+export default Shop;
