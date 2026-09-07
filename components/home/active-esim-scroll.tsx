@@ -56,11 +56,11 @@ const createStyles = (colors: Palette) =>
     emptyTitle: {
       fontSize: 16,
       fontWeight: "700",
-      color: colors.text,
+      color: colors.cardForeground,
     },
     emptySubtitle: {
       fontSize: 14,
-      color: colors.foreground,
+      color: colors.cardForeground,
       textAlign: "center",
     },
   });
@@ -97,10 +97,10 @@ const ActiveESIMsScroll = () => {
         <Text style={[styles.title, { color: colors.text }]}>eSIMs</Text>
         <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
           <Text style={styles.emptyIcon}>📶</Text>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          <Text style={[styles.emptyTitle, { color: colors.cardForeground }]}>
             No active eSIMs
           </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.foreground }]}>
+          <Text style={[styles.emptySubtitle, { color: colors.cardForeground }]}>
             Your purchased eSIMs will appear here
           </Text>
         </View>
