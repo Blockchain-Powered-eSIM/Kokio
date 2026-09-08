@@ -4,6 +4,7 @@ export const ROUTE_NAMES = {
   CHECKOUT:               "checkout/[id]",
   COVERAGE:               "coverage",
   COVERAGE_MODAL:         "coverage-modal",
+  PRIVACY_POLICY:         "privacy-policy",
   WALLET:                 "(wallet)",
   PHONE:                  "phone",
   ORDERS:                 "orders",
