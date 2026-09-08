@@ -93,6 +93,13 @@ const createStyles = (colors: Palette) => StyleSheet.create({
       textAlign: "center",
       marginTop: 32,
     },
+    refreshHint: {
+      color: colors.inactive,
+      fontSize: 12,
+      textAlign: "center",
+      marginTop: 24,
+      marginBottom: 12,
+    },
     detailSection: {
       borderRadius: 12,
       marginHorizontal: 4,
@@ -691,6 +698,7 @@ export default function OrdersScreen() {
             }
           >
             <ThemedText style={styles.emptyText}>No orders yet.</ThemedText>
+            <Text style={styles.refreshHint}>Swipe down to refresh</Text>
           </ScrollView>
         ) : (
           <FlatList
@@ -710,6 +718,7 @@ export default function OrdersScreen() {
             )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 16 }}
+            ListFooterComponent={<Text style={styles.refreshHint}>Swipe down to refresh</Text>}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
