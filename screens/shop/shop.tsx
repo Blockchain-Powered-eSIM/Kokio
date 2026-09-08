@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
-import { useNavigation } from "expo-router";
+import { useFocusEffect, useNavigation } from "expo-router";
 
 import _debounce from "lodash/debounce";
 
@@ -56,6 +56,7 @@ const TabsNavigator = () => {
 const Shop = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [topTabResetKey, setTopTabResetKey] = useState(0);
+  const [searchResetKey, setSearchResetKey] = useState(0);
   const navigation = useNavigation();
 
   const debouncedOnSearch = useMemo(() => _debounce(setSearchText, 500), []);
@@ -78,9 +79,20 @@ const Shop = () => {
     return unsubscribe;
   }, [navigation]);
 
+  // Resets the search term whenever this screen regains focus — covers
+  // returning from a purchase flow or anywhere else in the app, not just a
+  // bottom-tab press. Remounting SearchInput (via the key bump) is required
+  // since it keeps its own uncontrolled text state internally.
+  useFocusEffect(
+    useCallback(() => {
+      setSearchText("");
+      setSearchResetKey((key) => key + 1);
+    }, [])
+  );
+
   return (
     <ThemedView style={styles.shopContainer}>
-      <SearchInput onSearch={debouncedOnSearch} onClear={setSearchText} />
+      <SearchInput key={searchResetKey} onSearch={debouncedOnSearch} onClear={setSearchText} />
       <ThemedView style={styles.container}>
         {searchText ? (
           <SearchResult searchText={searchText} />
