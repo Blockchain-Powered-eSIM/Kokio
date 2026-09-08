@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   FlatList,
   Linking,
   Modal,
+  Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,16 +18,29 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { useEsimUsage } from "@/hooks/useEsimUsage";
 import type { ESimDocument } from "@/utils/bff/esim";
 import type { OrderListItem } from "@/utils/bff/order";
 import ESIMItem from "@/components/ESIMItem";
 import type { Esim } from "@/components/ESIMItem";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
+
+// ─── eSIM activation-status labeling ─────────────────────────────────────────
+
+type ActivationStatus = ESimDocument["activationStatus"];
+
+const ESIM_STATUS_LABEL: Record<ActivationStatus, string> = {
+  RELEASED:    "Ready to Install",
+  INSTALLED:   "Active",
+  UNAVAILABLE: "Unavailable",
+  DEACTIVATED: "Deactivated",
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,9 +100,34 @@ const createStyles = (colors: Palette) => StyleSheet.create({
       marginBottom: 8,
       padding: 14,
     },
+    summaryRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 6,
+    },
+    summaryLabel: {
+      fontSize: 13,
+    },
+    summaryValue: {
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    usageBarTrack: {
+      height: 8,
+      borderRadius: 4,
+      overflow: "hidden",
+      marginTop: -2,
+      marginBottom: 6,
+    },
+    usageBarFill: {
+      height: 8,
+      borderRadius: 4,
+    },
     actionRow: {
       flexDirection: "row",
       gap: 8,
+      marginTop: 4,
     },
     actionBtn: {
       flex: 1,
@@ -197,7 +237,21 @@ const purchaseStyles = (colors: Palette) => StyleSheet.create({
 
 // ─── CopyRow ──────────────────────────────────────────────────────────────────
 
-const CopyRow = ({ label, value }: { label: string; value: string }) => {
+const CopyRow = ({
+  label,
+  value,
+  displayValue,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  // Text shown in place of `value` (which is still what gets copied) — used
+  // when the raw value (e.g. an LPA string) is unhelpful to show as-is.
+  displayValue?: string;
+  // Overrides the default value text color (colors.cardForeground) — used
+  // when a caller renders this row against a background other than colors.card.
+  valueColor?: string;
+}) => {
   const pdStyles = useThemedStyles(purchaseStyles);
   const colors = useColors();
   const { copied, copy } = useCopyFeedback();
@@ -206,10 +260,10 @@ const CopyRow = ({ label, value }: { label: string; value: string }) => {
       <View style={{ flex: 1, marginRight: 12 }}>
         <Text style={[pdStyles.copyLabel, { color: colors.inactive }]}>{label}</Text>
         <Text
-          style={[pdStyles.copyValue, { color: colors.cardForeground }]}
+          style={[pdStyles.copyValue, { color: valueColor ?? colors.cardForeground }]}
           numberOfLines={2}
         >
-          {value}
+          {displayValue ?? value}
         </Text>
       </View>
       <Ionicons
@@ -353,9 +407,48 @@ const OrderCard = ({
   const pdStyles = useThemedStyles(purchaseStyles);
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const { isDark } = useTheme();
   const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
 
   const statusColor = colorForStatus(order.orderStatus);
+
+  const isInstalled = order.esim?.activationStatus === "INSTALLED";
+
+  const ESIM_STATUS_COLOR: Record<ActivationStatus, string> = {
+    RELEASED:    colors.info,
+    INSTALLED:   colors.success,
+    UNAVAILABLE: colors.warning,
+    DEACTIVATED: colors.destructive,
+  };
+
+  // Remaining data is only meaningful once installed, and fetched only for the
+  // expanded card, not for every card in the list.
+  const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
+    useEsimUsage(isExpanded && isInstalled ? order.esimId ?? undefined : undefined);
+
+  const remainingDataText = !isInstalled
+    ? "—"
+    : usageLoading
+      ? "Loading…"
+      : usageIsError || usageUnavailable
+        ? "Unavailable"
+        : usage?.isUnlimited
+          ? "Unlimited"
+          : usage?.remaining != null
+            ? `${usage.remaining.toFixed(2)} GB`
+            : "—";
+
+  // Usage bar: green above 40% remaining, amber above 15%, red below.
+  const usageRatio = usage?.remaining && usage?.total ? usage.remaining / usage.total : null;
+  const usageBarColor =
+    usageRatio == null
+      ? colors.primary
+      : usageRatio > 0.4
+        ? colors.success
+        : usageRatio > 0.15
+          ? colors.warning
+          : colors.destructive;
+  const usageFillPct = usageRatio == null ? 0 : Math.min(100, usageRatio * 100);
 
   // LPA string: prefer the smdpAddress+matchingId pair from the live eSIM doc
   // (authoritative); fall back to the qrcode stored on installationDetails.
@@ -424,6 +517,59 @@ const OrderCard = ({
 
       {isExpanded && (
         <View style={[styles.detailSection, { backgroundColor: colors.surface }]}>
+          {order.esim ? (
+            <>
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, { color: colors.inactive }]}>
+                  Data Remaining
+                </Text>
+                <Text style={[styles.summaryValue, { color: colors.text }]}>
+                  {remainingDataText}
+                </Text>
+              </View>
+              {!usage?.isUnlimited && usage?.remaining != null && usage?.total != null ? (
+                <View style={[styles.usageBarTrack, { backgroundColor: colors.muted }]}>
+                  <View
+                    style={[
+                      styles.usageBarFill,
+                      { width: `${usageFillPct}%`, backgroundColor: usageBarColor },
+                    ]}
+                  />
+                </View>
+              ) : null}
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, { color: colors.inactive }]}>
+                  Status
+                </Text>
+                <Text
+                  style={[
+                    styles.summaryValue,
+                    { color: ESIM_STATUS_COLOR[order.esim.activationStatus] },
+                  ]}
+                >
+                  {ESIM_STATUS_LABEL[order.esim.activationStatus]}
+                </Text>
+              </View>
+            </>
+          ) : null}
+          {order.iccid ? (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { color: colors.inactive }]}>ICCID</Text>
+              <Text style={[styles.summaryValue, { color: colors.text }]}>
+                {order.iccid}
+              </Text>
+            </View>
+          ) : null}
+
+          {lpa && !isInstalled && Platform.OS === "android" ? (
+            <CopyRow
+              label="LPA String"
+              value={lpa}
+              displayValue="Install using this Code in SIM settings"
+              valueColor={isDark ? "white" : undefined}
+            />
+          ) : null}
+
           <View style={styles.actionRow}>
             {lpa && onInstall ? (
               <TouchableOpacity
@@ -466,13 +612,24 @@ const OrderCard = ({
 export default function OrdersScreen() {
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const bg = useThemeColor({}, "background");
   const { expandOrderId } = useLocalSearchParams<{ expandOrderId?: string }>();
 
-  const { esims, isLoading: esimsLoading } = useEsims();
-  const { orders, isLoading: ordersLoading } = useOrders();
+  const { esims, isLoading: esimsLoading, refetch: refetchEsims } = useEsims();
+  const { orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
 
   const isLoading = esimsLoading || ordersLoading;
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchEsims(), refetchOrders()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchEsims, refetchOrders]);
 
   // Join orders with their matching ESimDocument by esimId.
   const enrichedOrders = useMemo<EnrichedOrder[]>(() => {
@@ -484,31 +641,25 @@ export default function OrdersScreen() {
   }, [orders, esims]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const autoExpandedRef = useRef(false);
 
-  // Collapse all cards when leaving the Orders tab.
+  // Default: the eSIM targeted via expandOrderId (e.g. tapped from Home) if
+  // present, otherwise the top-most order — open until the user selects a
+  // different one. Re-derived on every arrival at this tab (and as data
+  // loads), matching on idempotencyKey, orderId, or esimId.
   useFocusEffect(
     useCallback(() => {
-      return () => setExpandedId(null);
-    }, []),
+      if (enrichedOrders.length === 0) return;
+      const matched = expandOrderId
+        ? enrichedOrders.find(
+            (o) =>
+              o.idempotencyKey === expandOrderId ||
+              o.orderId        === expandOrderId ||
+              o.esimId         === expandOrderId,
+          )
+        : undefined;
+      setExpandedId(getOrderKey(matched ?? enrichedOrders[0]));
+    }, [expandOrderId, enrichedOrders]),
   );
-
-  // Auto-expand the card referenced by the URL param.
-  // Matches on idempotencyKey, orderId, or esimId
-  useEffect(() => {
-    if (autoExpandedRef.current || !expandOrderId || enrichedOrders.length === 0) return;
-    const matched = enrichedOrders.find(
-      (o) =>
-        o.idempotencyKey === expandOrderId ||
-        o.orderId        === expandOrderId ||
-        o.esimId         === expandOrderId,
-    );
-    if (matched) {
-      autoExpandedRef.current = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setExpandedId(getOrderKey(matched));
-    }
-  }, [expandOrderId, enrichedOrders]);
 
   const handleInstall = useCallback((lpa: string) => {
     // Parse LPA string: LPA:1$<smdpAddress>$<matchingId>
@@ -529,7 +680,18 @@ export default function OrdersScreen() {
         {isLoading ? (
           <ThemedText style={styles.emptyText}>Loading orders…</ThemedText>
         ) : enrichedOrders.length === 0 ? (
-          <ThemedText style={styles.emptyText}>No orders yet.</ThemedText>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.text}
+              />
+            }
+          >
+            <ThemedText style={styles.emptyText}>No orders yet.</ThemedText>
+          </ScrollView>
         ) : (
           <FlatList
             data={enrichedOrders}
@@ -548,6 +710,13 @@ export default function OrdersScreen() {
             )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 16 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.text}
+              />
+            }
           />
         )}
       </ThemedView>

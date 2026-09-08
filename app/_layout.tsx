@@ -158,7 +158,6 @@ export default function RootLayout() {
           <Stack.Screen name="moonpay-return" options={{ headerShown: false }} />
           <Stack.Screen name="wc-connect" options={{ headerShown: false }} />
           <Stack.Screen name="wc-session" options={{ headerShown: false, presentation: "modal" }} />
-          <Stack.Screen name="esim-detail" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="coverage-modal" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
       </View>
