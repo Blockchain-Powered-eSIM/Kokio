@@ -459,7 +459,7 @@ const Checkout = () => {
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);
     router.dismissAll();
-    router.navigate({
+    router.push({
       pathname: "/(tabs)/installation",
       params: {
         orderId:              orderResponse?.orderId || "",

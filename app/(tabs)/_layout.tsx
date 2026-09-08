@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Tabs, router, useLocalSearchParams } from "expo-router";
+import { Tabs, router } from "expo-router";
 
 import { Theme } from "@/constants/Colors";
 import { useNavBarInset } from "@/hooks/useBottomInset"; 
@@ -26,7 +26,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
 });
 
 function InstallationHeader() {
-  const { from } = useLocalSearchParams<{ from?: string }>();
   return (
     <SafeAreaView edges={["top"]}>
       <Header
@@ -34,15 +33,7 @@ function InstallationHeader() {
         style={{ justifyContent: "center" }}
         hasBack
         goBackHandler={() => {
-          if (from === "orders") {
-            router.navigate("/(tabs)/orders");
-          } else {
-            // navigate("/(tabs)") operates on the already-mounted Tabs
-            // navigator, which just re-focuses whichever tab was last active
-            // (e.g. Shop) instead of switching to Home. Resetting the root
-            // stack to "/" remounts (tabs) fresh, landing on its initial tab.
-            router.replace("/");
-          }
+          router.navigate("/(tabs)/orders");
         }}
       />
     </SafeAreaView>

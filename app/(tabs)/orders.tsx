@@ -675,7 +675,7 @@ export default function OrdersScreen() {
     const appleInstallationUrl = parts[1] && parts[2]
       ? `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${lpa}`
       : "";
-    router.navigate({
+    router.push({
       pathname: "/(tabs)/installation",
       params: { qrcode, appleInstallationUrl, iccid: "", orderId: "" },
     });
