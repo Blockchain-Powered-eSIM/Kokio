@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { StyleSheet, FlatList, Pressable, StyleProp, View, ViewStyle } from "react-native";
 
 import _get from "lodash/get";
