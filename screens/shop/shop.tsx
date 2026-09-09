@@ -12,6 +12,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
+import { ShopFilterButton } from "@/components/ShopFilterControl";
+import { useShopFilters } from "@/contexts/ShopFiltersContext";
 
 import Countries from "./tabs/countries";
 import Global from "./tabs/global";
@@ -58,6 +60,7 @@ const Shop = () => {
   const [topTabResetKey, setTopTabResetKey] = useState(0);
   const [searchResetKey, setSearchResetKey] = useState(0);
   const navigation = useNavigation();
+  const { isActive: filtersActive, openFilterSheet } = useShopFilters();
 
   const debouncedOnSearch = useMemo(() => _debounce(setSearchText, 500), []);
 
@@ -92,7 +95,21 @@ const Shop = () => {
 
   return (
     <ThemedView style={styles.shopContainer}>
-      <SearchInput key={searchResetKey} onSearch={debouncedOnSearch} onClear={setSearchText} />
+      <ThemedView style={styles.searchRow}>
+        <SearchInput
+          key={searchResetKey}
+          onSearch={debouncedOnSearch}
+          onClear={setSearchText}
+          containerStyle={styles.searchInput}
+        />
+        {/* The sheet itself is mounted at the Shop stack's _layout.tsx level,
+            not here — see ShopFilterSheet's comment for why: this screen's
+            MaterialTopTabNavigator (Countries/Regions/Global/Special) below
+            re-layouts on every top-tab switch, which previously desynced the
+            sheet and left it stuck mid-open. openFilterSheet() reaches that
+            higher-mounted instance through ShopFiltersContext. */}
+        <ShopFilterButton isActive={filtersActive} onPress={openFilterSheet} />
+      </ThemedView>
       <ThemedView style={styles.container}>
         {searchText ? (
           <SearchResult searchText={searchText} />
@@ -109,6 +126,14 @@ const styles = StyleSheet.create({
   shopContainer: {
     paddingRight: Theme.spacing.sm,
     paddingLeft: Theme.spacing.sm,
+    flex: 1,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Theme.spacing.sm,
+  },
+  searchInput: {
     flex: 1,
   },
 });

@@ -7,8 +7,28 @@ import Header from "@/components/Header";
 import { ROUTE_NAMES } from "@/constants/route.constants";
 import CheckoutHeader from "@/components/checkoutHeader";
 import appBootstrap from "@/utils/appBootstrap";
+import { ShopFiltersProvider, useShopFilters } from "@/contexts/ShopFiltersContext";
+import { ShopFilterSheet } from "@/components/ShopFilterControl";
 
 export default function ShopStack() {
+  return (
+    <ShopFiltersProvider>
+      <ShopStackNavigator />
+    </ShopFiltersProvider>
+  );
+}
+
+function ShopStackNavigator() {
+  const { sheetRef } = useShopFilters();
+  return (
+    <>
+      <StackContent />
+      <ShopFilterSheet ref={sheetRef} />
+    </>
+  );
+}
+
+function StackContent() {
   return (
     <Stack
       screenOptions={({ route }) => ({
