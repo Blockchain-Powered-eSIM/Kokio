@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { openBrowserAsync } from "expo-web-browser";
+import * as Updates from "expo-updates";
 import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -209,6 +210,22 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingTop: 20,
     backgroundColor: "transparent",
   },
+  signupPromptContainer: {
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+    alignItems: "center",
+  },
+  singleButton: {
+    alignSelf: "stretch",
+    borderRadius: 25,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  singleButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
 
 const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
@@ -221,6 +238,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [eoaAddress, setEoaAddress] = useState("");
   const [walletAddress, setWalletAddress] = useState<string | undefined>(
     undefined
@@ -259,6 +277,10 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     });
 
     if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !rawSalt || !sdk) {
+      // These fields only ever come from completing passkey signup, never from
+      // wallet deployment itself — missing them means the user hasn't signed
+      // up yet (e.g. cancelled out of first-launch auth), not that deployment
+      // failed. Send them to sign up instead of the generic failure/retry loop.
       logger.warn('WALLET_SETUP_GUARD_FAILED — Missing', {
         deviceWalletAddress,
         x: userPasskey?.x,
@@ -266,7 +288,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
         rawSalt: !!rawSalt,
         sdk: !!sdk,
       });
-      setShowRetry(true);
+      setShowSignupPrompt(true);
       setIsLoading(false);
       return;
     }
@@ -358,10 +380,23 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(false);
     setShowRecovery(false);
     setShowRetry(false);
+    setShowSignupPrompt(false);
     setEoaAddress("");
     setWalletAddress(undefined);
     onClose();
   }, [onClose]);
+
+  // Step-up only signs an already-registered user back in — it can't help
+  // someone who never completed passkey signup. Relaunching restarts the JS
+  // context from scratch, which is what actually gets them back in front of
+  // the auth modal (it auto-expands on mount whenever state.authenticated is
+  // still false).
+  const handleRelaunch = useCallback(() => {
+    handleClose();
+    Updates.reloadAsync().catch((err) => {
+      logger.error('APP_RELOAD_FAILED', { err });
+    });
+  }, [handleClose]);
 
   const initialContent = useMemo(
     () => (
@@ -405,6 +440,27 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     // styles have their own memo watching for changes based on theme
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
+  );
+
+  const signupPromptContent = useMemo(
+    () => (
+      <View style={styles.signupPromptContainer}>
+        <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
+          Please sign-up to proceed
+        </ThemedText>
+        <TouchableOpacity
+          style={[styles.singleButton, { backgroundColor: colors.primary }]}
+          onPress={handleRelaunch}
+        >
+          <Text style={[styles.singleButtonText, { color: colors.cardForeground }]}>
+            Let&apos;s go
+          </Text>
+        </TouchableOpacity>
+      </View>
+    ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handleRelaunch, textColor]
   );
 
   const retryContent = useMemo(
@@ -544,6 +600,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
   const renderContent = () => {
     if (isLoading) return loadingContent;
+    if (showSignupPrompt) return signupPromptContent;
     if (showRetry) return retryContent;
     if (showRecovery) return recoveryContent;
     return initialContent;

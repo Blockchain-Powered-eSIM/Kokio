@@ -14,6 +14,7 @@ import _chunk from "lodash/chunk";
 import _filter from "lodash/filter";
 import _lowerCase from "lodash/lowerCase";
 import _includes from "lodash/includes";
+import _startsWith from "lodash/startsWith";
 import _trim from "lodash/trim";
 import _reduce from "lodash/reduce";
 import _size from "lodash/size";
@@ -91,8 +92,18 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  carouselArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
+// `_lowerCase` also deburrs (strips diacritics) on both sides, so a two-letter
+// unaccented search still matches a country name that starts with an
+// accented form of those letters (e.g. "sa" -> "São Tomé").
 const isSearchTextMatch = ({
   searchText,
   item,
@@ -101,7 +112,12 @@ const isSearchTextMatch = ({
   searchText: string;
   item: ServiceRegion;
   keyExtractor: string;
-}) => _includes(_lowerCase(_get(item, keyExtractor)), searchText);
+}) => {
+  const value = _lowerCase(_get(item, keyExtractor));
+  return searchText.length === 2
+    ? _startsWith(value, searchText)
+    : _includes(value, searchText);
+};
 
 const CountryItemRender = ({ item }: { item: ServiceRegion[] }) => {
   const styles = useThemedStyles(createStyles);
@@ -289,8 +305,12 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               accessibilityRole="button"
               accessibilityLabel="Scroll countries left"
+              style={[
+                styles.carouselArrow,
+                { backgroundColor: colors.surfaceElevated, opacity: isAtStart ? 0 : 1 },
+              ]}
             >
-              <Ionicons name="chevron-back" size={15} color={colors.text} style={{ opacity: isAtStart ? 0 : 1 }}/>
+              <Ionicons name="chevron-back" size={20} color={colors.highlight} />
             </TouchableOpacity>
               <FlatList
                 ref={carouselRef}
@@ -312,8 +332,12 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               accessibilityRole="button"
               accessibilityLabel="Scroll countries right"
+              style={[
+                styles.carouselArrow,
+                { backgroundColor: colors.surfaceElevated, opacity: isAtEnd ? 0 : 1 },
+              ]}
             >
-              <Ionicons name="chevron-forward" size={15} color={colors.text} style={{ opacity: isAtEnd ? 0 : 1 }} />
+              <Ionicons name="chevron-forward" size={20} color={colors.highlight} />
             </TouchableOpacity>
           </View>
         </ThemedView>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -10,6 +10,7 @@ import {
   Linking,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
+import { useRouter, useNavigation } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
@@ -112,6 +113,19 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
   },
+  socialsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  socialIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.itemBackground,
+  },
   themeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -208,7 +222,7 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
         showsVerticalScrollIndicator={false}
       >
         <ThemedText style={styles.aboutText}>
-          You are using KOKI&#39;O Beta v1
+          You are using official Kokio mobile app.
         </ThemedText>
         <ThemedText style={styles.aboutText}>
           A mobile app to purchase eSIM data plans and subscriptions using
@@ -225,16 +239,31 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
           well-being and connectivity freedom of mobile users worldwide.
         </ThemedText>
         <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Website: </Text>
+          <Text style={styles.linkText}>Our website </Text>
           <TouchableOpacity onPress={() => handleLinkPress("https://kokio.app")}>
-            <Text style={styles.aboutLink}>kokio</Text>
+            <Text style={styles.aboutLink}>kokio.app</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Follow us: </Text>
-          <TouchableOpacity onPress={() => handleLinkPress("https://x.com/kokiodotapp")}>
-            <Text style={styles.aboutLink}>@kokiodotapp</Text>
-          </TouchableOpacity>
+          <Text style={styles.linkText}>Follow us on socials </Text>
+          <View style={styles.socialsRow}>
+            <TouchableOpacity
+              style={styles.socialIconButton}
+              onPress={() => handleLinkPress("https://x.com/kokiodotapp")}
+              accessibilityRole="link"
+              accessibilityLabel="Follow @kokiodotapp on X"
+            >
+              <Ionicons name="logo-x" size={16} color={styles.aboutLink.color} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.socialIconButton}
+              onPress={() => handleLinkPress("https://instagram.com/kokiodotapp")}
+              accessibilityRole="link"
+              accessibilityLabel="Follow @kokiodotapp on Instagram"
+            >
+              <Ionicons name="logo-instagram" size={16} color={styles.aboutLink.color} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -282,6 +311,8 @@ export default function MenuScreen() {
   const { logout, deleteAccount } = useAuthRelay();
   const { clearKokioUser } = useKokio();
   const { isDark, toggleTheme } = useTheme();
+  const router = useRouter();
+  const navigation = useNavigation();
 
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
@@ -289,6 +320,21 @@ export default function MenuScreen() {
   const styles = useThemedStyles(createStyles);
   const bg = useThemeColor({}, "background");
   const colors = useColors();
+
+  // Resets to the main menu whenever the Settings tab icon is pressed —
+  // including re-tapping while already here — instead of leaving whatever
+  // sub-view (About/Contact/Delete Account) was last opened on screen.
+  useEffect(() => {
+    // "tabPress" isn't in expo-router's generic NavigationProp event map,
+    // but it still fires correctly at runtime for a screen mounted directly
+    // under the bottom Tabs navigator.
+    const unsubscribe = (navigation as any).addListener("tabPress", () => {
+      setShowAbout(false);
+      setShowContact(false);
+      setShowDeleteAccount(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const menuItems = [
     {
@@ -303,7 +349,7 @@ export default function MenuScreen() {
       title: "Privacy Policy",
       iconLeft: "lock-closed-outline",
       iconRight: "chevron-forward-outline",
-      action: () => openBrowserAsync("https://kokio.app/privacy-policy"),
+      action: () => router.push("/privacy-policy"),
     },
     {
       id: "5",

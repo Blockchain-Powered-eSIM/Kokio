@@ -1,12 +1,21 @@
+import { useMemo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import DataPackTabGroup from "@/components/DataPackTabGroup";
 import { ThemedText } from "@/components/ThemedText";
 import { useCatalogue } from "@/hooks/useCatalogue";
 import { formatBffError } from "@/utils/bff/errors";
+import { useShopFilters } from "@/contexts/ShopFiltersContext";
+import { applyShopFilters } from "@/utils/shopFilters";
 
 export default function Custom() {
   const { data, isLoading, error, refetch } = useCatalogue({ serviceRegionCode: "CUSTOM_REGIONAL" });
+  const { filters, isActive, clearFilters } = useShopFilters();
+
+  const filteredPlans = useMemo(
+    () => applyShopFilters(data?.plans, filters),
+    [data?.plans, filters]
+  );
 
   if (isLoading) {
     return <DataPackTabGroup plans={[]} isLoading />
@@ -31,7 +40,13 @@ export default function Custom() {
     );
   }
 
-  return <DataPackTabGroup plans={data.plans} />;
+  return (
+    <DataPackTabGroup
+      plans={filteredPlans}
+      filtersActive={isActive}
+      onClearFilters={clearFilters}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

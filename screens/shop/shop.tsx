@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
-import { useNavigation } from "expo-router";
+import { useFocusEffect, useNavigation } from "expo-router";
 
 import _debounce from "lodash/debounce";
 
@@ -12,6 +12,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
+import { ShopFilterButton } from "@/components/ShopFilterControl";
+import { useShopFilters } from "@/contexts/ShopFiltersContext";
 
 import Countries from "./tabs/countries";
 import Global from "./tabs/global";
@@ -56,7 +58,9 @@ const TabsNavigator = () => {
 const Shop = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [topTabResetKey, setTopTabResetKey] = useState(0);
+  const [searchResetKey, setSearchResetKey] = useState(0);
   const navigation = useNavigation();
+  const { isActive: filtersActive, openFilterSheet } = useShopFilters();
 
   const debouncedOnSearch = useMemo(() => _debounce(setSearchText, 500), []);
 
@@ -78,9 +82,34 @@ const Shop = () => {
     return unsubscribe;
   }, [navigation]);
 
+  // Resets the search term whenever this screen regains focus — covers
+  // returning from a purchase flow or anywhere else in the app, not just a
+  // bottom-tab press. Remounting SearchInput (via the key bump) is required
+  // since it keeps its own uncontrolled text state internally.
+  useFocusEffect(
+    useCallback(() => {
+      setSearchText("");
+      setSearchResetKey((key) => key + 1);
+    }, [])
+  );
+
   return (
     <ThemedView style={styles.shopContainer}>
-      <SearchInput onSearch={debouncedOnSearch} onClear={setSearchText} />
+      <ThemedView style={styles.searchRow}>
+        <SearchInput
+          key={searchResetKey}
+          onSearch={debouncedOnSearch}
+          onClear={setSearchText}
+          containerStyle={styles.searchInput}
+        />
+        {/* The sheet itself is mounted at the Shop stack's _layout.tsx level,
+            not here — see ShopFilterSheet's comment for why: this screen's
+            MaterialTopTabNavigator (Countries/Regions/Global/Special) below
+            re-layouts on every top-tab switch, which previously desynced the
+            sheet and left it stuck mid-open. openFilterSheet() reaches that
+            higher-mounted instance through ShopFiltersContext. */}
+        <ShopFilterButton isActive={filtersActive} onPress={openFilterSheet} />
+      </ThemedView>
       <ThemedView style={styles.container}>
         {searchText ? (
           <SearchResult searchText={searchText} />
@@ -97,6 +126,14 @@ const styles = StyleSheet.create({
   shopContainer: {
     paddingRight: Theme.spacing.sm,
     paddingLeft: Theme.spacing.sm,
+    flex: 1,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Theme.spacing.sm,
+  },
+  searchInput: {
     flex: 1,
   },
 });
