@@ -24,7 +24,7 @@
     "audit": "npx audit-ci --config audit-ci.jsonc",
     "gen:auth-types": "bash scripts/gen-auth-types.sh",
     "gen:bff-types": "bash scripts/gen-bff-types.sh",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package && node scripts/sync-ios-version.mjs"
   },
   "jest": {
     "preset": "jest-expo",
