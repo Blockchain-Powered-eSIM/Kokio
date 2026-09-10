@@ -98,11 +98,15 @@ const ESIMItem = ({
   showBuyButton,
   containerStyle = {},
   onPress,
+  footer,
 }: {
   item: Esim;
   showBuyButton: boolean;
   containerStyle?: object;
   onPress?: () => void;
+  // Optional extra content rendered below the plan details. Used by the home
+  // page eSIM component to show install affordances / remaining data.
+  footer?: React.ReactNode;
 }) => {
   const colors = useColors();
 
@@ -177,10 +181,11 @@ const ESIMItem = ({
               </View>
             </TouchableOpacity>
           )}
+          {footer}
         </View>
       </>
     ),
-    [item, showBuyButton, handleBuyCTAClick, colors]
+    [item, showBuyButton, handleBuyCTAClick, colors, footer]
   );
 
   if (onPress) {

@@ -459,7 +459,7 @@ const Checkout = () => {
   const handleInstallESIM = useCallback(() => {
     setShowSuccessModal(false);
     router.dismissAll();
-    router.navigate({
+    router.push({
       pathname: "/(tabs)/installation",
       params: {
         orderId:              orderResponse?.orderId || "",
@@ -535,16 +535,6 @@ const Checkout = () => {
         extraScrollHeight={Platform.OS === "ios" ? 20 : 0}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ marginTop: 16 }}>
-          <ThemedText>eSIM & Network</ThemedText>
-          <View style={{ flexDirection: "row", marginTop: 12 }}>
-            <Checkbox onChange={setIsESimEnabled} checked={isESimEnabled} />
-            <Text style={{ color: colors.foreground, marginLeft: 8 }}>
-              I confirm my device is eSIM compatible and network-enabled.
-            </Text>
-          </View>
-        </View>
-
         <View style={{ marginTop: 16 }}>
           <ThemedText>Payment Method</ThemedText>
           <View style={{ flexDirection: "row", marginTop: 12 }}>
@@ -693,6 +683,12 @@ const Checkout = () => {
       </KeyboardAwareScrollView>
 
       <BottomActionBar>
+        <View style={{ flexDirection: "row", marginBottom: 12 }}>
+          <Checkbox onChange={setIsESimEnabled} checked={isESimEnabled} />
+          <Text style={{ color: colors.foreground, marginLeft: 8 }}>
+            I confirm my device is eSIM compatible and network-enabled.
+          </Text>
+        </View>
         <TouchableOpacity
           key={`total-checkout-${canCheckout}`}
           style={!canCheckout && { opacity: 0.5 }}

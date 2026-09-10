@@ -27,6 +27,9 @@ import { logger } from "@/utils/logger";
 
 type TabType = "Direct" | "QR" | "Manual";
 
+// Lightning bolt's natural yellow — kept fixed across light/dark theme, not tinted by theme tokens.
+const FLASH_COLOR = "#FFC107";
+
 const warningStyles = StyleSheet.create({
   warningCard: {
     borderRadius: 12,
@@ -69,12 +72,19 @@ const styles = StyleSheet.create({
   tabBarContainer: {
     borderRadius: Theme.borderRadius.medium,
     flexDirection: "row",
-    overflow: "hidden",
   },
   tabButton: {
     flex: 1,
     paddingVertical: 6,
     minHeight: 30,
+    position: "relative",
+  },
+  tabSpeedIcons: {
+    position: "absolute",
+    top: -4,
+    right: 4,
+    flexDirection: "row",
+    zIndex: 2,
   },
   tabButtonText: {
     textAlign: "center",
@@ -220,7 +230,7 @@ const EsimInstallation = () => {
   const qrDataSplit = _split(qrData, "$");
   const activationAddress = _get(qrDataSplit, [1]);
   const activationCode = _get(qrDataSplit, [2]);
-  const [activeTab, setActiveTab] = useState<TabType>("QR");
+  const [activeTab, setActiveTab] = useState<TabType>("Direct");
 
   if (!hasQrData) {
     return (
@@ -447,6 +457,11 @@ const EsimInstallation = () => {
     );
   };
 
+  const tabSpeedIconCount: Partial<Record<TabType, number>> = {
+    Direct: 2,
+    QR: 1,
+  };
+
   const renderTabBar = () => {
     const tabs: TabType[] = ["Direct", "QR", "Manual"];
 
@@ -465,6 +480,18 @@ const EsimInstallation = () => {
               {activeTab === tab && <View style={[styles.tabIndicator, {
                 backgroundColor: isDark ? colors.secondaryBackground : colors.card,
               }]} />}
+              {!!tabSpeedIconCount[tab] && (
+                <View style={styles.tabSpeedIcons}>
+                  {Array.from({ length: tabSpeedIconCount[tab] as number }).map((_, index) => (
+                    <Ionicons
+                      key={index}
+                      name="flash"
+                      size={12}
+                      color={FLASH_COLOR}
+                    />
+                  ))}
+                </View>
+              )}
               <Text
                 style={[
                   styles.tabButtonText,

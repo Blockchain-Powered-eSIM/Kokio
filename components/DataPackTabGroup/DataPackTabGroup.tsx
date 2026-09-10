@@ -1,7 +1,5 @@
-import { createContext, useContext, useMemo } from "react";
-import { StyleSheet, FlatList, StyleProp, ViewStyle } from "react-native";
-import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
-import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
+import { useMemo } from "react";
+import { StyleSheet, FlatList, Pressable, StyleProp, View, ViewStyle } from "react-native";
 
 import _get from "lodash/get";
 import _groupBy from "lodash/groupBy";
@@ -16,28 +14,53 @@ import EsimItemSkeleton from "@/components/EsimItemSkeleton";
 import { useToast } from "@/contexts/ToastContext";
 
 import ESIMItem, { Esim } from "../ESIMItem";
-import TabBar from "../tabBar";
-
-const Tab = createMaterialTopTabNavigator();
 
 const TAB_KEYS = {
   DATA: "DATA",
   DATA_CALLS_SMS: "DATA_CALLS_SMS",
 };
 
-const EmptyListComponent = () => (
-  <ThemedText
-    style={{
-      textAlign: "center",
-      flex: 1,
-      paddingTop: 42,
-    }}
-  >
-    No Plans found
-  </ThemedText>
-);
+const EmptyListComponent = ({
+  filtersActive,
+  onClearFilters,
+}: {
+  filtersActive: boolean;
+  onClearFilters?: () => void;
+}) => {
+  const colors = useColors();
 
-const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading: boolean }) => {
+  if (!filtersActive) {
+    return <ThemedText style={styles.emptyText}>No Plans found</ThemedText>;
+  }
+
+  return (
+    <ThemedView style={styles.emptyFilteredContainer}>
+      <ThemedText style={styles.emptyText}>No plans match your filters</ThemedText>
+      {!!onClearFilters && (
+        <Pressable
+          onPress={onClearFilters}
+          style={styles.clearFiltersButton}
+          accessibilityRole="button"
+          accessibilityLabel="Clear filters"
+        >
+          <ThemedText style={{ color: colors.link }}>Clear filters</ThemedText>
+        </Pressable>
+      )}
+    </ThemedView>
+  );
+};
+
+const ESIMsFlatListComponent = ({
+  esims,
+  isLoading,
+  filtersActive,
+  onClearFilters,
+}: {
+  esims: Esim[];
+  isLoading: boolean;
+  filtersActive: boolean;
+  onClearFilters?: () => void;
+}) => {
   const bottomInset = useBottomInset();
   return isLoading ? (
     <FlatList
@@ -61,46 +84,36 @@ const ESIMsFlatListComponent = ({ esims, isLoading }: { esims: Esim[]; isLoading
       )}
       keyExtractor={(item, index) => item.catalogueId || index.toString()}
       contentContainerStyle={[styles.flatListContainer, { paddingBottom: bottomInset }]}
-      ListEmptyComponent={EmptyListComponent}
+      ListEmptyComponent={() => (
+        <EmptyListComponent filtersActive={filtersActive} onClearFilters={onClearFilters} />
+      )}
       style={{ backgroundColor: "transparent" }}
     />
   );
 };
 const ESIMsFlatList = ESIMsFlatListComponent;
 
-/**
- * Tab scene data is supplied via context so DataTab / DataCallsSMSTab can live at module scope with stable identities.
- * Inline (render-local) components passed to Tab.Screen's `component` remount the scene on every parent render,
- * losing FlatList scroll and re-initialising the list.
- * Hoisting + context keeps identity stable and turns data changes into in-place re-renders, not remounts.
- */
-type TabSceneData = {
-  plansByData: Esim[];
-  plansByDataCallsSMS: Esim[];
-  isLoading: boolean;
-};
-
-const TabSceneDataContext = createContext<TabSceneData>({
-  plansByData: [],
-  plansByDataCallsSMS: [],
-  isLoading: false,
-});
-
-const DataTab = () => {
-  const { plansByData, isLoading } = useContext(TabSceneDataContext);
+const PlanTypeHeader = () => {
+  const colors = useColors();
+  const { showMessage } = useToast();
   return (
-    <ThemedView style={styles.tabScene}>
-      <ESIMsFlatList esims={plansByData} isLoading={isLoading} />
-    </ThemedView>
-  );
-};
-
-const DataCallsSMSTab = () => {
-  const { plansByDataCallsSMS, isLoading } = useContext(TabSceneDataContext);
-  return (
-    <ThemedView style={styles.tabScene}>
-      <ESIMsFlatList esims={plansByDataCallsSMS} isLoading={isLoading} />
-    </ThemedView>
+    <View style={headerStyles.container}>
+      <View style={[headerStyles.pill, { backgroundColor: colors.secondaryBackground }]}>
+        <View style={[headerStyles.tab, headerStyles.activeIndicator, { backgroundColor: colors.muted }]}>
+          <ThemedText style={[headerStyles.tabText, { color: colors.text }]}>Data</ThemedText>
+        </View>
+        <Pressable
+          style={headerStyles.tab}
+          accessibilityRole="button"
+          accessibilityLabel="Data+Calls+SMS (disabled)"
+          onPress={() => showMessage("Coming Soon!", "info")}
+        >
+          <ThemedText style={[headerStyles.tabText, headerStyles.disabledTabText, { color: colors.inactive }]}>
+            Data+Calls+SMS
+          </ThemedText>
+        </Pressable>
+      </View>
+    </View>
   );
 };
 
@@ -108,13 +121,15 @@ function DataPackTabGroup({
   plans,
   containerStyle,
   isLoading = false,
+  filtersActive = false,
+  onClearFilters,
 }: {
   plans: Esim[];
   containerStyle?: StyleProp<ViewStyle>;
   isLoading?: boolean;
+  filtersActive?: boolean;
+  onClearFilters?: () => void;
 }) {
-  const { showMessage } = useToast();
-  const colors = useColors();
   const { plansByData, plansByDataCallsSMS } = useMemo(() => {
     const plansGroupedByPlanType = _groupBy(plans, "planType");
     const plansByData = _get(plansGroupedByPlanType, TAB_KEYS.DATA);
@@ -125,63 +140,57 @@ function DataPackTabGroup({
     return { plansByData, plansByDataCallsSMS };
   }, [plans]);
 
-  const tabSceneData = useMemo(
-    () => ({ plansByData, plansByDataCallsSMS, isLoading }),
-    [plansByData, plansByDataCallsSMS, isLoading]
+  const showingBothGroups = useMemo(
+    () => !_isEmpty(plansByData) && !_isEmpty(plansByDataCallsSMS),
+    [plansByData, plansByDataCallsSMS]
   );
 
   return (
     <ThemedView style={[styles.container, containerStyle]}>
-      {_isEmpty(plansByData) || _isEmpty(plansByDataCallsSMS) ? (
-        <ESIMsFlatList
-          esims={plansByData || plansByDataCallsSMS}
-          isLoading={isLoading}
-        />
-      ) : (
-        <TabSceneDataContext.Provider value={tabSceneData}>
-          <Tab.Navigator
-            tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
-            screenOptions={{ sceneStyle: { backgroundColor: "transparent" } }}
-          >
-            <Tab.Screen name="Data" component={DataTab} options={{ tabBarLabel: "Data" }} />
-            <Tab.Screen
-              name="DataCallsSMS"
-              component={DataCallsSMSTab}
-              options={{
-                tabBarLabel: "Data+Calls+SMS",
-                tabBarAccessibilityLabel: "Data+Calls+SMS (disabled)",
-                tabBarLabelStyle: [styles.tabBarText, styles.disabledTabText, { color: colors.inactive }],
-              }}
-              listeners={{
-                tabPress: (e) => {
-                  e.preventDefault();
-                  showMessage("Coming Soon!", "info");
-                },
-              }}
-            />
-          </Tab.Navigator>
-        </TabSceneDataContext.Provider>
-      )}
+      {showingBothGroups && <PlanTypeHeader />}
+      <ESIMsFlatList
+        esims={plansByData || plansByDataCallsSMS}
+        isLoading={isLoading}
+        filtersActive={filtersActive}
+        onClearFilters={onClearFilters}
+      />
     </ThemedView>
   );
 }
 
-const styles = StyleSheet.create({
-  tabBarText: {
+const headerStyles = StyleSheet.create({
+  container: {
+    width: "100%",
+    alignSelf: "center",
+    marginBottom: Theme.spacing.sm,
+  },
+  pill: {
+    borderRadius: Theme.borderRadius.medium,
+    flexDirection: "row",
+    overflow: "hidden",
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 6,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  activeIndicator: {
+    borderRadius: Theme.borderRadius.medium,
+  },
+  tabText: {
     textAlign: "center",
-    paddingVertical: 2,
-    fontSize: 14,
     fontWeight: "500",
   },
   disabledTabText: {
     opacity: 0.5,
   },
+});
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: Theme.spacing.sm,
-  },
-  tabScene: {
-    flex: 1,
   },
   flatListContainer: {
     paddingTop: Theme.spacing.xs,
@@ -191,6 +200,20 @@ const styles = StyleSheet.create({
   },
   eSimItemContainer: {
     paddingHorizontal: 8,
+  },
+  emptyText: {
+    textAlign: "center",
+    paddingTop: 42,
+    flex: 1,
+  },
+  emptyFilteredContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  clearFiltersButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
 });
 
