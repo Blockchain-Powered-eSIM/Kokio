@@ -21,6 +21,7 @@ import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
+import { runSdkV3MigrationIfNeeded } from "@/utils/auth/sdkV3Reset";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import {
   getSkipNextOfflineRedirect,
@@ -36,6 +37,7 @@ export default function RootLayout() {
 
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [bootstrapDismissed, setBootstrapDismissed] = useState(false);
+  const [resetReady, setResetReady] = useState(false);
   const [loaded] = useFonts({
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
@@ -54,14 +56,21 @@ export default function RootLayout() {
     pathnameRef.current = pathname;
   }, [pathname]);
 
+  // Runs once before anything else touches SecureStore: on a device upgrading from
+  // a pre-kokio-sdk-v3 build, wipes the now-meaningless local identity/wallet state.
+  useEffect(() => {
+    runSdkV3MigrationIfNeeded().finally(() => setResetReady(true));
+  }, []);
+
   // Rehydrate persisted tokens from SecureStore and wire the unauthenticated
   // redirect handler so httpService can navigate on refresh failure.
   useEffect(() => {
+    if (!resetReady) return;
     useAuthStore.getState().loadPersistedTokens();
     setUnauthenticatedHandler(() => router.replace("/" as any));
     // router is a stable singleton reference from expo-router
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [resetReady]);
 
   // Initial connectivity check
   useEffect(() => {
@@ -138,7 +147,7 @@ export default function RootLayout() {
     }
   }, [loaded, isLoading]);
 
-  const showLoader = !bootstrapDismissed && (!loaded || _isNull(isConnected) || isLoading || !!bootstrapError);
+  const showLoader = !bootstrapDismissed && (!resetReady || !loaded || _isNull(isConnected) || isLoading || !!bootstrapError);
 
   const inner =
     showLoader ? (

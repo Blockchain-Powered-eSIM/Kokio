@@ -6,7 +6,7 @@ import { createWalletClient, http, type Address, type Hex } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
 import { AppExtraConfig, Config } from "@/appKeys";
-import { SmartContractAccount } from "@aa-sdk/core";
+import type { KokioSmartAccount } from "kokio-sdk/types";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAccount } from "@/utils/bff/account";
@@ -43,7 +43,7 @@ type AuthActionType =
   | { type: "SET_RAW_SALT"; payload: string }
   | { type: "SET_KOKIO_USER"; payload: UserData }
   | { type: "SET_KOKIO_PASSKEY"; payload: UserPasskey }
-  | { type: "SET_USER_WALLET"; payload: SmartContractAccount }
+  | { type: "SET_USER_WALLET"; payload: KokioSmartAccount }
   | { type: "CLEAR_KOKIO" }
   | { type: "CLEAR_KOKIO_USER" };
 
@@ -55,7 +55,7 @@ interface KokioState {
   rawSalt: string;
   userData?: UserData;
   userPasskey?: UserPasskey;
-  userWallet?: SmartContractAccount;
+  userWallet?: KokioSmartAccount;
 }
 
 const initialState: KokioState = {
@@ -113,7 +113,7 @@ export interface KokioProviderType {
   clearError: () => void;
   setupKokio: () => void;
   setupKokioDeviceUID: (deviceUID: string) => Promise<void>;
-  setupKokioUserWallet: (deviceUID: string, wallet: SmartContractAccount) => Promise<void>;
+  setupKokioUserWallet: (deviceUID: string, wallet: KokioSmartAccount) => Promise<void>;
   setupKokioRegistration: (
     deviceWalletAddress: string,
     deviceUniqueIdentifier: string,
@@ -153,7 +153,7 @@ const saveValueForUserData = async (key: string, value: UserData) => {
   await SecureStore.setItemAsync(key, JSON.stringify(value));
 };
 
-const saveValueForUserWallet = async (key: string, value: SmartContractAccount) => {
+const saveValueForUserWallet = async (key: string, value: KokioSmartAccount) => {
   await SecureStore.setItemAsync(key, JSON.stringify(value));
 };
 
@@ -167,9 +167,9 @@ const getValueForUserData = async (key: string): Promise<UserData | undefined> =
   if (result) return JSON.parse(result) as UserData;
 };
 
-const getValueForUserWallet = async (key: string): Promise<SmartContractAccount | undefined> => {
+const getValueForUserWallet = async (key: string): Promise<KokioSmartAccount | undefined> => {
   const result = await SecureStore.getItemAsync(key);
-  if (result) return JSON.parse(result) as SmartContractAccount;
+  if (result) return JSON.parse(result) as KokioSmartAccount;
 };
 
 const deleteValueForUser = async (key: string) => {
@@ -231,7 +231,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       viemClient,
       credentialId,
       PASSKEY_CONFIG.RP_ID,
-      '',
       extra.pimlicoApiKey ?? '',
       extra.gasManagerPolicyId ?? '',
     );
@@ -267,7 +266,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     dispatch({ type: "SET_KOKIO_PASSKEY",         payload: { credentialId, x: publicKeyX, y: publicKeyY } });
   };
 
-  const setupKokioUserWallet = useCallback(async (deviceUID: string, wallet: SmartContractAccount) => {
+  const setupKokioUserWallet = useCallback(async (deviceUID: string, wallet: KokioSmartAccount) => {
     await saveValueForUserWallet(`userWallet-${deviceUID}`, wallet);
     dispatch({ type: "SET_USER_WALLET", payload: wallet });
   }, []);

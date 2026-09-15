@@ -1,13 +1,8 @@
 /**
  * Checks whether a device smart contract wallet is deployed and registered.
  * Used by kokioProvider to distinguish a genuinely recovered account
- * from a new registration that hasn't been deployed yet, 
+ * from a new registration that hasn't been deployed yet,
  * so auto-derivation of the SmartContractAccount is only triggered for the former.
- *
- * NOTE: 
- * The Registry ABI fragment is inlined rather than imported from the SDK package
- * because kokio-sdk's package.json#exports does not expose an ./abis path. 
- * The ABI fragment below is sourced from src/abis/Registry.ts in the SDK repo.
  */
 
 import {
