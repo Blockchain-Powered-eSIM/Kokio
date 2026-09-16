@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/ThemedView'
 import { router, useLocalSearchParams } from 'expo-router'
 import { TextInput } from 'react-native-gesture-handler'
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -13,6 +14,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
+import { useContacts, type Contact } from '@/hooks/useContacts';
 import { logger } from '@/utils/logger';
 
 interface Token {
@@ -34,17 +36,6 @@ interface Transaction {
   icon: string | string [];
 }
 
-interface Contact {
-  id: string;
-  firstName: string;
-  lastName: string;
-  walletAddress: string;
-  monogramUrl: string;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  transactions: Transaction[];
-}
-
 const createStyles = (colors: Palette) => StyleSheet.create({
   contentContainer: {
     backgroundColor: colors.background,
@@ -56,12 +47,28 @@ const createStyles = (colors: Palette) => StyleSheet.create({
 const SendToContact = () => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ id?: string; firstName?: string; lastName?: string; monogramUrl?: string }>();
+  const hasPreselectedContact = !!params.id;
+  const { contacts } = useContacts();
+  const [selectedContactId, setSelectedContactId] = useState<string | undefined>(params.id);
   const [amount, setAmount] = useState("0");
   const [token, setToken] = useState<Token | null>(null);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [isLoading,setIsLoading] = useState(false);
   const { showToast, showMessage } = useToast();
+
+  // When a contact was preselected via route params, use those fields directly
+  // (no lookup needed). Otherwise resolve the locally-picked contact from the
+  // inline list below.
+  const activeContact: { id: string; firstName: string; lastName: string; monogramUrl: string } | undefined =
+    hasPreselectedContact
+      ? {
+          id: params.id as string,
+          firstName: params.firstName ?? '',
+          lastName: params.lastName ?? '',
+          monogramUrl: params.monogramUrl ?? '',
+        }
+      : contacts.find((c) => c.id === selectedContactId);
 
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -70,9 +77,13 @@ const SendToContact = () => {
     sheetRef.current?.snapToIndex(1); // Snap to the first snap point (65%)
   };
   const handleSend = async () => {
+    if (!activeContact) {
+      showMessage("Pick a contact to send to", "error");
+      return;
+    }
     setIsLoading(true);
     try {
-      const contactId = params.id as string;
+      const contactId = activeContact.id;
 
       // Fetch the existing contact
       const contactJson = await AsyncStorage.getItem(`contact_${contactId}`);
@@ -87,21 +98,21 @@ const SendToContact = () => {
         id: `0x${Math.random().toString(16).slice(2)}`, // Generate a random ID (replace with real tx ID if available)
         dateTime: new Date().toISOString(), // Current timestamp in ISO format
         tokenAmount: `${parseFloat(amount)} ${token?.symbol}`, // Example conversion, adjust logic as needed
-        name: `${params.firstName} ${params.lastName}`, // Use contact's first name
+        name: `${activeContact.firstName} ${activeContact.lastName}`, // Use contact's first name
         amount: `$${(parseFloat(amount) * parseFloat(token?.value || "0")).toFixed(2)}`, // Use the amount from state
         status: "completed", // Assuming send completes immediately
         type: "sent", // This is a send action
-        icon: params?.monogramUrl, // Replace with actual icon URL
+        icon: activeContact.monogramUrl, // Replace with actual icon URL
       };
 
       // Update the transactions array
-      const updatedTransactions = [...contact.transactions, newTransaction];
+      const updatedTransactions = [...(contact.transactions ?? []), newTransaction];
 
       // Update the contact object
       const updatedContact: Contact = {
         ...contact,
         transactions: updatedTransactions,
-        updatedAt: new Date(), // Update timestamp
+        updatedAt: new Date().toISOString(), // Update timestamp
       };
 
       // Save back to AsyncStorage
@@ -110,7 +121,7 @@ const SendToContact = () => {
       logger.debug('TRANSACTION_ADDED', { newTransaction });
       router.push({pathname:"/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
       //@ts-expect-error non-reachable code for now, should be fixed when enabled
-      showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',params?.firstName,params.monogramUrl)
+      showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',activeContact.firstName,activeContact.monogramUrl)
     } catch (error) {
       logger.error('TRANSACTION_ADD_FAILED', { error });
       showMessage("Failed to send transaction", "error");
@@ -166,12 +177,49 @@ const SendToContact = () => {
       style={{ flex: 1 }}
     >
       <ThemedView className='flex-1'>
-        <ThemedView darkColor='black' className='w-auto  justify-center'>
-          <View className='w-auto   items-center mt-8'>
-            <Image source={params.monogramUrl ? { uri: params?.monogramUrl } : require('../../../../assets/images/wallet/sampleProfileImg.png')} className='h-[216px] w-[216px]' />
-            <ThemedText variant='xxl' className='text-center mt-4'>{params?.firstName} {params?.lastName}</ThemedText>
+        {hasPreselectedContact ? (
+          <ThemedView darkColor='black' className='w-auto  justify-center'>
+            <View className='w-auto   items-center mt-8'>
+              <Image source={activeContact?.monogramUrl ? { uri: activeContact.monogramUrl } : require('../../../../assets/images/wallet/sampleProfileImg.png')} className='h-[216px] w-[216px]' />
+              <ThemedText variant='xxl' className='text-center mt-4'>{activeContact?.firstName} {activeContact?.lastName}</ThemedText>
+            </View>
+          </ThemedView>
+        ) : (
+          <View className='mt-6 px-4'>
+            <ThemedText light className='mb-2'>To</ThemedText>
+            {contacts.map((c) => (
+              <Pressable
+                key={c.id}
+                onPress={() => setSelectedContactId(c.id)}
+                className='flex-row items-center py-2 px-2 rounded-2xl mb-1'
+                style={{
+                  backgroundColor: selectedContactId === c.id ? colors.surface : 'transparent',
+                  borderWidth: selectedContactId === c.id ? 1.5 : 0,
+                  borderColor: colors.primary,
+                }}
+              >
+                <Image
+                  source={c.monogramUrl ? { uri: c.monogramUrl } : require('../../../../assets/images/wallet/sampleProfileImg.png')}
+                  className='h-[42px] w-[42px] rounded-full'
+                />
+                <View className='ml-3'>
+                  <ThemedText bold>{c.firstName} {c.lastName}</ThemedText>
+                </View>
+                {selectedContactId === c.id && (
+                  <View style={{ marginLeft: 'auto' }}>
+                    <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                  </View>
+                )}
+              </Pressable>
+            ))}
+            <View className='flex-row items-center py-3 px-2'>
+              <View className='h-[42px] w-[42px] rounded-full items-center justify-center' style={{ borderWidth: 1.5, borderColor: colors.mutedForeground, borderStyle: 'dashed' }}>
+                <Ionicons name="add" size={20} color={colors.mutedForeground} />
+              </View>
+              <ThemedText style={{ color: colors.mutedForeground, marginLeft: 12 }}>Paste an address</ThemedText>
+            </View>
           </View>
-        </ThemedView>
+        )}
         <View className='flex-1 mt-10 items-center'>
           <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2 flex-row py-3 rounded-3xl '>
             <View className='w-[67%]'>

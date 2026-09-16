@@ -70,8 +70,35 @@ export default function WalletStack() {
           
         }}
       />
-      
-     
+      <Stack.Screen
+        name={ROUTE_NAMES.CREATE_WALLET}
+        options={{
+          header: () => (
+            <SafeAreaView edges={["top"]}>
+              <Header
+                title="Create wallet"
+                hasBack
+                style={{ justifyContent: "center" }}
+              />
+            </SafeAreaView>
+          ),
+        }}
+      />
+      <Stack.Screen
+        name={ROUTE_NAMES.ESIM_WALLET}
+        options={({ route }: any) => ({
+          header: () => (
+            <SafeAreaView edges={["top"]}>
+              <Header
+                title={route?.params?.name ? `${route.params.name} eSIM wallet` : "eSIM wallet"}
+                hasBack
+                style={{ justifyContent: "center" }}
+              />
+            </SafeAreaView>
+          ),
+        })}
+      />
+
       <Stack.Screen
         name={ROUTE_NAMES.CONTACTS}
         options={{headerShown:false}}

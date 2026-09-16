@@ -1,246 +1,126 @@
 import React from "react";
-import {
-  StyleSheet,
-  Image,
-  View,
-  Text,
-  Platform,
-  ImageBackground,
-  TouchableOpacity,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
-import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
+import { DARK_TOKENS, LIGHT_TOKENS } from "@/constants/Colors";
+import { PASSKEY_LABEL } from "@/constants/passkey.constants";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
-import { useCopyFeedback } from "@/hooks/useCopyFeedback";
-import { logger } from '@/utils/logger';
 
 interface WalletProps {
+  isWalletAdded: boolean;
   balance?: string;
-  walletId?: string;
-  isWalletAdded?: boolean;
   onSetupWallet?: () => void;
+  onOpenWallet?: () => void;
 }
-const shortenId = (
-  address: string | undefined,
-  startLength = 3,
-  endLength = 6
-) => {
-  if (!address) return "";
-  return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
-};
 
-const createStyles = (colors: Palette) => StyleSheet.create({
+const createStyles = () => StyleSheet.create({
   headingText: {
     fontSize: 16,
     paddingLeft: 20,
     marginBottom: 8,
   },
-  shadowContainer: {
+  card: {
     marginHorizontal: 8,
     borderRadius: 21,
-    backgroundColor: colors.text,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.text,
-        shadowOffset: {
-          width: 0,
-          height: 5,
-        },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-        shadowColor: colors.text,
-      },
-    }),
+    padding: 18,
   },
-  gradient: {
-    borderRadius: 21,
-    padding: 24,
-    overflow: "hidden",
-  },
-  backgroundImage: {
-    ...StyleSheet.absoluteFill,
-    marginLeft: 70,
-    width: "auto",
-  },
-  headerWithLogo: {
+  titleRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 4,
-    marginBottom: 16,
     backgroundColor: "transparent",
   },
-  title: {
-    paddingLeft: 16,
-    fontSize: 22,
-    fontWeight: "500",
-    color: colors.text,
-  },
-  logo: {
-    width: 32,
-    height: 32,
-  },
-  balanceContainer: {
-    backgroundColor: "transparent",
-    paddingTop: 24,
-    paddingLeft: 16,
-  },
-  balanceLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  balanceAmountContainer: {
+  titleLeft: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: "transparent",
   },
-  balanceAmount: {
-    fontSize: 45,
-    fontWeight: "bold",
-    flexShrink: 1,
-    lineHeight: 44,
+  primaryButton: {
+    width: "100%",
+    minHeight: 50,
+    borderRadius: 999,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  balanceCurrency: {
-    fontSize: 14,
+  primaryButtonText: {
+    fontSize: 16,
     fontWeight: "700",
-    marginLeft: 4,
-  },
-  address: {
-    alignSelf: "flex-end",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  walletIdContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 8,
-  },
-  iconContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  iconButton: {
-    padding: 4,
   },
 });
 
-const Wallet = ({ balance, walletId, isWalletAdded, onSetupWallet }: WalletProps) => {
+const Wallet = ({ isWalletAdded, balance, onSetupWallet, onOpenWallet }: WalletProps) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
-  
-  const handleAddressPress = async () => {
-    if (walletId) {
-      const url = `${BASE_SEPOLIA_TESTNET}/${walletId}`;
-      try {
-        await Linking.openURL(url);
-      } catch (error) {
-        logger.error('BROWSER_OPEN_FAILED', { error });
-      }
-    }
-  };
-
-  const { copied, copy } = useCopyFeedback();
 
   return (
     <View style={{ marginVertical: 12 }}>
-      <Text style={[styles.headingText, { color: colors.text }]}>Device Wallet</Text>
-      <View style={styles.shadowContainer}>
-        <LinearGradient
-          colors={[colors.gradientDark, colors.background]}
-          start={{ x: 0.2, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.gradient}
-        >
-          <ImageBackground
-            source={require("@/assets/images/slantedBackground.png")}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          />
-          <ThemedView style={styles.headerWithLogo}>
-            <ThemedText variant="xl" className=" font-Lexend ml-4">
-              Device Wallet
-            </ThemedText>
-            <Image
-              source={require("@/assets/images/logo.png")}
-              style={styles.logo}
-            />
-          </ThemedView>
-          {isWalletAdded ? (
-            <>
-              <ThemedView style={styles.balanceContainer}>
-                <ThemedText variant="sm" className="text-white mb-1">
-                  Total balance
-                </ThemedText>
-                <View style={styles.balanceAmountContainer}>
-                  <ThemedText className="text-white text-[40px] mr-1">
-                    {balance}
-                  </ThemedText>
-                  <ThemedText className="text-white mb-2 ml-1">USD</ThemedText>
-                </View>
-              </ThemedView>
-              <View style={styles.walletIdContainer}>
-                <ThemedText variant="sm" className="text-white">
-                  {shortenId(walletId)}
-                </ThemedText>
-                <View style={styles.iconContainer}>
-                  <TouchableOpacity
-                    onPress={handleAddressPress}
-                    disabled={!walletId}
-                    style={styles.iconButton}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Open wallet address in block explorer"
-                  >
-                    <MaterialIcons
-                      name="open-in-new"
-                      size={16}
-                      color={colors.foreground}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => walletId && copy(walletId)}
-                    disabled={!walletId}
-                    style={styles.iconButton}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Copy wallet address"
-                  >
-                    <Ionicons
-                      name={copied ? "checkmark" : "copy-outline"}
-                      size={16}
-                      color={copied ? colors.success : colors.foreground}
-                    />
-                  </TouchableOpacity>
-                </View>
+      <ThemedText style={styles.headingText}>Device Wallet</ThemedText>
+      <ThemedView
+        lightColor={LIGHT_TOKENS.card}
+        darkColor={DARK_TOKENS.surface}
+        style={styles.card}
+      >
+        {isWalletAdded ? (
+          <>
+            <View style={styles.titleRow}>
+              <View style={styles.titleLeft}>
+                <Ionicons name="wallet-outline" size={20} color={colors.walletAccent} />
+                <ThemedText bold variant="xl">Kokio wallet</ThemedText>
               </View>
-            </>
-          ) : (
-            <TouchableOpacity
-              onPress={onSetupWallet}
-              accessibilityRole="button"
-              accessibilityLabel="Create your device wallet"
+              <ThemedText bold variant="xl">${balance}</ThemedText>
+            </View>
+            <ThemedText
+              lightColor={LIGHT_TOKENS.text}
+              darkColor={DARK_TOKENS.mutedForeground}
+              style={{ marginTop: 6, marginBottom: 14 }}
             >
-              <ThemedText className="mt-8 mb-20 ml-4">
-                Tap to create your device wallet
+              Pays for eSIMs and top-ups, signed with {PASSKEY_LABEL}.
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.ctaBackground }]}
+              onPress={onOpenWallet}
+              accessibilityRole="button"
+              accessibilityLabel="Open wallet"
+            >
+              <ThemedText style={[styles.primaryButtonText, { color: colors.ctaForeground }]}>
+                Open wallet
               </ThemedText>
             </TouchableOpacity>
-          )}
-        </LinearGradient>
-      </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.titleLeft}>
+              <Ionicons name="finger-print-outline" size={20} color={colors.walletAccent} />
+              <ThemedText bold variant="xl">Add a Kokio wallet</ThemedText>
+            </View>
+            <ThemedText
+              lightColor={LIGHT_TOKENS.text}
+              darkColor={DARK_TOKENS.mutedForeground}
+              style={{ marginTop: 6, marginBottom: 14 }}
+            >
+              Optional. Unlocks with {PASSKEY_LABEL}, no seed phrase. Your card keeps working.
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.ctaBackground }]}
+              onPress={onSetupWallet}
+              accessibilityRole="button"
+              accessibilityLabel="Create wallet"
+            >
+              <ThemedText style={[styles.primaryButtonText, { color: colors.ctaForeground }]}>
+                Create wallet
+              </ThemedText>
+            </TouchableOpacity>
+          </>
+        )}
+      </ThemedView>
     </View>
   );
 };
 
 export default Wallet;
-

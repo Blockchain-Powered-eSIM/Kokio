@@ -55,7 +55,7 @@ export const Colors = {
     accentForeground: "#8E8E93",
     destructive: "#FF453A",
     destructiveForeground: "#ffffff",
-    border: "#FF9F0A",
+    border: "#3A3A3C",
     input: "#46464B",
     ring: "#006FEE",
     success: "#30D158",
@@ -97,6 +97,9 @@ export const DARK_TOKENS = {
   shopCta: "#FFAF01",               // dark: keeps current goldenYellow
   payButton: "#FFD60A",             // dark: keeps current secondary
   walletModalBackground: "rgba(60, 60, 60, 0.9)", // dark: same as modalBackground
+  ctaBackground: "white",           // dark: solid-CTA buttons (Shop, Create/Open wallet, top-up) go white
+  ctaForeground: "black",           // dark: text/icon on ctaBackground
+  walletAccent: "#FFCC00",          // dark: yellow accent for wallet icons/borders (matches highlight)
 };
 
 export const LIGHT_TOKENS = {
@@ -123,6 +126,9 @@ export const LIGHT_TOKENS = {
   contentBackground: "#FFFFFF",
   itemBackground: "#FFFFFF",
   sheetBackground: "rgba(255, 255, 255, 0.95)",
+  ctaBackground: Colors.light.primary,   // light: solid-CTA buttons stay on-brand teal
+  ctaForeground: Colors.light.primaryForeground,
+  walletAccent: Colors.light.primary,    // light: same teal used elsewhere (no yellow in light theme)
 };
 
 export const THEME_STORAGE_KEY = "@kokio_theme";
