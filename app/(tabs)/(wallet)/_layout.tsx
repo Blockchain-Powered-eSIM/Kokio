@@ -15,7 +15,7 @@ export default function WalletStack() {
             header: () => (
               <SafeAreaView edges={["top"]}>
                 <Header
-                  title="Install eSIM"
+                  title="Wallet"
                   style={{ justifyContent: "center" }}
                 />
               </SafeAreaView>

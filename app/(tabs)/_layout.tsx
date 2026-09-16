@@ -40,15 +40,6 @@ function InstallationHeader() {
   );
 }
 
-// Feature flags for tab availability
-// Set to true to enable the tab, false to disable (but keep visible)
-const TAB_ENABLED = {
-  WALLET: false, // Change to true to enable Wallet tab
-};
-
-// Disabled tab styling
-const DISABLED_TAB_OPACITY = 0.3;
-
 export default function TabLayout() {
   const navBarInset = useNavBarInset();
   const styles = useThemedStyles(createStyles);
@@ -113,21 +104,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
               name={focused ? "wallet" : "wallet-outline"}
-              color={TAB_ENABLED.WALLET ? color : colors.inactive}
-              style={[
-                styles.tabBarIcon,
-                !TAB_ENABLED.WALLET && { opacity: DISABLED_TAB_OPACITY },
-              ]}
+              color={color}
+              style={styles.tabBarIcon}
             />
           ),
-        }}
-        // NOTE: Remove when tab is enabled
-        listeners={{
-          tabPress: (e) => {
-            if (!TAB_ENABLED.WALLET) {
-              e.preventDefault();
-            }
-          },
         }}
       />
       <Tabs.Screen

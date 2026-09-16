@@ -23,12 +23,6 @@ const transactions = [
   { id: '3', name: 'Alice', amount: '$150.00', status: "completed", type: "recieved", icon: require('../../../assets/images/wallet/contact3.png') },
 ];
 
-// const contacts = [
-//   { id: '1', name: 'Alice', icon: require("../../../assets/images/wallet/contact1.png") },
-//   { id: '2', name: 'Bob', icon: require("../../../assets/images/wallet/contact2.png") },
-//   { id: '3', name: 'Charlie', icon: require("../../../assets/images/wallet/contact3.png") },
-// ];
-
 const WalletPage = () => {
   const colors = useColors();
   const router = useRouter();
@@ -65,10 +59,14 @@ const WalletPage = () => {
   );
   
   return (
-    <ThemedView className='flex-1 h-full justify-center items-center w-full bg-black' >
-      <ScrollView className='flex-1'>
+    <ThemedView className='flex-1 h-full w-full bg-black' >
+      <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 100 }}>
         <View className='flex-1  mb-2'>
-          <Wallet walletId='0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef7' balance='500'/>
+          <Wallet
+            walletId='0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef7'
+            balance='500'
+            isWalletAdded
+          />
         </View>
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
           { /** @ts-expect-error non-reachable code for now, should be fixed when enabled */ }
