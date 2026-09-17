@@ -476,6 +476,89 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     setupKokioUserWallet
   ]);
 
+  /**
+   * ── Smart account upgrade for returning users ─────────────────────────────
+   *
+   * setupKokio's `new Kokio(...)` above only passes 5 args, so the constructor
+   * never receives `smartAccountClient` / `deviceWalletAddress` and leaves
+   * `registry` / `deviceWallet` / `eSIMWallet` / `paymentAdapter` all
+   * `undefined` (see kokio-sdk's Kokio constructor). A returning user whose
+   * wallet is already deployed (`kokio.userWallet` truthy) needs those
+   * sub-packages usable, so once the device-wallet material is available this
+   * effect derives a smart account client and rebuilds `Kokio` with the two
+   * extra args bound, replacing the in-memory instance via SET_KOKIO.
+   *
+   * `getSmartWallet`/`getSmartWalletClient` only derive the account/client —
+   * no passkey or biometric prompt fires here (that only happens on
+   * sendUserOperation, which this effect deliberately never calls).
+   */
+
+  const smartAccountUpgradeInFlight = useRef(false);
+
+  useEffect(() => {
+    const upgradeSmartAccount = async () => {
+      if (!kokio.sdk) {
+        smartAccountUpgradeInFlight.current = false;
+        return;
+      }
+
+      if (
+        kokio.sdk.deviceWallet ||
+        smartAccountUpgradeInFlight.current ||
+        !kokio.userWallet ||
+        !kokio.deviceUID ||
+        !kokio.userPasskey?.x ||
+        !kokio.userPasskey?.y ||
+        !kokio.rawSalt ||
+        !kokio.deviceWalletAddress
+      ) {
+        return;
+      }
+
+      smartAccountUpgradeInFlight.current = true;
+      try {
+        const ownerKey: [Hex, Hex] = [kokio.userPasskey.x, kokio.userPasskey.y];
+        const salt = BigInt(kokio.rawSalt);
+
+        const account = await kokio.sdk.smartAccount.getSmartWallet(
+          kokio.deviceUID,
+          ownerKey,
+          salt,
+        );
+        const smartAccountClient = await kokio.sdk.smartAccount.getSmartWalletClient(account);
+
+        const upgraded = new Kokio(
+          kokio.sdk.viemWalletClient,
+          kokio.sdk.credentialId,
+          kokio.sdk.rpId,
+          kokio.sdk.pimlicoAPIKey,
+          kokio.sdk.gasPolicyId,
+          smartAccountClient,
+          kokio.deviceWalletAddress as Address,
+        );
+
+        dispatch({ type: "SET_KOKIO", payload: upgraded });
+        logger.debug('SMART_ACCOUNT_UPGRADED', { deviceUID: kokio.deviceUID });
+      } catch (err) {
+        // Non-fatal: app keeps working with the un-upgraded SDK (no registry/
+        // deviceWallet/eSIMWallet/paymentAdapter), same fallback posture as
+        // WALLET_AUTO_DERIVE_FAILED above.
+        logger.error('SMART_ACCOUNT_UPGRADE_FAILED', { err });
+      } finally {
+        smartAccountUpgradeInFlight.current = false;
+      }
+    };
+
+    upgradeSmartAccount();
+  }, [
+    kokio.sdk,
+    kokio.userWallet,
+    kokio.deviceUID,
+    kokio.userPasskey,
+    kokio.rawSalt,
+    kokio.deviceWalletAddress,
+  ]);
+
   // ── WalletConnect initialisation ──────────────────────────────────────────
 
   const wcInitialized = useRef(false);

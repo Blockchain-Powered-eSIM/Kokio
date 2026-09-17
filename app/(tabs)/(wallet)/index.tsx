@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, ScrollView, Image, Pressable, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Image, Pressable, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useRouter } from 'expo-router';
@@ -12,16 +12,14 @@ import { ReceiveSheet } from '@/components/wallet/sheets/ReceiveSheet';
 import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
 import { useKokio } from '@/hooks/useKokio';
 import { useEsims } from '@/hooks/useDeviceEsims';
+import { useWalletBalance } from '@/hooks/useWalletBalance';
+import { useEsimTopupAccess } from '@/hooks/useEsimTopupAccess';
 import { useContacts } from '@/hooks/useContacts';
 import { esimDocToDisplayItem } from '@/helpers/esimDisplay';
-import { getMockEsimWalletStats } from './mockWalletData';
+import type { ESimDocument } from '@/utils/bff/esim';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { PASSKEY_LABEL } from '@/constants/passkey.constants';
 import { DARK_TOKENS, LIGHT_TOKENS } from '@/constants/Colors';
-
-// Balance stays mocked: no kokio.sdk balance-read surface is wired up yet
-// (KokioSDKv3.md Section 4, deferred). Identity (address, real eSIMs) is real.
-const MOCK_DEVICE_BALANCE = '210.92';
 
 const tokens = [
   { id: '1', name: 'USDC', symbol: 'USDC', balance: '0.5', value: '$85.23 USD', icon: require("../../../assets/images/wallet/usdc.png") },
@@ -43,12 +41,83 @@ const MISSING_OUT: { icon: keyof typeof Ionicons.glyphMap; title: string; descri
   { icon: 'arrow-up-circle-outline', title: 'Move leftover balance', description: 'Send what you did not use to anyone' },
 ];
 
+interface EsimWalletRowProps {
+  doc: ESimDocument;
+  onPress: () => void;
+}
+
+// One row in the "eSIM wallets" list. Extracted so useWalletBalance (a hook) can
+// be called per-row without violating rules-of-hooks inside `esims.map(...)`.
+function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
+  const colors = useColors();
+  const display = esimDocToDisplayItem(doc);
+  const { balance, isLoading: isBalanceLoading } = useWalletBalance(doc.esimId);
+  // Read-only display: this row never toggles top-up access itself — the
+  // write lives only on the esim-wallet detail screen.
+  const { topupAllowed, isLoading: isTopupLoading } = useEsimTopupAccess(doc.esimId);
+
+  const topupStatusText = isTopupLoading
+    ? 'checking top-ups'
+    : topupAllowed === undefined
+      ? 'top-ups unavailable'
+      : topupAllowed
+        ? 'top-ups allowed'
+        : 'top-ups off';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 12,
+        borderRadius: 14,
+        backgroundColor: colors.surface,
+      }}
+    >
+      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
+      <View style={{ flex: 1 }}>
+        <ThemedText bold numberOfLines={1}>{display.serviceRegionName ?? 'eSIM'}</ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
+          {isBalanceLoading ? (
+            <ActivityIndicator size="small" color={colors.mutedForeground} />
+          ) : (
+            <ThemedText style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+              {balance === undefined ? '—' : `$${balance}`}
+            </ThemedText>
+          )}
+          <ThemedText style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+            {' '}· {topupStatusText}
+          </ThemedText>
+        </View>
+      </View>
+      {isTopupLoading ? (
+        <ActivityIndicator size="small" color={colors.mutedForeground} />
+      ) : (
+        <View style={{
+          width: 38, height: 22, borderRadius: 999,
+          backgroundColor: topupAllowed ? colors.walletAccent : colors.muted,
+          justifyContent: 'center',
+          opacity: topupAllowed === undefined ? 0.4 : 1,
+        }}>
+          <View style={{
+            width: 18, height: 18, borderRadius: 999, backgroundColor: '#fff',
+            marginLeft: topupAllowed ? 18 : 2,
+          }} />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 const WalletPage = () => {
   const colors = useColors();
   const router = useRouter();
   const { kokio } = useKokio();
   const { esims } = useEsims();
   const { contacts } = useContacts();
+  const { balance: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletBalance(kokio.deviceWalletAddress);
 
   const receiveSheetRef = useRef<BottomSheet>(null);
   const depositSheetRef = useRef<BottomSheet>(null);
@@ -146,7 +215,7 @@ const WalletPage = () => {
     <ThemedView className='flex-1 h-full w-full bg-black'>
       <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 100 }}>
         <View className='flex-1  mb-2'>
-          <WalletHeroCard address={kokio.deviceWalletAddress} balance={MOCK_DEVICE_BALANCE} />
+          <WalletHeroCard address={kokio.deviceWalletAddress} balance={deviceBalance} isBalanceLoading={isDeviceBalanceLoading} />
         </View>
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
           <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/sendToContact' as any)} className='flex-1'>
@@ -204,41 +273,15 @@ const WalletPage = () => {
               <View style={{ gap: 10 }}>
                 {esims.map((doc) => {
                   const display = esimDocToDisplayItem(doc);
-                  const stats = getMockEsimWalletStats(doc.esimId);
                   return (
-                    <Pressable
+                    <EsimWalletRow
                       key={doc.esimId}
+                      doc={doc}
                       onPress={() => router.push({
                         pathname: '/(tabs)/(wallet)/esim-wallet' as any,
                         params: { esimId: doc.esimId, name: display.serviceRegionName ?? '' },
                       })}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: 12,
-                        borderRadius: 14,
-                        backgroundColor: colors.surface,
-                      }}
-                    >
-                      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
-                      <View style={{ flex: 1 }}>
-                        <ThemedText bold numberOfLines={1}>{display.serviceRegionName ?? 'eSIM'}</ThemedText>
-                        <ThemedText style={{ color: colors.mutedForeground, fontSize: 12.5, marginTop: 1 }}>
-                          ${stats.balance} · {stats.topupAllowed ? 'top-ups allowed' : 'top-ups off'}
-                        </ThemedText>
-                      </View>
-                      <View style={{
-                        width: 38, height: 22, borderRadius: 999,
-                        backgroundColor: stats.topupAllowed ? colors.walletAccent : colors.muted,
-                        justifyContent: 'center',
-                      }}>
-                        <View style={{
-                          width: 18, height: 18, borderRadius: 999, backgroundColor: '#fff',
-                          marginLeft: stats.topupAllowed ? 18 : 2,
-                        }} />
-                      </View>
-                    </Pressable>
+                    />
                   );
                 })}
               </View>

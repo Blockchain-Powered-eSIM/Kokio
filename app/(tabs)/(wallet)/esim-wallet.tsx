@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, ScrollView, Pressable, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import BottomSheet from "@gorhom/bottom-sheet";
 
@@ -10,9 +10,10 @@ import CountryFlag from "@/components/ui/CountryFlag";
 import { TopupSheet } from "@/components/wallet/sheets/TopupSheet";
 import { useColors } from "@/hooks/useColors";
 import { useEsims } from "@/hooks/useDeviceEsims";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
+import { useEsimTopupAccess, useToggleEsimTopup } from "@/hooks/useEsimTopupAccess";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { shortenAddress } from "@/utils/address";
-import { getMockEsimWalletStats } from "./mockWalletData";
 
 export default function EsimWalletScreen() {
   const colors = useColors();
@@ -21,6 +22,14 @@ export default function EsimWalletScreen() {
   const topupSheetRef = useRef<BottomSheet>(null);
 
   const doc = esims.find((e) => e.esimId === esimId);
+  // esimId is stable across the lifetime of this screen (route param), so calling
+  // these hooks unconditionally with a possibly-undefined doc.esimId keeps hook
+  // order stable across the `!doc` early return below.
+  const { balance, isLoading: isBalanceLoading } = useWalletBalance(doc?.esimId);
+  const { topupAllowed, isLoading: isTopupLoading } = useEsimTopupAccess(doc?.esimId);
+  const toggleTopup = useToggleEsimTopup();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   if (!doc) {
     return (
       <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -30,8 +39,25 @@ export default function EsimWalletScreen() {
   }
 
   const display = esimDocToDisplayItem(doc);
-  const stats = getMockEsimWalletStats(doc.esimId);
   const esimLabel = display.data ? `${display.data} GB` : "Unlimited";
+
+  const isTopupMutating = toggleTopup.isPending;
+  // Unknown current value (loading/error) means we cannot compute a sane
+  // next value, so the pill is disabled until a real boolean is read.
+  const topupDisabled = isTopupLoading || isTopupMutating || topupAllowed === undefined;
+
+  const handleToggleTopup = () => {
+    if (topupDisabled) return;
+    setErrorMessage(null);
+    toggleTopup.mutate(
+      { esimWalletAddress: doc.esimId, nextValue: !topupAllowed },
+      {
+        onError: (err) => {
+          setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        },
+      },
+    );
+  };
   const deployedDate = doc.createdAt
     ? new Date(doc.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
     : "-";
@@ -58,7 +84,11 @@ export default function EsimWalletScreen() {
           </View>
           <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border }}>
             <ThemedText style={{ color: colors.mutedForeground, fontSize: 13 }}>Wallet balance</ThemedText>
-            <ThemedText bold style={{ fontSize: 32, marginTop: 2 }}>${stats.balance}</ThemedText>
+            {isBalanceLoading ? (
+              <ActivityIndicator size="small" color={colors.foreground} style={{ marginTop: 8, alignSelf: "flex-start" }} />
+            ) : (
+              <ThemedText bold style={{ fontSize: 32, marginTop: 2 }}>{balance === undefined ? "—" : `$${balance}`}</ThemedText>
+            )}
           </View>
         </ThemedView>
 
@@ -70,17 +100,44 @@ export default function EsimWalletScreen() {
                 When this eSIM runs low, it can draw funds from your device wallet without asking again.
               </ThemedText>
             </View>
-            <View style={{
-              width: 46, height: 28, borderRadius: 999, marginTop: 2,
-              backgroundColor: stats.topupAllowed ? colors.walletAccent : colors.muted,
-              justifyContent: "center",
-            }}>
-              <View style={{
-                width: 22, height: 22, borderRadius: 999, backgroundColor: "#fff",
-                marginLeft: stats.topupAllowed ? 21 : 3,
-              }} />
-            </View>
+            {isTopupLoading ? (
+              <ActivityIndicator size="small" color={colors.foreground} style={{ marginTop: 2 }} />
+            ) : (
+              <Pressable
+                onPress={handleToggleTopup}
+                disabled={topupDisabled}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: topupAllowed === true, disabled: topupDisabled }}
+                accessibilityLabel={
+                  topupAllowed === undefined
+                    ? "Top-up permission unavailable"
+                    : topupAllowed
+                      ? "Turn off top-ups from your device wallet"
+                      : "Turn on top-ups from your device wallet"
+                }
+                style={{
+                  width: 46, height: 28, borderRadius: 999, marginTop: 2,
+                  backgroundColor: topupAllowed ? colors.walletAccent : colors.muted,
+                  justifyContent: "center",
+                  opacity: topupDisabled ? 0.6 : 1,
+                }}
+              >
+                {isTopupMutating ? (
+                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                ) : (
+                  <View style={{
+                    width: 22, height: 22, borderRadius: 999, backgroundColor: "#fff",
+                    marginLeft: topupAllowed ? 21 : 3,
+                  }} />
+                )}
+              </Pressable>
+            )}
           </View>
+          {errorMessage && (
+            <ThemedText style={{ color: colors.destructive, marginTop: 10, fontSize: 12.5 }}>
+              {errorMessage}
+            </ThemedText>
+          )}
         </ThemedView>
 
         <ThemedView darkColor={colors.surface} lightColor={colors.surface} style={{ borderRadius: 21, paddingHorizontal: 16, marginTop: 14 }}>

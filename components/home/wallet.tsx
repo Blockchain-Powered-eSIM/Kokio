@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { StyleSheet, View, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useColors } from "@/hooks/useColors";
@@ -12,6 +12,7 @@ import { ThemedText } from "../ThemedText";
 interface WalletProps {
   isWalletAdded: boolean;
   balance?: string;
+  isBalanceLoading?: boolean;
   onSetupWallet?: () => void;
   onOpenWallet?: () => void;
 }
@@ -54,7 +55,7 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
-const Wallet = ({ isWalletAdded, balance, onSetupWallet, onOpenWallet }: WalletProps) => {
+const Wallet = ({ isWalletAdded, balance, isBalanceLoading, onSetupWallet, onOpenWallet }: WalletProps) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -73,7 +74,11 @@ const Wallet = ({ isWalletAdded, balance, onSetupWallet, onOpenWallet }: WalletP
                 <Ionicons name="wallet-outline" size={20} color={colors.walletAccent} />
                 <ThemedText bold variant="xl">Kokio wallet</ThemedText>
               </View>
-              <ThemedText bold variant="xl">${balance}</ThemedText>
+              {isBalanceLoading ? (
+                <ActivityIndicator size="small" color={colors.walletAccent} />
+              ) : (
+                <ThemedText bold variant="xl">{balance === undefined ? "—" : `$${balance}`}</ThemedText>
+              )}
             </View>
             <ThemedText
               lightColor={LIGHT_TOKENS.text}

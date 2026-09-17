@@ -6,6 +6,7 @@ import {
   Platform,
   ImageBackground,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
@@ -24,7 +25,8 @@ import { DARK_TOKENS, LIGHT_TOKENS } from "@/constants/Colors";
 
 interface WalletHeroCardProps {
   address: string;
-  balance: string;
+  balance?: string;
+  isBalanceLoading?: boolean;
 }
 
 const createStyles = (colors: Palette) => StyleSheet.create({
@@ -99,7 +101,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-export function WalletHeroCard({ address, balance }: WalletHeroCardProps) {
+export function WalletHeroCard({ address, balance, isBalanceLoading }: WalletHeroCardProps) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { copied, copy } = useCopyFeedback();
@@ -148,14 +150,18 @@ export function WalletHeroCard({ address, balance }: WalletHeroCardProps) {
               Total balance
             </ThemedText>
             <View style={styles.balanceAmountContainer}>
-              <ThemedText
-                className="text-[40px]"
-                lightColor={LIGHT_TOKENS.text}
-                darkColor={DARK_TOKENS.text}
-                style={{ marginRight: 4 }}
-              >
-                ${balance}
-              </ThemedText>
+              {isBalanceLoading ? (
+                <ActivityIndicator size="small" color={colors.text} style={{ marginRight: 4 }} />
+              ) : (
+                <ThemedText
+                  className="text-[40px]"
+                  lightColor={LIGHT_TOKENS.text}
+                  darkColor={DARK_TOKENS.text}
+                  style={{ marginRight: 4 }}
+                >
+                  {balance === undefined ? "—" : `$${balance}`}
+                </ThemedText>
+              )}
               <ThemedText
                 lightColor={LIGHT_TOKENS.text}
                 darkColor={DARK_TOKENS.text}
