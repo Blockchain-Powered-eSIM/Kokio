@@ -62,7 +62,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingVertical: 5,
   },
   heroButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "500",
     textAlign: "center",
   },
@@ -91,7 +91,7 @@ const Hero = () => {
       </ImageBackground>
       <CardFooter style={styles.cardFooter}>
         <View>
-          <Text style={styles.header}>Plan Your Next Adventure</Text>
+          <Text style={styles.header}>Plan My Next Adventure</Text>
           <Text style={styles.subHeader}>The world awaits you!</Text>
         </View>
         <TouchableOpacity

@@ -97,14 +97,15 @@ export const DARK_TOKENS = {
   shopCta: "#FFAF01",               // dark: keeps current goldenYellow
   payButton: "#FFD60A",             // dark: keeps current secondary
   walletModalBackground: "rgba(60, 60, 60, 0.9)", // dark: same as modalBackground
-  ctaBackground: "white",           // dark: solid-CTA buttons (Shop, Create/Open wallet, top-up) go white
-  ctaForeground: "black",           // dark: text/icon on ctaBackground
+  ctaBackground: "#FFAF01",         // dark: goldenYellow/shopCta (deliberately muted yellow, distinct from brighter #FFD60A)
+  ctaForeground: "#000000",         // dark: black text/icon, matching checkout's pay button (payButton bg + cardForeground text)
   walletAccent: "#FFCC00",          // dark: yellow accent for wallet icons/borders (matches highlight)
 };
 
 export const LIGHT_TOKENS = {
   ...Colors.light,
   ...EXTRA_TOKENS,
+  headerText: Colors.light.text,    // override inherited #4A8090 (too low-contrast on sky-blue background)
   background: "#A8D8E8",
   inputBackground: "#EEF8FC",
   surface: "#EEF8FC",

@@ -1,4 +1,4 @@
-import { View, Image } from 'react-native'
+import { View, Image, type ImageSourcePropType } from 'react-native'
 import React from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -7,12 +7,10 @@ import { useColors } from "@/hooks/useColors";
 
 const Tokens = () => {
   const colors = useColors();
-  const tokens = [
-    { id: '1', name: 'USDC', symbol: 'USDC', balance: '0.5', value: '$85.23 USD', icon: require("../../../assets/images/wallet/usdc.png") },
-    { id: '2', name: 'Ethereum', symbol: 'ETH', balance: '2.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/eth.png") },
-    { id: '3', name: 'Unicorn', symbol: 'UNI', balance: '10.0', value: '$55.23 USD', icon: require("../../../assets/images/wallet/uni.png") },
-    { id: '4', name: 'Matic', symbol: 'MATIC', balance: '10.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/matic.png") },
-  ];
+  // TODO: kokio-sdk has no way to enumerate arbitrary tokens a wallet holds
+  // (no indexer). Populate this once real token detection exists — see
+  // KokioSDKv3.md Section 7.
+  const tokens: { id: string; name: string; symbol: string; balance: string; value: string; icon: ImageSourcePropType }[] = [];
   return (
 
     <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>

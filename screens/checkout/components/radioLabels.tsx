@@ -39,7 +39,7 @@ const ESimWallet = () => {
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
       <ThemedText style={[styles.textContent, styles.smallText]}>
-        Coming soon
+        {__DEV__ ? "Dev test wallet" : "Coming soon"}
       </ThemedText>
     </View>
   );

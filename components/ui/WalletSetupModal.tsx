@@ -23,6 +23,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
 import { logger } from '@/utils/logger';
+import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -209,22 +210,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingTop: 20,
     backgroundColor: "transparent",
   },
-  signupPromptContainer: {
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    alignItems: "center",
-  },
-  singleButton: {
-    alignSelf: "stretch",
-    borderRadius: 25,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  singleButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
 });
 
 const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
@@ -350,27 +335,6 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     // styles have their own memo watching for changes based on theme
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
-  );
-
-  const signupPromptContent = useMemo(
-    () => (
-      <View style={styles.signupPromptContainer}>
-        <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
-          Please sign-up to proceed
-        </ThemedText>
-        <TouchableOpacity
-          style={[styles.singleButton, { backgroundColor: colors.primary }]}
-          onPress={handleRelaunch}
-        >
-          <Text style={[styles.singleButtonText, { color: colors.cardForeground }]}>
-            Let&apos;s go
-          </Text>
-        </TouchableOpacity>
-      </View>
-    ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleRelaunch, textColor]
   );
 
   const retryContent = useMemo(
@@ -510,11 +474,14 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
   const renderContent = () => {
     if (isLoading) return loadingContent;
-    if (showSignupPrompt) return signupPromptContent;
     if (showRetry) return retryContent;
     if (showRecovery) return recoveryContent;
     return initialContent;
   };
+
+  if (showSignupPrompt) {
+    return <SignupRequiredModal visible={visible} onRelaunch={handleRelaunch} />;
+  }
 
   return (
     <Modal

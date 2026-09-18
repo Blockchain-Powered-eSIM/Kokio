@@ -49,11 +49,11 @@ const ContactTransactions = () => {
                         <Image source={tr.type === 'sent'?require('../../../../assets/images/contacts/sent.png'):require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                         <View className='flex-col items-start ml-3'>
                             {tr.name ? (
-                                <ThemedText variant='xl'>{tr?.name}</ThemedText>
+                                <ThemedText lightColor="#000000" variant='xl'>{tr?.name}</ThemedText>
                             ) : (
-                                <ThemedText variant='xl'>{tr?.walletId}</ThemedText>
+                                <ThemedText lightColor="#000000" variant='xl'>{tr?.walletId}</ThemedText>
                             )}
-                            <ThemedText
+                            <ThemedText lightColor="#000000"
                                 darkColor={tr?.type === 'received' ? colors.foreground : colors.primary}
                                 variant='sm'
                             >
@@ -62,8 +62,8 @@ const ContactTransactions = () => {
                         </View>
                     </View>
                     <View className='flex-col items-end'>
-                        <ThemedText variant='xl'>{tr?.amount}</ThemedText>
-                        <ThemedText
+                        <ThemedText lightColor="#000000" variant='xl'>{tr?.amount}</ThemedText>
+                        <ThemedText lightColor="#000000"
                             darkColor={tr?.status === 'pending' ? colors.primary : colors.foreground}
                             variant='sm'
                         >
@@ -78,21 +78,21 @@ const ContactTransactions = () => {
 
     return (
         <ThemedView>
-            <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
-                <ThemedText darkColor={colors.foreground} className='ml-6'>Pending</ThemedText>
+            <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+                <ThemedText lightColor="#000000" darkColor={colors.foreground} className='ml-6'>Pending</ThemedText>
                 {pendingTransactions && _.size(pendingTransactions) > 0 ? (
                     <View className='gap-y-6 mt-5 mb-3'>
                         {_.map(pendingTransactions, renderTransaction)}
                     </View>
                 ) : (
-                    <ThemedText darkColor={colors.foreground} className='mt-5 ml-6 mb-2'>
+                    <ThemedText lightColor="#000000" darkColor={colors.foreground} className='mt-5 ml-6 mb-2'>
                         No Pending Transactions
                     </ThemedText>
                 )}
 
             </ThemedView>
-            <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
-                <ThemedText darkColor={colors.foreground} className='ml-6'>Completed</ThemedText>
+            <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+                <ThemedText lightColor="#000000" darkColor={colors.foreground} className='ml-6'>Completed</ThemedText>
                 {completedTransactions.length > 0 ? (
                     <View className='gap-y-6 mt-5 mb-3'>
                         {_.map(completedTransactions, (tr, index) => (
@@ -104,17 +104,17 @@ const ContactTransactions = () => {
                                     <View className='flex-row items-center'>
                                         <Image source={tr.type === 'sent' ? require('../../../../assets/images/contacts/sent.png') : require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                                         <View className='flex-col items-start ml-3 '>
-                                            <ThemedText variant='xl'>{tr.name}</ThemedText>
-                                            {tr.type === "received" ? <ThemedText darkColor={colors.foreground} variant='sm'>{tr.type}</ThemedText> :
-                                                <ThemedText darkColor={colors.primary} variant='sm'>{tr.type}</ThemedText>
+                                            <ThemedText lightColor="#000000" variant='xl'>{tr.name}</ThemedText>
+                                            {tr.type === "received" ? <ThemedText lightColor="#000000" darkColor={colors.foreground} variant='sm'>{tr.type}</ThemedText> :
+                                                <ThemedText lightColor="#000000" darkColor={colors.primary} variant='sm'>{tr.type}</ThemedText>
                                             }
 
                                         </View>
                                     </View>
                                     <View className='flex-col items-end '>
-                                        <ThemedText variant='xl'>{tr.amount}</ThemedText>
-                                        {tr.status === "completed" ? <ThemedText darkColor={colors.foreground} variant='sm'>{tr.status}</ThemedText> :
-                                            <ThemedText darkColor={colors.primary} variant='sm'>{tr.status}</ThemedText>
+                                        <ThemedText lightColor="#000000" variant='xl'>{tr.amount}</ThemedText>
+                                        {tr.status === "completed" ? <ThemedText lightColor="#000000" darkColor={colors.foreground} variant='sm'>{tr.status}</ThemedText> :
+                                            <ThemedText lightColor="#000000" darkColor={colors.primary} variant='sm'>{tr.status}</ThemedText>
                                         }
                                     </View>
                                 </Pressable>
@@ -122,7 +122,7 @@ const ContactTransactions = () => {
                         ))}
                     </View>
                 ) : (
-                    <ThemedText darkColor={colors.foreground} className='mt-5 ml-6 mb-2'>
+                    <ThemedText lightColor="#000000" darkColor={colors.foreground} className='mt-5 ml-6 mb-2'>
                         No Transactions to show
                     </ThemedText>
                 )}

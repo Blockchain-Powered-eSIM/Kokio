@@ -5,13 +5,33 @@ import { logger } from "@/utils/logger";
 
 export interface Contact {
   id: string;
-  firstName: string;
-  lastName: string;
+  alias: string;
   walletAddress: string;
-  monogramUrl: string;
+  /** One of ContactAvatar's AVATAR_PALETTE_KEYS, assigned once at creation. Optional because contacts created before this field existed won't have it. */
+  avatarColorKey?: string;
   createdAt?: string;
   updatedAt?: string;
   transactions?: any[];
+}
+
+/**
+ * Which uniqueness rule a new/edited contact would violate against the
+ * existing list, if any. Alias and address are compared case-insensitively
+ * and trimmed, since two addresses differing only in case are the same
+ * address, and "Bob"/"bob " shouldn't both be allowed either.
+ */
+export function findContactConflict(
+  contacts: Contact[],
+  { alias, walletAddress, excludeId }: { alias: string; walletAddress: string; excludeId?: string }
+): 'alias' | 'address' | null {
+  const normalizedAlias = alias.trim().toLowerCase();
+  const normalizedAddress = walletAddress.trim().toLowerCase();
+  for (const c of contacts) {
+    if (c.id === excludeId) continue;
+    if (c.alias.trim().toLowerCase() === normalizedAlias) return 'alias';
+    if (c.walletAddress.trim().toLowerCase() === normalizedAddress) return 'address';
+  }
+  return null;
 }
 
 /**

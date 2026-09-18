@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams } from 'expo-router';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useColors } from "@/hooks/useColors";
+import { ContactAvatar } from '@/components/wallet/ContactAvatar';
 
 const TransactionDetails = () => {
   const colors = useColors();
@@ -20,7 +21,7 @@ const TransactionDetails = () => {
         <View className='flex-row justify-between mt-5 '>
           {parsedTransaction?.name?
           <View className='items-center'>
-          <Image source={parsedTransaction?.icon} className='h-[64px] w-[64px]  ' />
+          <ContactAvatar seed={parsedTransaction?.name} alias={parsedTransaction?.name} size={64} />
           <View className='flex-col items-start mt-2 '>
             <ThemedText light >{parsedTransaction?.name}</ThemedText>
           </View>

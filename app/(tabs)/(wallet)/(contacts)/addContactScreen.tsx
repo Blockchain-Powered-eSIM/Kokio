@@ -1,6 +1,6 @@
 import 'react-native-get-random-values';
-import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import { View, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
+import React, { useState, useEffect, useMemo } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -8,19 +8,28 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 import { router , useNavigation, useLocalSearchParams } from 'expo-router';
+import { ContactAvatar, pickUniqueAvatarColorKey } from '@/components/wallet/ContactAvatar';
+import { useContacts, findContactConflict } from '@/hooks/useContacts';
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { logger } from '@/utils/logger';
 
 const AddContactScreen = () => {
     const { showMessage } = useToast();
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
+    const [alias, setAlias] = useState("");
     const [walletAddress, setWalletAddress] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const navigation = useNavigation();
     const params = useLocalSearchParams();
     const colors = useColors();
+    const { isDark } = useTheme();
+    const inputTextColor = isDark ? 'white' : '#000000';
+    const { contacts } = useContacts();
+    // Computed once against the current contact list, then reused for both
+    // the live preview and the saved record - a contact's color is assigned
+    // once and never recomputed later.
+    const newContactColorKey = useMemo(() => pickUniqueAvatarColorKey(contacts), [contacts]);
 
     useEffect(() => {
         // This will capture the wallet address when returning from the QR scan
@@ -28,64 +37,41 @@ const AddContactScreen = () => {
             if (params.walletAddress) {
                 setWalletAddress(params.walletAddress as string);
             }
-            if (params.firstName) {
-                setFirstName(params.firstName as string);
-            }
-            if (params.lastName) {
-                setLastName(params.lastName as string);
-            }
         });
 
         return unsubscribe;
     }, [navigation, params]);
 
-    const commonColors = [
-        'FF5733', // Red
-        '3366FF', // Blue
-        '33CC33', // Green
-        'FFCC00', // Yellow
-        '9933FF', // Purple
-        'FF9933', // Orange
-        'FF66CC', // Pink
-    ];
-
     const handleScan = async () => {
-        // if (!isPermissionGranted) {
-        //   await requestPermission();
-        //   return; 
-        // }
-        // if (!isPermissionGranted) {
-        //   Alert.alert("Camera Permission Required", "Please grant camera permission to scan QR codes");
-        // } else {
-        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { firstName: firstName, lastName: lastName,isEdit:"false" } });
-        // }
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit: "false" } });
     };
 
-    const getRandomColor = () => {
-        const randomIndex = Math.floor(Math.random() * commonColors.length);
-        return commonColors[randomIndex];
-    }
-
     const handleAdd = async () => {
-        if (firstName === "" || walletAddress === "") {
-            showMessage("Please fill in first name and address to proceed", "error");
+        if (alias === "" || walletAddress === "") {
+            showMessage("Please fill in an alias and address to proceed", "error");
+            return;
+        }
+
+        const conflict = findContactConflict(contacts, { alias, walletAddress });
+        if (conflict === 'alias') {
+            showMessage("You already have a contact with this alias", "error");
+            return;
+        }
+        if (conflict === 'address') {
+            showMessage("You already have a contact with this wallet address", "error");
             return;
         }
 
         setIsLoading(true);
         try {
-            const randomColor = getRandomColor();
-            const url = `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=${randomColor}&color=ffffff&rounded=true&size=216`
-
             // Use UUID for a unique identifier
             const contactId = uuidv4();
 
             const contactObj = {
                 id: contactId,
-                firstName: firstName,
-                lastName: lastName,
+                alias: alias,
                 walletAddress: walletAddress,
-                monogramUrl: url,
+                avatarColorKey: newContactColorKey,
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 transactions:[]
@@ -102,17 +88,16 @@ const AddContactScreen = () => {
 
             // Optional: Show success message
             showMessage("Contact added successfully", "info");
-            router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails', params:{firstName:contactObj.firstName,lastName:contactObj.lastName,monogramUrl:contactObj.monogramUrl,transactions:contactObj.transactions,walletAddress:walletAddress}})
+            router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails', params:{id:contactObj.id,alias:contactObj.alias,avatarColorKey:contactObj.avatarColorKey,transactions:contactObj.transactions,walletAddress:walletAddress}})
             logger.debug('CONTACT_SAVE_OBJECT', { contactObj });
-            
+
 
         } catch (error) {
             logger.error('CONTACT_SAVE_FAILED', { error });
             showMessage("Failed to add contact", "error");
         } finally {
             setIsLoading(false);
-            setFirstName("");
-            setLastName("");
+            setAlias("");
             setWalletAddress("");
         }
     }
@@ -129,64 +114,82 @@ const AddContactScreen = () => {
                 style={{ flex: 1 }}
             >
                 <ThemedView darkColor='black' className='flex-1  justify-center'>
-                    <View className='w-auto   items-center mt-8'>
-                        <Image source={require('../../../../assets/images/wallet/sampleProfileImg.png')} className='h-[216px] w-[216px]' />
-
+                    <View className='w-auto items-center mt-8'>
+                        <ContactAvatar seed={alias} colorKey={newContactColorKey} alias={alias || '?'} size={120} />
                     </View>
                     <View className='flex-1 gap-y-3 mt-[50]'>
-                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={colors.foreground} className=' ml-6'>First Name</ThemedText>
+                        <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText lightColor="#000000" darkColor={colors.foreground} className=' ml-6'>Alias</ThemedText>
                             <TextInput
-                                value={firstName}
-                                placeholder='Enter first name'
-                                className='text-[15px] text-white font-LexendLight mb-2 ml-6 mt-2 '
-                                placeholderTextColor="white"
-                                onChangeText={(text) => setFirstName(text)}
+                                value={alias}
+                                placeholder='Enter a name for this contact'
+                                className='text-[15px] font-LexendLight mb-2 ml-6 mt-2 '
+                                style={{ color: inputTextColor }}
+                                placeholderTextColor={colors.mutedForeground}
+                                onChangeText={(text) => setAlias(text)}
                             />
                         </ThemedView>
-                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={colors.foreground} className=' ml-6'>Last Name</ThemedText>
-                            <TextInput
-                                value={lastName}
-                                placeholder='Enter last name'
-                                className='text-[15px] text-white font-LexendLight mb-2 ml-6 mt-2 '
-                                placeholderTextColor="white"
-                                onChangeText={(text) => setLastName(text)}
-                            />
-                        </ThemedView>
-                        <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
+                        <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
+                            <ThemedText lightColor="#000000" darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
                             <TextInput
                                 value={walletAddress}
                                 placeholder='Enter wallet address or scan QR code'
-                                className='text-[15px] w-[80%] text-white font-LexendLight mb-2 ml-6 mt-2 '
-                                placeholderTextColor="white"
+                                className='text-[15px] w-[80%] font-LexendLight mb-2 ml-6 mt-2 '
+                                style={{ color: inputTextColor }}
+                                placeholderTextColor={colors.mutedForeground}
                                 onChangeText={(text) => setWalletAddress(text)}
                                 multiline={true}
                                 numberOfLines={2}
                                 textAlignVertical="top"
                             />
                             < Pressable onPress={handleScan} className='absolute right-5 bottom-5'>
-                                <MaterialIcons name="qr-code-scanner" size={24} color="white" />
+                                <MaterialIcons name="qr-code-scanner" size={24} color={inputTextColor} />
 
                             </Pressable>
                         </ThemedView>
 
-                        <ThemedView className='flex-row justify-center mt-[140]  fixed items-center mb-5'>
+                        <View style={{ flexDirection: "row", gap: 12, marginTop: 60, marginBottom: 20 }}>
                             <Pressable
-                                className="border border-primaryOrange px-6 py-3 w-[48%] rounded-3xl items-center justify-center"
-                                onPress={() => logger.debug('BUTTON_PRESSED')}
+                                onPress={() => router.back()}
+                                style={{
+                                    flex: 1,
+                                    minHeight: 50,
+                                    borderRadius: 999,
+                                    borderWidth: 1.5,
+                                    borderColor: colors.ctaBackground,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Cancel"
                             >
-                                <ThemedText className="text-primaryOrange">Cancel</ThemedText>
+                                <ThemedText lightColor="#000000" style={{ fontSize: 16, fontWeight: "700" }}>Cancel</ThemedText>
                             </Pressable>
                             <Pressable
-                                className="bg-primaryOrange px-6 py-3 ml-2 w-[48%] rounded-3xl items-center justify-center"
                                 onPress={handleAdd}
+                                disabled={isLoading}
+                                style={{
+                                    flex: 1,
+                                    minHeight: 50,
+                                    borderRadius: 999,
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: colors.ctaBackground,
+                                    opacity: isLoading ? 0.5 : 1,
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Add contact"
                             >
-                                {isLoading ? <ActivityIndicator color="white" size="small" /> : <ThemedText className="text-black">Add</ThemedText>}
+                                {isLoading ? (
+                                    <ActivityIndicator color={colors.ctaForeground} />
+                                ) : (
+                                    <ThemedText style={{ fontSize: 16, fontWeight: "700", color: colors.ctaForeground }}>
+                                        Add
+                                    </ThemedText>
+                                )}
                             </Pressable>
-
-                        </ThemedView>
+                        </View>
                     </View>
 
                 </ThemedView>

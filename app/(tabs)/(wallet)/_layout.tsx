@@ -72,17 +72,7 @@ export default function WalletStack() {
       />
       <Stack.Screen
         name={ROUTE_NAMES.CREATE_WALLET}
-        options={{
-          header: () => (
-            <SafeAreaView edges={["top"]}>
-              <Header
-                title="Create wallet"
-                hasBack
-                style={{ justifyContent: "center" }}
-              />
-            </SafeAreaView>
-          ),
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name={ROUTE_NAMES.ESIM_WALLET}

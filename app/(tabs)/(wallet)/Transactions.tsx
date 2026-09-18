@@ -24,50 +24,10 @@ const shortenId = (address: string|undefined, startLength = 3, endLength = 6) =>
 const Transactions = () => {
   const router = useRouter();
   const colors = useColors();
-  const transactions = useMemo(() => [
-    {
-
-      name: 'Alice',
-      amount: '$150.00',
-      status: 'pending',
-      type: 'sending',
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef5',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-      icon: require('../../../assets/images/wallet/contact1.png')
-    },
-    {
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef6',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-      name: 'Ethan',
-      amount: '$150.00',
-      status: 'completed',
-      type: 'received',
-      icon: require('../../../assets/images/wallet/contact2.png')
-    },
-    {
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef7',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-      name: 'Alice',
-      amount: '$150.00',
-      status: 'completed',
-      type: 'received',
-      icon: require('../../../assets/images/wallet/contact3.png')
-    },
-    {
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef8',
-      walletId: '0x3A57aD2f5F118Ee412F2bB6B76BcF9b3E4890714',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-
-      amount: '$150.00',
-      status: 'completed',
-      type: 'received',
-      icon: require('../../../assets/images/wallet/wallet.png')
-    },
-  ], []);
+  // TODO: kokio-sdk exposes no transaction-history read (no indexer, no BFF
+  // log today). Populate this once a real fetch exists — see KokioSDKv3.md
+  // Section 7.
+  const transactions = useMemo<Transaction[]>(() => [], []);
 
   const renderTransaction = useCallback(
     (tr: Transaction, index: number) => (

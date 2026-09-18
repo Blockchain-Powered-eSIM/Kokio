@@ -59,7 +59,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
   headerWithLogo: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginTop: 4,
     marginBottom: 16,
@@ -131,9 +131,6 @@ export function WalletHeroCard({ address, balance, isBalanceLoading }: WalletHer
             resizeMode="cover"
           />
           <ThemedView style={styles.headerWithLogo}>
-            <ThemedText variant="xl" className="font-Lexend ml-4">
-              Device Wallet
-            </ThemedText>
             <Image
               source={require("@/assets/images/logo.png")}
               style={styles.logo}

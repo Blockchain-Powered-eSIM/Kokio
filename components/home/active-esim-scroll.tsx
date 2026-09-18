@@ -288,7 +288,7 @@ const ActiveESIMsScroll = () => {
             No active eSIMs
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.cardForeground }]}>
-            Your purchased eSIMs will appear here
+            Purchased eSIMs will appear here
           </Text>
         </View>
       </View>

@@ -24,7 +24,10 @@ export const createRadioButtons = (
   Object.keys(RADIO_KEYS)
     .filter((key) => !(key === RADIO_KEYS.APPLE_PAY && Platform.OS !== "ios"))
     .map((key) => {
-      const isDisabled = key === RADIO_KEYS.E_SIM_WALLET;
+      // __DEV__: enabled as a real (if fake-order) test path — see Checkout.tsx's
+      // handleDevWalletBypassCheckout. Disabled everywhere else; the real feature
+      // this option is meant for isn't built yet.
+      const isDisabled = key === RADIO_KEYS.E_SIM_WALLET && !__DEV__;
       return {
         id: key,
         label: radioButtonComponents[key],

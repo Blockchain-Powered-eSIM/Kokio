@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from "react";
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Updates from "expo-updates";
 
 import { ThemedText } from "@/components/ThemedText";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { DARK_TOKENS, LIGHT_TOKENS, type Palette } from "@/constants/Colors";
@@ -16,13 +18,21 @@ import { AuthError } from "@/utils/auth/errors";
 import { logger } from "@/utils/logger";
 
 const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [
-  { icon: "shield-checkmark-outline", title: "You own it", description: "Kokio can never move your funds" },
-  { icon: "card-outline", title: "Card still works", description: "Nothing you do today changes" },
-  { icon: "layers-outline", title: "Each eSIM gets a wallet", description: "Top-ups without re-entering a card" },
+  { icon: "shield-checkmark-outline", title: "Own it", description: "Kokio can never move your funds" },
+  { icon: "card-outline", title: "Card still works", description: "Nothing changes" },
+  { icon: "layers-outline", title: "Every eSIM gets a wallet", description: "Top-ups without re-entering card details" },
 ];
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  backButton: {
+    width: 44,
+    height: 44,
+    marginLeft: 8,
+    marginTop: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   iconCircle: {
     width: 84,
     height: 84,
@@ -87,49 +97,31 @@ export default function CreateWalletScreen() {
     }
   }, [deployDeviceWallet, router, showMessage]);
 
-  if (errorMessage === "signup") {
-    return (
-      <View style={[styles.container, { alignItems: "center", justifyContent: "center", padding: 24 }]}>
-        <ThemedText bold variant="xl" style={{ textAlign: "center" }}>Please sign up to proceed</ThemedText>
-        <TouchableOpacity
-          style={{
-            width: "100%",
-            minHeight: 50,
-            borderRadius: 999,
-            paddingHorizontal: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            marginTop: 20,
-            backgroundColor: colors.ctaBackground,
-          }}
-          onPress={handleRelaunch}
-          accessibilityRole="button"
-          accessibilityLabel="Let's go"
-        >
-          <ThemedText style={{ fontSize: 16, fontWeight: "700", color: colors.ctaForeground }}>
-            Let&apos;s go
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={["top"]} style={styles.container}>
+      <SignupRequiredModal visible={errorMessage === "signup"} onRelaunch={handleRelaunch} />
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <Ionicons name="chevron-back-outline" size={28} color={colors.headerText} />
+      </TouchableOpacity>
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 }}>
         <View style={[styles.iconCircle, { backgroundColor: colors.walletAccent }]}>
           <Ionicons name="finger-print-outline" size={42} color={colors.primaryForeground} />
         </View>
         <ThemedText bold variant="xxl" style={{ marginTop: 22, lineHeight: 38 }}>
-          No seed phrase.{"\n"}Just {PASSKEY_LABEL}.
+          Just {PASSKEY_LABEL}.
         </ThemedText>
         <ThemedText
           lightColor={LIGHT_TOKENS.text}
           darkColor={DARK_TOKENS.mutedForeground}
           style={{ marginTop: 12, lineHeight: 22 }}
         >
-          Your Kokio wallet lives on this phone and signs with the passkey you already use. Nothing to write down.
+          Kokio wallet lives on this phone and signs with the {PASSKEY_LABEL} already in use.
         </ThemedText>
 
         {BENEFITS.map((b) => (
@@ -181,7 +173,7 @@ export default function CreateWalletScreen() {
           ) : (
             <>
               <Ionicons name="finger-print-outline" size={20} color={colors.ctaForeground} />
-              <ThemedText style={{ fontSize: 16, fontWeight: "700", color: colors.ctaForeground }}>
+              <ThemedText style={{ fontSize: 18, fontWeight: "700", color: colors.ctaForeground }}>
                 {errorMessage === "retry" ? "Retry" : `Create with ${PASSKEY_LABEL}`}
               </ThemedText>
             </>
@@ -200,6 +192,6 @@ export default function CreateWalletScreen() {
           </ThemedText>
         </TouchableOpacity>
       </BottomActionBar>
-    </View>
+    </SafeAreaView>
   );
 }

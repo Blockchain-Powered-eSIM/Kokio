@@ -1,129 +1,266 @@
-import { View, Image, Pressable, Platform, StyleSheet, ActivityIndicator , KeyboardAvoidingView } from 'react-native'
-import React, { useEffect, useState , useRef, useMemo } from 'react'
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { View, Pressable, Platform, ActivityIndicator, KeyboardAvoidingView, ScrollView } from 'react-native'
+import React, { useState } from 'react'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
+import { BottomActionBar } from '@/components/ui/BottomActionBar'
 import { router, useLocalSearchParams } from 'expo-router'
 import { TextInput } from 'react-native-gesture-handler'
-import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import _ from 'lodash';
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { isAddress, parseUnits, erc20Abi, encodeFunctionData, type Address } from 'viem';
 import { useToast } from '@/contexts/ToastContext'
 import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import { useTheme } from '@/contexts/ThemeContext';
 import { useContacts, type Contact } from '@/hooks/useContacts';
+import { ContactAvatar } from '@/components/wallet/ContactAvatar';
+import { useUsdcAsset, useWalletBalance } from '@/hooks/useWalletBalance';
+import { useKokio } from '@/hooks/useKokio';
 import { logger } from '@/utils/logger';
-
-interface Token {
-  id: string;
-  name: string
-  symbol: string;
-  value: string;
-  icon: string;
-}
 
 interface Transaction {
   id: string;
   dateTime: string | Date; // Can adjust based on how you want to store it
   tokenAmount: string;
-  name: string;
+  name?: string; // Contact-send only. Raw-address sends have no contact record.
+  walletId?: string; // Raw-address-send only, mirrors TransactionDetails' fallback branch.
   amount: string;
   status: "pending" | "completed"; // Union type for valid statuses
   type: "sent" | "received"; // Union type for valid types
-  icon: string | string [];
 }
 
-const createStyles = (colors: Palette) => StyleSheet.create({
-  contentContainer: {
-    backgroundColor: colors.background,
-    padding: 0,
-    elevation: 50,
-  },
-})
+// react-native-passkey rethrows a plain `{ error, message }` object (NOT an
+// Error instance) when the user dismisses the biometric prompt - verified
+// against the installed node_modules/react-native-passkey/lib/module/PasskeyError.js
+// (`UserCancelledError = { error: 'UserCancelled', message: '...' }`), which
+// kokio-sdk's WebAuthn signer (`_stamp` in
+// node_modules/kokio-sdk/dist/esm/logic/account-kit/createSmartAccount.js)
+// rethrows unmodified from `Passkey.get(...)`. Also defensively covers a
+// standard Error/DOMException-shaped cancellation in case the signer changes.
+function isUserCancelledPasskeyError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { error?: unknown; name?: unknown; message?: unknown };
+  const code = typeof candidate.error === 'string' ? candidate.error : typeof candidate.name === 'string' ? candidate.name : '';
+  const message = typeof candidate.message === 'string' ? candidate.message : '';
+  return /cancel/i.test(code) || /cancel/i.test(message) || /notallowed/i.test(code);
+}
 
 const SendToContact = () => {
-  const styles = useThemedStyles(createStyles);
   const colors = useColors();
-  const params = useLocalSearchParams<{ id?: string; firstName?: string; lastName?: string; monogramUrl?: string }>();
+  const { isDark } = useTheme();
+  const pastedAddressTextColor = isDark ? colors.text : '#000000';
+  const amountTextColor = isDark ? 'white' : '#000000';
+  const { kokio } = useKokio();
+  const params = useLocalSearchParams<{ id?: string; alias?: string; scannedAddress?: string }>();
   const hasPreselectedContact = !!params.id;
   const { contacts } = useContacts();
   const [selectedContactId, setSelectedContactId] = useState<string | undefined>(params.id);
+  const [showContactPicker, setShowContactPicker] = useState(hasPreselectedContact);
+  const [pastedAddress, setPastedAddress] = useState("");
   const [amount, setAmount] = useState("0");
-  const [token, setToken] = useState<Token | null>(null);
-  const [tokens, setTokens] = useState<Token[]>([]);
-  const [isLoading,setIsLoading] = useState(false);
-  const { showToast, showMessage } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const { showMessage } = useToast();
+
+  const { data: asset } = useUsdcAsset();
+  const { balance, isLoading: isBalanceLoading } = useWalletBalance(kokio.deviceWalletAddress);
+
+  // A QR scan (see qrCodeScreen.tsx's `returnTo: 'send'` mode) comes back as a
+  // route param rather than a direct callback, since expo-router has no
+  // built-in "return a value to the previous screen" mechanism. Applied
+  // during render (not an effect) so it lands in the same render pass as the
+  // param change, guarded against re-applying the same value on every render.
+  const [appliedScannedAddress, setAppliedScannedAddress] = useState<string | undefined>(undefined);
+  if (params.scannedAddress && params.scannedAddress !== appliedScannedAddress) {
+    setAppliedScannedAddress(params.scannedAddress);
+    setPastedAddress(params.scannedAddress);
+    setSelectedContactId(undefined);
+    setShowContactPicker(false);
+  }
 
   // When a contact was preselected via route params, use those fields directly
   // (no lookup needed). Otherwise resolve the locally-picked contact from the
   // inline list below.
-  const activeContact: { id: string; firstName: string; lastName: string; monogramUrl: string } | undefined =
+  const activeContact: { id: string; alias: string } | undefined =
     hasPreselectedContact
       ? {
           id: params.id as string,
-          firstName: params.firstName ?? '',
-          lastName: params.lastName ?? '',
-          monogramUrl: params.monogramUrl ?? '',
+          alias: params.alias ?? '',
         }
       : contacts.find((c) => c.id === selectedContactId);
 
-  const sheetRef = useRef<BottomSheet>(null);
+  // Route params never carry `walletAddress` (contactDetails.tsx doesn't pass
+  // it), so the real destination for a contact send is always resolved by id
+  // from the local contacts list, never from params.
+  const contactWalletAddress = activeContact
+    ? contacts.find((c) => c.id === activeContact.id)?.walletAddress
+    : undefined;
 
-  const snapPoints = useMemo(() => ['96.5%', '97%'], []);
-  const handleShowSheet = () => {
-    sheetRef.current?.snapToIndex(1); // Snap to the first snap point (65%)
+  const trimmedAddress = pastedAddress.trim();
+  const isRawAddressMode = trimmedAddress.length > 0;
+  const showAddressError = isRawAddressMode && !isAddress(trimmedAddress);
+
+  const isRecipientValid = isRawAddressMode
+    ? isAddress(trimmedAddress)
+    : !!activeContact && !!contactWalletAddress && isAddress(contactWalletAddress);
+
+  const trimmedAmount = amount.trim();
+  // Restrict fractional digits to the asset's real decimals so nothing gets
+  // silently rounded by parseUnits - block instead of guessing.
+  const amountFormatValid = asset
+    ? new RegExp(`^\\d+(\\.\\d{1,${asset.decimals}})?$`).test(trimmedAmount)
+    : /^\d+(\.\d+)?$/.test(trimmedAmount);
+  const parsedAmount = Number(trimmedAmount);
+  const isAmountValid = amountFormatValid && Number.isFinite(parsedAmount) && parsedAmount > 0;
+
+  // `balance` is `undefined` while loading or on error - never treated as 0
+  // (would falsely block every send) or unlimited (would allow overdraft).
+  const isBalanceKnown = balance !== undefined;
+  const exceedsBalance = isBalanceKnown && isAmountValid && parsedAmount > parseFloat(balance as string);
+
+  const canSend = !isLoading && isRecipientValid && isAmountValid && isBalanceKnown && !exceedsBalance && !!asset;
+
+  const handleScanQr = () => {
+    router.push({ pathname: '/(tabs)/(wallet)/(contacts)/qrCodeScreen', params: { returnTo: 'send' } });
   };
+
+  const handleSelectContact = (contactId: string) => {
+    setSelectedContactId(contactId);
+    setPastedAddress('');
+  };
+
   const handleSend = async () => {
-    if (!activeContact) {
-      showMessage("Pick a contact to send to", "error");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const contactId = activeContact.id;
+    if (isLoading) return;
 
-      // Fetch the existing contact
-      const contactJson = await AsyncStorage.getItem(`contact_${contactId}`);
-      const contact: Contact = contactJson ? JSON.parse(contactJson) : null;
+    // Resolve the destination for whichever mode is active. Contact and
+    // raw-address modes are mutually exclusive in UI state (see the
+    // onPress/onChangeText handlers below), so exactly one of these paths
+    // supplies `recipient`.
+    let recipient: Address;
+    let contactForLog: Contact | undefined;
 
-      if (!contact) {
-        throw new Error("Contact not found");
+    if (isRawAddressMode) {
+      if (!isAddress(trimmedAddress)) {
+        showMessage("Enter a valid wallet address", "error");
+        return;
+      }
+      recipient = trimmedAddress as Address;
+    } else {
+      if (!activeContact) {
+        showMessage("Pick a contact to send to", "error");
+        return;
       }
 
-      // Create a new transaction object
-      const newTransaction: Transaction = {
-        id: `0x${Math.random().toString(16).slice(2)}`, // Generate a random ID (replace with real tx ID if available)
-        dateTime: new Date().toISOString(), // Current timestamp in ISO format
-        tokenAmount: `${parseFloat(amount)} ${token?.symbol}`, // Example conversion, adjust logic as needed
-        name: `${activeContact.firstName} ${activeContact.lastName}`, // Use contact's first name
-        amount: `$${(parseFloat(amount) * parseFloat(token?.value || "0")).toFixed(2)}`, // Use the amount from state
-        status: "completed", // Assuming send completes immediately
-        type: "sent", // This is a send action
-        icon: activeContact.monogramUrl, // Replace with actual icon URL
-      };
+      const contactJson = await AsyncStorage.getItem(`contact_${activeContact.id}`);
+      const contact: Contact | null = contactJson ? JSON.parse(contactJson) : null;
 
-      // Update the transactions array
-      const updatedTransactions = [...(contact.transactions ?? []), newTransaction];
+      if (!contact || !contact.walletAddress || !isAddress(contact.walletAddress)) {
+        showMessage("This contact doesn't have a valid wallet address on file", "error");
+        return;
+      }
 
-      // Update the contact object
-      const updatedContact: Contact = {
-        ...contact,
-        transactions: updatedTransactions,
-        updatedAt: new Date().toISOString(), // Update timestamp
-      };
+      contactForLog = contact;
+      recipient = contact.walletAddress as Address;
+    }
 
-      // Save back to AsyncStorage
-      await AsyncStorage.setItem(`contact_${contactId}`, JSON.stringify(updatedContact));
+    if (!amountFormatValid || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      showMessage("Enter a valid amount", "error");
+      return;
+    }
 
-      logger.debug('TRANSACTION_ADDED', { newTransaction });
-      router.push({pathname:"/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) }})
-      //@ts-expect-error non-reachable code for now, should be fixed when enabled
-      showToast(newTransaction.amount,newTransaction.tokenAmount,'Sent',activeContact.firstName,activeContact.monogramUrl)
+    if (!isBalanceKnown) {
+      showMessage("Balance unavailable right now - try again in a moment", "error");
+      return;
+    }
+
+    if (parsedAmount > parseFloat(balance as string)) {
+      showMessage("Amount exceeds your available balance", "error");
+      return;
+    }
+
+    if (!asset) {
+      showMessage("Asset details unavailable right now - try again in a moment", "error");
+      return;
+    }
+
+    const deviceWallet = kokio.sdk?.deviceWallet;
+    const smartAccountClient = kokio.sdk?.smartAccountClient;
+    if (!deviceWallet || !smartAccountClient) {
+      showMessage("Wallet isn't ready yet - try again in a moment", "error");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const amountInSmallestUnit = parseUnits(trimmedAmount, asset.decimals);
+
+      // Fires the passkey/biometric prompt. Resolves with the user operation
+      // hash, NOT a receipt - the transfer is not confirmed yet.
+      const hash = await deviceWallet.sendUserOperation([{
+        to: asset.token,
+        data: encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [recipient, amountInSmallestUnit] }),
+      }]);
+
+      const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
+
+      // A user operation whose calls REVERT still gets mined and still
+      // returns a receipt - a resolved promise here is not proof the
+      // transfer worked. `receipt.success` gates every success path below.
+      if (!receipt.success) {
+        throw new Error('Transfer reverted on-chain');
+      }
+
+      const txHash = receipt.receipt.transactionHash;
+      const displayAmount = asset.isDollarUnit ? `$${parsedAmount.toFixed(2)}` : `${trimmedAmount} USDC`;
+
+      if (contactForLog && activeContact) {
+        const newTransaction: Transaction = {
+          id: txHash,
+          dateTime: new Date().toISOString(),
+          tokenAmount: `${trimmedAmount} USDC`,
+          name: activeContact.alias,
+          amount: displayAmount,
+          status: "completed",
+          type: "sent",
+        };
+
+        const updatedTransactions = [...(contactForLog.transactions ?? []), newTransaction];
+        const updatedContact: Contact = {
+          ...contactForLog,
+          transactions: updatedTransactions,
+          updatedAt: new Date().toISOString(),
+        };
+
+        await AsyncStorage.setItem(`contact_${contactForLog.id}`, JSON.stringify(updatedContact));
+
+        logger.debug('TRANSACTION_ADDED', { newTransaction });
+        router.push({ pathname: "/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) } });
+      } else {
+        // Raw-address sends have no contact record to append a log entry to.
+        // Skip the per-contact AsyncStorage write and navigate straight to
+        // TransactionDetails with a wallet-id-only record (that screen
+        // already has a fallback branch for a transaction with no `name`).
+        const newTransaction: Transaction = {
+          id: txHash,
+          dateTime: new Date().toISOString(),
+          tokenAmount: `${trimmedAmount} USDC`,
+          walletId: recipient,
+          amount: displayAmount,
+          status: "completed",
+          type: "sent",
+        };
+
+        logger.debug('RAW_ADDRESS_TRANSACTION_SENT', { newTransaction });
+        router.push({ pathname: "/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) } });
+      }
+
+      showMessage(`Sent ${trimmedAmount} USDC`, "info");
     } catch (error) {
-      logger.error('TRANSACTION_ADD_FAILED', { error });
+      if (isUserCancelledPasskeyError(error)) {
+        // Quiet, distinct outcome - no scary red error toast for a user
+        // dismissing their own biometric prompt.
+        logger.debug('SEND_CANCELLED_BY_USER');
+        return;
+      }
+      logger.error('SEND_FAILED', { error });
       showMessage("Failed to send transaction", "error");
     } finally {
       setIsLoading(false);
@@ -131,183 +268,151 @@ const SendToContact = () => {
     }
   };
 
-  const getAllTokens = async () => {
-    try {
-      const response = await fetch(
-        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false'
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch tokens');
-      }
-      const data = await response.json();
-
-      // Map the API response to the Token interface and take only the first 20
-      const mappedTokens: Token[] = data.slice(0, 20).map((coin: any) => ({
-        id: coin.id,
-        name: coin.name,
-        symbol: coin.symbol.toUpperCase(),
-        value: coin.current_price.toString(), // Convert number to string for consistency
-        icon: coin.image,
-      }));
-
-      // Update state with the first 20 tokens
-      setTokens(mappedTokens);
-      setToken(mappedTokens[0]);
-    } catch (error) {
-      logger.error('TOKENS_FETCH_FAILED', { error });
-    }
-  };
-
-  useEffect(() => {
-    // TODO: This pattern should not be used once this is enabled
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    getAllTokens();
-  }, [])
-
   return (
-    <KeyboardAwareScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ flexGrow: 1 }}
-      enableOnAndroid={true}
-      extraScrollHeight={20}
-    >
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
       <ThemedView className='flex-1'>
-        {hasPreselectedContact ? (
-          <ThemedView darkColor='black' className='w-auto  justify-center'>
-            <View className='w-auto   items-center mt-8'>
-              <Image source={activeContact?.monogramUrl ? { uri: activeContact.monogramUrl } : require('../../../../assets/images/wallet/sampleProfileImg.png')} className='h-[216px] w-[216px]' />
-              <ThemedText variant='xxl' className='text-center mt-4'>{activeContact?.firstName} {activeContact?.lastName}</ThemedText>
-            </View>
-          </ThemedView>
-        ) : (
-          <View className='mt-6 px-4'>
-            <ThemedText light className='mb-2'>To</ThemedText>
-            {contacts.map((c) => (
-              <Pressable
-                key={c.id}
-                onPress={() => setSelectedContactId(c.id)}
-                className='flex-row items-center py-2 px-2 rounded-2xl mb-1'
-                style={{
-                  backgroundColor: selectedContactId === c.id ? colors.surface : 'transparent',
-                  borderWidth: selectedContactId === c.id ? 1.5 : 0,
-                  borderColor: colors.primary,
-                }}
-              >
-                <Image
-                  source={c.monogramUrl ? { uri: c.monogramUrl } : require('../../../../assets/images/wallet/sampleProfileImg.png')}
-                  className='h-[42px] w-[42px] rounded-full'
-                />
-                <View className='ml-3'>
-                  <ThemedText bold>{c.firstName} {c.lastName}</ThemedText>
-                </View>
-                {selectedContactId === c.id && (
-                  <View style={{ marginLeft: 'auto' }}>
-                    <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
-                  </View>
-                )}
-              </Pressable>
-            ))}
-            <View className='flex-row items-center py-3 px-2'>
-              <View className='h-[42px] w-[42px] rounded-full items-center justify-center' style={{ borderWidth: 1.5, borderColor: colors.mutedForeground, borderStyle: 'dashed' }}>
-                <Ionicons name="add" size={20} color={colors.mutedForeground} />
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps='handled'>
+          <View className='mt-4 px-4'>
+            <Pressable
+              onPress={() => setShowContactPicker((v) => !v)}
+              disabled={isLoading}
+              className='flex-row items-center py-3 px-3 rounded-2xl mb-2'
+              style={{ backgroundColor: colors.surface }}
+            >
+              <View className='h-[40px] w-[40px] rounded-full items-center justify-center' style={{ backgroundColor: colors.surfaceElevated }}>
+                <Ionicons name="people-outline" size={19} color={colors.primary} />
               </View>
-              <ThemedText style={{ color: colors.mutedForeground, marginLeft: 12 }}>Paste an address</ThemedText>
-            </View>
-          </View>
-        )}
-        <View className='flex-1 mt-10 items-center'>
-          <ThemedView darkColor={colors.itemBackground} className='w-auto mx-2 flex-row py-3 rounded-3xl '>
-            <View className='w-[67%]'>
-              <ThemedText light className='ml-6 mt-2'>Amount</ThemedText>
+              <ThemedText lightColor="#000000" bold className='ml-3' style={{ flex: 1 }}>
+                {activeContact ? activeContact.alias : 'Send to a contact'}
+              </ThemedText>
+              <Ionicons name={showContactPicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.mutedForeground} />
+            </Pressable>
+
+            {showContactPicker && (
+              <View className='mb-2'>
+                {contacts.length === 0 ? (
+                  <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} className='px-3 py-2'>
+                    No contacts yet.
+                  </ThemedText>
+                ) : (
+                  contacts.map((c) => (
+                    <Pressable
+                      key={c.id}
+                      disabled={isLoading}
+                      onPress={() => handleSelectContact(c.id)}
+                      className='flex-row items-center py-2 px-2 rounded-2xl mb-1'
+                      style={{
+                        backgroundColor: selectedContactId === c.id ? colors.surface : 'transparent',
+                        borderWidth: selectedContactId === c.id ? 1.5 : 0,
+                        borderColor: colors.primary,
+                      }}
+                    >
+                      <ContactAvatar seed={c.id} colorKey={c.avatarColorKey} alias={c.alias} size={42} />
+                      <View className='ml-3'>
+                        <ThemedText lightColor="#000000" bold>{c.alias}</ThemedText>
+                      </View>
+                      {selectedContactId === c.id && (
+                        <View style={{ marginLeft: 'auto' }}>
+                          <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                        </View>
+                      )}
+                    </Pressable>
+                  ))
+                )}
+              </View>
+            )}
+
+            <Pressable
+              onPress={handleScanQr}
+              disabled={isLoading}
+              className='flex-row items-center py-3 px-3 rounded-2xl mb-4'
+              style={{ backgroundColor: colors.surface }}
+            >
+              <View className='h-[40px] w-[40px] rounded-full items-center justify-center' style={{ backgroundColor: colors.surfaceElevated }}>
+                <Ionicons name="qr-code-outline" size={19} color={colors.primary} />
+              </View>
+              <ThemedText lightColor="#000000" bold className='ml-3' style={{ flex: 1 }}>Scan QR</ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+            </Pressable>
+
+            <ThemedText lightColor="#000000" light className='mb-2'>Or paste an address</ThemedText>
+            <View className='flex-row items-center py-3 px-3 rounded-2xl' style={{ backgroundColor: colors.surface }}>
               <TextInput
-                value={amount}
-                placeholder='Enter Amount'
-                className='text-[18px] text-white font-LexendSemiBold mb-2 ml-6 mt-1 '
-                placeholderTextColor="white"
-                onChangeText={(text) => setAmount(text)}
-                keyboardType='numeric'
+                value={pastedAddress}
+                editable={!isLoading}
+                onChangeText={(text) => { setPastedAddress(text); setSelectedContactId(undefined); }}
+                placeholder='0x...'
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize='none'
+                autoCorrect={false}
+                style={{ color: pastedAddressTextColor, flex: 1 }}
               />
             </View>
-            <View className='w-[32%]'>
-              <ThemedText light className='mt-2'>Token</ThemedText>
-              <Pressable onPress={handleShowSheet} className='flex-row mt-1 gap-x-2 items-center '>
-                <ThemedText variant='xl' className=''>{token?.symbol}</ThemedText>
-                <Image source={{ uri: token?.icon }} className='h-[24] w-[24]' />
-                <AntDesign name="down" size={24} color="white" />
-              </Pressable>
-            </View>
-          </ThemedView>
-          <ThemedText className='mt-3' >Balance: 100 {token?.symbol}</ThemedText>
-          <ThemedView darkColor={colors.itemBackground} className='w-[97%] mt-3 mx-2 px-6 py-5 rounded-3xl '>
-            <View className='flex-row justify-between'>
-              <ThemedText>Estimated Gas Fee:</ThemedText>
-              <ThemedText> 0.0014 {token?.symbol}</ThemedText>
-            </View>
-            <View className='flex-row mt-2 justify-between'>
-              <ThemedText>Total:</ThemedText>
-              <ThemedText>{(parseFloat(amount) + 0.0014).toFixed(4)} {token?.symbol}</ThemedText>
-            </View>
-          </ThemedView>
-          <Pressable onPress={handleSend} className='w-[97%] fixed py-3  mt-[200] rounded-3xl' style={{ backgroundColor: colors.secondary }}>
-            {isLoading?<ActivityIndicator size='small'/>:
-            <ThemedText darkColor='black' className='text-center'>Confirm & Send {amount} {token?.symbol} </ThemedText>}
-          </Pressable>
-        </View>
-      </ThemedView>
-      <BottomSheet
-        ref={sheetRef}
-        index={-1} // hidden initially
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        style={{ paddingBottom: 10, borderRadius: 25 }}
-        backgroundStyle={{ backgroundColor: colors.sheetBackground }}
-      >
-        <ThemedText variant='xl' className='text-center pt-2 pb-4' style={{ backgroundColor: colors.background }}>Select Token</ThemedText>
-        <BottomSheetScrollView contentContainerStyle={styles.contentContainer}>
-          {_.size(tokens) === 0 ? (
-            <ThemedText darkColor={colors.foreground} className='mt-5 ml-2 mb-2'>
-                You don&#39;t hold any tokens yet.
-            </ThemedText>
-          ) : (
-            <ThemedView darkColor={colors.background} className='gap-y-3 mt-3 mb-3 px-4'>
-              {_.map(tokens, (tk, index) => (
-                <Pressable
-                  onPress={() => setToken(tokens[index])}
-                  key={index}
-                  className="flex-row items-center justify-between mx-3 p-2 rounded-lg"
-                >
-                <View className="flex-row items-center">
-                  <Image source={{ uri: tk?.icon }} className="h-[45px] w-[45px]" />
-                  <ThemedText
-                    bold
-                    variant="xl"
-                    darkColor={token?.id === tk.id ? colors.primary : colors.text}
-                    className="ml-3"
-                  >
-                  {tk?.symbol}
-                  </ThemedText>
+            {showAddressError && (
+              <ThemedText style={{ color: colors.destructive }} className='ml-2 mt-1'>
+                Enter a valid wallet address
+              </ThemedText>
+            )}
+          </View>
+
+          <View className='mt-8 items-center'>
+            <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[95%] flex-row py-3 rounded-3xl '>
+              <View className='w-[67%]'>
+                <ThemedText lightColor="#000000" light className='ml-6 mt-2'>Amount</ThemedText>
+                <TextInput
+                  value={amount}
+                  editable={!isLoading}
+                  placeholder='Enter Amount'
+                  className='text-[18px] font-LexendSemiBold mb-2 ml-6 mt-1 '
+                  style={{ color: amountTextColor }}
+                  placeholderTextColor={colors.mutedForeground}
+                  onChangeText={(text) => setAmount(text)}
+                  keyboardType='numeric'
+                />
+              </View>
+              <View className='w-[32%]'>
+                <ThemedText lightColor="#000000" light className='mt-2'>Token</ThemedText>
+                <View className='flex-row mt-1 gap-x-2 items-center '>
+                  <ThemedText lightColor="#000000" variant='xl'>USDC</ThemedText>
                 </View>
-                <View className="flex-col items-end">
-                  <ThemedText
-                    variant="xl"
-                    darkColor={token?.id === tk.id ? colors.primary : colors.text}
-                  >
-                  {tk?.value}
-                  </ThemedText>
-                </View>
-                </Pressable>
-              ))}
+              </View>
             </ThemedView>
-          )}
-        </BottomSheetScrollView>
-      </BottomSheet>
+            <ThemedText lightColor="#000000" className='mt-3'>
+              {isBalanceLoading
+                ? 'Balance: Loading…'
+                : isBalanceKnown
+                  ? `Balance: ${balance} USDC`
+                  : 'Balance: unavailable'}
+            </ThemedText>
+            <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[95%] mt-3 px-6 py-5 rounded-3xl '>
+              <View className='flex-row justify-between'>
+                <ThemedText lightColor="#000000">Estimated Gas Fee:</ThemedText>
+                <ThemedText lightColor="#000000"> 0.0014 USDC</ThemedText>
+              </View>
+              <View className='flex-row mt-2 justify-between'>
+                <ThemedText lightColor="#000000">Total:</ThemedText>
+                <ThemedText lightColor="#000000">{(parseFloat(amount || '0') + 0.0014).toFixed(4)} USDC</ThemedText>
+              </View>
+            </ThemedView>
+          </View>
+        </ScrollView>
+
+        <BottomActionBar>
+          <Pressable
+            onPress={handleSend}
+            disabled={!canSend}
+            className='w-full py-3 rounded-3xl'
+            style={{ backgroundColor: colors.secondary, opacity: canSend ? 1 : 0.5 }}
+          >
+            {isLoading ? <ActivityIndicator size='small' /> :
+            <ThemedText lightColor="#000000" darkColor='black' className='text-center'>Confirm & Send {amount} USDC</ThemedText>}
+          </Pressable>
+        </BottomActionBar>
+      </ThemedView>
     </KeyboardAvoidingView>
-    </KeyboardAwareScrollView>
   )
 }
 export default SendToContact;

@@ -72,36 +72,36 @@ export default function EsimWalletScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <ThemedView darkColor={colors.surface} lightColor={colors.surface} style={{ borderRadius: 21, padding: 16 }}>
+        <ThemedView darkColor={colors.card} lightColor={colors.card} style={{ borderRadius: 21, padding: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <CountryFlag size={38} flagUrl={display.serviceRegionFlag ?? ""} />
             <View style={{ flex: 1 }}>
-              <ThemedText bold variant="normal">{display.serviceRegionName ?? "eSIM"} · {esimLabel}</ThemedText>
-              <ThemedText style={{ color: colors.mutedForeground, fontSize: 12.5, marginTop: 1 }}>
+              <ThemedText bold variant="normal" style={{ color: colors.cardForeground }}>{display.serviceRegionName ?? "eSIM"} · {esimLabel}</ThemedText>
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 1 }}>
                 {shortenAddress(doc.esimId)}
               </ThemedText>
             </View>
           </View>
           <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border }}>
-            <ThemedText style={{ color: colors.mutedForeground, fontSize: 13 }}>Wallet balance</ThemedText>
+            <ThemedText style={{ color: colors.cardForeground, fontSize: 13 }}>Wallet balance</ThemedText>
             {isBalanceLoading ? (
-              <ActivityIndicator size="small" color={colors.foreground} style={{ marginTop: 8, alignSelf: "flex-start" }} />
+              <ActivityIndicator size="small" color={colors.cardForeground} style={{ marginTop: 8, alignSelf: "flex-start" }} />
             ) : (
-              <ThemedText bold style={{ fontSize: 32, marginTop: 2 }}>{balance === undefined ? "—" : `$${balance}`}</ThemedText>
+              <ThemedText bold style={{ fontSize: 32, marginTop: 2, color: colors.cardForeground }}>{balance === undefined ? "—" : `$${balance}`}</ThemedText>
             )}
           </View>
         </ThemedView>
 
-        <ThemedView darkColor={colors.surface} lightColor={colors.surface} style={{ borderRadius: 21, padding: 16, marginTop: 14 }}>
+        <ThemedView darkColor={colors.card} lightColor={colors.card} style={{ borderRadius: 21, padding: 16, marginTop: 14 }}>
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <ThemedText bold style={{ fontSize: 15.5 }}>Allow top-ups from your device wallet</ThemedText>
-              <ThemedText style={{ color: colors.mutedForeground, fontSize: 12.5, marginTop: 3, lineHeight: 18 }}>
+              <ThemedText bold style={{ fontSize: 15.5, color: colors.cardForeground }}>Allow top-ups from your device wallet</ThemedText>
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 3, lineHeight: 18 }}>
                 When this eSIM runs low, it can draw funds from your device wallet without asking again.
               </ThemedText>
             </View>
             {isTopupLoading ? (
-              <ActivityIndicator size="small" color={colors.foreground} style={{ marginTop: 2 }} />
+              <ActivityIndicator size="small" color={colors.cardForeground} style={{ marginTop: 2 }} />
             ) : (
               <Pressable
                 onPress={handleToggleTopup}
@@ -140,7 +140,7 @@ export default function EsimWalletScreen() {
           )}
         </ThemedView>
 
-        <ThemedView darkColor={colors.surface} lightColor={colors.surface} style={{ borderRadius: 21, paddingHorizontal: 16, marginTop: 14 }}>
+        <ThemedView darkColor={colors.card} lightColor={colors.card} style={{ borderRadius: 21, paddingHorizontal: 16, marginTop: 14 }}>
           {meta.map(([k, v], i) => (
             <View
               key={k}
@@ -149,8 +149,8 @@ export default function EsimWalletScreen() {
                 borderBottomWidth: i < meta.length - 1 ? 1 : 0, borderBottomColor: colors.border,
               }}
             >
-              <ThemedText style={{ color: colors.mutedForeground, fontSize: 14 }}>{k}</ThemedText>
-              <ThemedText bold style={{ fontSize: 14 }}>{v}</ThemedText>
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 14 }}>{k}</ThemedText>
+              <ThemedText bold style={{ fontSize: 14, color: colors.cardForeground }}>{v}</ThemedText>
             </View>
           ))}
         </ThemedView>

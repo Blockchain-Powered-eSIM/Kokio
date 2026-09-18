@@ -38,6 +38,7 @@ import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateOrder, StripeCancelledError, StripeSheetError } from "@/hooks/useCreateOrder";
+import { useDevEsimWalletBypass } from "@/hooks/useDevEsimWalletBypass";
 import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
@@ -220,6 +221,7 @@ const Checkout = () => {
   );
 
   const { showMessage }       = useToast();
+  const { deployTestEsimWallet } = useDevEsimWalletBypass();
   const orderCorrelationRef   = useRef<string | null>(null);
   const handlePollUpdate      = useCallback(
     (update: import("@/utils/bff/order").PollUpdate) => {
@@ -383,7 +385,37 @@ const Checkout = () => {
     doPoll();
   }, [handleOrderResult, handlePollUpdate]);
 
+  // __DEV__ only (see checkout.helpers.tsx's isDisabled and radioLabels.tsx's
+  // ESimWallet label) - skips Stripe/MoonPay/BFF order creation entirely and
+  // instead deploys a real on-chain eSIM wallet via kokio.sdk, so the top-up
+  // toggle (app/(tabs)/(wallet)/esim-wallet.tsx) is testable without a live
+  // payment or a real eSIM purchase. See hooks/useDevEsimWalletBypass.ts.
+  const handleDevWalletBypassCheckout = useCallback(async () => {
+    setIsCheckoutLoading(true);
+    setLoadingMessage('Deploying test eSIM wallet on-chain...');
+    try {
+      const { esimId } = await deployTestEsimWallet(eSimItem);
+      setIsCheckoutLoading(false);
+      setLoadingMessage('');
+      showMessage('Test eSIM wallet deployed — the top-up toggle is now testable.', 'info');
+      router.dismissAll();
+      router.navigate({
+        pathname: '/(tabs)/(wallet)/esim-wallet' as any,
+        params: { esimId, name: eSimItem?.serviceRegionName ?? undefined },
+      });
+    } catch (err) {
+      logger.error('DEV_ESIM_WALLET_BYPASS_FAILED', { err });
+      setIsCheckoutLoading(false);
+      setLoadingMessage('');
+      showMessage(err instanceof Error ? err.message : 'Could not deploy the test eSIM wallet.', 'info');
+    }
+  }, [deployTestEsimWallet, eSimItem, showMessage]);
+
   const handleCheckout = useCallback(async () => {
+    if (__DEV__ && selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET) {
+      return handleDevWalletBypassCheckout();
+    }
+
     const isCryptoPayment = !(
       selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD ||
       selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
@@ -454,6 +486,7 @@ const Checkout = () => {
   }, [
     selectedPaymentMethod, eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId,
     createOrderMutation, handleOrderResult, handleBrowserPay, handleRemoveDiscount, showMessage,
+    handleDevWalletBypassCheckout,
   ]);
 
   const handleInstallESIM = useCallback(() => {
@@ -483,7 +516,10 @@ const Checkout = () => {
 
   const handlePaymentMethodChange = useCallback(
     (value: string) => {
-      if (value === RADIO_KEYS.E_SIM_WALLET) return;
+      // Outside __DEV__ this stays a no-op; selecting it in __DEV__ requires
+      // a device wallet the same as any other wallet-backed method, since
+      // handleDevWalletBypassCheckout deploys the eSIM wallet onto it.
+      if (value === RADIO_KEYS.E_SIM_WALLET && !__DEV__) return;
       if (!kokio.userWallet) {
         setPendingPaymentMethod(value);
         setShowWalletSetupModal(true);
