@@ -26,6 +26,8 @@ import { ContractRevertError } from 'kokio-sdk';
 import { useKokio } from '@/hooks/useKokio';
 import { addDevLocalEsim, DEV_LOCAL_ESIMS_KEY } from '@/hooks/useDevLocalEsims';
 import { DEVICE_ESIMS_KEY } from '@/hooks/useDeviceEsims';
+import { submitESIMWalletProof } from '@/utils/bff/walletRegistration';
+import { logger } from '@/utils/logger';
 import type { Esim } from '@/components/ESIMItem';
 
 export class DevWalletNotReadyError extends Error {
@@ -75,6 +77,11 @@ export function useDevEsimWalletBypass() {
       throw new Error('eSIM wallet deployment reverted on-chain');
     }
 
+    // Binds kokio.sdk.eSIMWallet to what was just deployed (kokio-sdk's
+    // canonical flow does this immediately after deployAndBindESIMWallet) -
+    // harmless if nothing reads it yet, needed for any future call through it.
+    sdk.setESIMWalletAddress(esimWalletAddress);
+
     await addDevLocalEsim({
       esimId: esimWalletAddress,
       deviceId: deviceWalletAddress,
@@ -84,6 +91,14 @@ export function useDevEsimWalletBypass() {
     queryClient.invalidateQueries({ queryKey: [DEV_LOCAL_ESIMS_KEY] });
     // So a real eSIM bought right after this doesn't look stale/merged oddly.
     queryClient.invalidateQueries({ queryKey: [DEVICE_ESIMS_KEY] });
+
+    // Prove this eSIM wallet to the backend (spec step 4 -> 5). No endpoint
+    // exists for this yet — see submitESIMWalletProof's doc. Fire-and-forget:
+    // this dev tool's local record is already saved, so this must never
+    // fail/block it, now or once it becomes a real network call.
+    submitESIMWalletProof({ eSIMWalletAddress: esimWalletAddress, eSIMSalt: salt.toString(), userOpHash }).catch((err) => {
+      logger.error('ESIM_WALLET_PROOF_FAILED', { err });
+    });
 
     return { esimId: esimWalletAddress };
   }, [kokio, queryClient]);

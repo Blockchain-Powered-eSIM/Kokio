@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { type Hex } from "viem";
 import { useKokio } from "@/hooks/useKokio";
+import { reportDeviceWalletDeployed } from "@/utils/bff/walletRegistration";
 import { logger } from "@/utils/logger";
 
 // Thrown when required signup data (deviceWalletAddress/userPasskey/rawSalt/sdk)
@@ -63,6 +64,12 @@ export function useWalletDeployment() {
 
     const deviceWalletClient = await sdk.smartAccount.getSmartWalletClient(deviceWallet);
 
+    // kokio-sdk's canonical user flow throws here on a mismatch ("device
+    // wallet address mismatch") before sending anything. This app logs only,
+    // by deliberate prior decision (see [[project_wallet_recovery_gap]]) —
+    // flagged again 2026-09-19, not changed without explicit sign-off, since
+    // enforcing it now could newly hard-fail signup for any real account
+    // already carrying an undetected mismatch.
     const sdkAddress = deviceWalletClient.account?.address;
     logger.debug('GET_SMART_WALLET_RESULT', {
       sdkAddress,
@@ -72,11 +79,20 @@ export function useWalletDeployment() {
 
     // A no-op userOp that includes the initCode on first send, deploying the contract.
     // This triggers Passkey.get() inside the SDK's _stamp() — the biometric prompt.
-    await deviceWalletClient.sendUserOperation({
+    const userOpHash = await deviceWalletClient.sendUserOperation({
       calls: [{ to: deviceWalletClient.account.address, data: '0x', value: 0n }],
     });
 
     await setupKokioUserWallet(deviceUID, deviceWallet);
+
+    // Tell the backend this device wallet deployed (kokio-sdk's canonical user
+    // flow, step 2 -> 3) so it can register it in the on-chain Registry. No
+    // endpoint exists for this yet — see reportDeviceWalletDeployed's doc.
+    // Fire-and-forget: deployment itself already succeeded, so this must
+    // never fail/block it, now or once it becomes a real network call.
+    reportDeviceWalletDeployed(userOpHash).catch((err) => {
+      logger.error('DEVICE_WALLET_DEPLOYED_REPORT_FAILED', { err });
+    });
 
     return { walletAddress: deviceWalletAddress };
   }, [kokio, setupKokioUserWallet]);
