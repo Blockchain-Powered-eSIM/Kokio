@@ -4,11 +4,15 @@
  * creation at all. Lets the real top-up toggle (hooks/useEsimTopupAccess.ts)
  * be exercised without needing a live payment or a real eSIM purchase.
  *
- * Wires two SDK calls that exist but had no caller anywhere in the app before
- * this (see KokioSDKv3.md section 4.2/7): `eSIMWalletFactory.deployESIMWalletWithUserOp`
- * and `deviceWallet.addESIMWallet`. Both send real, signed user operations
- * (the passkey/biometric prompt fires) and are only trusted once their
- * receipts confirm `success`.
+ * Wires `deviceWallet.deployAndBindESIMWallet` (kokio-sdk >=3.1.0), which had
+ * no caller anywhere in the app before this (see KokioSDKv3.md section 4.2/7).
+ * Deploy + bind is a single real, signed user operation (the passkey/biometric
+ * prompt fires) and is only trusted once its receipt confirms `success`.
+ *
+ * Note: this still requires the device wallet to already be registry-valid
+ * (`registry.isDeviceWalletValid`) - the SDK's own factory refuses it
+ * otherwise. That precondition is unrelated to this bypass; see the
+ * conversation history around 2026-09-18 for the ongoing investigation.
  *
  * __DEV__-gated at the call site (screens/checkout/Checkout.tsx) — this hook
  * itself does not check __DEV__, since it does nothing destructive: it only
@@ -17,8 +21,8 @@
 
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { parseEventLogs, type Address } from 'viem';
-import { ESIMWalletFactory } from 'kokio-sdk/abis';
+import type { Address, Hex } from 'viem';
+import { ContractRevertError } from 'kokio-sdk';
 import { useKokio } from '@/hooks/useKokio';
 import { addDevLocalEsim, DEV_LOCAL_ESIMS_KEY } from '@/hooks/useDevLocalEsims';
 import { DEVICE_ESIMS_KEY } from '@/hooks/useDeviceEsims';
@@ -39,35 +43,36 @@ export function useDevEsimWalletBypass() {
     const sdk = kokio.sdk;
     const deviceWalletAddress = kokio.deviceWalletAddress as Address | undefined;
 
-    if (!sdk?.eSIMWalletFactory || !sdk?.deviceWallet || !sdk?.smartAccountClient || !deviceWalletAddress) {
+    if (!sdk?.deviceWallet || !sdk?.smartAccountClient || !deviceWalletAddress) {
       throw new DevWalletNotReadyError();
     }
-    const { eSIMWalletFactory, deviceWallet, smartAccountClient } = sdk;
+    const { deviceWallet, smartAccountClient } = sdk;
 
     // Any distinct value works as the CREATE2 salt; timestamp + random keeps
     // repeated dev runs from colliding on the same counterfactual address.
     const salt = (BigInt(Date.now()) << 32n) | BigInt(Math.floor(Math.random() * 2 ** 32));
 
-    const deployHash = await eSIMWalletFactory.deployESIMWalletWithUserOp(deviceWalletAddress, salt);
-    const deployReceipt = await smartAccountClient.waitForUserOperationReceipt({ hash: deployHash });
-    if (!deployReceipt.success) {
+    let userOpHash: Hex;
+    let esimWalletAddress: Address;
+    try {
+      ({ userOpHash, eSIMWalletAddress: esimWalletAddress } = await deviceWallet.deployAndBindESIMWallet(salt));
+    } catch (err) {
+      // The SDK's bundler client (>=3.1.0) already decodes a revert into
+      // ContractRevertError before this promise rejects - surface its name
+      // instead of a generic message.
+      if (err instanceof ContractRevertError) {
+        throw new Error(
+          err.decoded?.errorName
+            ? `Deployment reverted on-chain: ${err.decoded.errorName}`
+            : 'Deployment reverted on-chain',
+        );
+      }
+      throw err;
+    }
+
+    const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash: userOpHash });
+    if (!receipt.success) {
       throw new Error('eSIM wallet deployment reverted on-chain');
-    }
-
-    const [deployedEvent] = parseEventLogs({
-      abi: ESIMWalletFactory,
-      eventName: 'ESIMWalletDeployed',
-      logs: deployReceipt.logs,
-    });
-    const esimWalletAddress = deployedEvent?.args?._eSIMWalletAddress as Address | undefined;
-    if (!esimWalletAddress) {
-      throw new Error("Could not read the deployed eSIM wallet's address from the transaction receipt");
-    }
-
-    const registerHash = await deviceWallet.addESIMWallet(esimWalletAddress);
-    const registerReceipt = await smartAccountClient.waitForUserOperationReceipt({ hash: registerHash });
-    if (!registerReceipt.success) {
-      throw new Error('Registering the eSIM wallet to the device wallet reverted on-chain');
     }
 
     await addDevLocalEsim({
