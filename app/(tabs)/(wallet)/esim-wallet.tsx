@@ -23,10 +23,10 @@ export default function EsimWalletScreen() {
 
   const doc = esims.find((e) => e.esimId === esimId);
   // esimId is stable across the lifetime of this screen (route param), so calling
-  // these hooks unconditionally with a possibly-undefined doc.esimId keeps hook
-  // order stable across the `!doc` early return below.
-  const { balance, isLoading: isBalanceLoading } = useWalletBalance(doc?.esimId);
-  const { topupAllowed, isLoading: isTopupLoading } = useEsimTopupAccess(doc?.esimId);
+  // these hooks unconditionally with a possibly-null doc.esimId keeps hook
+  // order stable across the early returns below.
+  const { balance, isLoading: isBalanceLoading } = useWalletBalance(doc?.esimId ?? undefined);
+  const { topupAllowed, isLoading: isTopupLoading } = useEsimTopupAccess(doc?.esimId ?? undefined);
   const toggleTopup = useToggleEsimTopup();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -34,6 +34,14 @@ export default function EsimWalletScreen() {
     return (
       <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
         <ThemedText>This eSIM wallet couldn&apos;t be found.</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (!doc.esimId) {
+    return (
+      <ThemedView style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <ThemedText>This eSIM doesn&apos;t have a wallet yet.</ThemedText>
       </ThemedView>
     );
   }
@@ -46,11 +54,15 @@ export default function EsimWalletScreen() {
   // next value, so the pill is disabled until a real boolean is read.
   const topupDisabled = isTopupLoading || isTopupMutating || topupAllowed === undefined;
 
+  // Local alias so the narrowed (non-null) type survives into the closure
+  // below — TypeScript doesn't retain property narrowing across callbacks.
+  const walletAddress = doc.esimId;
+
   const handleToggleTopup = () => {
     if (topupDisabled) return;
     setErrorMessage(null);
     toggleTopup.mutate(
-      { esimWalletAddress: doc.esimId, nextValue: !topupAllowed },
+      { esimWalletAddress: walletAddress, nextValue: !topupAllowed },
       {
         onError: (err) => {
           setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");

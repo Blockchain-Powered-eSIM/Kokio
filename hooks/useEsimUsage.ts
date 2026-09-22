@@ -19,18 +19,18 @@ export interface UseEsimUsageResult {
  *
  * `usageUnavailable` is set when the response arrived but `usageError` is non-null.
  * This is distinct from a network/auth error (`isError`), which indicates the BFF call itself failed.
- * The hook is disabled until `esimId` is provided, the app is foregrounded,
+ * The hook is disabled until `eSimRef` is provided, the app is foregrounded,
  * and the user has an authenticated session.
  */
-export function useEsimUsage(esimId: string | undefined): UseEsimUsageResult {
+export function useEsimUsage(eSimRef: string | undefined): UseEsimUsageResult {
   const isActive             = useIsAppActive();
   const { state: authState } = useAuthRelay();
 
   const query = useQuery<ESimUsage>({
-    queryKey:        ['esim-usage', esimId],
-    queryFn:         () => getEsimUsage(esimId!),
+    queryKey:        ['esim-usage', eSimRef],
+    queryFn:         () => getEsimUsage(eSimRef!),
     staleTime:       STALE_TIME,
-    enabled:         !!esimId && isActive && authState.authenticated,
+    enabled:         !!eSimRef && isActive && authState.authenticated,
     refetchOnMount:  true,
     refetchInterval: false,
     retry:           1,

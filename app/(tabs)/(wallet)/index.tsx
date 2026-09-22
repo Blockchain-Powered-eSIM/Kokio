@@ -44,7 +44,7 @@ const WALLET_BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; de
 ];
 
 interface EsimWalletRowProps {
-  doc: ESimDocument;
+  doc: ESimDocument & { esimId: string };
   onPress: () => void;
 }
 
@@ -139,6 +139,12 @@ const WalletPage = () => {
   }, []);
 
   const acct: 'fiat' | 'device' | 'esim' = !kokio.userWallet ? 'fiat' : esims.length > 0 ? 'esim' : 'device';
+
+  // Only eSIMs that already have a deployed on-chain wallet belong in the
+  // "eSIM wallets" list below — a lazy eSIM has no wallet to show yet.
+  const deployedEsims = esims.filter(
+    (doc): doc is ESimDocument & { esimId: string } => !!doc.esimId,
+  );
 
   if (acct === 'fiat') {
     return (
@@ -279,17 +285,17 @@ const WalletPage = () => {
             <ThemedView lightColor={colors.card} darkColor={colors.card} className='py-3 px-4 rounded-3xl'>
               <View className='flex-row justify-between items-center'>
                 <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>eSIM wallets</ThemedText>
-                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} style={{ fontSize: 12, color: colors.cardForeground }}>{esims.length} active</ThemedText>
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} style={{ fontSize: 12, color: colors.cardForeground }}>{deployedEsims.length} active</ThemedText>
               </View>
               <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 4, marginBottom: 12 }}>
                 Each eSIM has its own wallet, owned by this device wallet.
               </ThemedText>
               <View style={{ gap: 10 }}>
-                {esims.map((doc) => {
+                {deployedEsims.map((doc) => {
                   const display = esimDocToDisplayItem(doc);
                   return (
                     <EsimWalletRow
-                      key={doc.esimId}
+                      key={doc.eSimRef}
                       doc={doc}
                       onPress={() => router.push({
                         pathname: '/(tabs)/(wallet)/esim-wallet' as any,

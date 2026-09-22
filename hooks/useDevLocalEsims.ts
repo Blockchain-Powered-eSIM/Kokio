@@ -43,6 +43,7 @@ function toEsimDocument({ esimId, deviceId, createdAt, plan }: DevLocalEsimInput
   };
 
   return {
+    eSimRef: `dev-${esimId}`,
     iccid: `DEV${esimId.slice(2, 18).toUpperCase()}`,
     esimId,
     deviceId,

@@ -261,33 +261,33 @@ const Checkout = () => {
     { enabled: hasPriorEsim && !orderCompleted },
   );
   const isTopupCompatible = compatibleEsims.length > 0;
-  const [applyAsTopup, setApplyAsTopup]                   = useState(false);
-  const [compatibleTopUpEsimId, setCompatibleTopUpEsimId] = useState<string | undefined>();
+  const [applyAsTopup, setApplyAsTopup]                     = useState(false);
+  const [compatibleTopUpEsimRef, setCompatibleTopUpEsimRef] = useState<string | undefined>();
   const bg = useThemeColor({}, "background");
 
   // useEffect(() => {
-  //   if (compatibleEsims.length > 0 && !compatibleTopUpEsimId) {
-  //     setCompatibleTopUpEsimId(compatibleEsims[0].esimId);
+  //   if (compatibleEsims.length > 0 && !compatibleTopUpEsimRef) {
+  //     setCompatibleTopUpEsimRef(compatibleEsims[0].eSimRef);
   //   }
-  // }, [compatibleEsims, compatibleTopUpEsimId]);
+  // }, [compatibleEsims, compatibleTopUpEsimRef]);
 
   // Build a human-readable label for a compatible topup eSIM.
   // Source of truth is the live ESimDocument from useEsims() (server-truth),
   // using the latest PlanHistoryEntry for region/validity/data fields.
-  // Falls back to ICCID last-4, then esimId abbreviation.
-  const buildTopupEsimLabel = useCallback((esimId: string, iccid?: string): string => {
-    const doc  = esims.find((e) => e.esimId === esimId);
+  // Falls back to ICCID last-4, then eSimRef abbreviation.
+  const buildTopupEsimLabel = useCallback((eSimRef: string, iccid?: string): string => {
+    const doc  = esims.find((e) => e.eSimRef === eSimRef);
     const plan = doc ? esimDocToDisplayItem(doc) : null;
     const label = formatPlanLabel(plan);
     if (label) return label;
     if (iccid) return `ICCID ...${iccid.slice(-4)}`;
-    return `${esimId.slice(0, 6)}...${esimId.slice(-4)}`;
+    return `${eSimRef.slice(0, 6)}...${eSimRef.slice(-4)}`;
   }, [esims]);
 
   // Append ICCID last-4 only when two labels collide.
   const topupEsimOptions = useMemo(() => {
     const withLabel = compatibleEsims.map(r => ({
-      ...r, label: buildTopupEsimLabel(r.esimId, r.iccid),
+      ...r, label: buildTopupEsimLabel(r.eSimRef, r.iccid),
     }));
     const counts = withLabel.reduce<Record<string, number>>((acc, o) => {
       acc[o.label] = (acc[o.label] ?? 0) + 1; return acc;
@@ -312,10 +312,10 @@ const Checkout = () => {
       queryClient.invalidateQueries({ queryKey: [DEVICE_ORDERS_KEY] });
       setOrderResponse(order);
       setTopupSuccessInfo(
-        applyAsTopup && compatibleTopUpEsimId
+        applyAsTopup && compatibleTopUpEsimRef
           ? {
               fromLabel: formatPlanLabel(eSimItem) ?? 'your new plan',
-              toLabel:   buildTopupEsimLabel(compatibleTopUpEsimId),
+              toLabel:   buildTopupEsimLabel(compatibleTopUpEsimRef),
             }
           : null,
       );
@@ -336,7 +336,7 @@ const Checkout = () => {
       order.orderStatus === 'ABANDONED'       ? 'Order expired. Please try again.'   :
       'Order could not be completed. Please try again.';
     showMessage(msg, 'info');
-  }, [queryClient, showMessage, applyAsTopup, compatibleTopUpEsimId, eSimItem, buildTopupEsimLabel]);
+  }, [queryClient, showMessage, applyAsTopup, compatibleTopUpEsimRef, eSimItem, buildTopupEsimLabel]);
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
@@ -421,7 +421,7 @@ const Checkout = () => {
       selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
     );
     const request: CreateOrderRequest = {
-      ...getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId }),
+      ...getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef }),
       isCryptoPayment,
     };
 
@@ -484,7 +484,7 @@ const Checkout = () => {
       setLoadingMessage('');
     }
   }, [
-    selectedPaymentMethod, eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimId,
+    selectedPaymentMethod, eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef,
     createOrderMutation, handleOrderResult, handleBrowserPay, handleRemoveDiscount, showMessage,
     handleDevWalletBypassCheckout,
   ]);
@@ -696,13 +696,13 @@ const Checkout = () => {
               Select an eSIM to top up, or leave unselected to buy a new one
             </Text>
             {topupEsimOptions.map((r) => {
-              const isSelected = applyAsTopup && compatibleTopUpEsimId === r.esimId;
+              const isSelected = applyAsTopup && compatibleTopUpEsimRef === r.eSimRef;
               return (
                 <TouchableOpacity
-                  key={r.esimId}
+                  key={r.eSimRef}
                   onPress={() => {
-                    if (isSelected) { setApplyAsTopup(false); setCompatibleTopUpEsimId(undefined); }
-                    else { setApplyAsTopup(true); setCompatibleTopUpEsimId(r.esimId); }
+                    if (isSelected) { setApplyAsTopup(false); setCompatibleTopUpEsimRef(undefined); }
+                    else { setApplyAsTopup(true); setCompatibleTopUpEsimRef(r.eSimRef); }
                   }}
                   style={[styles.topupOptionRow, isSelected && styles.topupOptionRowSelected]}
                   accessibilityRole="radio"

@@ -44,7 +44,7 @@ const ESIM_STATUS_LABEL: Record<ActivationStatus, string> = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// An OrderListItem enriched with its matched ESimDocument, joined by esimId.
+// An OrderListItem enriched with its matched ESimDocument, joined by eSimRef.
 type EnrichedOrder = OrderListItem & {
   esim?: ESimDocument;
 };
@@ -431,7 +431,7 @@ const OrderCard = ({
   // Remaining data is only meaningful once installed, and fetched only for the
   // expanded card, not for every card in the list.
   const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
-    useEsimUsage(isExpanded && isInstalled ? order.esimId ?? undefined : undefined);
+    useEsimUsage(isExpanded && isInstalled ? order.eSimRef : undefined);
 
   const remainingDataText = !isInstalled
     ? "—"
@@ -638,12 +638,12 @@ export default function OrdersScreen() {
     }
   }, [refetchEsims, refetchOrders]);
 
-  // Join orders with their matching ESimDocument by esimId.
+  // Join orders with their matching ESimDocument by eSimRef.
   const enrichedOrders = useMemo<EnrichedOrder[]>(() => {
-    const esimMap = new Map<string, ESimDocument>(esims.map((e) => [e.esimId, e]));
+    const esimMap = new Map<string, ESimDocument>(esims.map((e) => [e.eSimRef, e]));
     return orders.map((order) => ({
       ...order,
-      esim: order.esimId ? esimMap.get(order.esimId) : undefined,
+      esim: order.eSimRef ? esimMap.get(order.eSimRef) : undefined,
     }));
   }, [orders, esims]);
 
@@ -652,7 +652,7 @@ export default function OrdersScreen() {
   // Default: the eSIM targeted via expandOrderId (e.g. tapped from Home) if
   // present, otherwise the top-most order — open until the user selects a
   // different one. Re-derived on every arrival at this tab (and as data
-  // loads), matching on idempotencyKey, orderId, or esimId.
+  // loads), matching on idempotencyKey, orderId, or eSimRef.
   useFocusEffect(
     useCallback(() => {
       if (enrichedOrders.length === 0) return;
@@ -661,7 +661,7 @@ export default function OrdersScreen() {
             (o) =>
               o.idempotencyKey === expandOrderId ||
               o.orderId        === expandOrderId ||
-              o.esimId         === expandOrderId,
+              o.eSimRef        === expandOrderId,
           )
         : undefined;
       setExpandedId(getOrderKey(matched ?? enrichedOrders[0]));

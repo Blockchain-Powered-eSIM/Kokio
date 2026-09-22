@@ -154,7 +154,7 @@ const HomeEsimCard = ({
 
   // Remaining data is only needed once the eSIM is installed.
   const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
-    useEsimUsage(isInstalled ? doc.esimId : undefined);
+    useEsimUsage(isInstalled ? doc.eSimRef : undefined);
 
   const remainingDataText = usageLoading
     ? "Loading…"
@@ -266,12 +266,12 @@ const ActiveESIMsScroll = () => {
   );
 
   // Navigate to the Orders tab, expanding the card for this eSIM.
-  // Uses esimId as the expand key — orders.tsx matches on esimId.
+  // Uses eSimRef as the expand key — orders.tsx matches on eSimRef.
   const handleESIMPress = (doc: ESimDocument) => {
     return () => {
       router.push({
         pathname: "/(tabs)/orders",
-        params: { expandOrderId: doc.esimId },
+        params: { expandOrderId: doc.eSimRef },
       });
     };
   };
@@ -305,7 +305,7 @@ const ActiveESIMsScroll = () => {
             <HomeEsimCard doc={item} onPress={handleESIMPress(item)} />
           </View>
         )}
-        keyExtractor={(item) => item.esimId}
+        keyExtractor={(item) => item.eSimRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}

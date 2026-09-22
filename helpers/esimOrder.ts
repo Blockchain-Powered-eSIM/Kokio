@@ -5,7 +5,7 @@ type EsimOrderPayloadParams = {
   eSimItem: Esim;
   discountCode: string;
   applyAsTopup: boolean;
-  compatibleTopUpEsimId: string | undefined;
+  compatibleTopUpEsimRef: string | undefined;
 };
 
 type OrderPayload = CreateOrderRequest;
@@ -14,13 +14,13 @@ export const getEsimOrderPayload = ({
   eSimItem,
   discountCode,
   applyAsTopup,
-  compatibleTopUpEsimId,
+  compatibleTopUpEsimRef,
 }: EsimOrderPayloadParams): OrderPayload => ({
   catalogueId: eSimItem.catalogueId,
   isNewESim: true,
   coupon: discountCode || undefined,
   isCryptoPayment: true,
-  ...(applyAsTopup && compatibleTopUpEsimId
-    ? { isNewESim: false, esimId: compatibleTopUpEsimId }
+  ...(applyAsTopup && compatibleTopUpEsimRef
+    ? { isNewESim: false, eSimRef: compatibleTopUpEsimRef }
     : {}),
 });
