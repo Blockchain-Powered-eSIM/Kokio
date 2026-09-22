@@ -22,6 +22,7 @@ import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
+import { WALLET_DEPLOYMENT_STEP_LABELS } from "@/utils/bff/wallet";
 import { logger } from '@/utils/logger';
 import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
 
@@ -228,7 +229,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     undefined
   );
   const modalRef = React.useRef<Modal>(null);
-  const { deployDeviceWallet } = useWalletDeployment();
+  const { deployDeviceWallet, currentStep } = useWalletDeployment();
   const { showMessage } = useToast();
   const textColor = useThemeColor({}, "text");
   const foregroundColor = useThemeColor({}, "foreground");
@@ -328,13 +329,13 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       <View style={styles.loadingContainer}>
         <ActivityIndicator size={90} color={colors.primary} />
         <Text style={[styles.loadingText, { color: foregroundColor }]}>
-          Please wait while your wallet is being deployed...
+          {currentStep ? WALLET_DEPLOYMENT_STEP_LABELS[currentStep] : 'Please wait while your wallet is being deployed...'}
         </Text>
       </View>
     ),
     // styles have their own memo watching for changes based on theme
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [currentStep, foregroundColor]
   );
 
   const retryContent = useMemo(

@@ -15,7 +15,7 @@ import {
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/utils/logger";
-import { checkWalletDeployed } from "@/utils/wallet/checkWalletDeployed";
+import { getWalletState } from "@/utils/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { isAccountDeletedError } from "@/utils/bff/errors";
 
@@ -290,7 +290,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         payload: { credentialId, x: account.pubKeyX as Hex, y: account.pubKeyY as Hex },
       });
       // userWallet is intentionally NOT set here.
-      // The initSdkAndDeriveWallet useEffect calls checkWalletDeployed once the SDK is ready.
+      // The initSdkAndDeriveWallet useEffect reads GET /account/wallet's walletState once the SDK is ready.
     } catch (err) {
       if ( isAccountDeletedError(err) ) {
         // Terminal
@@ -407,14 +407,20 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
    *                setupKokio dispatches SET_KOKIO and returns; 
    *                the effect re-fires with kokio.sdk populated.
    *
-   *   Step 2   —   When sdk is ready and userWallet is absent, 
-   *                call checkWalletDeployed (Registry.isDeviceWalletValid) to distinguish:
-   *                - New registration  : wallet not yet deployed on-chain ->
-   *                  Registry returns false -> skip auto-derivation ->
-   *                  WalletSetupModal drives deployment via sendUserOperation.
-   *                - Recovery after reinstall  : wallet deployed on-chain ->
-   *                  Registry returns true -> auto-derive SmartContractAccount
-   *                  via getSmartWallet and persist via setupKokioUserWallet.
+   *   Step 2   —   When sdk is ready and userWallet is absent,
+   *                read GET /account/wallet's walletState to distinguish:
+   *                - New registration, or a deployment still in progress :
+   *                  walletState is NOT_DEPLOYED or DEPLOYING -> skip
+   *                  auto-derivation -> WalletSetupModal/create-wallet.tsx
+   *                  drive deployment via useWalletDeployment.
+   *                - Recovery after reinstall  : walletState is DEPLOYED ->
+   *                  auto-derive SmartContractAccount via getSmartWallet and
+   *                  persist via setupKokioUserWallet.
+   *
+   *                GET /account/wallet needs only DPoP auth, no step-up, so
+   *                this never prompts for biometrics on its own — unlike
+   *                GET /account, which does require step-up and must not be
+   *                used here.
    */
 
   useEffect(() => {
@@ -433,16 +439,11 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         !kokio.userWallet
       ) {
         try {
-          const KokioConstants = await kokio.sdk.constants;
-          const deployed = await checkWalletDeployed(
-            kokio.deviceWalletAddress,
-            kokio.sdk.viemWalletClient,
-            KokioConstants.factoryAddresses.REGISTRY as Address,
-          );
+          const { walletState } = await getWalletState();
 
-          if (!deployed) {
-            // New registration
-            logger.debug('WALLET_AUTO_DERIVE_SKIPPED', { reason: 'not_deployed' });
+          if (walletState !== 'DEPLOYED') {
+            // New registration, or a deployment already in progress.
+            logger.debug('WALLET_AUTO_DERIVE_SKIPPED', { reason: 'not_deployed', walletState });
             return;
           }
           // Recovery
