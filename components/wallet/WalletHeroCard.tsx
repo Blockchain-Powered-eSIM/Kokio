@@ -59,11 +59,23 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
   headerWithLogo: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     alignItems: "center",
     marginTop: 4,
     marginBottom: 16,
     backgroundColor: "transparent",
+  },
+  testnetBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.itemBackground,
+  },
+  testnetBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    color: colors.foreground,
   },
   title: {
     paddingLeft: 16,
@@ -131,6 +143,9 @@ export function WalletHeroCard({ address, balance, isBalanceLoading }: WalletHer
             resizeMode="cover"
           />
           <ThemedView style={styles.headerWithLogo}>
+            <View style={styles.testnetBadge}>
+              <ThemedText style={styles.testnetBadgeText}>TESTNET</ThemedText>
+            </View>
             <Image
               source={require("@/assets/images/logo.png")}
               style={styles.logo}

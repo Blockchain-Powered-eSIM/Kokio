@@ -146,3 +146,15 @@ export const OP_SEPOLIA_TESTNET =
   "https://sepolia-optimism.etherscan.io/address";
 
 export const BASE_SEPOLIA_TESTNET = "https://sepolia.basescan.org/address";
+
+// ─── Testnet disclosure & mainnet cutover (2026-09-22) ─────────────────────
+// Kokio currently runs on Base Sepolia. Wallets/passkeys created before the
+// Base mainnet cutover won't carry over — see utils/auth/mainnetCutoverReset.ts
+// and KokioSDKv3.md's "Testnet disclosure & mainnet cutover" section.
+export const TESTNET_DISCLOSURE_MESSAGE =
+  "Kokio is currently running on a test network. Your wallet and passkey will be reset when we launch on mainnet. The eSIMs installed will keep on working till the data is exhausted.";
+
+// Inert until the mainnet cutover actually ships — flip to true then. Bump
+// MAINNET_CUTOVER_VERSION in mainnetCutoverReset.ts instead if a second
+// cutover is ever needed after this one.
+export const MAINNET_CUTOVER_ENABLED = false;

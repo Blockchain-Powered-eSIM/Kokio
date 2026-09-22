@@ -22,6 +22,7 @@ import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { runSdkV3MigrationIfNeeded } from "@/utils/auth/sdkV3Reset";
+import { runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import {
   getSkipNextOfflineRedirect,
@@ -58,8 +59,12 @@ export default function RootLayout() {
 
   // Runs once before anything else touches SecureStore: on a device upgrading from
   // a pre-kokio-sdk-v3 build, wipes the now-meaningless local identity/wallet state.
+  // runMainnetCutoverIfNeeded is the same idiom for the future testnet -> mainnet
+  // cutover — currently a no-op until MAINNET_CUTOVER_ENABLED flips true.
   useEffect(() => {
-    runSdkV3MigrationIfNeeded().finally(() => setResetReady(true));
+    runSdkV3MigrationIfNeeded()
+      .then(() => runMainnetCutoverIfNeeded())
+      .finally(() => setResetReady(true));
   }, []);
 
   // Rehydrate persisted tokens from SecureStore and wire the unauthenticated

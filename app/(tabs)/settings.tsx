@@ -24,6 +24,7 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
+import { TESTNET_DISCLOSURE_MESSAGE } from '@/constants/general.constants';
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
@@ -141,6 +142,38 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     fontWeight: "500",
     color: colors.text,
   },
+  testnetNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+    borderRadius: 16,
+    marginHorizontal: 4,
+    backgroundColor: colors.itemBackground,
+  },
+  testnetNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.mutedForeground,
+  },
+  aboutTestnetNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.muted,
+    backgroundColor: colors.itemBackground,
+    marginBottom: 16,
+  },
+  aboutTestnetNoticeText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
 });
 
 const MENU_ITEM_ENABLED = {
@@ -221,6 +254,12 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
         style={styles.aboutContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.aboutTestnetNotice}>
+          <Ionicons name="bulb-outline" size={18} color={styles.aboutTestnetNoticeText.color} style={styles.iconLeft} />
+          <ThemedText style={styles.aboutTestnetNoticeText}>
+            {TESTNET_DISCLOSURE_MESSAGE}
+          </ThemedText>
+        </View>
         <ThemedText style={styles.aboutText}>
           You are using official Kokio mobile app.
         </ThemedText>
@@ -423,6 +462,17 @@ export default function MenuScreen() {
                 setShowDeleteAccount(false);
               }}
             />
+            <View style={styles.testnetNotice}>
+              <Ionicons
+                name="bulb-outline"
+                size={20}
+                color={colors.icon}
+                style={styles.iconLeft}
+              />
+              <ThemedText style={styles.testnetNoticeText}>
+                {TESTNET_DISCLOSURE_MESSAGE}
+              </ThemedText>
+            </View>
             { <View style={styles.themeRow}>
               <Ionicons
                 name={isDark ? "moon-outline" : "sunny-outline"}
