@@ -397,7 +397,7 @@ const EsimInstallation = () => {
         {/* Manual Instructions */}
         <View style={styles.instructionsContainer}>
           <Text style={[styles.instructionText, { color: colors.inactive }]}>
-            {"Steps: Go to Settings > Network & internet and select the plus sign (&quot;+&quot;) next to your SIM — if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
+            {"Steps: Go to Settings > Network & internet and select the plus sign (&quot;+&quot;) next to your SIM and if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
           </Text>
         </View>
       </View>
@@ -425,8 +425,8 @@ const EsimInstallation = () => {
   
           <Text style={[styles.instructionText, { color: colors.inactive }]}>
             {isEnabled
-              ? "Tap Install eSIM to begin. Do not close the app — installation may take a few minutes. Select Allow/OK when prompted."
-              : "Select Install eSIM and wait — do not close the app, installation may take a few minutes. Select Allow/OK, when prompted."}
+              ? "Tap Install eSIM to begin. Do not close the app, installation may take a few minutes. Select Allow/OK when prompted."
+              : "Select Install eSIM and wait, do not close the app, installation may take a few minutes. Select Allow/OK, when prompted."}
           </Text>
   
           <TouchableOpacity

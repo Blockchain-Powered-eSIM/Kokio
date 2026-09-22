@@ -386,7 +386,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     // for the backend ask) — don't let the user believe it was saved when it
     // wasn't; tell them plainly instead of silently closing as if it succeeded.
     if (!eoaAddress) return;
-    showMessage("Recovery address saving isn't available yet — it wasn't saved. This will be added in a future update.", 'info');
+    showMessage("Recovery address saving isn't available yet. This will be added in a future update.", 'info');
   }, [eoaAddress, showMessage]);
 
   const handleDone = useCallback(() => {

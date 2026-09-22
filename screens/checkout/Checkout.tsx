@@ -397,7 +397,7 @@ const Checkout = () => {
       const { esimId } = await deployTestEsimWallet(eSimItem);
       setIsCheckoutLoading(false);
       setLoadingMessage('');
-      showMessage('Test eSIM wallet deployed — the top-up toggle is now testable.', 'info');
+      showMessage('Test eSIM wallet deployed, the top-up toggle is now testable.', 'info');
       router.dismissAll();
       router.navigate({
         pathname: '/(tabs)/(wallet)/esim-wallet' as any,

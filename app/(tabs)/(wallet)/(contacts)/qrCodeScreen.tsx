@@ -201,7 +201,7 @@ function CameraPermissionPopup({
           <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} style={{ textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
             {permanentlyDenied
               ? 'Camera access was turned off for Kokio. Enable it in Settings to scan a QR code.'
-              : 'To scan a QR, we need your permission to show the camera — we prefer you select "Only This Time" for one-time access.'}
+              : 'To scan a QR, we need your permission to show the camera, WE PREFER you select "Only This Time" for one-time access.'}
           </ThemedText>
           <Pressable
             onPress={permanentlyDenied ? onOpenSettings : onRequest}
