@@ -1,5 +1,6 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getEsimUsage, type ESimUsage } from '@/utils/bff/esim';
+import { getEsimUsage, getAllEsimUsage, type ESimUsage } from '@/utils/bff/esim';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
 
@@ -42,5 +43,40 @@ export function useEsimUsage(eSimRef: string | undefined): UseEsimUsageResult {
     isError:          query.isError,
     usageUnavailable: !!query.data?.usageError,
     refetch:          query.refetch,
+  };
+}
+
+export interface UseAllEsimUsageResult {
+  usageByEsimRef: Record<string, ESimUsage>;
+  isLoading:      boolean;
+  isError:        boolean;
+}
+
+export function useAllEsimUsage(enabled: boolean): UseAllEsimUsageResult {
+  const isActive             = useIsAppActive();
+  const { state: authState } = useAuthRelay();
+
+  const query = useQuery<ESimUsage[]>({
+    queryKey:        ['esim-usage-all'],
+    queryFn:         getAllEsimUsage,
+    staleTime:       STALE_TIME,
+    enabled:         enabled && isActive && authState.authenticated,
+    refetchOnMount:  true,
+    refetchInterval: false,
+    retry:           1,
+  });
+
+  const usageByEsimRef = useMemo(() => {
+    const map: Record<string, ESimUsage> = {};
+    for (const u of query.data ?? []) {
+      map[u.eSimRef] = u;
+    }
+    return map;
+  }, [query.data]);
+
+  return {
+    usageByEsimRef,
+    isLoading: query.isLoading,
+    isError:   query.isError,
   };
 }

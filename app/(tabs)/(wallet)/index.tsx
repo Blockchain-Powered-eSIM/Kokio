@@ -80,7 +80,7 @@ function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
     >
       <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
       <View style={{ flex: 1 }}>
-        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1}>{display.serviceRegionName ?? 'eSIM'}</ThemedText>
+        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1}>{doc.label ?? display.serviceRegionName ?? 'eSIM'}</ThemedText>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
           {isBalanceLoading ? (
             <ActivityIndicator size="small" color={colors.cardForeground} />

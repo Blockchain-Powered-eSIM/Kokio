@@ -9,10 +9,10 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { useEsims } from "@/hooks/useDeviceEsims";
-import { useEsimUsage } from "@/hooks/useEsimUsage";
+import { useAllEsimUsage } from "@/hooks/useEsimUsage";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import ESIMItem from "@/components/ESIMItem";
-import type { ESimDocument } from "@/utils/bff/esim";
+import type { ESimDocument, ESimUsage } from "@/utils/bff/esim";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { logger } from "@/utils/logger";
 
@@ -140,9 +140,15 @@ const createStyles = (colors: Palette) =>
 const HomeEsimCard = ({
   doc,
   onPress,
+  usage,
+  usageLoading,
+  usageIsError,
 }: {
   doc: ESimDocument;
   onPress: () => void;
+  usage: ESimUsage | undefined;
+  usageLoading: boolean;
+  usageIsError: boolean;
 }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
@@ -151,10 +157,7 @@ const HomeEsimCard = ({
 
   const isInstalled = doc.activationStatus === "INSTALLED";
   const lpa = buildLpa(doc);
-
-  // Remaining data is only needed once the eSIM is installed.
-  const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
-    useEsimUsage(isInstalled ? doc.eSimRef : undefined);
+  const usageUnavailable = !!usage?.usageError;
 
   const remainingDataText = usageLoading
     ? "Loading…"
@@ -264,6 +267,11 @@ const ActiveESIMsScroll = () => {
   const activeEsims = esims.filter((e) =>
     ACTIVE_STATUSES.has(e.activationStatus),
   );
+  const hasInstalled = activeEsims.some((e) => e.activationStatus === "INSTALLED");
+
+  // One call for every card's usage instead of one GET per card.
+  const { usageByEsimRef, isLoading: usageLoading, isError: usageIsError } =
+    useAllEsimUsage(hasInstalled);
 
   // Navigate to the Orders tab, expanding the card for this eSIM.
   // Uses eSimRef as the expand key — orders.tsx matches on eSimRef.
@@ -302,7 +310,13 @@ const ActiveESIMsScroll = () => {
         data={activeEsims}
         renderItem={({ item }) => (
           <View style={styles.itemWrapper}>
-            <HomeEsimCard doc={item} onPress={handleESIMPress(item)} />
+            <HomeEsimCard
+              doc={item}
+              onPress={handleESIMPress(item)}
+              usage={usageByEsimRef[item.eSimRef]}
+              usageLoading={usageLoading}
+              usageIsError={usageIsError}
+            />
           </View>
         )}
         keyExtractor={(item) => item.eSimRef}

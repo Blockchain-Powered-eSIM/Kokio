@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
-import { View, ScrollView, Pressable, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, TextInput } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import BottomSheet from "@gorhom/bottom-sheet";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -12,6 +13,7 @@ import { useColors } from "@/hooks/useColors";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { useEsimTopupAccess, useToggleEsimTopup } from "@/hooks/useEsimTopupAccess";
+import { useSetEsimLabel } from "@/hooks/useEsimLabel";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { shortenAddress } from "@/utils/address";
 
@@ -28,7 +30,10 @@ export default function EsimWalletScreen() {
   const { balance, isLoading: isBalanceLoading } = useWalletBalance(doc?.esimId ?? undefined);
   const { topupAllowed, isLoading: isTopupLoading } = useEsimTopupAccess(doc?.esimId ?? undefined);
   const toggleTopup = useToggleEsimTopup();
+  const setLabel = useSetEsimLabel();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isEditingLabel, setIsEditingLabel] = useState(false);
+  const [labelDraft, setLabelDraft] = useState("");
 
   if (!doc) {
     return (
@@ -70,6 +75,23 @@ export default function EsimWalletScreen() {
       },
     );
   };
+  const handleStartEditLabel = () => {
+    setLabelDraft(doc.label ?? "");
+    setIsEditingLabel(true);
+  };
+
+  const handleSaveLabel = () => {
+    const trimmed = labelDraft.trim();
+    if (!trimmed) {
+      setIsEditingLabel(false);
+      return;
+    }
+    setLabel.mutate(
+      { eSimRef: doc.eSimRef, label: trimmed },
+      { onSuccess: () => setIsEditingLabel(false) },
+    );
+  };
+
   const deployedDate = doc.createdAt
     ? new Date(doc.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
     : "-";
@@ -88,7 +110,50 @@ export default function EsimWalletScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <CountryFlag size={38} flagUrl={display.serviceRegionFlag ?? ""} />
             <View style={{ flex: 1 }}>
-              <ThemedText bold variant="normal" style={{ color: colors.cardForeground }}>{display.serviceRegionName ?? "eSIM"} · {esimLabel}</ThemedText>
+              {isEditingLabel ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <TextInput
+                    value={labelDraft}
+                    onChangeText={setLabelDraft}
+                    maxLength={50}
+                    autoFocus
+                    placeholder="Name this eSIM"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={{ flex: 1, fontSize: 15.5, fontWeight: "700", color: colors.cardForeground, padding: 0 }}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSaveLabel}
+                    disabled={setLabel.isPending}
+                    accessibilityRole="button"
+                    accessibilityLabel="Save eSIM name"
+                  >
+                    {setLabel.isPending ? (
+                      <ActivityIndicator size="small" color={colors.cardForeground} />
+                    ) : (
+                      <Ionicons name="checkmark" size={20} color={colors.success} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setIsEditingLabel(false)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel editing eSIM name"
+                  >
+                    <Ionicons name="close" size={20} color={colors.cardForeground} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleStartEditLabel}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit eSIM name"
+                >
+                  <ThemedText bold variant="normal" style={{ color: colors.cardForeground }} numberOfLines={1}>
+                    {doc.label ?? `${display.serviceRegionName ?? "eSIM"} · ${esimLabel}`}
+                  </ThemedText>
+                  <Ionicons name="pencil-outline" size={14} color={colors.cardForeground} />
+                </TouchableOpacity>
+              )}
               <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 1 }}>
                 {shortenAddress(doc.esimId)}
               </ThemedText>

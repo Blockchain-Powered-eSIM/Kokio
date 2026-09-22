@@ -40,5 +40,18 @@ export function getEsimUsage(eSimRef: string): Promise<ESimUsage> {
   ).then(r => r.usage[0]);
 }
 
+// Usage for every non-terminal eSIM (RELEASED or INSTALLED) in one call, instead of one GET per eSIM.
+export function getAllEsimUsage(): Promise<ESimUsage[]> {
+  return unwrapBffResponse<ESimUsageResponse>(api.get('/v1/esim/usage')).then(r => r.usage);
+}
+
+export function setEsimLabel(eSimRef: string, label: string): Promise<ESimDocument> {
+  const trimmed = label.trim();
+  if (!trimmed || trimmed.length > 50) {
+    return Promise.reject(new Error('Label must be 1-50 characters.'));
+  }
+  return unwrapBffResponse<ESimDocument>(api.patch(`/v1/esim/label/${eSimRef}`, { label: trimmed }));
+}
+
 /** @deprecated Use checkEsimCompatibility */
 export const checkTopUpCompatibility = checkEsimCompatibility;
