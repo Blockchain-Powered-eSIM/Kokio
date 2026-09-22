@@ -516,16 +516,19 @@ const Checkout = () => {
 
   const handlePaymentMethodChange = useCallback(
     (value: string) => {
-      // Outside __DEV__ this stays a no-op; selecting it in __DEV__ requires
-      // a device wallet the same as any other wallet-backed method, since
-      // handleDevWalletBypassCheckout deploys the eSIM wallet onto it.
-      if (value === RADIO_KEYS.E_SIM_WALLET && !__DEV__) return;
-      if (!kokio.userWallet) {
-        setPendingPaymentMethod(value);
-        setShowWalletSetupModal(true);
-      } else {
-        setSelectedPaymentMethod(value);
+      // E_SIM_WALLET is a __DEV__-only test path (handleDevWalletBypassCheckout
+      // deploys the eSIM wallet onto the device wallet), so it's the only
+      // option that needs one. Credit card, Apple Pay, and the external-wallet
+      // browser flow are all wallet-independent and must never gate on it.
+      if (value === RADIO_KEYS.E_SIM_WALLET) {
+        if (!__DEV__) return;
+        if (!kokio.userWallet) {
+          setPendingPaymentMethod(value);
+          setShowWalletSetupModal(true);
+          return;
+        }
       }
+      setSelectedPaymentMethod(value);
     },
     [kokio.userWallet],
   );
@@ -547,8 +550,7 @@ const Checkout = () => {
     }
     setIsDiscountApplied(true);
     setDiscountAmount(eSimItem.actualSellingPrice);
-    if (!kokio.userWallet) setShowWalletSetupModal(true);
-  }, [coupon, eSimItem.actualSellingPrice, kokio.userWallet]);
+  }, [coupon, eSimItem.actualSellingPrice]);
 
   const totalAmount = useMemo(() => {
     if (isDiscountApplied) return _subtract(eSimItem.actualSellingPrice, discountAmount);
