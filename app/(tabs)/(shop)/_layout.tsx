@@ -8,7 +8,7 @@ import { ROUTE_NAMES } from "@/constants/route.constants";
 import CheckoutHeader from "@/components/checkoutHeader";
 import appBootstrap from "@/utils/appBootstrap";
 import { ShopFiltersProvider, useShopFilters } from "@/contexts/ShopFiltersContext";
-import { ShopFilterSheet } from "@/components/ShopFilterControl";
+import { ShopFilterButton, ShopFilterSheet } from "@/components/ShopFilterControl";
 
 export default function ShopStack() {
   return (
@@ -53,15 +53,7 @@ function StackContent() {
           const countryLabel =
             _get(countryConfig, [route?.params?.id, "name"]) || "";
           return {
-            header: () => (
-              <SafeAreaView edges={["top"]}>
-                <Header
-                  title={countryLabel}
-                  hasBack
-                  style={{ justifyContent: "center" }}
-                />
-              </SafeAreaView>
-            ),
+            header: () => <CountryHeader countryLabel={countryLabel} />,
           };
         }}
       />
@@ -73,15 +65,7 @@ function StackContent() {
             _get(regionConfig, [route?.params?.id, "name"]) || "";
 
           return {
-            header: () => (
-              <SafeAreaView edges={["top"]}>
-                <Header
-                  title={regionLabel}
-                  hasBack
-                  style={{ justifyContent: "center" }}
-                />
-              </SafeAreaView>
-            ),
+            header: () => <RegionHeader regionLabel={regionLabel} />,
           };
         }}
       />
@@ -114,5 +98,37 @@ function StackContent() {
         })}
       />
     </Stack>
+  );
+}
+
+function CountryHeader({ countryLabel }: { countryLabel: string }) {
+  const { isActive, openFilterSheet } = useShopFilters();
+  return (
+    <SafeAreaView edges={["top"]}>
+      <Header
+        title={countryLabel}
+        hasBack
+        style={{ justifyContent: "center" }}
+        rightElement={
+          <ShopFilterButton isActive={isActive} onPress={openFilterSheet} />
+        }
+      />
+    </SafeAreaView>
+  );
+}
+
+function RegionHeader({ regionLabel }: { regionLabel: string }) {
+  const { isActive, openFilterSheet } = useShopFilters();
+  return (
+    <SafeAreaView edges={["top"]}>
+      <Header
+        title={regionLabel}
+        hasBack
+        style={{ justifyContent: "center" }}
+        rightElement={
+          <ShopFilterButton isActive={isActive} onPress={openFilterSheet} />
+        }
+      />
+    </SafeAreaView>
   );
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Pressable, View, ViewStyle, TextStyle } from "react-native";
 import { useNavigation, router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -17,6 +18,7 @@ interface HeaderProps {
   hasBack?: boolean;
   goBackFallBack?: Parameters<typeof router.navigate>[0];
   goBackHandler?: () => void;
+  rightElement?: ReactNode;
 }
 
 const Header = ({
@@ -27,6 +29,7 @@ const Header = ({
   hasBack,
   goBackFallBack,
   goBackHandler,
+  rightElement,
 }: HeaderProps) => {
   const navigation = useNavigation();
 
@@ -91,8 +94,16 @@ const Header = ({
         </ThemedText>
       </View>
 
-      {/* right spacer keeps title centred */}
-      <View style={{ width: SIDE_WIDTH }} />
+      {/* right — custom element or empty spacer keeps title centred */}
+      <View
+        style={
+          rightElement
+            ? { minWidth: SIDE_WIDTH, alignItems: "flex-end" }
+            : { width: SIDE_WIDTH }
+        }
+      >
+        {rightElement}
+      </View>
     </View>
   );
 };
