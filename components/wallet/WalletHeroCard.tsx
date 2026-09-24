@@ -27,6 +27,13 @@ interface WalletHeroCardProps {
   address: string;
   balance?: string;
   isBalanceLoading?: boolean;
+  /** Shrinks padding/typography for use as a sub-wallet card (e.g. an eSIM wallet), instead of the full-size device wallet hero. */
+  compact?: boolean;
+  balanceLabel?: string;
+  /** Replaces the default TESTNET badge + logo row, e.g. with an eSIM's flag/name identity. */
+  headerContent?: React.ReactNode;
+  /** Rendered below the address row, e.g. a "linked to your device wallet" caption. */
+  footerContent?: React.ReactNode;
 }
 
 const createStyles = (colors: Palette) => StyleSheet.create({
@@ -50,6 +57,11 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   gradient: {
     borderRadius: 21,
     padding: 24,
+    overflow: "hidden",
+  },
+  gradientCompact: {
+    borderRadius: 21,
+    padding: 16,
     overflow: "hidden",
   },
   backgroundImage: {
@@ -92,6 +104,11 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingTop: 24,
     paddingLeft: 16,
   },
+  balanceContainerCompact: {
+    backgroundColor: "transparent",
+    paddingTop: 14,
+    paddingLeft: 0,
+  },
   balanceAmountContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -113,7 +130,15 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-export function WalletHeroCard({ address, balance, isBalanceLoading }: WalletHeroCardProps) {
+export function WalletHeroCard({
+  address,
+  balance,
+  isBalanceLoading,
+  compact,
+  balanceLabel,
+  headerContent,
+  footerContent,
+}: WalletHeroCardProps) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { copied, copy } = useCopyFeedback();
@@ -129,44 +154,46 @@ export function WalletHeroCard({ address, balance, isBalanceLoading }: WalletHer
   };
 
   return (
-    <View style={{ marginVertical: 12 }}>
+    <View style={{ marginVertical: compact ? 0 : 12 }}>
       <View style={styles.shadowContainer}>
         <LinearGradient
           colors={[colors.gradientDark, colors.background]}
           start={{ x: 0.2, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.gradient}
+          style={compact ? styles.gradientCompact : styles.gradient}
         >
           <ImageBackground
             source={require("@/assets/images/slantedBackground.png")}
             style={styles.backgroundImage}
             resizeMode="cover"
           />
-          <ThemedView style={styles.headerWithLogo}>
-            <View style={styles.testnetBadge}>
-              <ThemedText style={styles.testnetBadgeText}>TESTNET</ThemedText>
-            </View>
-            <Image
-              source={require("@/assets/images/logo.png")}
-              style={styles.logo}
-            />
-          </ThemedView>
+          {headerContent ?? (
+            <ThemedView style={styles.headerWithLogo}>
+              <View style={styles.testnetBadge}>
+                <ThemedText style={styles.testnetBadgeText}>TESTNET</ThemedText>
+              </View>
+              <Image
+                source={require("@/assets/images/logo.png")}
+                style={styles.logo}
+              />
+            </ThemedView>
+          )}
 
-          <ThemedView style={styles.balanceContainer}>
+          <ThemedView style={compact ? styles.balanceContainerCompact : styles.balanceContainer}>
             <ThemedText
               variant="sm"
               lightColor={LIGHT_TOKENS.text}
               darkColor={DARK_TOKENS.text}
               style={{ marginBottom: 4 }}
             >
-              Total balance
+              {balanceLabel ?? "Total balance"}
             </ThemedText>
             <View style={styles.balanceAmountContainer}>
               {isBalanceLoading ? (
                 <ActivityIndicator size="small" color={colors.text} style={{ marginRight: 4 }} />
               ) : (
                 <ThemedText
-                  className="text-[40px]"
+                  className={compact ? "text-[28px]" : "text-[40px]"}
                   lightColor={LIGHT_TOKENS.text}
                   darkColor={DARK_TOKENS.text}
                   style={{ marginRight: 4 }}
@@ -177,7 +204,7 @@ export function WalletHeroCard({ address, balance, isBalanceLoading }: WalletHer
               <ThemedText
                 lightColor={LIGHT_TOKENS.text}
                 darkColor={DARK_TOKENS.text}
-                style={{ marginBottom: 8, marginLeft: 4 }}
+                style={{ marginBottom: compact ? 6 : 8, marginLeft: 4 }}
               >
                 USD
               </ThemedText>
@@ -219,6 +246,7 @@ export function WalletHeroCard({ address, balance, isBalanceLoading }: WalletHer
               </TouchableOpacity>
             </View>
           </View>
+          {footerContent}
         </LinearGradient>
       </View>
     </View>

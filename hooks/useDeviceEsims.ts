@@ -9,8 +9,15 @@
  *                        AsyncStorage persister (wired in providers/index.tsx) handles cold-boot restore.
  *   - enabled          - gated on isActive AND isAuthenticated.
  *   - refetchOnMount    true     — always revalidate when the hook mounts.
- *   - refetchInterval   false    — App-return triggers the isActive gate flip which React Query's
- *                                  enabled logic translates into a refetch.
+ *   - refetchInterval   false, UNLESS at least one eSIM has a non-terminal
+ *                                  activationStatus but no esimId yet (its wallet
+ *                                  is still being deployed server-side during
+ *                                  order fulfilment) — then polls every 15s so
+ *                                  the wallet appears without the user needing
+ *                                  to background/reopen the app or pull to
+ *                                  refresh. Stops on its own once every eSIM
+ *                                  either has an esimId or reaches a terminal
+ *                                  status.
  *
  * Persistence: Both query keys are in the PERSISTED_KEYS allowlist in providers/index.tsx.
  * All other query keys (catalogue, health, coupon, compatibility) remain in-memory only.
@@ -32,6 +39,15 @@ export const DEVICE_ORDERS_KEY = 'device-orders' as const;
 
 const STALE_TIME = 60_000;          // 1 minute
 const GC_TIME    = 5 * 60_000;     // 5 minutes
+const PENDING_ESIM_WALLET_POLL_MS = 15_000;
+
+// An eSIM whose wallet deployment (server-side, during order fulfilment) is
+// still in flight: not yet terminal, but no on-chain address yet.
+function hasPendingEsimWallet(esims: ESimDocument[] | undefined): boolean {
+  return !!esims?.some(
+    (e) => !e.esimId && (e.activationStatus === 'RELEASED' || e.activationStatus === 'INSTALLED'),
+  );
+}
 
 // ─── useEsims ─────────────────────────────────────────────────────────────────
 
@@ -59,7 +75,7 @@ export function useEsims(): UseEsimsResult {
     gcTime:            GC_TIME,
     enabled:           isActive && authState.authenticated,
     refetchOnMount:    true,
-    refetchInterval:   false,
+    refetchInterval:   (query) => hasPendingEsimWallet(query.state.data) ? PENDING_ESIM_WALLET_POLL_MS : false,
     // On a network failure serve whatever is in cache.
     retry:             1,
   });

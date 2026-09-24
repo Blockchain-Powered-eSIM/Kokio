@@ -15,9 +15,11 @@ import {
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/utils/logger";
-import { getWalletState } from "@/utils/bff/wallet";
+import { getWalletState, awaitWalletDeploymentConfirmation } from "@/utils/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { isAccountDeletedError } from "@/utils/bff/errors";
+import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from "@/utils/walletActivity";
+import { queryClient } from "@/services/queryClient";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
@@ -44,6 +46,8 @@ type AuthActionType =
   | { type: "SET_KOKIO_USER"; payload: UserData }
   | { type: "SET_KOKIO_PASSKEY"; payload: UserPasskey }
   | { type: "SET_USER_WALLET"; payload: KokioSmartAccount }
+  | { type: "SET_WALLET_DEPLOYING"; payload: boolean }
+  | { type: "SET_WALLET_DEPLOYMENT_ERROR"; payload: string | null }
   | { type: "CLEAR_KOKIO" }
   | { type: "CLEAR_KOKIO_USER" };
 
@@ -56,6 +60,15 @@ interface KokioState {
   userData?: UserData;
   userPasskey?: UserPasskey;
   userWallet?: KokioSmartAccount;
+  // True while beginWalletDeploymentWatch is confirming an in-progress
+  // deployment in the background (submitted, not yet DEPLOYED). Purely
+  // informational for UI, e.g. a "setting up your wallet" hint.
+  isWalletDeploying: boolean;
+  // Set when beginWalletDeploymentWatch gives up on a terminal STALLED/FAILED
+  // deployment (a real backend-reported failure, not a timeout that might
+  // still resolve later). Cleared at the start of the next attempt. UI should
+  // show this instead of silently reverting to the "no wallet yet" prompt.
+  walletDeploymentError: string | null;
 }
 
 const initialState: KokioState = {
@@ -67,6 +80,8 @@ const initialState: KokioState = {
   userData: undefined,
   userPasskey: undefined,
   userWallet: undefined,
+  isWalletDeploying: false,
+  walletDeploymentError: null,
 };
 
 function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
@@ -89,6 +104,10 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
       return { ...kokio, userPasskey: action.payload };
     case "SET_USER_WALLET":
       return { ...kokio, userWallet: action.payload };
+    case "SET_WALLET_DEPLOYING":
+      return { ...kokio, isWalletDeploying: action.payload };
+    case "SET_WALLET_DEPLOYMENT_ERROR":
+      return { ...kokio, walletDeploymentError: action.payload };
     case "CLEAR_KOKIO":
       return { ...kokio, sdk: undefined };
     case "CLEAR_KOKIO_USER":
@@ -100,6 +119,8 @@ function kokioReducer(kokio: KokioState, action: AuthActionType): KokioState {
         userPasskey: undefined,
         userData: undefined,
         userWallet: undefined,
+        isWalletDeploying: false,
+        walletDeploymentError: null,
       };
     default:
       return kokio;
@@ -123,6 +144,8 @@ export interface KokioProviderType {
     rawSalt: string,
   ) => Promise<void>;
   setupKokioRecovery: (deviceWalletAddress: string, credentialId: string) => Promise<void>;
+  beginWalletDeploymentWatch: () => void;
+  ensureSmartAccountUpgraded: () => Promise<Kokio | null>;
   clearKokio: () => void;
   clearKokioUser: () => Promise<void>;
 }
@@ -135,6 +158,8 @@ export const KokioContext = createContext<KokioProviderType>({
   setupKokioUserWallet: async () => Promise.resolve(),
   setupKokioRegistration: async (_a, _b, _c, _d, _e, _f) => Promise.resolve(),
   setupKokioRecovery: async (_a, _b) => Promise.resolve(),
+  beginWalletDeploymentWatch: () => {},
+  ensureSmartAccountUpgraded: async () => Promise.resolve(null),
   clearKokio: () => {},
   clearKokioUser: async () => Promise.resolve(),
 });
@@ -300,6 +325,87 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * ── Background wallet-deployment watcher ──────────────────────────────────
+   *
+   * Deployment is cron-driven server-side and can take up to 6-7 minutes in the worst case, so nothing should block a screen waiting on it. 
+   * This confirms completion in the background — races the BFF's walletState against a direct on-chain registry read (whichever answers first wins)
+   * — and populates userWallet once confirmed, whether or not the user is still looking at a wallet screen.
+   * Called right after a deploy request is submitted, and again from the auto-derive effect below on app boot if one was already in flight.
+   */
+  const walletDeploymentWatchInFlight = useRef(false);
+
+  const beginWalletDeploymentWatch = useCallback(() => {
+    if (
+      walletDeploymentWatchInFlight.current ||
+      !kokio.sdk ||
+      !kokio.deviceUID ||
+      !kokio.userPasskey?.x ||
+      !kokio.userPasskey?.y ||
+      !kokio.rawSalt ||
+      !kokio.deviceWalletAddress
+    ) {
+      return;
+    }
+
+    walletDeploymentWatchInFlight.current = true;
+    dispatch({ type: "SET_WALLET_DEPLOYING", payload: true });
+    dispatch({ type: "SET_WALLET_DEPLOYMENT_ERROR", payload: null });
+
+    (async () => {
+      try {
+        const ownerKey: [Hex, Hex] = [kokio.userPasskey!.x, kokio.userPasskey!.y];
+        const salt = BigInt(kokio.rawSalt);
+        const deviceUID = kokio.deviceUID;
+        const deviceWalletAddress = kokio.deviceWalletAddress as Address;
+        const sdk = kokio.sdk!;
+
+        const account = await sdk.smartAccount.getSmartWallet(deviceUID, ownerKey, salt);
+        const smartAccountClient = await sdk.smartAccount.getSmartWalletClient(account);
+        const registryProbe = new Kokio(
+          sdk.viemWalletClient,
+          sdk.credentialId,
+          sdk.rpId,
+          sdk.pimlicoAPIKey,
+          sdk.gasPolicyId,
+          smartAccountClient,
+          deviceWalletAddress,
+        ).registry;
+
+        const deployed = await awaitWalletDeploymentConfirmation(registryProbe, deviceWalletAddress);
+
+        if (deployed) {
+          await setupKokioUserWallet(deviceUID, account);
+          logger.debug('WALLET_DEPLOYMENT_WATCH_CONFIRMED', { deviceUID });
+          appendWalletActivityEntry(deviceUID, { type: 'WALLET_DEPLOYED', timestamp: Date.now() })
+            .then(() => queryClient.invalidateQueries({ queryKey: [WALLET_ACTIVITY_KEY, deviceUID] }))
+            .catch((err) => logger.error('WALLET_ACTIVITY_LOG_FAILED', { err }));
+        } else {
+          logger.error('WALLET_DEPLOYMENT_WATCH_GAVE_UP', { deviceUID });
+          const lastError = await getWalletState()
+            .then((state) => state.deployment?.lastError ?? null)
+            .catch(() => null);
+          dispatch({
+            type: "SET_WALLET_DEPLOYMENT_ERROR",
+            payload: lastError ?? 'Wallet setup could not be completed. Please try again.',
+          });
+        }
+      } catch (err) {
+        logger.error('WALLET_DEPLOYMENT_WATCH_ERROR', { err });
+      } finally {
+        dispatch({ type: "SET_WALLET_DEPLOYING", payload: false });
+        walletDeploymentWatchInFlight.current = false;
+      }
+    })();
+  }, [
+    kokio.sdk,
+    kokio.deviceUID,
+    kokio.userPasskey,
+    kokio.rawSalt,
+    kokio.deviceWalletAddress,
+    setupKokioUserWallet,
+  ]);
+
   const clearKokio = () => {
     dispatch({ type: "CLEAR_KOKIO" });
   };
@@ -441,8 +547,13 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         try {
           const { walletState } = await getWalletState();
 
+          if (walletState === 'DEPLOYING') {
+            logger.debug('WALLET_AUTO_DERIVE_RESUMING_WATCH', { walletState });
+            beginWalletDeploymentWatch();
+            return;
+          }
           if (walletState !== 'DEPLOYED') {
-            // New registration, or a deployment already in progress.
+            // New registration — nothing deployed or in progress yet.
             logger.debug('WALLET_AUTO_DERIVE_SKIPPED', { reason: 'not_deployed', walletState });
             return;
           }
@@ -474,7 +585,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     kokio.userWallet,
     kokio.deviceWalletAddress,
     setupKokio,
-    setupKokioUserWallet
+    setupKokioUserWallet,
+    beginWalletDeploymentWatch,
   ]);
 
   /**
@@ -486,71 +598,85 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
    * `undefined` (see kokio-sdk's Kokio constructor). A returning user whose
    * wallet is already deployed (`kokio.userWallet` truthy) needs those
    * sub-packages usable, so once the device-wallet material is available this
-   * effect derives a smart account client and rebuilds `Kokio` with the two
-   * extra args bound, replacing the in-memory instance via SET_KOKIO.
+   * derives a smart account client and rebuilds `Kokio` with the two extra
+   * args bound, replacing the in-memory instance via SET_KOKIO.
    *
    * `getSmartWallet`/`getSmartWalletClient` only derive the account/client —
    * no passkey or biometric prompt fires here (that only happens on
-   * sendUserOperation, which this effect deliberately never calls).
+   * sendUserOperation, which this deliberately never calls).
+   *
+   * Exposed as `ensureSmartAccountUpgraded` (not just a boot-time effect)
+   * because the attempt is best-effort and non-fatal: if it fails once (a
+   * transient RPC hiccup deriving the client) or simply hasn't finished yet
+   * by the time a screen needs `kokio.sdk.deviceWallet`, there was previously
+   * no way to retry within the session short of restarting the app — every
+   * `deviceWallet`-dependent write (e.g. the eSIM top-up toggle) would keep
+   * failing with "Wallet not ready..." until then. Idempotent: a no-op
+   * whenever `deviceWallet` is already set or an attempt is already in
+   * flight, so call sites can call it defensively without guarding first.
+   *
+   * Returns the current/updated `Kokio` instance (or `null` if unavailable)
+   * rather than relying on callers to re-read `kokio.sdk` from context after
+   * awaiting — a caller's own `kokio` closure captured before this resolves
+   * would otherwise still be looking at the pre-upgrade instance until their
+   * component's next render.
    */
 
   const smartAccountUpgradeInFlight = useRef(false);
 
-  useEffect(() => {
-    const upgradeSmartAccount = async () => {
-      if (!kokio.sdk) {
-        smartAccountUpgradeInFlight.current = false;
-        return;
-      }
+  const ensureSmartAccountUpgraded = useCallback(async (): Promise<Kokio | null> => {
+    if (!kokio.sdk) {
+      smartAccountUpgradeInFlight.current = false;
+      return null;
+    }
 
-      if (
-        kokio.sdk.deviceWallet ||
-        smartAccountUpgradeInFlight.current ||
-        !kokio.userWallet ||
-        !kokio.deviceUID ||
-        !kokio.userPasskey?.x ||
-        !kokio.userPasskey?.y ||
-        !kokio.rawSalt ||
-        !kokio.deviceWalletAddress
-      ) {
-        return;
-      }
+    if (kokio.sdk.deviceWallet) {
+      return kokio.sdk;
+    }
 
-      smartAccountUpgradeInFlight.current = true;
-      try {
-        const ownerKey: [Hex, Hex] = [kokio.userPasskey.x, kokio.userPasskey.y];
-        const salt = BigInt(kokio.rawSalt);
+    if (
+      smartAccountUpgradeInFlight.current ||
+      !kokio.userWallet ||
+      !kokio.deviceUID ||
+      !kokio.userPasskey?.x ||
+      !kokio.userPasskey?.y ||
+      !kokio.rawSalt ||
+      !kokio.deviceWalletAddress
+    ) {
+      return null;
+    }
 
-        const account = await kokio.sdk.smartAccount.getSmartWallet(
-          kokio.deviceUID,
-          ownerKey,
-          salt,
-        );
-        const smartAccountClient = await kokio.sdk.smartAccount.getSmartWalletClient(account);
+    smartAccountUpgradeInFlight.current = true;
+    try {
+      const ownerKey: [Hex, Hex] = [kokio.userPasskey.x, kokio.userPasskey.y];
+      const salt = BigInt(kokio.rawSalt);
 
-        const upgraded = new Kokio(
-          kokio.sdk.viemWalletClient,
-          kokio.sdk.credentialId,
-          kokio.sdk.rpId,
-          kokio.sdk.pimlicoAPIKey,
-          kokio.sdk.gasPolicyId,
-          smartAccountClient,
-          kokio.deviceWalletAddress as Address,
-        );
+      const account = await kokio.sdk.smartAccount.getSmartWallet(
+        kokio.deviceUID,
+        ownerKey,
+        salt,
+      );
+      const smartAccountClient = await kokio.sdk.smartAccount.getSmartWalletClient(account);
 
-        dispatch({ type: "SET_KOKIO", payload: upgraded });
-        logger.debug('SMART_ACCOUNT_UPGRADED', { deviceUID: kokio.deviceUID });
-      } catch (err) {
-        // Non-fatal: app keeps working with the un-upgraded SDK (no registry/
-        // deviceWallet/eSIMWallet/paymentAdapter), same fallback posture as
-        // WALLET_AUTO_DERIVE_FAILED above.
-        logger.error('SMART_ACCOUNT_UPGRADE_FAILED', { err });
-      } finally {
-        smartAccountUpgradeInFlight.current = false;
-      }
-    };
+      const upgraded = new Kokio(
+        kokio.sdk.viemWalletClient,
+        kokio.sdk.credentialId,
+        kokio.sdk.rpId,
+        kokio.sdk.pimlicoAPIKey,
+        kokio.sdk.gasPolicyId,
+        smartAccountClient,
+        kokio.deviceWalletAddress as Address,
+      );
 
-    upgradeSmartAccount();
+      dispatch({ type: "SET_KOKIO", payload: upgraded });
+      logger.debug('SMART_ACCOUNT_UPGRADED', { deviceUID: kokio.deviceUID });
+      return upgraded;
+    } catch (err) {
+      logger.error('SMART_ACCOUNT_UPGRADE_FAILED', { err });
+      return null;
+    } finally {
+      smartAccountUpgradeInFlight.current = false;
+    }
   }, [
     kokio.sdk,
     kokio.userWallet,
@@ -559,6 +685,10 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     kokio.rawSalt,
     kokio.deviceWalletAddress,
   ]);
+
+  useEffect(() => {
+    ensureSmartAccountUpgraded();
+  }, [ensureSmartAccountUpgraded]);
 
   // ── WalletConnect initialisation ──────────────────────────────────────────
 
@@ -613,6 +743,8 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         setupKokioUserWallet,
         setupKokioRegistration,
         setupKokioRecovery,
+        beginWalletDeploymentWatch,
+        ensureSmartAccountUpgraded,
         clearKokio,
         clearKokioUser,
       }}

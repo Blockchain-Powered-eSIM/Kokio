@@ -92,7 +92,7 @@ const Hero = () => {
       <CardFooter style={styles.cardFooter}>
         <View>
           <Text style={styles.header}>Plan My Next Adventure</Text>
-          <Text style={styles.subHeader}>The world awaits you!</Text>
+          <Text style={styles.subHeader}>The world is waiting</Text>
         </View>
         <TouchableOpacity
           style={[styles.heroButton, { backgroundColor: colors.ctaBackground }]}

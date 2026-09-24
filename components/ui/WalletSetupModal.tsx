@@ -22,7 +22,6 @@ import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
-import { WALLET_DEPLOYMENT_STEP_LABELS } from "@/utils/bff/wallet";
 import { logger } from '@/utils/logger';
 import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
 
@@ -222,6 +221,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+  const [showSubmitted, setShowSubmitted] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [eoaAddress, setEoaAddress] = useState("");
@@ -229,7 +229,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     undefined
   );
   const modalRef = React.useRef<Modal>(null);
-  const { deployDeviceWallet, currentStep } = useWalletDeployment();
+  const { deployDeviceWallet } = useWalletDeployment();
   const { showMessage } = useToast();
   const textColor = useThemeColor({}, "text");
   const foregroundColor = useThemeColor({}, "foreground");
@@ -251,9 +251,13 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setShowRetry(false);
 
     try {
-      const { walletAddress: deployedAddress } = await deployDeviceWallet();
-      setWalletAddress(deployedAddress);
-      setShowRecovery(true);
+      const result = await deployDeviceWallet();
+      setWalletAddress(result.walletAddress);
+      if (result.status === 'already_deployed') {
+        setShowRecovery(true);
+      } else {
+        setShowSubmitted(true);
+      }
     } catch (err: unknown) {
       if (err instanceof MissingSignupDataError) {
         setShowSignupPrompt(true);
@@ -275,6 +279,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const handleClose = useCallback(() => {
     setIsLoading(false);
     setShowRecovery(false);
+    setShowSubmitted(false);
     setShowRetry(false);
     setShowSignupPrompt(false);
     setEoaAddress("");
@@ -329,13 +334,13 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       <View style={styles.loadingContainer}>
         <ActivityIndicator size={90} color={colors.primary} />
         <Text style={[styles.loadingText, { color: foregroundColor }]}>
-          {currentStep ? WALLET_DEPLOYMENT_STEP_LABELS[currentStep] : 'Please wait while your wallet is being deployed...'}
+          Requesting your wallet...
         </Text>
       </View>
     ),
     // styles have their own memo watching for changes based on theme
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentStep, foregroundColor]
+    [foregroundColor]
   );
 
   const retryContent = useMemo(
@@ -373,6 +378,39 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     // styles have their own memo watching for changes based on theme
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleClose, handleContinue, foregroundColor, textColor]
+  );
+
+  const handleSubmittedDone = useCallback(() => {
+    setShowSubmitted(false);
+    setWalletAddress(undefined);
+    onContinue();
+  }, [onContinue]);
+
+  const submittedContent = useMemo(
+    () => (
+      <View style={styles.errorContainer}>
+        <MaterialCommunityIcons
+          name="clock-outline"
+          size={60}
+          color={colors.primary}
+          style={styles.errorIcon}
+        />
+        <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
+          Wallet request submitted
+        </ThemedText>
+        <Text style={[styles.errorDescription, { color: foregroundColor }]}>
+          This can take a few minutes to complete on-chain. Feel free to keep browsing, we will let you know once it is ready.
+        </Text>
+        <View style={[styles.buttonContainer, { borderTopColor: mutedColor, marginTop: 20 }]}>
+          <TouchableOpacity style={styles.continueButton} onPress={handleSubmittedDone}>
+            <Text style={[styles.continueButtonText, { color: colors.primary }]}>Got it</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handleSubmittedDone, foregroundColor, textColor]
   );
 
   const handleRemindLater = useCallback(() => {
@@ -476,6 +514,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const renderContent = () => {
     if (isLoading) return loadingContent;
     if (showRetry) return retryContent;
+    if (showSubmitted) return submittedContent;
     if (showRecovery) return recoveryContent;
     return initialContent;
   };

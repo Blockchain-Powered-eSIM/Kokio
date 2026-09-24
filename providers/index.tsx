@@ -6,10 +6,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from 'expo-router/react-navigation';
-import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { AuthRelayProvider } from './authProvider';
 import { KokioProvider } from './kokioProvider';
@@ -17,28 +14,12 @@ import { KokioStripeProvider } from './StripeProvider';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
+import { queryClient, asyncStoragePersister } from '@/services/queryClient';
+
+export { queryClient, asyncStoragePersister };
 
 // ─── Persisted query keys ──────────────────────────────────────────────────────
 const PERSISTED_KEYS: Set<string> = new Set([DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY]);
-
-// ─── QueryClient ──────────────────────────────────────────────────────────────
-
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-// ─── AsyncStorage persister ───────────────────────────────────────────────────
-// Single flat key in AsyncStorage.
-// The dehydrateOptions filter below ensures only PERSISTED_KEYS queries are written.
-
-export const asyncStoragePersister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  key:     'kokio.rq.cache',
-});
 
 export const Providers = ({ children }: { children: ReactNode }) => {
   const colorScheme = useColorScheme();

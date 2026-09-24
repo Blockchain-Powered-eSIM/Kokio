@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { type Hex } from "viem";
 import { useKokio } from "@/hooks/useKokio";
-import { requestWalletDeployment, pollWalletState, type DeploymentStep } from "@/utils/bff/wallet";
+import { requestWalletDeployment } from "@/utils/bff/wallet";
 import { BffError } from "@/utils/bff/koKioBffClient";
 import { logger } from "@/utils/logger";
 
@@ -16,11 +16,20 @@ export class MissingSignupDataError extends Error {
   }
 }
 
-export function useWalletDeployment() {
-  const { kokio, setupKokioUserWallet } = useKokio();
-  const [currentStep, setCurrentStep] = useState<DeploymentStep | null>(null);
+// Deployment is processed by a backend cron (every 5 minutes, up to 6-7
+// minutes worst case), so this only submits the request and returns
+// immediately — it never blocks waiting for completion. kokioProvider's
+// beginWalletDeploymentWatch takes over confirming it in the background,
+// which keeps working even if the caller navigates away right after this
+// resolves.
+export type DeployDeviceWalletResult =
+  | { status: 'already_deployed'; walletAddress: string }
+  | { status: 'submitted'; walletAddress: string };
 
-  const deployDeviceWallet = useCallback(async (): Promise<{ walletAddress: string }> => {
+export function useWalletDeployment() {
+  const { kokio, setupKokioUserWallet, beginWalletDeploymentWatch } = useKokio();
+
+  const deployDeviceWallet = useCallback(async (): Promise<DeployDeviceWalletResult> => {
     const { deviceWalletAddress, deviceUID, userPasskey, rawSalt, sdk } = kokio;
 
     logger.debug('WALLET_CONTINUE_STATE', {
@@ -43,57 +52,20 @@ export function useWalletDeployment() {
       throw new MissingSignupDataError();
     }
 
-    setCurrentStep(null);
-
-    let alreadyDeployed = false;
     try {
       await requestWalletDeployment();
     } catch (err) {
-      if (err instanceof BffError && err.code === 'WALLET_ALREADY_DEPLOYED') {
-        alreadyDeployed = true;
-      } else {
-        throw err;
-      }
+      if (!(err instanceof BffError) || err.code !== 'WALLET_ALREADY_DEPLOYED') throw err;
+
+      const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
+      const deviceWallet = await sdk.smartAccount.getSmartWallet(deviceUID, ownerKey, BigInt(rawSalt));
+      await setupKokioUserWallet(deviceUID, deviceWallet);
+      return { status: 'already_deployed', walletAddress: deviceWalletAddress };
     }
 
-    if (!alreadyDeployed) {
-      try {
-        await pollWalletState({
-          onUpdate: (update) => {
-            if (update.kind === 'step') setCurrentStep(update.currentStep);
-          },
-        });
-      } finally {
-        setCurrentStep(null);
-      }
-    }
+    beginWalletDeploymentWatch();
+    return { status: 'submitted', walletAddress: deviceWalletAddress };
+  }, [kokio, setupKokioUserWallet, beginWalletDeploymentWatch]);
 
-    // Reconstruct the smart account from the stored P-256 public key, the backend confirms the wallet is deployed.
-    // This computes the same counterfactual address the server derived at registration.
-    const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
-    const salt = BigInt(rawSalt);
-
-    const deviceWallet = await sdk.smartAccount.getSmartWallet(
-      deviceUID,
-      ownerKey,
-      salt,
-    );
-
-    // Informational only — deployment no longer depends on this matching,
-    // the backend derives and deploys to its own address regardless. Kept as
-    // a canary for the address-derivation gap tracked in
-    // project_wallet_recovery_gap (session memory), not a functional check.
-    const sdkAddress = (deviceWallet as { address?: string }).address;
-    logger.debug('GET_SMART_WALLET_RESULT', {
-      sdkAddress,
-      serverAddress: deviceWalletAddress,
-      match: sdkAddress?.toLowerCase() === deviceWalletAddress.toLowerCase(),
-    });
-
-    await setupKokioUserWallet(deviceUID, deviceWallet);
-
-    return { walletAddress: deviceWalletAddress };
-  }, [kokio, setupKokioUserWallet]);
-
-  return { deployDeviceWallet, currentStep };
+  return { deployDeviceWallet };
 }

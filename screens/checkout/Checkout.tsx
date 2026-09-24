@@ -37,7 +37,7 @@ import OrderFailureModal from "@/components/ui/OrderFailureModal";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
-import { useCreateOrder, StripeCancelledError, StripeSheetError } from "@/hooks/useCreateOrder";
+import { useCreateOrder, StripeCancelledError, StripeSheetError, OrderCreationError } from "@/hooks/useCreateOrder";
 import { useDevEsimWalletBypass } from "@/hooks/useDevEsimWalletBypass";
 import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
@@ -53,6 +53,7 @@ import {
 } from "@heliofi/checkout-react-native";
 import type { PaymentCallback } from "@heliofi/checkout-react-native";
 import { logger } from "@/utils/logger";
+import { formatOnChainError } from "@/utils/formatOnChainError";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
@@ -407,7 +408,7 @@ const Checkout = () => {
       logger.error('DEV_ESIM_WALLET_BYPASS_FAILED', { err });
       setIsCheckoutLoading(false);
       setLoadingMessage('');
-      showMessage(err instanceof Error ? err.message : 'Could not deploy the test eSIM wallet.', 'info');
+      showMessage(formatOnChainError(err, 'Could not deploy the test eSIM wallet.'), 'info');
     }
   }, [deployTestEsimWallet, eSimItem, showMessage]);
 
@@ -477,6 +478,16 @@ const Checkout = () => {
       if (e.code === 'COUPON_INSUFFICIENT_BALANCE') {
         showMessage('Coupon has insufficient balance. Discount removed.', 'info');
         handleRemoveDiscount();
+      } else if (
+        err instanceof OrderCreationError &&
+        /wallet deployment is in progress/i.test(err.message)
+      ) {
+        // By design, every payment method, including fiat, is blocked while this device's wallet is DEPLOYING
+        // To avoid a race between order fulfilment and deployment completing. No stable error code exists for this yet, matched on message text.
+        showMessage(
+          "Your wallet is still being set up. This can take a few minutes, please try again shortly.",
+          'info',
+        );
       } else {
         showMessage(formatBffError(err), 'info');
       }

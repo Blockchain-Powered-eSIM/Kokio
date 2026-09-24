@@ -4,6 +4,7 @@ import * as Linking from 'expo-linking';
 
 import { submitOrder, pollOrderStatus, OrderNotFoundError } from '@/utils/bff/order';
 import type { CreateOrderRequest, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
+import { BffError } from '@/utils/bff/koKioBffClient';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import type { Esim } from '@/components/ESIMItem';
 
@@ -34,16 +35,21 @@ export type CreateOrderResult =
 export const ESIM_ID_KEY = 'esimId';
 
 /**
- * Thrown when order creation itself fails, or when polling after payment times out. 
- * Carries whatever correlationId is known (the client-generated idempotency key, 
+ * Thrown when order creation itself fails, or when polling after payment times out.
+ * Carries whatever correlationId is known (the client-generated idempotency key,
  * else the BFF envelope's correlationId) so the caller can record the order as FAILED.
+ * Also carries the originating BffError's code when there was one, so callers
+ * can distinguish specific failures (e.g. the wallet-deployment order block)
+ * without parsing message text.
  */
 export class OrderCreationError extends Error {
   correlationId: string | null;
-  constructor(message: string, correlationId: string | null) {
+  code: string | null;
+  constructor(message: string, correlationId: string | null, code: string | null = null) {
     super(message);
     this.name = 'OrderCreationError';
     this.correlationId = correlationId;
+    this.code = code;
   }
 }
 
@@ -92,6 +98,7 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
         throw new OrderCreationError(
           (err as Error)?.message ?? 'Order creation failed',
           bffErr?.correlationId ?? null,
+          err instanceof BffError ? err.code : null,
         );
       });
 

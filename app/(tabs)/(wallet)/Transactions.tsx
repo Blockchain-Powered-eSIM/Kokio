@@ -5,16 +5,10 @@ import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 import _ from "lodash"
 import { useColors } from "@/hooks/useColors";
+import { useWalletActivity } from '@/hooks/useWalletActivity';
+import { walletActivityEntryToDisplayItem, type WalletActivityDisplayItem } from '@/helpers/walletActivityDisplay';
 
-interface Transaction {
-  id?: string;
-  status: string;
-  icon?: any;
-  name?: string;
-  walletId?: string;
-  type: string;
-  amount: string;
-}
+type Transaction = WalletActivityDisplayItem & { walletId?: string };
 
 const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
   if (!address) return "";
@@ -24,10 +18,11 @@ const shortenId = (address: string|undefined, startLength = 3, endLength = 6) =>
 const Transactions = () => {
   const router = useRouter();
   const colors = useColors();
-  // TODO: kokio-sdk exposes no transaction-history read (no indexer, no BFF
-  // log today). Populate this once a real fetch exists — see KokioSDKv3.md
-  // Section 7.
-  const transactions = useMemo<Transaction[]>(() => [], []);
+  const { entries } = useWalletActivity();
+  const transactions = useMemo<Transaction[]>(
+    () => entries.map(walletActivityEntryToDisplayItem),
+    [entries],
+  );
 
   const renderTransaction = useCallback(
     (tr: Transaction, index: number) => (
@@ -52,7 +47,7 @@ const Transactions = () => {
                 darkColor={tr?.type === 'received' ? colors.foreground : colors.primary}
                 variant='sm'
               >
-                {tr?.type}
+                {tr?.statusLabel}
               </ThemedText>
             </View>
           </View>
@@ -109,7 +104,7 @@ const Transactions = () => {
                         darkColor={tr?.type === 'received' ? colors.foreground : colors.primary}
                         variant='sm'
                       >
-                        {tr?.type}
+                        {tr?.statusLabel}
                       </ThemedText>
                     </View>
                   </View>

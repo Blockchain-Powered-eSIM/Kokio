@@ -13,7 +13,6 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { DARK_TOKENS, LIGHT_TOKENS, type Palette } from "@/constants/Colors";
 import { PASSKEY_LABEL } from "@/constants/passkey.constants";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
-import { WALLET_DEPLOYMENT_STEP_LABELS } from "@/utils/bff/wallet";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 import { logger } from "@/utils/logger";
@@ -61,7 +60,7 @@ export default function CreateWalletScreen() {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const router = useRouter();
-  const { deployDeviceWallet, currentStep } = useWalletDeployment();
+  const { deployDeviceWallet } = useWalletDeployment();
   const { showMessage } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +76,13 @@ export default function CreateWalletScreen() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await deployDeviceWallet();
+      const result = await deployDeviceWallet();
+      showMessage(
+        result.status === 'already_deployed'
+          ? 'Your wallet is ready.'
+          : 'Wallet request submitted. This can take a few minutes, feel free to keep browsing.',
+        'info',
+      );
       router.dismissAll();
       router.navigate("/(tabs)/(wallet)" as any);
     } catch (err: unknown) {
@@ -180,15 +185,6 @@ export default function CreateWalletScreen() {
             </>
           )}
         </TouchableOpacity>
-        {isLoading && currentStep && (
-          <ThemedText
-            lightColor={LIGHT_TOKENS.mutedForeground}
-            darkColor={DARK_TOKENS.mutedForeground}
-            style={{ textAlign: "center", marginTop: 8 }}
-          >
-            {WALLET_DEPLOYMENT_STEP_LABELS[currentStep]}
-          </ThemedText>
-        )}
         <TouchableOpacity
           onPress={() => router.back()}
           style={{ minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: 4 }}

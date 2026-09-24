@@ -13,6 +13,8 @@ import { ThemedText } from "../ThemedText";
 
 interface WalletProps {
   isWalletAdded: boolean;
+  isWalletDeploying?: boolean;
+  walletDeploymentError?: string | null;
   balance?: string;
   isBalanceLoading?: boolean;
   onSetupWallet?: () => void;
@@ -64,7 +66,7 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
-const Wallet = ({ isWalletAdded, balance, isBalanceLoading, onSetupWallet, onOpenWallet }: WalletProps) => {
+const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balance, isBalanceLoading, onSetupWallet, onOpenWallet }: WalletProps) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const router = useRouter();
@@ -125,6 +127,69 @@ const Wallet = ({ isWalletAdded, balance, isBalanceLoading, onSetupWallet, onOpe
             >
               <ThemedText style={[styles.primaryButtonText, { color: colors.ctaForeground }]}>
                 Open wallet
+              </ThemedText>
+            </TouchableOpacity>
+          </>
+        ) : isWalletDeploying ? (
+          <>
+            <View style={styles.titleRow}>
+              <View style={styles.titleLeft}>
+                <Ionicons name="time-outline" size={20} color={iconOnCardColor} />
+                <ThemedText
+                  bold
+                  variant="xl"
+                  lightColor={LIGHT_TOKENS.cardForeground}
+                  darkColor={DARK_TOKENS.cardForeground}
+                >
+                  Setting up your wallet
+                </ThemedText>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push("/(tabs)/(wallet)" as any)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Check wallet setup status"
+              >
+                <Ionicons name="bulb-outline" size={20} color={iconOnCardColor} />
+              </TouchableOpacity>
+            </View>
+            <ThemedText
+              lightColor={LIGHT_TOKENS.cardForeground}
+              darkColor={DARK_TOKENS.cardForeground}
+              style={{ marginTop: 6, marginBottom: 14 }}
+            >
+              This can take a few minutes. Your card keeps working in the meantime.
+            </ThemedText>
+            <ActivityIndicator color={iconOnCardColor} />
+          </>
+        ) : walletDeploymentError ? (
+          <>
+            <View style={styles.titleLeft}>
+              <Ionicons name="alert-circle-outline" size={20} color={colors.destructive} />
+              <ThemedText
+                bold
+                variant="xl"
+                lightColor={LIGHT_TOKENS.cardForeground}
+                darkColor={DARK_TOKENS.cardForeground}
+              >
+                Wallet setup didn&apos;t finish
+              </ThemedText>
+            </View>
+            <ThemedText
+              lightColor={LIGHT_TOKENS.cardForeground}
+              darkColor={DARK_TOKENS.cardForeground}
+              style={{ marginTop: 6, marginBottom: 14 }}
+            >
+              {walletDeploymentError}
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.ctaBackground }]}
+              onPress={onSetupWallet}
+              accessibilityRole="button"
+              accessibilityLabel="Try creating wallet again"
+            >
+              <ThemedText style={[styles.primaryButtonText, { color: colors.ctaForeground }]}>
+                Try again
               </ThemedText>
             </TouchableOpacity>
           </>

@@ -39,7 +39,7 @@ const TransactionDetails = () => {
               darkColor={parsedTransaction?.type === 'received' ? colors.text : colors.primary}
               variant='xl'
               className='mt-6'
-            >{parsedTransaction?.type}</ThemedText>
+            >{parsedTransaction?.statusLabel ?? parsedTransaction?.type}</ThemedText>
             <ThemedText
               darkColor={parsedTransaction?.type === 'received' ? colors.foreground : colors.primary}
               light

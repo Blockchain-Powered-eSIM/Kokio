@@ -33,6 +33,8 @@ export default function HomeScreen() {
         <ActiveESIMsScroll />
         <Wallet
           isWalletAdded={!!kokio.userWallet}
+          isWalletDeploying={kokio.isWalletDeploying}
+          walletDeploymentError={kokio.walletDeploymentError}
           balance={balance}
           isBalanceLoading={isBalanceLoading}
           onSetupWallet={handleOpenWalletSetup}

@@ -17,7 +17,9 @@ import { useEsims } from '@/hooks/useDeviceEsims';
 import { useWalletBalance } from '@/hooks/useWalletBalance';
 import { useEsimTopupAccess } from '@/hooks/useEsimTopupAccess';
 import { useContacts } from '@/hooks/useContacts';
+import { useWalletActivity } from '@/hooks/useWalletActivity';
 import { esimDocToDisplayItem } from '@/helpers/esimDisplay';
+import { walletActivityEntryToDisplayItem } from '@/helpers/walletActivityDisplay';
 import type { ESimDocument } from '@/utils/bff/esim';
 import CountryFlag from '@/components/ui/CountryFlag';
 import { logger } from '@/utils/logger';
@@ -30,11 +32,8 @@ const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
 // tokens yet" instead of fabricated balances.
 const tokens: { id: string; name: string; symbol: string; balance: string; value: string; icon: ImageSourcePropType }[] = [];
 
-// TODO: kokio-sdk exposes no transaction-history read (no indexer, no BFF
-// log today). Populate this once a real fetch exists — see KokioSDKv3.md
-// Section 7. Empty for now, so the UI honestly shows "no transactions" instead
-// of fabricated activity.
-const transactions: { id: string; name: string; amount: string; status: string; type: string; icon: ImageSourcePropType }[] = [];
+// Count of most recent wallet-activity entries the compact preview card shows before "See all" is needed
+const TRANSACTIONS_PREVIEW_COUNT = 3;
 
 const WALLET_BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [
   { icon: 'wallet-outline', title: 'Pay in stablecoins (USDC and more)', description: 'No card fees, no foriegn markup, no surprise declines' },
@@ -76,6 +75,7 @@ function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
         padding: 12,
         borderRadius: 14,
         backgroundColor: colors.card,
+        borderWidth: 1, borderColor: colors.mutedForeground,
       }}
     >
       <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
@@ -100,6 +100,7 @@ function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
         <View style={{
           width: 38, height: 22, borderRadius: 999,
           backgroundColor: topupAllowed ? colors.walletAccent : colors.muted,
+          borderWidth: 1.5, borderColor: colors.mutedForeground,
           justifyContent: 'center',
           opacity: topupAllowed === undefined ? 0.4 : 1,
         }}>
@@ -110,6 +111,35 @@ function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
         </View>
       )}
     </Pressable>
+  );
+}
+
+function PendingEsimWalletRow({ doc }: { doc: ESimDocument }) {
+  const colors = useColors();
+  const display = esimDocToDisplayItem(doc);
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 12,
+        borderRadius: 14,
+        backgroundColor: colors.card,
+        borderWidth: 1, borderColor: colors.mutedForeground,
+        opacity: 0.7,
+      }}
+    >
+      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
+      <View style={{ flex: 1 }}>
+        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1}>
+          {doc.label ?? display.serviceRegionName ?? 'eSIM'}
+        </ThemedText>
+        <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>Setting up wallet…</ThemedText>
+      </View>
+      <ActivityIndicator size="small" color={colors.cardForeground} />
+    </View>
   );
 }
 
@@ -125,6 +155,8 @@ const WalletPage = () => {
   const { kokio } = useKokio();
   const { esims } = useEsims();
   const { contacts } = useContacts();
+  const { entries: walletActivityEntries } = useWalletActivity();
+  const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT).map(walletActivityEntryToDisplayItem);
   const { balance: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletBalance(kokio.deviceWalletAddress);
 
   const receiveSheetRef = useRef<BottomSheet>(null);
@@ -140,10 +172,15 @@ const WalletPage = () => {
 
   const acct: 'fiat' | 'device' | 'esim' = !kokio.userWallet ? 'fiat' : esims.length > 0 ? 'esim' : 'device';
 
-  // Only eSIMs that already have a deployed on-chain wallet belong in the
-  // "eSIM wallets" list below — a lazy eSIM has no wallet to show yet.
+  // Only eSIMs that already have a deployed on-chain wallet get a full row in
+  // the "eSIM wallets" list below — a lazy eSIM (server still deploying its
+  // wallet during order fulfilment) gets a "setting up" row instead, see
+  // pendingEsims.
   const deployedEsims = esims.filter(
     (doc): doc is ESimDocument & { esimId: string } => !!doc.esimId,
+  );
+  const pendingEsims = esims.filter(
+    (doc) => !doc.esimId && (doc.activationStatus === 'RELEASED' || doc.activationStatus === 'INSTALLED'),
   );
 
   if (acct === 'fiat') {
@@ -197,34 +234,52 @@ const WalletPage = () => {
             }}
           >
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-              <Ionicons name='finger-print-outline' size={22} color={accentOnCardColor} />
-              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold variant='xl'>Add a Kokio wallet</ThemedText>
+              <Ionicons
+                name={kokio.isWalletDeploying ? 'time-outline' : kokio.walletDeploymentError ? 'alert-circle-outline' : 'finger-print-outline'}
+                size={22}
+                color={kokio.walletDeploymentError && !kokio.isWalletDeploying ? colors.destructive : accentOnCardColor}
+              />
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold variant='xl'>
+                {kokio.isWalletDeploying
+                  ? 'Setting up your wallet'
+                  : kokio.walletDeploymentError
+                    ? "Wallet setup didn't finish"
+                    : 'Add a Kokio wallet'}
+              </ThemedText>
             </View>
             <ThemedText style={{ color: colors.cardForeground, marginTop: 7, marginBottom: 14, lineHeight: 20 }}>
-              Optional, do this anytime, setup in a second and the card keeps working.
+              {kokio.isWalletDeploying
+                ? 'This can take a few minutes. Feel free to keep browsing, your card keeps working in the meantime.'
+                : kokio.walletDeploymentError
+                  ? kokio.walletDeploymentError
+                  : 'Optional, do this anytime, setup in a second and the card keeps working.'}
             </ThemedText>
-            <TouchableOpacity
-              style={{
-                width: '100%',
-                minHeight: 50,
-                borderRadius: 999,
-                paddingHorizontal: 20,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: 16,
-                backgroundColor: colors.ctaBackground,
-              }}
-              onPress={() => router.push('/(tabs)/(wallet)/create-wallet' as any)}
-              accessibilityRole="button"
-              accessibilityLabel="Create wallet"
-            >
-              <ThemedText
-                style={{ fontSize: 18, fontWeight: '700', color: colors.ctaForeground }}
+            {kokio.isWalletDeploying ? (
+              <ActivityIndicator color={accentOnCardColor} style={{ marginTop: 4 }} />
+            ) : (
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  minHeight: 50,
+                  borderRadius: 999,
+                  paddingHorizontal: 20,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 16,
+                  backgroundColor: colors.ctaBackground,
+                }}
+                onPress={() => router.push('/(tabs)/(wallet)/create-wallet' as any)}
+                accessibilityRole="button"
+                accessibilityLabel={kokio.walletDeploymentError ? "Try creating wallet again" : "Create wallet"}
               >
-                Create wallet
-              </ThemedText>
-            </TouchableOpacity>
+                <ThemedText
+                  style={{ fontSize: 18, fontWeight: '700', color: colors.ctaForeground }}
+                >
+                  {kokio.walletDeploymentError ? 'Try again' : 'Create wallet'}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
           </ThemedView>
         </ScrollView>
       </ThemedView>
@@ -285,7 +340,9 @@ const WalletPage = () => {
             <ThemedView lightColor={colors.card} darkColor={colors.card} className='py-3 px-4 rounded-3xl'>
               <View className='flex-row justify-between items-center'>
                 <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>eSIM wallets</ThemedText>
-                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} style={{ fontSize: 12, color: colors.cardForeground }}>{deployedEsims.length} active</ThemedText>
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} style={{ fontSize: 12, color: colors.cardForeground }}>
+                  {deployedEsims.length} active{pendingEsims.length > 0 ? ` · ${pendingEsims.length} setting up` : ''}
+                </ThemedText>
               </View>
               <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 4, marginBottom: 12 }}>
                 Each eSIM has its own wallet, owned by this device wallet.
@@ -304,6 +361,9 @@ const WalletPage = () => {
                     />
                   );
                 })}
+                {pendingEsims.map((doc) => (
+                  <PendingEsimWalletRow key={doc.eSimRef} doc={doc} />
+                ))}
               </View>
             </ThemedView>
           </View>
@@ -355,8 +415,8 @@ const WalletPage = () => {
                       <Image source={tr.icon} className='h-[48px] w-[48px]  ' />
                       <View className='flex-col items-start ml-3 '>
                         <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='xl'>{tr.name}</ThemedText>
-                        {tr.type === "recieved"?<ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='sm'>{tr.type}</ThemedText>:
-                        <ThemedText darkColor={colors.cardForeground} variant='sm'>{tr.type}</ThemedText>
+                        {tr.type === "recieved"?<ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='sm'>{tr.statusLabel}</ThemedText>:
+                        <ThemedText darkColor={colors.cardForeground} variant='sm'>{tr.statusLabel}</ThemedText>
                         }
                       </View>
                     </View>

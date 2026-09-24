@@ -1,27 +1,25 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { View, ScrollView, Pressable, TouchableOpacity, ActivityIndicator, TextInput } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import BottomSheet from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import CountryFlag from "@/components/ui/CountryFlag";
-import { TopupSheet } from "@/components/wallet/sheets/TopupSheet";
+import { WalletHeroCard } from "@/components/wallet/WalletHeroCard";
 import { useColors } from "@/hooks/useColors";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { useEsimTopupAccess, useToggleEsimTopup } from "@/hooks/useEsimTopupAccess";
 import { useSetEsimLabel } from "@/hooks/useEsimLabel";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
-import { shortenAddress } from "@/utils/address";
+import { formatOnChainError } from "@/utils/formatOnChainError";
 
 export default function EsimWalletScreen() {
   const colors = useColors();
   const { esimId } = useLocalSearchParams<{ esimId: string; name?: string }>();
   const { esims } = useEsims();
-  const topupSheetRef = useRef<BottomSheet>(null);
 
   const doc = esims.find((e) => e.esimId === esimId);
   // esimId is stable across the lifetime of this screen (route param), so calling
@@ -67,10 +65,14 @@ export default function EsimWalletScreen() {
     if (topupDisabled) return;
     setErrorMessage(null);
     toggleTopup.mutate(
-      { esimWalletAddress: walletAddress, nextValue: !topupAllowed },
+      {
+        esimWalletAddress: walletAddress,
+        nextValue: !topupAllowed,
+        label: doc.label ?? display.serviceRegionName ?? undefined,
+      },
       {
         onError: (err) => {
-          setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+          setErrorMessage(formatOnChainError(err, "Something went wrong updating top-ups. Please try again."));
         },
       },
     );
@@ -106,75 +108,79 @@ export default function EsimWalletScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <ThemedView darkColor={colors.card} lightColor={colors.card} style={{ borderRadius: 21, padding: 16 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <CountryFlag size={38} flagUrl={display.serviceRegionFlag ?? ""} />
-            <View style={{ flex: 1 }}>
-              {isEditingLabel ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <TextInput
-                    value={labelDraft}
-                    onChangeText={setLabelDraft}
-                    maxLength={50}
-                    autoFocus
-                    placeholder="Name this eSIM"
-                    placeholderTextColor={colors.mutedForeground}
-                    style={{ flex: 1, fontSize: 15.5, fontWeight: "700", color: colors.cardForeground, padding: 0 }}
-                  />
+        <WalletHeroCard
+          address={doc.esimId}
+          balance={balance}
+          isBalanceLoading={isBalanceLoading}
+          compact
+          balanceLabel="eSIM wallet balance"
+          headerContent={
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <CountryFlag size={34} flagUrl={display.serviceRegionFlag ?? ""} />
+              <View style={{ flex: 1 }}>
+                {isEditingLabel ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <TextInput
+                      value={labelDraft}
+                      onChangeText={setLabelDraft}
+                      maxLength={50}
+                      autoFocus
+                      placeholder="Name this eSIM"
+                      placeholderTextColor={colors.foreground}
+                      style={{ flex: 1, fontSize: 15.5, fontWeight: "700", color: colors.text, padding: 0 }}
+                    />
+                    <TouchableOpacity
+                      onPress={handleSaveLabel}
+                      disabled={setLabel.isPending}
+                      accessibilityRole="button"
+                      accessibilityLabel="Save eSIM name"
+                    >
+                      {setLabel.isPending ? (
+                        <ActivityIndicator size="small" color={colors.text} />
+                      ) : (
+                        <Ionicons name="checkmark" size={20} color={colors.success} />
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setIsEditingLabel(false)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel editing eSIM name"
+                    >
+                      <Ionicons name="close" size={20} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
                   <TouchableOpacity
-                    onPress={handleSaveLabel}
-                    disabled={setLabel.isPending}
+                    onPress={handleStartEditLabel}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
                     accessibilityRole="button"
-                    accessibilityLabel="Save eSIM name"
+                    accessibilityLabel="Edit eSIM name"
                   >
-                    {setLabel.isPending ? (
-                      <ActivityIndicator size="small" color={colors.cardForeground} />
-                    ) : (
-                      <Ionicons name="checkmark" size={20} color={colors.success} />
-                    )}
+                    <ThemedText bold variant="normal" lightColor={colors.text} darkColor={colors.text} numberOfLines={1}>
+                      {doc.label ?? `${display.serviceRegionName ?? "eSIM"} · ${esimLabel}`}
+                    </ThemedText>
+                    <Ionicons name="pencil-outline" size={14} color={colors.text} />
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setIsEditingLabel(false)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Cancel editing eSIM name"
-                  >
-                    <Ionicons name="close" size={20} color={colors.cardForeground} />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  onPress={handleStartEditLabel}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Edit eSIM name"
-                >
-                  <ThemedText bold variant="normal" style={{ color: colors.cardForeground }} numberOfLines={1}>
-                    {doc.label ?? `${display.serviceRegionName ?? "eSIM"} · ${esimLabel}`}
-                  </ThemedText>
-                  <Ionicons name="pencil-outline" size={14} color={colors.cardForeground} />
-                </TouchableOpacity>
-              )}
-              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 1 }}>
-                {shortenAddress(doc.esimId)}
+                )}
+              </View>
+            </View>
+          }
+          footerContent={
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12 }}>
+              <Ionicons name="link-outline" size={12} color={colors.foreground} />
+              <ThemedText lightColor={colors.foreground} darkColor={colors.foreground} style={{ fontSize: 11.5 }}>
+                Linked to your device wallet, which you own
               </ThemedText>
             </View>
-          </View>
-          <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border }}>
-            <ThemedText style={{ color: colors.cardForeground, fontSize: 13 }}>Wallet balance</ThemedText>
-            {isBalanceLoading ? (
-              <ActivityIndicator size="small" color={colors.cardForeground} style={{ marginTop: 8, alignSelf: "flex-start" }} />
-            ) : (
-              <ThemedText bold style={{ fontSize: 32, marginTop: 2, color: colors.cardForeground }}>{balance === undefined ? "—" : `$${balance}`}</ThemedText>
-            )}
-          </View>
-        </ThemedView>
+          }
+        />
 
         <ThemedView darkColor={colors.card} lightColor={colors.card} style={{ borderRadius: 21, padding: 16, marginTop: 14 }}>
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
             <View style={{ flex: 1 }}>
               <ThemedText bold style={{ fontSize: 15.5, color: colors.cardForeground }}>Allow top-ups from your device wallet</ThemedText>
               <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 3, lineHeight: 18 }}>
-                When this eSIM runs low, it can draw funds from your device wallet without asking again.
+                Enabling this allows you to checkout faster while keeping your balances in one place.
               </ThemedText>
             </View>
             {isTopupLoading ? (
@@ -195,12 +201,19 @@ export default function EsimWalletScreen() {
                 style={{
                   width: 46, height: 28, borderRadius: 999, marginTop: 2,
                   backgroundColor: topupAllowed ? colors.walletAccent : colors.muted,
+                  borderWidth: 1.5, borderColor: colors.mutedForeground,
                   justifyContent: "center",
                   opacity: topupDisabled ? 0.6 : 1,
                 }}
               >
                 {isTopupMutating ? (
-                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                  <View style={{
+                    width: 22, height: 22, borderRadius: 999, backgroundColor: "#fff",
+                    marginLeft: topupAllowed ? 21 : 3,
+                    alignItems: "center", justifyContent: "center",
+                  }}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
                 ) : (
                   <View style={{
                     width: 22, height: 22, borderRadius: 999, backgroundColor: "#fff",
@@ -234,28 +247,43 @@ export default function EsimWalletScreen() {
       </ScrollView>
 
       <BottomActionBar>
-        <TouchableOpacity
-          style={{
-            width: "100%",
-            minHeight: 50,
-            borderRadius: 999,
-            paddingHorizontal: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: colors.ctaBackground,
-          }}
-          onPress={() => topupSheetRef.current?.snapToIndex(0)}
-          accessibilityRole="button"
-          accessibilityLabel="Top up this eSIM"
-        >
-          <ThemedText style={{ fontSize: 16, fontWeight: "700", color: colors.ctaForeground }}>
-            Top up this eSIM
-          </ThemedText>
-        </TouchableOpacity>
+        <View style={{ alignItems: "center" }}>
+          <View
+            style={{
+              marginBottom: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 999,
+              backgroundColor: colors.itemBackground,
+            }}
+          >
+            <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.mutedForeground }}>
+              COMING SOON
+            </ThemedText>
+          </View>
+          <TouchableOpacity
+            style={{
+              width: "100%",
+              minHeight: 50,
+              borderRadius: 999,
+              paddingHorizontal: 20,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colors.ctaBackground,
+              opacity: 0.5,
+            }}
+            disabled
+            accessibilityRole="button"
+            accessibilityLabel="Top up this eSIM, coming soon"
+            accessibilityState={{ disabled: true }}
+          >
+            <ThemedText style={{ fontSize: 16, fontWeight: "700", color: colors.ctaForeground }}>
+              Top up this eSIM
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
       </BottomActionBar>
-
-      <TopupSheet ref={topupSheetRef} esimName={display.serviceRegionName ?? "this eSIM"} />
     </View>
   );
 }
