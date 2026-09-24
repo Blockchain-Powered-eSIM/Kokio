@@ -480,10 +480,9 @@ const Checkout = () => {
         handleRemoveDiscount();
       } else if (
         err instanceof OrderCreationError &&
-        /wallet deployment is in progress/i.test(err.message)
+        (err.code === 'WALLET_DEPLOYMENT_IN_PROGRESS' || /wallet deployment is in progress/i.test(err.message))
       ) {
-        // By design, every payment method, including fiat, is blocked while this device's wallet is DEPLOYING
-        // To avoid a race between order fulfilment and deployment completing. No stable error code exists for this yet, matched on message text.
+        // By design, every payment method, including fiat, is blocked while this device's wallet is DEPLOYING to avoid a race between order fulfilment and deployment completing.
         showMessage(
           "Your wallet is still being set up. This can take a few minutes, please try again shortly.",
           'info',

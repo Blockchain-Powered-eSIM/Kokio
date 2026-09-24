@@ -1459,6 +1459,7 @@ export interface components {
              * @description Device-wallet deployment state.
              *     - `NOT_DEPLOYED`: no wallet on chain, purchases are recorded lazily.
              *       Call `POST /account/wallet/deploy` to request deployment.
+             *       If a prior deployment failed, `deployment` carries the result of that request.
              *     - `DEPLOYING`: a deployment request is in progress, poll this endpoint and read
              *       `deployment` for progress. Do not issue a second deploy request.
              *     - `DEPLOYED`: wallet is live on chain.
@@ -1466,7 +1467,16 @@ export interface components {
              * @enum {string}
              */
             walletState: "NOT_DEPLOYED" | "DEPLOYING" | "DEPLOYED";
-            /** @description Present only while `walletState` is `DEPLOYING`; `null` otherwise. */
+            /**
+             * @description Present while `walletState` is `DEPLOYING`, and after a terminal deployment
+             *     failure so the client can render the reason:
+             *
+             *     - `STALLED` (a on-chain transaction was executed and the wallet exists and
+             *     the request is retryable) is surfaced while `DEPLOYING`.
+             *     - `FAILED` (nothing was executed, the account reverted and is retryable
+             *     as a fresh request) is surfaced while `NOT_DEPLOYED`.
+             *     - `null` once `DEPLOYED` or when no deployment has ever been requested.
+             */
             deployment: {
                 /** @description Identifier of the in-flight deployment request. */
                 requestId: string;
@@ -2171,7 +2181,6 @@ export interface components {
             eSimRef: string;
             /**
              * @description eSIM wallet address for this result entry.
-             *     Use this value as `eSimId` in `POST /order` for a topup order if `compatible` is `true`.
              * @example 0xdef456abc123def456abc123def456abc123def4
              */
             esimId: string;
@@ -4120,6 +4129,29 @@ export interface operations {
                      *       "code": "NOT_FOUND",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                      *       "message": "Catalogue not found by catalogueId: 664f1a2b3c4d5e6f7a8b9c0d"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Request conflict with the current state of the target resource.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `WALLET_DEPLOYMENT_IN_PROGRESS` | Device Wallet is being deployed for the account. Orders are blocked till the deployment is complete. |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "WALLET_DEPLOYMENT_IN_PROGRESS",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Wallet deployment is in progress for device 0xe6d0f9a8b232cf453652bbb8e1ab1bd33c38fcb3; new orders are blocked until it completes."
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];

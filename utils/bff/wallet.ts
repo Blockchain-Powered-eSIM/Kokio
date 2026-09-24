@@ -82,8 +82,7 @@ export async function awaitWalletDeploymentConfirmation(
 
     if (onchainValid || state?.walletState === 'DEPLOYED') return true;
 
-    if (state?.walletState === 'DEPLOYING' &&
-      (state.deployment?.status === 'STALLED' || state.deployment?.status === 'FAILED')) {
+    if (state?.deployment?.status === 'FAILED') {
       logger.error('WALLET_DEPLOYMENT_WATCH_TERMINAL_FAILURE', { state });
       return false;
     }

@@ -17,7 +17,7 @@ import {
 import { logger } from "@/utils/logger";
 import { getWalletState, awaitWalletDeploymentConfirmation } from "@/utils/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
-import { isAccountDeletedError } from "@/utils/bff/errors";
+import { isAccountDeletedError, BffError } from "@/utils/bff/errors";
 import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from "@/utils/walletActivity";
 import { queryClient } from "@/services/queryClient";
 
@@ -570,8 +570,11 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
           await setupKokioUserWallet(kokio.deviceUID, deviceWallet);
           logger.debug('WALLET_AUTO_DERIVED', { deviceUID: kokio.deviceUID });
         } catch (err) {
-          // Non-fatal: wallet card stays in setup-prompt state.
-          logger.error('WALLET_AUTO_DERIVE_FAILED', { err });
+          if (err instanceof BffError && err.code === 'RATE_LIMIT_EXCEEDED') {
+            logger.debug('WALLET_AUTO_DERIVE_RATE_LIMITED', { err });
+          } else {
+            logger.error('WALLET_AUTO_DERIVE_FAILED', { err });
+          }
         }
       }
     };
