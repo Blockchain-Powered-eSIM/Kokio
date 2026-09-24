@@ -249,7 +249,7 @@ const WalletPage = () => {
             </View>
             <ThemedText style={{ color: colors.cardForeground, marginTop: 7, marginBottom: 14, lineHeight: 20 }}>
               {kokio.isWalletDeploying
-                ? 'This can take a few minutes. Feel free to keep browsing, your card keeps working in the meantime.'
+                ? 'This can take a few minutes. Purchases are restricted at the moment, feel free to explore plans.'
                 : kokio.walletDeploymentError
                   ? kokio.walletDeploymentError
                   : 'Optional, do this anytime, setup in a second and the card keeps working.'}

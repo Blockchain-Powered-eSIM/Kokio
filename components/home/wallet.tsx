@@ -158,7 +158,7 @@ const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balan
               darkColor={DARK_TOKENS.cardForeground}
               style={{ marginTop: 6, marginBottom: 14 }}
             >
-              This can take a few minutes. Your card keeps working in the meantime.
+              This can take a few minutes. Purchases are restricted at the moment, feel free to explore plans.
             </ThemedText>
             <ActivityIndicator color={iconOnCardColor} />
           </>
