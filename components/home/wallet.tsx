@@ -212,7 +212,7 @@ const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balan
                 darkColor={DARK_TOKENS.cardForeground}
                 style={{ flex: 1 }}
               >
-                Unlock with {PASSKEY_LABEL}. Pay and top up with stablecoins, and travel freely.
+                Unlock with {PASSKEY_LABEL}. Simple, Fast and Secure.
               </ThemedText>
               <TouchableOpacity
                 onPress={() => router.push("/(tabs)/(wallet)" as any)}
