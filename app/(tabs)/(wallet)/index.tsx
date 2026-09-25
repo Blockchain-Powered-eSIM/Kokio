@@ -217,7 +217,7 @@ const WalletPage = () => {
                 Why not just a card?
               </ThemedText>
               <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, textDecorationLine: 'underline', fontWeight: '700', marginTop: 2 }}>
-                The hidden cost of paying by card →
+                The hidden cost of freedom of connectivity →
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
