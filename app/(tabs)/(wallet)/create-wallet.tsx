@@ -83,7 +83,7 @@ export default function CreateWalletScreen() {
           : 'Wallet request submitted. This can take a few minutes, feel free to keep browsing.',
         'info',
       );
-      router.dismissAll();
+      if (router.canDismiss()) router.dismissAll();
       router.navigate("/(tabs)/(wallet)" as any);
     } catch (err: unknown) {
       if (err instanceof MissingSignupDataError) {

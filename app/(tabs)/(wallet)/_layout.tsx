@@ -24,53 +24,6 @@ export default function WalletStack() {
         
       />
       <Stack.Screen
-        name={ROUTE_NAMES.TOKENS}
-        options={ {
-          
-          
-            header: () => (
-              <Header
-                title="Tokens"
-                hasBack
-                style={{ justifyContent: "center" }}
-              />
-            ),
-          
-        }}
-      />
-      <Stack.Screen
-        name={ROUTE_NAMES.TRANSACTIONS}
-        options={ {
-          
-          
-          
-            header: () => (
-              <Header
-                title="Transactions"
-                hasBack
-                style={{ justifyContent: "center" }}
-              />
-            ),
-          
-        }}
-      />
-      <Stack.Screen
-        name={ROUTE_NAMES.TRANSACTIONDETAILS}
-        options={ {
-          
-          
-          
-            header: () => (
-              <Header
-                title="Transaction Details"
-                hasBack
-                style={{ justifyContent: "center" }}
-              />
-            ),
-          
-        }}
-      />
-      <Stack.Screen
         name={ROUTE_NAMES.CREATE_WALLET}
         options={{ headerShown: false }}
       />
