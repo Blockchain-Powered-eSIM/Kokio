@@ -1772,7 +1772,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-compat (2.23.10):
+  - react-native-compat (2.25.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1794,7 +1794,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-    - YttriumWrapper (= 0.10.54)
+    - YttriumWrapper (= 0.10.59)
   - react-native-get-random-values (1.11.0):
     - React-Core
   - react-native-netinfo (12.0.1):
@@ -2855,7 +2855,7 @@ PODS:
     - StripeCore (= 25.11.0)
   - SwiftUIIntrospect (1.3.0)
   - Yoga (0.0.0)
-  - YttriumWrapper (0.10.54)
+  - YttriumWrapper (0.10.59)
   - ZXingObjC/Core (3.6.9)
   - ZXingObjC/OneD (3.6.9):
     - ZXingObjC/Core
@@ -3366,7 +3366,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 3c805ea54675b00ef1755f23b3c1fccf34962b93
   React-microtasksnativemodule: 97a771dbbb4315c71579995b53e4e3e351a99d89
   React-mutationobservernativemodule: 530bff1bba9511a5133e3cf8170e3b2c0df49e89
-  react-native-compat: c7e13e65e87410c6806da33560b7ca65f1eeaa1e
+  react-native-compat: 31bf86004f84762b8510b20bb0c1bce3440f7bbe
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
   react-native-netinfo: 2f906d5d9a639090ed1c079135d6485a95f749f1
   react-native-pager-view: c9f0c94cc64041ac70f28f79527ea2ac664cf25c
@@ -3430,7 +3430,7 @@ SPEC CHECKSUMS:
   StripeUICore: 9ee3c730f282fd34605f7ba00f2b77d80729d882
   SwiftUIIntrospect: fee9aa07293ee280373a591e1824e8ddc869ba5d
   Yoga: 18b74b3ade30bebc1904004dfaceae1dd02a330a
-  YttriumWrapper: 850d3c5bfa7815ad9962591ff3c1b289039266f2
+  YttriumWrapper: 64983f0edbf609b800ac3074010224fc5341aaeb
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
 
 PODFILE CHECKSUM: 31ee6bd91a8a8b5fc30d77e0a680d8f424485584
