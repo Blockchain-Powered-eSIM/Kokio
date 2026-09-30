@@ -30,7 +30,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload } from "@/helpers/esimOrder";
 import { useEsims, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
-import { isOrderSuccess, pollOrderStatus } from "@/utils/bff/order";
+import { isOrderSuccess, pollOrderStatus, submitPaymentHash } from "@/utils/bff/order";
 import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/utils/bff/order";
 import { pollingLabel } from "@/utils/orderStatus";
 import OrderFailureModal from "@/components/ui/OrderFailureModal";
@@ -57,6 +57,10 @@ import { formatOnChainError, isUserCancelledPasskeyError } from "@/utils/formatO
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
+
+// How long to wait for the chain webhook to confirm a device-wallet payment
+// before submitting the signed hash ourselves as a recovery fallback.
+const DEVICE_WALLET_PAYMENT_SUBMISSION_DELAY_MS = 25000;
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container:              { flex: 1 },
@@ -418,7 +422,19 @@ const Checkout = () => {
       }
 
       setLoadingMessage('Checking payment status...');
+
+      // The chain webhook confirms this order independently of anything the
+      // client does; submitting the hash early would only add a wasted call
+      // on the common case where the webhook lands first. Submit it once,
+      // only if the webhook still hasn't confirmed after a reasonable wait.
+      const fallbackTimer = setTimeout(() => {
+        submitPaymentHash(correlationId, hash).catch((err) => {
+          logger.error('DEVICE_WALLET_PAYMENT_SUBMISSION_FAILED', { err });
+        });
+      }, DEVICE_WALLET_PAYMENT_SUBMISSION_DELAY_MS);
+
       const finalOrder = await pollOrderStatus(correlationId, { onUpdate: handlePollUpdate }).catch(() => null);
+      clearTimeout(fallbackTimer);
       setIsCheckoutLoading(false);
       setLoadingMessage('');
       await handleOrderResult(finalOrder, correlationId);
