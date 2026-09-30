@@ -53,7 +53,7 @@ import {
 } from "@heliofi/checkout-react-native";
 import type { PaymentCallback } from "@heliofi/checkout-react-native";
 import { logger } from "@/utils/logger";
-import { formatOnChainError } from "@/utils/formatOnChainError";
+import { formatOnChainError, isUserCancelledPasskeyError } from "@/utils/formatOnChainError";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
@@ -386,6 +386,54 @@ const Checkout = () => {
     doPoll();
   }, [handleOrderResult, handlePollUpdate]);
 
+  const handleDeviceWalletPayment = useCallback(async (
+    userOperations: { to: string; data: string },
+    correlationId: string,
+  ) => {
+    const deviceWallet = kokio.sdk?.deviceWallet;
+    const smartAccountClient = kokio.sdk?.smartAccountClient;
+    if (!deviceWallet || !smartAccountClient) {
+      showMessage("Wallet isn't ready yet - try again in a moment", 'info');
+      return;
+    }
+
+    try {
+      setIsCheckoutLoading(true);
+      setLoadingMessage('Confirm the payment with Face ID...');
+
+      // Fires the passkey/biometric prompt. Resolves with the user operation
+      // hash, NOT a receipt - the payment is not confirmed on-chain yet.
+      const hash = await deviceWallet.sendUserOperation([{
+        to: userOperations.to as `0x${string}`,
+        data: userOperations.data as `0x${string}`,
+      }]);
+
+      const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
+
+      // A user operation whose calls REVERT still gets mined and still
+      // returns a receipt - a resolved promise here is not proof the
+      // payment went through.
+      if (!receipt.success) {
+        throw new Error('Payment reverted on-chain');
+      }
+
+      setLoadingMessage('Checking payment status...');
+      const finalOrder = await pollOrderStatus(correlationId, { onUpdate: handlePollUpdate }).catch(() => null);
+      setIsCheckoutLoading(false);
+      setLoadingMessage('');
+      await handleOrderResult(finalOrder, correlationId);
+    } catch (err) {
+      setIsCheckoutLoading(false);
+      setLoadingMessage('');
+      if (isUserCancelledPasskeyError(err)) {
+        logger.debug('DEVICE_WALLET_PAYMENT_CANCELLED_BY_USER');
+        return;
+      }
+      logger.error('DEVICE_WALLET_PAYMENT_FAILED', { err });
+      showMessage(formatOnChainError(err, 'Could not complete the payment.'), 'info');
+    }
+  }, [kokio.sdk, handlePollUpdate, handleOrderResult, showMessage]);
+
   // __DEV__ only (see checkout.helpers.tsx's isDisabled and radioLabels.tsx's
   // ESimWallet label) - skips Stripe/MoonPay/BFF order creation entirely and
   // instead deploys a real on-chain eSIM wallet via kokio.sdk, so the top-up
@@ -444,11 +492,7 @@ const Checkout = () => {
       setLoadingMessage('');
 
       if (result.kind === 'awaiting_device_wallet_payment') {
-        // Signing (sendUserOperation) is not wired up yet. No radio option
-        // selects this path today, so this should be unreachable; fail loudly
-        // rather than mis-poll if it is.
-        logger.error('DEVICE_WALLET_PAYMENT_NOT_IMPLEMENTED', { orderId: result.orderId });
-        showMessage('Paying with your Kokio wallet is not available yet.', 'info');
+        await handleDeviceWalletPayment(result.userOperations, result.correlationId);
         return;
       }
 
@@ -505,7 +549,7 @@ const Checkout = () => {
   }, [
     selectedPaymentMethod, eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef,
     createOrderMutation, handleOrderResult, handleBrowserPay, handleRemoveDiscount, showMessage,
-    handleDevWalletBypassCheckout,
+    handleDevWalletBypassCheckout, handleDeviceWalletPayment,
   ]);
 
   const handleInstallESIM = useCallback(() => {

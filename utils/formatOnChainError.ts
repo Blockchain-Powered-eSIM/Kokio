@@ -9,3 +9,15 @@ export function formatOnChainError(err: unknown, fallback: string): string {
   }
   return fallback;
 }
+
+// The passkey signer rethrows a plain `{ error, message }` object (NOT an
+// Error instance) when the user dismisses the biometric prompt. Also
+// defensively covers a standard Error/DOMException-shaped cancellation
+// in case the signer changes.
+export function isUserCancelledPasskeyError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { error?: unknown; name?: unknown; message?: unknown };
+  const code = typeof candidate.error === 'string' ? candidate.error : typeof candidate.name === 'string' ? candidate.name : '';
+  const message = typeof candidate.message === 'string' ? candidate.message : '';
+  return /cancel/i.test(code) || /cancel/i.test(message) || /notallowed/i.test(code);
+}
