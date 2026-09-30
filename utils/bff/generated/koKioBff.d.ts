@@ -406,7 +406,8 @@ export interface paths {
          * Initiate eSIM order
          * @description Initiates a new eSIM purchase or topup order (Phase 1).
          *
-         *     Creates the order, sets up payment sessions with Stripe (and Moonpay for crypto),
+         *     Creates the order, sets up payment sessions with Stripe, Moonpay (for external wallets),
+         *     or Kokio-SDK payment adapter (for direct device wallet payments)
          *     and returns the session data the client needs to complete payment.
          *     This endpoint is synchronous from the client's perspective — it returns once the
          *     payment session is ready.
@@ -439,6 +440,8 @@ export interface paths {
          *     - `coupon` provided and balance covers full amount → `COUPON` (Stripe $0 invoice, auto-pays)
          *     - `isCryptoPayment: true` (no coupon) → `CRYPTO` (Stripe invoice + Moonpay charge session)
          *     - `isCryptoPayment: false` (no coupon) → `FIAT` (Stripe invoice with Payment Elements)
+         *     - `isCryptoPayment: false` (no coupon) **AND** `isDeviceWalletPayment: true` →
+         *       `DEVICE_WALLET` (Stripe Invoice + Wallet payment session)
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
          *     (10 requests per minute per `deviceWalletAddress`).
@@ -543,6 +546,51 @@ export interface paths {
         get: operations["orderGetStatus"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/order/{idempotencyKey}/payment-submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit device-wallet payment hash
+         * @description Records the `userOperationHash` of a signed device-wallet payment user operation so the
+         *     reconcile job can classify the payment when the chain confirmation webhook did not land.
+         *
+         *     **Happy path does NOT need this endpoint** — payment is correlated on `paymentReference`
+         *     from the on-chain event and confirmed via the chain webhook. This is a recovery fallback:
+         *     if the client does not observe the order reaching `PAYMENT_VERIFIED` (or beyond) within a
+         *     reasonable window, it submits the hash here so the reconcile job can fetch the user
+         *     operation receipt and classify success or failure rather than waiting to abandon the order.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`). Step-up is **not**
+         *     required — this submission carries no financial authorization. The payment already settled
+         *     on chain when the client signed, and the reconcile job verifies on-chain truth independently;
+         *     a wrong or forged hash cannot cause incorrect fulfilment.
+         *
+         *     **Behaviour by Order state:**
+         *     - `PAYMENT_PENDING` — the hash is recorded and the response returns `PAYMENT_PENDING`.
+         *     - Already advanced (`PAYMENT_VERIFIED`, `COMPLETED`) — idempotent no-op success. The webhook
+         *       already confirmed the payment. The hash is not overwritten.
+         *     - Terminal failure (`PAYMENT_FAILED`, `ABANDONED`, `VENDOR_FAILED`, `ESIM_PROVISION_FAILED`,
+         *       `ON_CHAIN_FAILED`) — `409 PAYMENT_SUBMISSION_NOT_ALLOWED`. The order is closed, create a new one.
+         *     - Not a `DEVICE_WALLET` order — `409 PAYMENT_SUBMISSION_NOT_ALLOWED`.
+         *     - No order for the idempotency key + device — returns HTTP 200 with code `ORDER_NOT_FOUND`
+         *       (mirrors `GET /order/{idempotencyKey}`).
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (10 requests per minute per `deviceWalletAddress`).
+         */
+        post: operations["orderSubmitPayment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -879,9 +927,10 @@ export interface paths {
          *     | `cleanup_abandoned_orders` | 24 hours | Voids Stripe invoices and marks stuck orders as `ABANDONED` |
          *     | `retry_vendor_fulfilment` | 3 minutes | Retries transient vendor failures (`VENDOR_RETRY_PENDING`) |
          *     | `retry_onchain_recording` | 15 minutes | Retries on-chain recording (`ESIM_PROVISIONED_PENDING_CHAIN`) |
-         *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
+         *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions `UNAVAILABLE` eSIMs to `DEACTIVATED` after a 180-day grace window |
          *     | `process_wallet_deployments` | 5 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
-         *     | `record_lazy_wallet_history` | 15 minutes | Records pending lazy-wallet purchase history for NOT_DEPLOYED accounts into the lazy registry |
+         *     | `record_lazy_wallet_history` | 15 minutes | Records pending lazy-wallet purchase history for `NOT_DEPLOYED` accounts into the lazy registry |
+         *     | `reconcile_device_wallet_payments` | 30 minutes | Secondary confirmation for expired device-wallet payment sessions. Fulfils the order upon confirmation or marks `PAYMENT_FAILED`/`ABANDONED` |
          */
         post: operations["adminJobsRun"];
         delete?: never;
@@ -1093,6 +1142,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks/chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Alchemy Notify chain webhook
+         * @description Receives Alchemy Notify **Custom Webhook** events confirming direct device-wallet
+         *     on-chain payments (the `DataBundleBoughtWithToken` event emitted by the ESIMWallet).
+         *
+         *     > **Not callable by clients.** Invoked exclusively by Alchemy's webhook delivery
+         *     > infrastructure. Provisioned once per environment from the Alchemy dashboard.
+         *
+         *     **Webhook type:** Custom Webhook (GraphQL), filtered **topic-only** on the
+         *     `DataBundleBoughtWithToken` signature topic. The emitter is per-eSIM-wallet, so no
+         *     contract-address filter is used; correlation and validation are done in the BFF.
+         *
+         *     **Authentication:** No auth middleware. HMAC-SHA256 over the raw body with the
+         *     per-webhook signing key (`ALCHEMY_WEBHOOK_SIGNING_KEY`), compared against the
+         *     `x-alchemy-signature` header in constant time.
+         *
+         *     **Raw body requirement:** The body must be the raw unparsed buffer. Preserved by the
+         *     global `express.json()` verify callback for paths under `/webhooks`.
+         *
+         *     **Flow:**
+         *     1. Verify the `x-alchemy-signature` HMAC.
+         *     2. Parse the GraphQL payload (`event.data.block.logs[]`); keep logs whose `topics[0]`
+         *        matches the event topic.
+         *     3. Decode each log; correlate to a DEVICE_WALLET order in `PAYMENT_PENDING` via
+         *        `paymentReference`.
+         *     4. Return 200 immediately; asynchronously wait for the configured finality step `safe`,
+         *        before handing the confirmed payment to the verification pipeline.
+         *
+         *     **Idempotency:** duplicate deliveries are absorbed at verification: the atomic
+         *     PAYMENT_PENDING -> PAYMENT_VERIFIED transition and the PaymentTransaction unique
+         *     (transactionHash, logIndex) index. The webhook keeps no per-order state.
+         *
+         *     **Confirmation:** Alchemy fires at `latest`. The handler polls the SDK's
+         *     `admin.utils.verifyProtocolPayment` until the settlement transaction reaches `safe`
+         *     finality (transaction batch is posted to Ethereum L1), then verifies intent and fulfils.
+         *     The reconcile job is a secondary fallback for payments not confirmed via the webhook.
+         *
+         *     **Error handling:** All non-signature errors are caught, logged, and return 200 to
+         *     prevent Alchemy retry storms. Only signature verification failures return non-200.
+         *
+         *     **Correlation ID:** Exempt from the `x-correlation-id` requirement; a server-generated
+         *     `exempt-` UUID is used.
+         */
+        post: operations["webhookChain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1179,15 +1287,14 @@ export interface components {
              *
              *     | Code | Status | Meaning |
              *     |------|--------|---------|
-             *     | `TXN_HASH_ALREADY_USED` | 409 | Transaction hash has already been used for a prior order |
-             *     | `INVALID_OR_INSUFFICIENT_TX` | 400 | Payment transaction validation failed or amount is below the required threshold |
-             *     | `ORDER_CREATION_FAILED` | 502 | On-chain buyDataBundle transaction failed |
+             *     | `ORDER_NOT_FOUND` | 404 | Presented OrderId was not found on the backend |
+             *     | `ORDER_CREATION_FAILED` | 500 | On-chain buyDataBundle transaction failed |
              *
              *     **eSIM errors**
              *
              *     | Code | Status | Meaning |
              *     |------|--------|---------|
-             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | 404 | No eSIM found for the provided `esimId` associated with this device |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | 400 | No eSIM found for the provided `esimId` associated with this device |
              *     | `NO_ACTIVE_ESIMS_FOR_DEVICE` | 404 | No active eSIMs found for this device |
              *     | `TOPUP_COMPATIBILITY_CHECK_FAILED` | 502 | Upstream vendor compatibility check call failed |
              *     | `NO_EQUIVALENT_TOPUP_PLAN` | 404 | No active TOPUP equivalent plan found for the provided catalogue entry |
@@ -1197,6 +1304,7 @@ export interface components {
              *     | Code | Status | Meaning |
              *     |------|--------|---------|
              *     | `COUPON_NOT_FOUND` | 404 | Coupon code not found |
+             *     | `INVALID_OR_INSUFFICIENT_TX` | 400 | Payment transaction validation failed or amount is below the required threshold |
              *     | `COUPON_INSUFFICIENT_BALANCE` | 400 | Coupon balance is zero or below the required amount |
              *     | `COUPON_ALREADY_ISSUED_FOR_TX` | 409 | A coupon has already been issued for this transaction hash |
              *     | `COUPON_CODE_GEN_FAILED` | 500 | Coupon code generation failed after retry attempts |
@@ -1852,7 +1960,20 @@ export interface components {
              *     the payment method is resolved to `COUPON` server-side in that case.
              * @example false
              */
-            isCryptoPayment: boolean;
+            isCryptoPayment?: boolean;
+            /**
+             * @description Pay on-chain from the device wallet. Requires walletState=DEPLOYED and an `asset`;
+             *     mutually exclusive with `isCryptoPayment` and `coupon`.
+             * @example true
+             */
+            isDeviceWalletPayment?: boolean;
+            /**
+             * @description Token symbol in which the user wants to pay.
+             *     **MUST** be a whitelisted transferable asset symbol per BFF and Kokio-SDK payment adapter configuration.
+             *     Required and only used when isDeviceWalletPayment is `true`.
+             * @example USDC
+             */
+            asset?: string;
             /**
              * @description MongoDB ObjectId of the eSIM document to top up (the `eSimRef` value from a
              *     `GET /esim` result). **Required when `isNewESim` is `false`.** Ownership is
@@ -1935,6 +2056,31 @@ export interface components {
              * @example https://pay.moonpay.com/charge/chg_abc123def456
              */
             moonpayPaymentPageUrl?: string;
+            /**
+             * @description Present only on **DEVICE_WALLET** orders. Ordered calls to submit as ONE user
+             *     operation from the device wallet. Do not modify `data`.
+             */
+            userOperations?: {
+                /**
+                 * @description Wallet Address with which the transaction is to be signed.
+                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 */
+                to?: string;
+                /**
+                 * @description Encoded calldata for the payment transaction.
+                 *     To be passed directly via `sendUserOperation()`.
+                 * @example 0xad2b108bd8428d9f7786c9300b40cc6a5e8c4c84009dc07a48cc91...
+                 */
+                data?: string;
+            };
+            /**
+             * Format: date-time
+             * @description Present only on **DEVICE_WALLET** orders to protect against token value variations
+             *     on the calculated payment amount quote.
+             *     Submit the user operation before this time.
+             * @example 2026-09-25T12:31:37.000+00:00
+             */
+            paymentSessionExpiresAt?: string;
         };
         OrderStatusResponse: {
             /**
@@ -1979,7 +2125,7 @@ export interface components {
              * @example FIAT
              * @enum {string}
              */
-            paymentMethod: "FIAT" | "CRYPTO" | "COUPON";
+            paymentMethod: "FIAT" | "CRYPTO" | "COUPON" | "DEVICE_WALLET";
             /**
              * @description Canonical vendor identifier that fulfilled the order.
              *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`.
@@ -2170,6 +2316,45 @@ export interface components {
              * @example 2
              */
             total: number;
+        };
+        SubmitPaymentRequest: {
+            /**
+             * @description ERC-4337 user operation hash of the payment user operation the device wallet signed and submitted.
+             *     0x-prefixed 32-byte hex.
+             *
+             *     Submitted as a fallback when the chain confirmation webhook did not land.
+             *     The BFF records it on the order so the reconcile job can classify the payment by fetching the
+             *     user operation receipt. It is not trusted as proof of payment — settlement is verified
+             *     independently on chain.
+             * @example 0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+             */
+            userOperationHash: string;
+        };
+        SubmitPaymentResponse: {
+            /**
+             * @description MongoDB ObjectId of the order the hash was recorded against.
+             * @example 664f1a2b3c4d5e6f7a8b9c0e
+             */
+            orderId: string;
+            /**
+             * @description Order status after processing. `PAYMENT_PENDING` when the hash was recorded and the
+             *     reconcile job will pick it up. A more advanced status (e.g. `PAYMENT_VERIFIED`) when the
+             *     chain webhook had already confirmed the payment, in which case the submission is an
+             *     idempotent no-op.
+             * @example PAYMENT_PENDING
+             */
+            orderStatus: string;
+            /**
+             * @example DEVICE_WALLET
+             * @enum {string}
+             */
+            paymentMethod: "DEVICE_WALLET";
+            /**
+             * @description The user operation hash now recorded on the order. Null only if no hash has ever been
+             *     persisted (an already-advanced order that was verified before any submission).
+             * @example 0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+             */
+            userOperationHash?: string | null;
         };
         CompatibilityResult: {
             /**
@@ -2777,16 +2962,17 @@ export interface components {
              *     |----------|--------|-------------|
              *     | `refresh_vendor1_bearer` | 12 hours | Rotates the Vendor1 bearer token via the vendor auth endpoint and persists the new value in the secrets store |
              *     | `refresh_catalogue` | 24 hours | Fetches the latest plan catalogue from all configured vendors, upserts plan documents, and runs the compression pass |
-             *     | `cleanup_abandoned_orders` | 24 hours | Voids/deletes Stripe invoices and marks orders stuck in `CREATED` or `PAYMENT_PENDING` beyond the 24-hour TTL as `ABANDONED`. Deletes `ABANDONED` orders older than 30 days |
+             *     | `cleanup_abandoned_orders` | 24 hours | Voids/deletes Stripe invoices and marks orders stuck in `CREATED` or `PAYMENT_PENDING` beyond the 24-hour TTL as `ABANDONED`. `DEVICE_WALLET` orders at `PAYMENT_PENDING` are excluded. Deletes `ABANDONED` orders older than 30 days |
              *     | `retry_vendor_fulfilment` | 3 minutes | Retries orders at `VENDOR_RETRY_PENDING` (transient vendor failures). Max 2 retries before `VENDOR_FAILED` |
              *     | `retry_onchain_recording` | 15 minutes | Retries `buildBuyDataBundleTxn` for orders at `ESIM_PROVISIONED_PENDING_CHAIN`. Max 2 retries before `COMPLETED` + `flaggedForManualReview` |
-             *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
+             *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions `UNAVAILABLE` eSIMs to `DEACTIVATED` after a 180-day grace window |
              *     | `process_wallet_deployments` | 5 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
              *     | `record_lazy_wallet_history` | 15 minutes | Records pending lazy-wallet purchases (`isLazyWalletTransaction`, `ESIM_PROVISIONED_PENDING_CHAIN`) into the lazy registry for `NOT_DEPLOYED` accounts, grouped by device |
+             *     | `reconcile_device_wallet_payments` | 30 minutes | Secondary confirmation for expired device-wallet payment sessions: confirms via chain (`usedPaymentReferences` / bundler receipt) and fulfils, or marks `PAYMENT_FAILED`/`ABANDONED` and returns the eSIM wallet to the pool |
              * @example refresh_catalogue
              * @enum {string}
              */
-            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording" | "sync_esim_status" | "process_wallet_deployments" | "record_lazy_wallet_history";
+            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording" | "sync_esim_status" | "process_wallet_deployments" | "record_lazy_wallet_history" | "reconcile_device_wallet_payments";
         };
         /**
          * @description Job execution result. Shape varies by job type.
@@ -4048,6 +4234,7 @@ export interface operations {
              *     The response shape varies by resolved payment method:
              *     - **FIAT:** `orderId`, `stripeInvoiceId`, `clientSecret` — render Stripe Payment Elements.
              *     - **CRYPTO:** `orderId`, `moonpayChargeId`, `moonpayPaymentPageUrl` — open Moonpay hosted page.
+             *     - **DEVICE_WALLET:** `orderId`, `userOperations`, `paymentSessionExpiresAt` - get user signature for the transaction.
              *     - **COUPON:** `orderId` only — $0 invoice auto-pays, webhook fires immediately. Begin polling.
              *
              *     After payment completion, poll `GET /order/{idempotencyKey}` for fulfilment status.
@@ -4075,6 +4262,8 @@ export interface operations {
              *     | `COUPON_INSUFFICIENT_BALANCE` | Coupon balance does not cover the full order amount |
              *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `eSimRef` is not associated with the authenticated device |
              *     | `INVALID_ESIM_TOPUP` | A topup plan cannot be used for a new eSIM purchase |
+             *     | `DEVICE_WALLET_ASSET_NOT_TRANSFERABLE` | Asset presneted for `DEVICE_WALLET` payment is not a valid tranferable asset. |
+             *     | `DEVICE_WALLET_PRICE_ABOVE_CAP` | Order value is greater than spending cap set on the wallet address. |
              */
             400: {
                 headers: {
@@ -4140,6 +4329,7 @@ export interface operations {
              *     | Code | Meaning |
              *     |------|---------|
              *     | `WALLET_DEPLOYMENT_IN_PROGRESS` | Device Wallet is being deployed for the account. Orders are blocked till the deployment is complete. |
+             *     | `DEVICE_WALLET_NOT_DEPLOYED` | Device wallet is not deployed and payment method presented for the order is `DEVICE_WALLET`. |
              */
             409: {
                 headers: {
@@ -4201,6 +4391,29 @@ export interface operations {
                      *       "code": "ORDER_CREATION_FAILED",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                      *       "message": "Order creation failed"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Order creation failed due to a transient error.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `DEVICE_WALLET_QUOTE_FAILED` | Quote generation failed for the payment session. |
+             */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "DEVICE_WALLET_QUOTE_FAILED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Failed to obtain a settlement quote for asset ETH: {reason}"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
@@ -4372,6 +4585,143 @@ export interface operations {
             };
             401: components["responses"]["DPoPAuthError"];
             404: components["responses"]["AccountDeletedError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    orderSubmitPayment: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description The `x-correlation-id` value used when the order was created via `POST /order`.
+                 *     Identifies the order for the authenticated device.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                idempotencyKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "userOperationHash": "0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+                 *     }
+                 */
+                "application/json": components["schemas"]["SubmitPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Hash recorded, or an idempotent no-op when the order had already advanced. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
+                     *         "orderStatus": "PAYMENT_PENDING",
+                     *         "paymentMethod": "DEVICE_WALLET",
+                     *         "userOperationHash": "0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["SubmitPaymentResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request body failed validation.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
+             *     | `REQUIRED_FIELD` | `userOperationHash` is missing |
+             *     | `INVALID_VALUE` | `userOperationHash` is not 0x-prefixed 32-byte hex |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "INVALID_VALUE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "userOperationHash 0xzzz is invalid"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            404: components["responses"]["AccountDeletedError"];
+            /**
+             * @description The order cannot accept a payment submission in its current state.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PAYMENT_SUBMISSION_NOT_ALLOWED` | Order is not a device-wallet order, or is in a terminal state |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "PAYMENT_SUBMISSION_NOT_ALLOWED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Payment submission is not applicable for order 664f1a2b3c4d5e6f7a8b9c0e in its current state."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -5965,6 +6315,56 @@ export interface operations {
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
+            };
+        };
+    };
+    webhookChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Alchemy Custom Webhook (GraphQL) payload. Must not be parsed before signature
+         *     verification. Content-Type is `application/json`; the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example wh_octjglnywaupz6th */
+                    webhookId?: string;
+                    /** @example whevt_ogrc5v64myey69ux */
+                    id?: string;
+                    /**
+                     * @example GRAPHQL
+                     * @enum {string}
+                     */
+                    type?: "GRAPHQL";
+                    /** @description GraphQL result carrying `data.block.logs[]`. */
+                    event?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Event received (always returned except on signature failure). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        received?: boolean;
+                    };
+                };
+            };
+            /** @description Signature verification failed (CHAIN_WEBHOOK_INVALID). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

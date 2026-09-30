@@ -28,6 +28,13 @@ export type CreateOrderResult =
       orderId: string;
       moonpayChargeId: string;
       moonpayPaymentPageUrl: string;
+    }
+  | {
+      kind: 'awaiting_device_wallet_payment';
+      correlationId: string;
+      orderId: string;
+      userOperations: { to: string; data: string };
+      paymentSessionExpiresAt: string;
     };
 
 // SecureStore key for the most recently purchased eSIM wallet address.
@@ -140,6 +147,22 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
           orderId: data.orderId,
           moonpayChargeId: data.moonpayChargeId,
           moonpayPaymentPageUrl: data.moonpayPaymentPageUrl,
+        };
+      }
+
+      /**
+       * DEVICE_WALLET — userOperations present. Caller must sign and submit it
+       * (sendUserOperation) before any polling starts; unlike FIAT/CRYPTO, payment
+       * has not happened yet at this point, so returning here rather than polling
+       * is deliberate.
+       */
+      if (data.userOperations?.to && data.userOperations?.data && data.paymentSessionExpiresAt) {
+        return {
+          kind: 'awaiting_device_wallet_payment',
+          correlationId,
+          orderId: data.orderId,
+          userOperations: { to: data.userOperations.to, data: data.userOperations.data },
+          paymentSessionExpiresAt: data.paymentSessionExpiresAt,
         };
       }
 

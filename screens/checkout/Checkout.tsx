@@ -440,10 +440,19 @@ const Checkout = () => {
         return;
       }
 
-      // awaiting_crypto_payment
       setIsCheckoutLoading(false);
       setLoadingMessage('');
 
+      if (result.kind === 'awaiting_device_wallet_payment') {
+        // Signing (sendUserOperation) is not wired up yet. No radio option
+        // selects this path today, so this should be unreachable; fail loudly
+        // rather than mis-poll if it is.
+        logger.error('DEVICE_WALLET_PAYMENT_NOT_IMPLEMENTED', { orderId: result.orderId });
+        showMessage('Paying with your Kokio wallet is not available yet.', 'info');
+        return;
+      }
+
+      // awaiting_crypto_payment
       if (
         //@ts-expect-error EXTERNAL_WALLET has been intentionally disabled for now
         selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET
