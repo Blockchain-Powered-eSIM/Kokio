@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 
-const STORAGE_KEY = '@kokio_pending_orders';
+export const PENDING_ORDERS_STORAGE_KEY = '@kokio_pending_orders';
 export const PENDING_ORDERS_KEY = 'pending-orders' as const;
 
 export interface PendingOrderRecord {
@@ -31,7 +31,7 @@ export interface PendingOrderRecord {
 
 export async function readPendingOrders(): Promise<PendingOrderRecord[]> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = await AsyncStorage.getItem(PENDING_ORDERS_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as PendingOrderRecord[]) : [];
   } catch (error) {
     logger.error('PENDING_ORDERS_READ_FAILED', { error });
@@ -40,7 +40,7 @@ export async function readPendingOrders(): Promise<PendingOrderRecord[]> {
 }
 
 async function writePendingOrders(records: PendingOrderRecord[]): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  await AsyncStorage.setItem(PENDING_ORDERS_STORAGE_KEY, JSON.stringify(records));
 }
 
 export async function addPendingOrder(record: PendingOrderRecord): Promise<void> {

@@ -25,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 import { TESTNET_DISCLOSURE_MESSAGE } from '@/constants/general.constants';
+import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
@@ -176,55 +177,39 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-const MENU_ITEM_ENABLED = {
-  CONTACT: false, // moved from the bottom Phone tab — enable once contacts feature is ready
-};
-
-// Disabled menu item styling
-const DISABLED_OPACITY = 0.4;
-
 const MenuItem = ({
   title,
   iconLeft,
   iconRight,
   action,
-  disabled = false,
 }: {
   title: string;
   iconLeft: string;
   iconRight: string;
   action: (() => void) | undefined;
-  disabled?: boolean;
 }) => {
   const styles = useThemedStyles(createStyles);
-  const colors = useColors();
   return (
   <TouchableOpacity
-    style={[styles.menuItem, disabled && { opacity: DISABLED_OPACITY }]}
-    onPress={() => !disabled && action && action()}
-    disabled={disabled}
+    style={styles.menuItem}
+    onPress={() => action?.()}
   >
     <View style={styles.menuItemContent}>
       <Ionicons
         /* @ts-ignore */
         name={iconLeft}
         size={24}
-        color={disabled ? colors.inactive : "white"}
+        color="white"
         style={styles.iconLeft}
       />
-      <ThemedText
-        style={{
-          ...styles.menuItemText,
-          ...(disabled && { color: colors.inactive }),
-        }}
-      >
+      <ThemedText style={styles.menuItemText}>
         {title}
       </ThemedText>
       <Ionicons
         /* @ts-ignore */
         name={iconRight}
         size={24}
-        color={disabled ? colors.inactive : "white"}
+        color="white"
         style={styles.iconRight}
       />
     </View>
@@ -377,13 +362,6 @@ export default function MenuScreen() {
 
   const menuItems = [
     {
-      id: "1",
-      title: "Contact",
-      iconLeft: "call-outline",
-      iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.CONTACT,
-    },
-    {
       id: "3",
       title: "Privacy Policy",
       iconLeft: "lock-closed-outline",
@@ -426,6 +404,7 @@ export default function MenuScreen() {
       iconRight: "chevron-forward-outline",
       action: async () => {
         await clearKokioUser();
+        await purgeAccountLocalState();
         await logout();
       },
     }] : []),
@@ -448,7 +427,6 @@ export default function MenuScreen() {
                   iconLeft={item.iconLeft}
                   iconRight={item.iconRight}
                   action={item.action}
-                  disabled={item.disabled}
                 />
               )}
               keyExtractor={(item) => item.id}

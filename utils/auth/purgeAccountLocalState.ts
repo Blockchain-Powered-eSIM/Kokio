@@ -3,8 +3,8 @@
  * Deliberately context-free (no hooks, no React) so it can be invoked from the httpService interceptor.
  *
  * Covers three stores:
- *   1. SecureStore  —  credential + wallet-derivation artifacts.
- *   2. AsyncStorage —  purchasedESIMs mirror.
+ *   1. SecureStore  —  credential + wallet-derivation artifacts, eSIM id.
+ *   2. AsyncStorage —  purchasedESIMs mirror, pending orders, contacts, wallet activity.
  *   3. React Query  —  device-esims / device-orders are PERSISTED to AsyncStorage by the PersistQueryClientProvider.
  *                      Clearing the in-memory cache alone is not enough as without removeQueries + asyncStoragePersister purge,
  *                      a deleted account's eSIM list is restored on next cold boot.
@@ -15,6 +15,8 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { queryClient, asyncStoragePersister } from '@/providers';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
+import { PENDING_ORDERS_STORAGE_KEY } from '@/hooks/usePendingOrders';
+import { walletActivityStorageKey } from '@/utils/walletActivity';
 import { logger } from '@/utils/logger';
 
 const SECURE_KEYS = [
@@ -24,6 +26,7 @@ const SECURE_KEYS = [
   'publicKeyY',
   'rawSalt',
   'deviceUID',
+  'esimId',
 ] as const;
 
 export async function purgeAccountLocalState(): Promise<void> {
@@ -44,10 +47,17 @@ export async function purgeAccountLocalState(): Promise<void> {
   if (deviceUID) {
     await Promise.all([
       AsyncStorage.removeItem(`purchasedESIMs-${deviceUID}`).catch(() => {}),
+      AsyncStorage.removeItem(walletActivityStorageKey(deviceUID)).catch(() => {}),
       SecureStore.deleteItemAsync(`userWallet-${deviceUID}`).catch(() => {}),
       SecureStore.deleteItemAsync(`userData-${deviceUID}`).catch(() => {}),
     ]);
   }
+
+  await AsyncStorage.removeItem(PENDING_ORDERS_STORAGE_KEY).catch(() => {});
+  await AsyncStorage.getAllKeys()
+    .then((keys) => keys.filter((k) => k === 'contactIds' || k.startsWith('contact_')))
+    .then((keys) => AsyncStorage.multiRemove(keys))
+    .catch(() => {});
   try {
     queryClient.removeQueries({ queryKey: [DEVICE_ESIMS_KEY] });
     queryClient.removeQueries({ queryKey: [DEVICE_ORDERS_KEY] });

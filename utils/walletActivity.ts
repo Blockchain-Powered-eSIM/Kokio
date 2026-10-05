@@ -26,13 +26,13 @@ export const WALLET_ACTIVITY_KEY = 'wallet-activity' as const;
 
 const MAX_ENTRIES = 50;
 
-function storageKey(deviceUID: string): string {
+export function walletActivityStorageKey(deviceUID: string): string {
   return `kokio.walletActivity.${deviceUID}`;
 }
 
 export async function getWalletActivityEntries(deviceUID: string): Promise<WalletActivityEntry[]> {
   try {
-    const raw = await AsyncStorage.getItem(storageKey(deviceUID));
+    const raw = await AsyncStorage.getItem(walletActivityStorageKey(deviceUID));
     return raw ? (JSON.parse(raw) as WalletActivityEntry[]) : [];
   } catch {
     return [];
@@ -48,5 +48,5 @@ export async function appendWalletActivityEntry(
     { ...entry, id: `${entry.timestamp}-${Math.random().toString(36).slice(2, 8)}` },
     ...existing,
   ].slice(0, MAX_ENTRIES);
-  await AsyncStorage.setItem(storageKey(deviceUID), JSON.stringify(withNew));
+  await AsyncStorage.setItem(walletActivityStorageKey(deviceUID), JSON.stringify(withNew));
 }
