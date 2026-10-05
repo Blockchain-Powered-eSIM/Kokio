@@ -187,41 +187,39 @@ export function WalletHeroCard({
             </ThemedView>
           )}
 
-          <ThemedView
-            style={[compact ? styles.balanceContainerCompact : styles.balanceContainer, !showBalance && { opacity: 0 }]}
-            importantForAccessibility={showBalance ? "auto" : "no-hide-descendants"}
-            accessibilityElementsHidden={!showBalance}
-          >
-            <ThemedText
-              variant="sm"
-              lightColor={LIGHT_TOKENS.text}
-              darkColor={DARK_TOKENS.text}
-              style={{ marginBottom: 4 }}
-            >
-              {balanceLabel ?? "Total balance"}
-            </ThemedText>
-            <View style={styles.balanceAmountContainer}>
-              {isBalanceLoading ? (
-                <ActivityIndicator size="small" color={colors.text} style={{ marginRight: 4 }} />
-              ) : (
-                <ThemedText
-                  className={compact ? "text-[28px]" : "text-[40px]"}
-                  lightColor={LIGHT_TOKENS.text}
-                  darkColor={DARK_TOKENS.text}
-                  style={{ marginRight: 4 }}
-                >
-                  {balance === undefined ? "—" : `$${balance}`}
-                </ThemedText>
-              )}
+          {showBalance && (
+            <ThemedView style={compact ? styles.balanceContainerCompact : styles.balanceContainer}>
               <ThemedText
+                variant="sm"
                 lightColor={LIGHT_TOKENS.text}
                 darkColor={DARK_TOKENS.text}
-                style={{ marginBottom: compact ? 6 : 8, marginLeft: 4 }}
+                style={{ marginBottom: 4 }}
               >
-                USD
+                {balanceLabel ?? "Total balance"}
               </ThemedText>
-            </View>
-          </ThemedView>
+              <View style={styles.balanceAmountContainer}>
+                {isBalanceLoading ? (
+                  <ActivityIndicator size="small" color={colors.text} style={{ marginRight: 4 }} />
+                ) : (
+                  <ThemedText
+                    className={compact ? "text-[28px]" : "text-[40px]"}
+                    lightColor={LIGHT_TOKENS.text}
+                    darkColor={DARK_TOKENS.text}
+                    style={{ marginRight: 4 }}
+                  >
+                    {balance === undefined ? "—" : `$${balance}`}
+                  </ThemedText>
+                )}
+                <ThemedText
+                  lightColor={LIGHT_TOKENS.text}
+                  darkColor={DARK_TOKENS.text}
+                  style={{ marginBottom: compact ? 6 : 8, marginLeft: 4 }}
+                >
+                  USD
+                </ThemedText>
+              </View>
+            </ThemedView>
+          )}
 
           <View style={styles.addressRow}>
             <ThemedText variant="sm" lightColor={LIGHT_TOKENS.text} darkColor={DARK_TOKENS.text}>

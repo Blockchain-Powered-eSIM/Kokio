@@ -45,23 +45,45 @@ export function walletActivityEntryToDisplayItem(entry: WalletActivityEntry): Wa
         icon: require('@/assets/images/wallet/wallet.png'),
         dateTime: formatDateTime(entry.timestamp),
       };
-    case 'TOPUP_ACCESS_GRANTED':
+    case 'ESIM_PURCHASED':
       return {
         id: entry.id,
-        name: entry.label ? `Top-ups enabled · ${entry.label}` : 'Top-ups enabled',
+        name: entry.label ? `eSIM purchased · ${entry.label}` : 'eSIM purchased',
         type: RECEIVED_TYPE,
-        statusLabel: 'Access granted',
+        statusLabel: 'Purchase',
         amount: '—',
         status: 'completed',
         icon: require('@/assets/images/wallet/complete.png'),
         dateTime: formatDateTime(entry.timestamp),
       };
-    case 'TOPUP_ACCESS_REVOKED':
+    case 'SENT':
       return {
         id: entry.id,
-        name: entry.label ? `Top-ups disabled · ${entry.label}` : 'Top-ups disabled',
-        type: 'access revoked',
-        statusLabel: 'Access revoked',
+        name: entry.label ? `Sent to ${entry.label}` : 'Sent',
+        type: 'sent',
+        statusLabel: 'Send',
+        amount: '—',
+        status: 'completed',
+        icon: require('@/assets/images/wallet/sendImg.png'),
+        dateTime: formatDateTime(entry.timestamp),
+      };
+    case 'RECEIVED':
+      return {
+        id: entry.id,
+        name: 'Received',
+        type: RECEIVED_TYPE,
+        statusLabel: 'Receive',
+        amount: '—',
+        status: 'completed',
+        icon: require('@/assets/images/wallet/recieveImg.png'),
+        dateTime: formatDateTime(entry.timestamp),
+      };
+    case 'PRICE_CAP_SET':
+      return {
+        id: entry.id,
+        name: entry.label ? `Data bundle price cap · ${entry.label}` : 'Data bundle price cap',
+        type: 'price cap',
+        statusLabel: 'Price cap',
         amount: '—',
         status: 'completed',
         icon: require('@/assets/images/wallet/incomplete.png'),

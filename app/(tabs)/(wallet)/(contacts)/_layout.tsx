@@ -1,64 +1,35 @@
-import { Stack } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Header from "@/components/Header";
+import { Pressable } from "react-native";
+import { Stack, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { ROUTE_NAMES } from "@/constants/route.constants";
+import { useColors } from "@/hooks/useColors";
 
-// Header itself carries no top safe-area inset, so every screen in this stack
-// needs the SafeAreaView wrapper or its content renders under the status
-// bar/notch (this was the "contacts screen going off the top" bug).
-function ScreenHeader({ title }: { title: string }) {
+function StackBackButton() {
+    const router = useRouter();
+    const colors = useColors();
     return (
-        <SafeAreaView edges={["top"]}>
-            <Header title={title} hasBack style={{ justifyContent: "center" }} />
-        </SafeAreaView>
+        <Pressable
+            onPress={() => router.back()}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={{ paddingHorizontal: 8 }}
+        >
+            <Ionicons name="chevron-back" size={26} color={colors.text} />
+        </Pressable>
     );
 }
 
 export default function ContactsStack() {
     return (
-        <Stack>
-            <Stack.Screen
-                name={ROUTE_NAMES.HOME}
-                options={{
-                    header: () => <ScreenHeader title="Contacts" />,
-                }}
-            />
-            <Stack.Screen
-                name={ROUTE_NAMES.ADD_CONTACTS_SCREEN}
-                options={{
-                    header: () => <ScreenHeader title="Add Contact" />,
-                }}
-            />
-            <Stack.Screen
-                name={ROUTE_NAMES.CONTACT_DETAILS}
-                options={{
-                    header: () => <ScreenHeader title="Contact Details" />,
-                }}
-            />
-            <Stack.Screen
-                name={ROUTE_NAMES.EDIT_CONTACT}
-                options={{
-                    header: () => <ScreenHeader title="Edit Contact" />,
-                }}
-            />
-           <Stack.Screen
-                name={ROUTE_NAMES.SEND_TO_CONTACT}
-                options={{
-                    header: () => <ScreenHeader title="Send" />,
-                }}
-            />
-            <Stack.Screen
-                name={ROUTE_NAMES.CONTACT_TRANSACTIONS}
-                options={{
-                    header: () => <ScreenHeader title="Contact Transactions" />,
-                }}
-            />
-            <Stack.Screen
-                name={ROUTE_NAMES.QR_CODE_SCREEN}
-                options={{
-                    headerShown: false
-                }}
-            />
+        <Stack screenOptions={{ headerLeft: () => <StackBackButton /> }}>
+            <Stack.Screen name={ROUTE_NAMES.HOME} options={{ title: "Contacts" }} />
+            <Stack.Screen name={ROUTE_NAMES.ADD_CONTACTS_SCREEN} options={{ title: "Add Contact" }} />
+            <Stack.Screen name={ROUTE_NAMES.CONTACT_DETAILS} options={{ title: "Contact Details" }} />
+            <Stack.Screen name={ROUTE_NAMES.EDIT_CONTACT} options={{ title: "Edit Contact" }} />
+            <Stack.Screen name={ROUTE_NAMES.SEND_TO_CONTACT} options={{ title: "Send" }} />
+            <Stack.Screen name={ROUTE_NAMES.CONTACT_TRANSACTIONS} options={{ title: "Contact Transactions" }} />
+            <Stack.Screen name={ROUTE_NAMES.QR_CODE_SCREEN} options={{ headerShown: false }} />
         </Stack>
     );
 }

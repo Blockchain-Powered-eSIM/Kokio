@@ -80,10 +80,7 @@ export default function EsimWalletScreen() {
           headerContent={
             <View style={{ marginBottom: 16 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <CountryFlag size={34} flagUrl={display.serviceRegionFlag ?? ""} />
-                <TestnetBadge />
-              </View>
-              <View style={{ marginTop: 10 }}>
+                <View style={{ flex: 1, marginRight: 8 }}>
                 {isEditingLabel ? (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <TextInput
@@ -128,6 +125,11 @@ export default function EsimWalletScreen() {
                     <Ionicons name="pencil-outline" size={14} color={colors.text} />
                   </TouchableOpacity>
                 )}
+                </View>
+                <TestnetBadge />
+              </View>
+              <View style={{ marginTop: 12 }}>
+                <CountryFlag size={68} flagUrl={display.serviceRegionFlag ?? ""} />
               </View>
             </View>
           }

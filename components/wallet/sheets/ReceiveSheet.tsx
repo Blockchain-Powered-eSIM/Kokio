@@ -1,6 +1,8 @@
 import React, { forwardRef } from "react";
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 
+import { View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { ReceiveAddressCard } from "@/components/wallet/ReceiveAddressCard";
@@ -16,7 +18,7 @@ export const ReceiveSheet = forwardRef<BottomSheet, ReceiveSheetProps>(({ addres
     <BottomSheet
       ref={ref}
       index={-1}
-      snapPoints={["55%"]}
+      enableDynamicSizing
       enablePanDownToClose
       backgroundStyle={{ backgroundColor: colors.sheetBackground }}
       backdropComponent={(props) => (
@@ -25,9 +27,25 @@ export const ReceiveSheet = forwardRef<BottomSheet, ReceiveSheetProps>(({ addres
     >
       <BottomSheetView style={{ padding: 20, alignItems: "center" }}>
         <ThemedText lightColor="#000000" bold variant="xl">Receive</ThemedText>
-        <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} style={{ marginTop: 4, marginBottom: 18, textAlign: "center" }}>
-          Only send Base assets to this address.
-        </ThemedText>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            marginTop: 8,
+            marginBottom: 18,
+            padding: 12,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: colors.warning,
+            backgroundColor: colors.warning + "22",
+          }}
+        >
+          <Ionicons name="warning-outline" size={20} color={colors.warning} />
+          <ThemedText lightColor="#000000" darkColor={colors.foreground} bold style={{ flex: 1 }}>
+            Only send Base assets to this address.
+          </ThemedText>
+        </View>
         <ReceiveAddressCard address={address} />
       </BottomSheetView>
     </BottomSheet>

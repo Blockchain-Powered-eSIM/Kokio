@@ -7,13 +7,13 @@ import Wallet from "@/components/home/wallet";
 import Hero from "@/components/home/hero";
 import { useKokio } from "@/hooks/useKokio";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { useWalletBalance } from "@/hooks/useWalletBalance";
+import { useWalletTokens } from "@/hooks/useWalletTokens";
 
 export default function HomeScreen() {
   const { kokio, setupKokio } = useKokio();
   const bg = useThemeColor({}, "background");
   const router = useRouter();
-  const { balance, isLoading: isBalanceLoading } = useWalletBalance(kokio.deviceWalletAddress);
+  const { totalUsd: balance, isLoading: isBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress);
 
   const handleOpenWalletSetup = async () => {
     if (!kokio.sdk) {

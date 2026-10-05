@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function WalletStack() {
   return (
-    <Stack>
+    <Stack screenOptions={{ headerBackTitle: "" }}>
       <Stack.Screen
         name={ROUTE_NAMES.HOME}
         options={{
@@ -44,7 +44,7 @@ export default function WalletStack() {
 
       <Stack.Screen
         name={ROUTE_NAMES.CONTACTS}
-        options={{headerShown:false}}
+        options={{ headerShown: false }}
       />
       
       </Stack>

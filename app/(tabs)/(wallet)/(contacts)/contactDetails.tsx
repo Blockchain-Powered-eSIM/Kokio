@@ -75,13 +75,6 @@ const ContactDetails = () => {
             <ThemedText lightColor="#000000" variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
         </Pressable>
-        <Pressable className='flex-1  '>
-          <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[70%] ml-[-20] rounded-3xl py-5   justify-center items-center'>
-
-            <Image source={require("../../../../assets/images/wallet/recieveImg.png")} className='h-[32] w-[32]' />
-            <ThemedText lightColor="#000000" variant='sm' className='text-white mt-2' bold>Recieve</ThemedText>
-          </ThemedView>
-        </Pressable>
         <Pressable onPress={() => router.replace({ pathname: "/(tabs)/(wallet)/(contacts)/editContact", params: { alias: alias, id: id, walletAddress: walletAddress } })} className='flex-1'>
           <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[70%] ml-7  rounded-3xl py-5  justify-center items-center'>
             <MaterialIcons name="edit" size={28} color={iconTintColor} />

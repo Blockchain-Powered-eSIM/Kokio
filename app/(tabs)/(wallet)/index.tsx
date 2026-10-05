@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { View, ScrollView, Image, Pressable, TouchableOpacity, ActivityIndicator, Linking, type ImageSourcePropType } from 'react-native';
+import { View, ScrollView, Image, Pressable, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useRouter } from 'expo-router';
@@ -11,10 +11,12 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { WalletHeroCard } from '@/components/wallet/WalletHeroCard';
 import { ContactAvatar } from '@/components/wallet/ContactAvatar';
 import { ReceiveSheet } from '@/components/wallet/sheets/ReceiveSheet';
+import { AddTokenSheet } from '@/components/wallet/sheets/AddTokenSheet';
+import { TokenGrid } from '@/components/wallet/TokenGrid';
 import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
 import { useKokio } from '@/hooks/useKokio';
 import { useEsims } from '@/hooks/useDeviceEsims';
-import { useWalletBalance } from '@/hooks/useWalletBalance';
+import { useWalletTokens } from '@/hooks/useWalletTokens';
 import { useContacts } from '@/hooks/useContacts';
 import { useWalletActivity } from '@/hooks/useWalletActivity';
 import { esimDocToDisplayItem } from '@/helpers/esimDisplay';
@@ -25,11 +27,6 @@ import { logger } from '@/utils/logger';
 
 const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
 
-// TODO: kokio-sdk has no way to enumerate arbitrary tokens a wallet holds
-// (no indexer). Populate this once real token detection exists — see
-// KokioSDKv3.md Section 7. Empty for now, so the UI honestly shows "no
-// tokens yet" instead of fabricated balances.
-const tokens: { id: string; name: string; symbol: string; balance: string; value: string; icon: ImageSourcePropType }[] = [];
 
 // Count of most recent wallet-activity entries the compact preview card shows before "See all" is needed
 const TRANSACTIONS_PREVIEW_COUNT = 3;
@@ -115,10 +112,11 @@ const WalletPage = () => {
   const { contacts } = useContacts();
   const { entries: walletActivityEntries } = useWalletActivity();
   const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT).map(walletActivityEntryToDisplayItem);
-  const { balance: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletBalance(kokio.deviceWalletAddress);
+  const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress);
 
   const receiveSheetRef = useRef<BottomSheet>(null);
   const depositSheetRef = useRef<BottomSheet>(null);
+  const addTokenSheetRef = useRef<BottomSheet>(null);
 
   const handleOpenHiddenCostBlog = useCallback(async () => {
     try {
@@ -293,39 +291,6 @@ const WalletPage = () => {
           </ThemedView>
         </Pressable>
 
-        {acct === 'esim' && (
-          <View className='mx-2 mt-5'>
-            <ThemedView lightColor={colors.card} darkColor={colors.card} className='py-3 px-4 rounded-3xl'>
-              <View className='flex-row justify-between items-center'>
-                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>eSIM wallets</ThemedText>
-                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} style={{ fontSize: 12, color: colors.cardForeground }}>
-                  {deployedEsims.length} active{pendingEsims.length > 0 ? ` · ${pendingEsims.length} setting up` : ''}
-                </ThemedText>
-              </View>
-              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 4, marginBottom: 12 }}>
-                Each eSIM has its own wallet, owned by this device wallet.
-              </ThemedText>
-              <View style={{ gap: 10 }}>
-                {deployedEsims.map((doc) => {
-                  const display = esimDocToDisplayItem(doc);
-                  return (
-                    <EsimWalletRow
-                      key={doc.eSimRef}
-                      doc={doc}
-                      onPress={() => router.push({
-                        pathname: '/(tabs)/(wallet)/esim-wallet' as any,
-                        params: { esimId: doc.esimId, name: display.serviceRegionName ?? '' },
-                      })}
-                    />
-                  );
-                })}
-                {pendingEsims.map((doc) => (
-                  <PendingEsimWalletRow key={doc.eSimRef} doc={doc} />
-                ))}
-              </View>
-            </ThemedView>
-          </View>
-        )}
 
         <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/Tokens" as any)}>
           <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
@@ -334,27 +299,7 @@ const WalletPage = () => {
               {tokens.length > 0 &&
                 <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mr-5'>See all</ThemedText>}
             </View>
-            {tokens.length === 0 ?
-              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mt-5 ml-6 mb-2' >You don&#39;t hold any tokens yet.</ThemedText>
-              :
-              <View className='flex-1 gap-y-3 mt-5 mb-3'>
-                {tokens.map((token, index) => {
-                  return (
-                    <View key={index} className='flex-row items-center justify-between  mx-5 '>
-                      <View className='flex-row items-center'>
-                        <Image source={token.icon} className='h-[48px] w-[48px]  ' />
-                        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold variant='xl' className='ml-3 ' >{token.symbol}</ThemedText>
-                      </View>
-                      <View className='flex-col items-end '>
-                        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='xl'>{token.balance}</ThemedText>
-                        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='sm'>{token.value}</ThemedText>
-                      </View>
-
-                    </View>
-                  )
-                })}
-              </View>
-            }
+            <TokenGrid tokens={tokens.filter((token) => token.symbol !== "USDCt")} onAddToken={() => addTokenSheetRef.current?.snapToIndex(0)} />
           </ThemedView>
         </Pressable>
         <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/Transactions' as any)}>
@@ -428,9 +373,44 @@ const WalletPage = () => {
             ))}
           </View>
         </ThemedView>
+        {acct === 'esim' && (
+          <View className='mx-2 mt-5'>
+            <ThemedView lightColor={colors.card} darkColor={colors.card} className='py-3 px-4 rounded-3xl'>
+              <View className='flex-row justify-between items-center'>
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>eSIM wallets</ThemedText>
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} style={{ fontSize: 12, color: colors.cardForeground }}>
+                  {deployedEsims.length} active{pendingEsims.length > 0 ? ` · ${pendingEsims.length} setting up` : ''}
+                </ThemedText>
+              </View>
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 4, marginBottom: 12 }}>
+                Each eSIM has its own wallet, owned by this device wallet.
+              </ThemedText>
+              <View style={{ gap: 10 }}>
+                {deployedEsims.map((doc) => {
+                  const display = esimDocToDisplayItem(doc);
+                  return (
+                    <EsimWalletRow
+                      key={doc.eSimRef}
+                      doc={doc}
+                      onPress={() => router.push({
+                        pathname: '/(tabs)/(wallet)/esim-wallet' as any,
+                        params: { esimId: doc.esimId, name: display.serviceRegionName ?? '' },
+                      })}
+                    />
+                  );
+                })}
+                {pendingEsims.map((doc) => (
+                  <PendingEsimWalletRow key={doc.eSimRef} doc={doc} />
+                ))}
+              </View>
+            </ThemedView>
+          </View>
+        )}
+
       </ScrollView>
       <ReceiveSheet ref={receiveSheetRef} address={kokio.deviceWalletAddress ?? ''} />
       <DepositSheet ref={depositSheetRef} address={kokio.deviceWalletAddress ?? ''} />
+      <AddTokenSheet ref={addTokenSheetRef} />
     </ThemedView>
   );
 };
