@@ -35,7 +35,6 @@ import { getAllEsims, type ESimDocument } from '@/utils/bff/esim';
 import { getOrderList, type OrderListItem } from '@/utils/bff/order';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
-import { useDevLocalEsims } from '@/hooks/useDevLocalEsims';
 import { useKokio } from '@/hooks/useKokio';
 
 // ─── Query key constants ───────────────────────────────────────────────────────
@@ -90,13 +89,8 @@ export function useEsims(): UseEsimsResult {
     retry:             1,
   });
 
-  // Dev-only local eSIM wallets from checkout's "Device Wallet" bypass
-  // (screens/checkout/Checkout.tsx) - always empty outside __DEV__, since
-  // useDevLocalEsims's own query is disabled there.
-  const devLocalEsims = useDevLocalEsims();
-
   return {
-    esims:     __DEV__ ? [...devLocalEsims, ...(query.data ?? [])] : (query.data ?? []),
+    esims:     query.data ?? [],
     isLoading: query.isLoading,
     isError:   query.isError,
     refetch:   query.refetch,

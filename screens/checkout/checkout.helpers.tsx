@@ -23,22 +23,14 @@ export const createRadioButtons = (
 ): RadioButtonProps[] =>
   Object.keys(RADIO_KEYS)
     .filter((key) => !(key === RADIO_KEYS.APPLE_PAY && Platform.OS !== "ios"))
-    .map((key) => {
-      // __DEV__: enabled as a real (if fake-order) test path — see Checkout.tsx's
-      // handleDevWalletBypassCheckout. Disabled everywhere else; the real feature
-      // this option is meant for isn't built yet.
-      const isDisabled = key === RADIO_KEYS.E_SIM_WALLET && !__DEV__;
-      return {
-        id: key,
-        label: radioButtonComponents[key],
-        value: key,
-        borderColor: colors.mutedForeground,
-        color: colors.secondary,
-        disabled: isDisabled,
-        containerStyle: [
-          buttonStyles,
-          selectedId === key && { backgroundColor: colors.inputBackground },
-          isDisabled && { opacity: 0.4 },
-        ],
-      };
-    });
+    .map((key) => ({
+      id: key,
+      label: radioButtonComponents[key],
+      value: key,
+      borderColor: colors.mutedForeground,
+      color: colors.secondary,
+      containerStyle: [
+        buttonStyles,
+        selectedId === key && { backgroundColor: colors.inputBackground },
+      ],
+    }));

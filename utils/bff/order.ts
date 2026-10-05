@@ -123,6 +123,7 @@ export async function pollOrderStatus(
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
       const waitMs = Math.min(backoffMs, remaining);
+      logger.debug('ESIM_POLL_RATE_LIMITED', { idempotencyKey, attempt: retryAttempt, waitMs });
       onUpdate?.({ kind: 'retrying', attempt: retryAttempt, waitMs });
       await new Promise<void>((r) => setTimeout(r, waitMs));
       backoffMs = Math.min(backoffMs * 2, BACKOFF_CAP_MS);

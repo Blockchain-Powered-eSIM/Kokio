@@ -16,11 +16,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   textContent: {
     color: colors.foreground,
   },
-  smallText: {
-    fontSize: 12,
-    lineHeight: 20,
-    marginRight: 4,
-  },
   creditCards: {
     width: 140,
     height: 24,
@@ -38,9 +33,10 @@ const ESimWallet = () => {
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
-      <ThemedText style={[styles.textContent, styles.smallText]}>
-        {__DEV__ ? "Dev test wallet" : "Coming soon"}
-      </ThemedText>
+      <Image
+        source={require("@/assets/images/usdc.png")}
+        style={[styles.logoImage, { marginLeft: 8 }]}
+      />
     </View>
   );
 };

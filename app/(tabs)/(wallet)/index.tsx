@@ -15,7 +15,6 @@ import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
 import { useKokio } from '@/hooks/useKokio';
 import { useEsims } from '@/hooks/useDeviceEsims';
 import { useWalletBalance } from '@/hooks/useWalletBalance';
-import { useEsimTopupAccess } from '@/hooks/useEsimTopupAccess';
 import { useContacts } from '@/hooks/useContacts';
 import { useWalletActivity } from '@/hooks/useWalletActivity';
 import { esimDocToDisplayItem } from '@/helpers/esimDisplay';
@@ -47,23 +46,9 @@ interface EsimWalletRowProps {
   onPress: () => void;
 }
 
-// One row in the "eSIM wallets" list. Extracted so useWalletBalance (a hook) can
-// be called per-row without violating rules-of-hooks inside `esims.map(...)`.
 function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
   const colors = useColors();
   const display = esimDocToDisplayItem(doc);
-  const { balance, isLoading: isBalanceLoading } = useWalletBalance(doc.esimId);
-  // Read-only display: this row never toggles top-up access itself — the
-  // write lives only on the esim-wallet detail screen.
-  const { topupAllowed, isLoading: isTopupLoading } = useEsimTopupAccess(doc.esimId);
-
-  const topupStatusText = isTopupLoading
-    ? 'checking top-ups'
-    : topupAllowed === undefined
-      ? 'top-ups unavailable'
-      : topupAllowed
-        ? 'top-ups allowed'
-        : 'top-ups off';
 
   return (
     <Pressable
@@ -79,37 +64,10 @@ function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
       }}
     >
       <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
-      <View style={{ flex: 1 }}>
-        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1}>{doc.label ?? display.serviceRegionName ?? 'eSIM'}</ThemedText>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1 }}>
-          {isBalanceLoading ? (
-            <ActivityIndicator size="small" color={colors.cardForeground} />
-          ) : (
-            <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>
-              {balance === undefined ? '—' : `$${balance}`}
-            </ThemedText>
-          )}
-          <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>
-            {' '}· {topupStatusText}
-          </ThemedText>
-        </View>
-      </View>
-      {isTopupLoading ? (
-        <ActivityIndicator size="small" color={colors.cardForeground} />
-      ) : (
-        <View style={{
-          width: 38, height: 22, borderRadius: 999,
-          backgroundColor: topupAllowed ? colors.walletAccent : colors.muted,
-          borderWidth: 1.5, borderColor: colors.mutedForeground,
-          justifyContent: 'center',
-          opacity: topupAllowed === undefined ? 0.4 : 1,
-        }}>
-          <View style={{
-            width: 18, height: 18, borderRadius: 999, backgroundColor: '#fff',
-            marginLeft: topupAllowed ? 18 : 2,
-          }} />
-        </View>
-      )}
+      <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1} style={{ flex: 1 }}>
+        {doc.label ?? display.serviceRegionName ?? 'eSIM'}
+      </ThemedText>
+      <Ionicons name='chevron-forward' size={19} color={colors.cardForeground} />
     </Pressable>
   );
 }

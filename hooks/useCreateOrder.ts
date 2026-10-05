@@ -6,6 +6,8 @@ import { submitOrder, pollOrderStatus, OrderNotFoundError } from '@/utils/bff/or
 import type { CreateOrderRequest, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
 import { BffError } from '@/utils/bff/koKioBffClient';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
+import { formatPlanLabel } from '@/helpers/esimOrder';
+import { addPendingOrder, removePendingOrder, PENDING_ORDERS_KEY } from '@/hooks/usePendingOrders';
 import type { Esim } from '@/components/ESIMItem';
 
 export type CreateOrderVariables = {
@@ -33,8 +35,11 @@ export type CreateOrderResult =
       kind: 'awaiting_device_wallet_payment';
       correlationId: string;
       orderId: string;
-      userOperations: { to: string; data: string };
-      paymentSessionExpiresAt: string;
+      // The generated type (from the OpenAPI schema) models this as a single
+      // {to, data} object, but the real response is an array of ordered calls
+      // to submit as one user operation - the schema doesn't match the server.
+      userOperations: { to: string; data: string }[];
+      paymentSessionExpiresAt: string | null;
     };
 
 // SecureStore key for the most recently purchased eSIM wallet address.
@@ -99,7 +104,7 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
     useStripePaymentSheet();
 
   return useMutation<CreateOrderResult, Error, CreateOrderVariables>({
-    mutationFn: async ({ request }) => {
+    mutationFn: async ({ request, eSimItem }) => {
       const { data, correlationId } = await submitOrder(request).catch((err) => {
         const bffErr = err as { correlationId?: string | null };
         throw new OrderCreationError(
@@ -110,6 +115,19 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
       });
 
       await options.onOrderCreated?.(correlationId);
+
+      // Recorded before any payment step so a reference id exists even if the
+      // order later gets stuck (payment timeout, a backend job hanging) and
+      // never reaches the terminal order list on its own.
+      await addPendingOrder({
+        correlationId,
+        orderId: data.orderId,
+        catalogueId: request.catalogueId,
+        planLabel: formatPlanLabel(eSimItem),
+        paymentMethod: request.paymentMethod,
+        createdAt: new Date().toISOString(),
+      });
+      queryClient.invalidateQueries({ queryKey: [PENDING_ORDERS_KEY] });
 
       // FIAT — clientSecret present.
       if (data.clientSecret) {
@@ -151,18 +169,23 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
       }
 
       /**
-       * DEVICE_WALLET — userOperations present. Caller must sign and submit it
-       * (sendUserOperation) before any polling starts; unlike FIAT/CRYPTO, payment
-       * has not happened yet at this point, so returning here rather than polling
-       * is deliberate.
+       * DEVICE_WALLET — userOperations present (an array of ordered calls,
+       * despite the generated type modeling it as a single {to, data} object -
+       * cast past the stale type and validate at runtime instead). Caller must
+       * sign and submit it (sendUserOperation) before any polling starts;
+       * unlike FIAT/CRYPTO, payment has not happened yet at this point, so
+       * returning here rather than polling is deliberate.
        */
-      if (data.userOperations?.to && data.userOperations?.data && data.paymentSessionExpiresAt) {
+      const rawUserOperations = data.userOperations as unknown;
+      const isValidCall = (op: unknown): op is { to: string; data: string } =>
+        !!op && typeof (op as { to?: unknown }).to === 'string' && typeof (op as { data?: unknown }).data === 'string';
+      if (Array.isArray(rawUserOperations) && rawUserOperations.length > 0 && rawUserOperations.every(isValidCall)) {
         return {
           kind: 'awaiting_device_wallet_payment',
           correlationId,
           orderId: data.orderId,
-          userOperations: { to: data.userOperations.to, data: data.userOperations.data },
-          paymentSessionExpiresAt: data.paymentSessionExpiresAt,
+          userOperations: rawUserOperations,
+          paymentSessionExpiresAt: data.paymentSessionExpiresAt ?? null,
         };
       }
 
@@ -180,7 +203,9 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
       if (result.order.esimId) {
         await SecureStore.setItemAsync(ESIM_ID_KEY, result.order.esimId);
       }
+      await removePendingOrder(result.correlationId);
       await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      await queryClient.invalidateQueries({ queryKey: [PENDING_ORDERS_KEY] });
     },
   });
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   FlatList,
@@ -30,6 +30,8 @@ import ESIMItem from "@/components/ESIMItem";
 import type { Esim } from "@/components/ESIMItem";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
+import { usePendingOrders } from "@/hooks/usePendingOrders";
+import type { PendingOrderRecord } from "@/hooks/usePendingOrders";
 
 // ─── eSIM activation-status labeling ─────────────────────────────────────────
 
@@ -152,6 +154,63 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     },
     detailsBtnText: {
       fontSize: 14,
+      fontWeight: "500",
+    },
+    sectionHeader: {
+      fontSize: 12,
+      fontWeight: "600",
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      marginHorizontal: 4,
+      marginTop: 4,
+      marginBottom: 8,
+    },
+    pendingCard: {
+      borderRadius: 12,
+      marginHorizontal: 4,
+      marginBottom: 10,
+      padding: 14,
+    },
+    pendingHeaderRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+    },
+    pendingLabel: {
+      fontSize: 15,
+      fontWeight: "600",
+      marginBottom: 2,
+    },
+    pendingMeta: {
+      fontSize: 12,
+    },
+    pendingBadge: {
+      borderRadius: 8,
+      paddingVertical: 3,
+      paddingHorizontal: 8,
+    },
+    pendingBadgeText: {
+      fontSize: 11,
+      fontWeight: "600",
+      textTransform: "uppercase",
+    },
+    pendingActionsRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginTop: 10,
+    },
+    pendingActionBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+    },
+    pendingActionText: {
+      fontSize: 13,
       fontWeight: "500",
     },
   });
@@ -279,6 +338,93 @@ const CopyRow = ({
         color={copied ? colors.success : colors.mutedForeground}
       />
     </TouchableOpacity>
+  );
+};
+
+// ─── PendingOrderCard ─────────────────────────────────────────────────────────
+
+const PAYMENT_METHOD_LABEL: Record<PendingOrderRecord["paymentMethod"], string> = {
+  FIAT: "Card",
+  CRYPTO: "Crypto",
+  DEVICE_WALLET: "Device Wallet",
+};
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+const PendingOrderCard = ({
+  record,
+  onDismiss,
+}: {
+  record: PendingOrderRecord;
+  onDismiss: () => void;
+}) => {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const { copied, copy } = useCopyFeedback();
+
+  const handleContactSupport = () => {
+    const subject = encodeURIComponent(`Order ${record.correlationId}`);
+    const body = encodeURIComponent(
+      `My order has been processing for a while.\n\nReference: ${record.correlationId}`,
+    );
+    Linking.openURL(`mailto:contact@kokio.app?subject=${subject}&body=${body}`);
+  };
+
+  return (
+    <View style={[styles.pendingCard, { backgroundColor: colors.surface }]}>
+      <View style={styles.pendingHeaderRow}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <Text style={[styles.pendingLabel, { color: colors.text }]} numberOfLines={1}>
+            {record.planLabel ?? "Your eSIM order"}
+          </Text>
+          <Text style={[styles.pendingMeta, { color: colors.inactive }]}>
+            {PAYMENT_METHOD_LABEL[record.paymentMethod]} · {timeAgo(record.createdAt)}
+          </Text>
+        </View>
+        <View style={[styles.pendingBadge, { backgroundColor: colors.warning + "22" }]}>
+          <Text style={[styles.pendingBadgeText, { color: colors.warning }]}>Processing</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => copy(record.correlationId)}
+        style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.pendingMeta, { color: colors.inactive, flex: 1 }]} numberOfLines={1}>
+          Reference: {record.correlationId}
+        </Text>
+        <Ionicons
+          name={copied ? "checkmark-circle" : "copy-outline"}
+          size={16}
+          color={copied ? colors.success : colors.mutedForeground}
+        />
+      </TouchableOpacity>
+
+      <View style={styles.pendingActionsRow}>
+        <TouchableOpacity
+          onPress={handleContactSupport}
+          style={[styles.pendingActionBtn, { borderColor: colors.muted }]}
+        >
+          <Ionicons name="mail-outline" size={14} color={colors.text} />
+          <Text style={[styles.pendingActionText, { color: colors.text }]}>Contact Support</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onDismiss}
+          style={[styles.pendingActionBtn, { borderColor: colors.muted }]}
+        >
+          <Text style={[styles.pendingActionText, { color: colors.mutedForeground }]}>Dismiss</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
@@ -625,6 +771,7 @@ export default function OrdersScreen() {
 
   const { esims, isLoading: esimsLoading, refetch: refetchEsims } = useEsims();
   const { orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
+  const { pendingOrders, refetch: refetchPendingOrders, dismiss: dismissPendingOrder } = usePendingOrders();
 
   const isLoading = esimsLoading || ordersLoading;
 
@@ -632,11 +779,21 @@ export default function OrdersScreen() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchEsims(), refetchOrders()]);
+      await Promise.all([refetchEsims(), refetchOrders(), refetchPendingOrders()]);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchEsims, refetchOrders]);
+  }, [refetchEsims, refetchOrders, refetchPendingOrders]);
+
+  // Self-healing: once the server's terminal list catches up with a
+  // client-tracked pending order, the local entry is redundant — drop it.
+  useEffect(() => {
+    if (pendingOrders.length === 0 || orders.length === 0) return;
+    const terminalKeys = new Set(orders.map((o) => o.idempotencyKey).filter(Boolean));
+    pendingOrders
+      .filter((p) => terminalKeys.has(p.correlationId))
+      .forEach((p) => dismissPendingOrder(p.correlationId));
+  }, [pendingOrders, orders, dismissPendingOrder]);
 
   // Join orders with their matching ESimDocument by eSimRef.
   const enrichedOrders = useMemo<EnrichedOrder[]>(() => {
@@ -686,7 +843,7 @@ export default function OrdersScreen() {
       <ThemedView style={styles.container}>
         {isLoading ? (
           <ThemedText style={styles.emptyText}>Loading orders…</ThemedText>
-        ) : enrichedOrders.length === 0 ? (
+        ) : enrichedOrders.length === 0 && pendingOrders.length === 0 ? (
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             refreshControl={
@@ -718,6 +875,27 @@ export default function OrdersScreen() {
             )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 16 }}
+            ListHeaderComponent={
+              pendingOrders.length > 0 ? (
+                <View>
+                  <Text style={[styles.sectionHeader, { color: colors.inactive }]}>
+                    Processing
+                  </Text>
+                  {pendingOrders.map((record) => (
+                    <PendingOrderCard
+                      key={record.correlationId}
+                      record={record}
+                      onDismiss={() => dismissPendingOrder(record.correlationId)}
+                    />
+                  ))}
+                  {enrichedOrders.length > 0 ? (
+                    <Text style={[styles.sectionHeader, { color: colors.inactive }]}>
+                      History
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null
+            }
             ListFooterComponent={<Text style={styles.refreshHint}>Swipe down to refresh</Text>}
             refreshControl={
               <RefreshControl

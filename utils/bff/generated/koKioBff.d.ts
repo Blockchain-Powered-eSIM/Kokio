@@ -1938,59 +1938,48 @@ export interface components {
              * @description MongoDB ObjectId of the catalogue entry for the plan being purchased.
              *     Obtain this from the `catalogueId` field on a `GET /catalogue` result.
              *
-             *     For topup orders, any active plan from the catalogue may be submitted —
-             *     the server resolves the correct TOPUP equivalent plan automatically if
-             *     the submitted plan is a SIM-type plan.
+             *     For topup orders, any active plan may be submitted. The server resolves the
+             *     correct TOPUP equivalent automatically if the submitted plan is a SIM-type plan.
              * @example 664f1a2b3c4d5e6f7a8b9c0d
              */
             catalogueId: string;
             /**
              * @description `true` for a new eSIM purchase (a new eSIM wallet is deployed on-chain).
-             *
              *     `false` for a topup on an existing eSIM (`eSimRef` is required).
              * @example true
              */
             isNewESim: boolean;
             /**
-             * @description `true` to pay via Moonpay hosted crypto payment page.
+             * @description The payment rail for this order — exactly one value:
+             *     - `FIAT` - Stripe Payment Elements.
+             *     - `CRYPTO` - Moonpay hosted payment page.
+             *     - `DEVICE_WALLET` - on-chain from the device wallet. Requires `walletState=DEPLOYED`
+             *       and an `asset`, cannot be combined with a `coupon`.
              *
-             *     `false` to pay via Stripe Payment Elements (FIAT).
-             *
-             *     Ignored when a `coupon` code is provided that covers the full order amount —
-             *     the payment method is resolved to `COUPON` server-side in that case.
-             * @example false
+             *     `COUPON` is **NOT** selectable here. Supply a `coupon` instead. When it covers the
+             *     full order amount the server resolves the method to `COUPON` ($0 invoice, auto-pays).
+             * @example FIAT
+             * @enum {string}
              */
-            isCryptoPayment?: boolean;
+            paymentMethod: "FIAT" | "CRYPTO" | "DEVICE_WALLET";
             /**
-             * @description Pay on-chain from the device wallet. Requires walletState=DEPLOYED and an `asset`;
-             *     mutually exclusive with `isCryptoPayment` and `coupon`.
-             * @example true
-             */
-            isDeviceWalletPayment?: boolean;
-            /**
-             * @description Token symbol in which the user wants to pay.
-             *     **MUST** be a whitelisted transferable asset symbol per BFF and Kokio-SDK payment adapter configuration.
-             *     Required and only used when isDeviceWalletPayment is `true`.
+             * @description Token symbol to pay in. **Required and only valid when `paymentMethod` is
+             *     `DEVICE_WALLET`.** Must be a whitelisted transferable asset per the BFF /
+             *     Kokio-SDK payment adapter configuration. Rejected for other payment methods.
              * @example USDC
              */
             asset?: string;
             /**
-             * @description MongoDB ObjectId of the eSIM document to top up (the `eSimRef` value from a
-             *     `GET /esim` result). **Required when `isNewESim` is `false`.** Ownership is
-             *     verified server-side. Used uniformly for both deployed and lazy (not-yet-deployed)
-             *     eSIMs, since a wallet address (`esimId`) may not exist yet.
+             * @description MongoDB ObjectId of the eSIM document to top up (the `eSimRef` from a `GET /esim`
+             *     result). **Required when `isNewESim` is `false`.** Ownership is verified server-side.
              * @example 507f1f77bcf86cd799439011
              */
             eSimRef?: string;
             /**
-             * @description Optional 8-character alphanumeric coupon code.
-             *
-             *     When provided and the coupon balance covers the full order amount,
-             *     the payment method is resolved to `COUPON`. The resulting Stripe
-             *     invoice nets to $0 and auto-pays on finalization — no client-side
-             *     payment UI is required.
-             *
+             * @description Optional 8-character alphanumeric coupon code. When provided and the balance covers
+             *     the full order amount, the method resolves to `COUPON` ($0 invoice, auto-pays).
              *     Insufficient balance is a hard rejection (no partial coverage in this version).
+             *     Not permitted with `paymentMethod: DEVICE_WALLET`.
              * @example ABCD1234
              */
             coupon?: string;
@@ -4257,7 +4246,7 @@ export interface operations {
              *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
              *     | `REQUIRED_FIELD` | A required field is missing (e.g. `eSimRef` for topup) |
              *     | `INVALID_VALUE` | A field value is invalid (e.g. malformed `catalogueId` or `eSimRef`) |
-             *     | `INVALID_PAYMENT_METHOD` | Neither `isCryptoPayment` nor `coupon` resolved to a valid payment method |
+             *     | `INVALID_PAYMENT_METHOD` | `paymentMethod` is missing or not one of `FIAT`, `CRYPTO`, `DEVICE_WALLET` |
              *     | `COUPON_NOT_FOUND` | Coupon code does not exist |
              *     | `COUPON_INSUFFICIENT_BALANCE` | Coupon balance does not cover the full order amount |
              *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `eSimRef` is not associated with the authenticated device |

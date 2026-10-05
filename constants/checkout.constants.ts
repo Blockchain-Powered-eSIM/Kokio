@@ -8,6 +8,13 @@ export const RADIO_KEYS = {
 
 export type RadioKey = (typeof RADIO_KEYS)[keyof typeof RADIO_KEYS];
 
+export const DEVICE_WALLET_PAYMENT_ASSET = "USDC";
+
+// __DEV__-only alternates for testing, when the official testnet USDC faucet
+// supply runs low - swapping the asset symbol here must match an asset the
+// backend's payment adapter actually recognizes.
+export const DEV_DEVICE_WALLET_TEST_ASSETS = ["USDC", "USDCt"] as const;
+
 export const PLAN_TYPES = {
   DATA: "DATA",
   DATA_CALLS_SMS: "DATA_CALLS_SMS",

@@ -28,7 +28,7 @@ import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
-import { getEsimOrderPayload } from "@/helpers/esimOrder";
+import { getEsimOrderPayload, formatPlanLabel } from "@/helpers/esimOrder";
 import { useEsims, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 import { isOrderSuccess, pollOrderStatus, submitPaymentHash } from "@/utils/bff/order";
 import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/utils/bff/order";
@@ -38,12 +38,11 @@ import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { useCouponLookup } from "@/hooks/useCouponLookup";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateOrder, StripeCancelledError, StripeSheetError, OrderCreationError } from "@/hooks/useCreateOrder";
-import { useDevEsimWalletBypass } from "@/hooks/useDevEsimWalletBypass";
 import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
-import { RADIO_KEYS } from "@/constants/checkout.constants";
+import { RADIO_KEYS, DEVICE_WALLET_PAYMENT_ASSET, DEV_DEVICE_WALLET_TEST_ASSETS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import * as WebBrowser from "expo-web-browser";
@@ -61,6 +60,20 @@ const RADIO_WIDTH = SCREEN_WIDTH - 24;
 // How long to wait for the chain webhook to confirm a device-wallet payment
 // before submitting the signed hash ourselves as a recovery fallback.
 const DEVICE_WALLET_PAYMENT_SUBMISSION_DELAY_MS = 25000;
+
+// Longer than the default poll budget (30s, tuned for Stripe/MoonPay's
+// near-instant webhooks): a device-wallet payment's confirmation depends on
+// the chain webhook's own wait for `safe` L1 finality, which real-device
+// testing showed can run past 30s even when the payment actually succeeded.
+const DEVICE_WALLET_PAYMENT_POLL_MAX_DURATION_MS = 120000;
+
+// GET /order/{idempotencyKey} shares a 10-requests-per-minute per-device
+// limit with /esim and /order/list, which other screens poll in the
+// background independently. The default 4s poll interval alone is already
+// 15 requests/minute, well over that budget on its own - real-device testing
+// showed this causes silent 429s and backoff that can mask a real status
+// change until the poll gives up. 8s leaves headroom for concurrent traffic.
+const DEVICE_WALLET_PAYMENT_POLL_INTERVAL_MS = 8000;
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container:              { flex: 1 },
@@ -170,16 +183,6 @@ const ExternalWalletCheckout = ({
   return null;
 };
 
-// e.g. "United Arab Emirates · 7 Days · 1GB"
-function formatPlanLabel(plan?: Esim | null): string | undefined {
-  if (!plan?.serviceRegionName) return undefined;
-  const parts = [plan.serviceRegionName];
-  if (plan.validity) parts.push(`${plan.validity} Days`);
-  if (plan.isUnlimited) parts.push('Unlimited');
-  else if (plan.data) parts.push(`${plan.data}GB`);
-  return parts.join(' · ');
-}
-
 const Checkout = () => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
@@ -194,6 +197,7 @@ const Checkout = () => {
 
   const [isESimEnabled, setIsESimEnabled]                 = useState<boolean>(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>();
+  const [devDeviceWalletAsset, setDevDeviceWalletAsset] = useState<string>(DEVICE_WALLET_PAYMENT_ASSET);
   const [showSuccessModal, setShowSuccessModal]           = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading]         = useState(false);
   const [loadingMessage, setLoadingMessage]               = useState('');
@@ -226,7 +230,6 @@ const Checkout = () => {
   );
 
   const { showMessage }       = useToast();
-  const { deployTestEsimWallet } = useDevEsimWalletBypass();
   const orderCorrelationRef   = useRef<string | null>(null);
   const handlePollUpdate      = useCallback(
     (update: import("@/utils/bff/order").PollUpdate) => {
@@ -391,7 +394,7 @@ const Checkout = () => {
   }, [handleOrderResult, handlePollUpdate]);
 
   const handleDeviceWalletPayment = useCallback(async (
-    userOperations: { to: string; data: string },
+    userOperations: { to: string; data: string }[],
     correlationId: string,
   ) => {
     const deviceWallet = kokio.sdk?.deviceWallet;
@@ -406,11 +409,12 @@ const Checkout = () => {
       setLoadingMessage('Confirm the payment with Face ID...');
 
       // Fires the passkey/biometric prompt. Resolves with the user operation
-      // hash, NOT a receipt - the payment is not confirmed on-chain yet.
-      const hash = await deviceWallet.sendUserOperation([{
-        to: userOperations.to as `0x${string}`,
-        data: userOperations.data as `0x${string}`,
-      }]);
+      // hash, NOT a receipt - the payment is not confirmed on-chain yet. The
+      // calls are bundled as one user operation, in order (e.g. an approval
+      // followed by the actual payment call).
+      const hash = await deviceWallet.sendUserOperation(
+        userOperations.map((op) => ({ to: op.to as `0x${string}`, data: op.data as `0x${string}` })),
+      );
 
       const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
 
@@ -433,7 +437,11 @@ const Checkout = () => {
         });
       }, DEVICE_WALLET_PAYMENT_SUBMISSION_DELAY_MS);
 
-      const finalOrder = await pollOrderStatus(correlationId, { onUpdate: handlePollUpdate }).catch(() => null);
+      const finalOrder = await pollOrderStatus(correlationId, {
+        onUpdate: handlePollUpdate,
+        maxDurationMs: DEVICE_WALLET_PAYMENT_POLL_MAX_DURATION_MS,
+        intervalMs: DEVICE_WALLET_PAYMENT_POLL_INTERVAL_MS,
+      }).catch(() => null);
       clearTimeout(fallbackTimer);
       setIsCheckoutLoading(false);
       setLoadingMessage('');
@@ -450,44 +458,21 @@ const Checkout = () => {
     }
   }, [kokio.sdk, handlePollUpdate, handleOrderResult, showMessage]);
 
-  // __DEV__ only (see checkout.helpers.tsx's isDisabled and radioLabels.tsx's
-  // ESimWallet label) - skips Stripe/MoonPay/BFF order creation entirely and
-  // instead deploys a real on-chain eSIM wallet via kokio.sdk, so the top-up
-  // toggle (app/(tabs)/(wallet)/esim-wallet.tsx) is testable without a live
-  // payment or a real eSIM purchase. See hooks/useDevEsimWalletBypass.ts.
-  const handleDevWalletBypassCheckout = useCallback(async () => {
-    setIsCheckoutLoading(true);
-    setLoadingMessage('Deploying test eSIM wallet on-chain...');
-    try {
-      const { esimId } = await deployTestEsimWallet(eSimItem);
-      setIsCheckoutLoading(false);
-      setLoadingMessage('');
-      showMessage('Test eSIM wallet deployed, the top-up toggle is now testable.', 'info');
-      router.dismissAll();
-      router.navigate({
-        pathname: '/(tabs)/(wallet)/esim-wallet' as any,
-        params: { esimId, name: eSimItem?.serviceRegionName ?? undefined },
-      });
-    } catch (err) {
-      logger.error('DEV_ESIM_WALLET_BYPASS_FAILED', { err });
-      setIsCheckoutLoading(false);
-      setLoadingMessage('');
-      showMessage(formatOnChainError(err, 'Could not deploy the test eSIM wallet.'), 'info');
-    }
-  }, [deployTestEsimWallet, eSimItem, showMessage]);
-
   const handleCheckout = useCallback(async () => {
-    if (__DEV__ && selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET) {
-      return handleDevWalletBypassCheckout();
-    }
-
-    const isCryptoPayment = !(
-      selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD ||
-      selectedPaymentMethod === RADIO_KEYS.APPLE_PAY
-    );
+    const isDeviceWalletPayment = selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET;
+    const paymentMethod: CreateOrderRequest['paymentMethod'] = isDeviceWalletPayment
+      ? 'DEVICE_WALLET'
+      : (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD || selectedPaymentMethod === RADIO_KEYS.APPLE_PAY)
+        ? 'FIAT'
+        : 'CRYPTO';
     const request: CreateOrderRequest = {
       ...getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef }),
-      isCryptoPayment,
+      paymentMethod,
+      // A coupon is not permitted alongside DEVICE_WALLET - drop it rather than
+      // let a stale discount-code entry cause a request rejection.
+      ...(isDeviceWalletPayment
+        ? { asset: __DEV__ ? devDeviceWalletAsset : DEVICE_WALLET_PAYMENT_ASSET, coupon: undefined }
+        : {}),
     };
 
     setIsCheckoutLoading(true);
@@ -565,7 +550,7 @@ const Checkout = () => {
   }, [
     selectedPaymentMethod, eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef,
     createOrderMutation, handleOrderResult, handleBrowserPay, handleRemoveDiscount, showMessage,
-    handleDevWalletBypassCheckout, handleDeviceWalletPayment,
+    handleDeviceWalletPayment, devDeviceWalletAsset,
   ]);
 
   const handleInstallESIM = useCallback(() => {
@@ -595,17 +580,14 @@ const Checkout = () => {
 
   const handlePaymentMethodChange = useCallback(
     (value: string) => {
-      // E_SIM_WALLET is a __DEV__-only test path (handleDevWalletBypassCheckout
-      // deploys the eSIM wallet onto the device wallet), so it's the only
-      // option that needs one. Credit card, Apple Pay, and the external-wallet
-      // browser flow are all wallet-independent and must never gate on it.
-      if (value === RADIO_KEYS.E_SIM_WALLET) {
-        if (!__DEV__) return;
-        if (!kokio.userWallet) {
-          setPendingPaymentMethod(value);
-          setShowWalletSetupModal(true);
-          return;
-        }
+      // Paying from the device wallet needs one to exist first; deploy it via
+      // the modal before allowing selection. Credit card, Apple Pay, and the
+      // external-wallet browser flow are all wallet-independent and must
+      // never gate on it.
+      if (value === RADIO_KEYS.E_SIM_WALLET && !kokio.userWallet) {
+        setPendingPaymentMethod(value);
+        setShowWalletSetupModal(true);
+        return;
       }
       setSelectedPaymentMethod(value);
     },
@@ -663,6 +645,30 @@ const Checkout = () => {
             />
           </View>
         </View>
+
+        {__DEV__ && selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET && (
+          <View style={{ marginTop: 12 }}>
+            <ThemedText style={{ fontSize: 12 }}>Dev: pay with</ThemedText>
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
+              {DEV_DEVICE_WALLET_TEST_ASSETS.map((asset) => (
+                <TouchableOpacity
+                  key={asset}
+                  onPress={() => setDevDeviceWalletAsset(asset)}
+                  style={{
+                    paddingVertical: 6,
+                    paddingHorizontal: 14,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: colors.mutedForeground,
+                    backgroundColor: devDeviceWalletAsset === asset ? colors.inputBackground : "transparent",
+                  }}
+                >
+                  <Text style={{ color: colors.foreground }}>{asset}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={{ marginTop: 16 }}>
           <ThemedText>Discount</ThemedText>

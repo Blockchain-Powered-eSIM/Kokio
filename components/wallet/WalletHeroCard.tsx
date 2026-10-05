@@ -34,6 +34,8 @@ interface WalletHeroCardProps {
   headerContent?: React.ReactNode;
   /** Rendered below the address row, e.g. a "linked to your device wallet" caption. */
   footerContent?: React.ReactNode;
+  showBalance?: boolean;
+  showCopy?: boolean;
 }
 
 const createStyles = (colors: Palette) => StyleSheet.create({
@@ -77,18 +79,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     marginBottom: 16,
     backgroundColor: "transparent",
   },
-  testnetBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: colors.itemBackground,
-  },
-  testnetBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: colors.foreground,
-  },
   title: {
     paddingLeft: 16,
     fontSize: 22,
@@ -130,6 +120,24 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
+export function TestnetBadge() {
+  const colors = useColors();
+  return (
+    <View
+      style={{
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: colors.itemBackground,
+      }}
+    >
+      <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.foreground }}>
+        TESTNET
+      </ThemedText>
+    </View>
+  );
+}
+
 export function WalletHeroCard({
   address,
   balance,
@@ -138,6 +146,8 @@ export function WalletHeroCard({
   balanceLabel,
   headerContent,
   footerContent,
+  showBalance = true,
+  showCopy = true,
 }: WalletHeroCardProps) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
@@ -169,9 +179,7 @@ export function WalletHeroCard({
           />
           {headerContent ?? (
             <ThemedView style={styles.headerWithLogo}>
-              <View style={styles.testnetBadge}>
-                <ThemedText style={styles.testnetBadgeText}>TESTNET</ThemedText>
-              </View>
+              <TestnetBadge />
               <Image
                 source={require("@/assets/images/logo.png")}
                 style={styles.logo}
@@ -179,7 +187,11 @@ export function WalletHeroCard({
             </ThemedView>
           )}
 
-          <ThemedView style={compact ? styles.balanceContainerCompact : styles.balanceContainer}>
+          <ThemedView
+            style={[compact ? styles.balanceContainerCompact : styles.balanceContainer, !showBalance && { opacity: 0 }]}
+            importantForAccessibility={showBalance ? "auto" : "no-hide-descendants"}
+            accessibilityElementsHidden={!showBalance}
+          >
             <ThemedText
               variant="sm"
               lightColor={LIGHT_TOKENS.text}
@@ -230,20 +242,22 @@ export function WalletHeroCard({
                   color={colors.foreground}
                 />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => copy(address)}
-                disabled={!address}
-                style={styles.iconButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityRole="button"
-                accessibilityLabel="Copy wallet address"
-              >
-                <Ionicons
-                  name={copied ? "checkmark" : "copy-outline"}
-                  size={16}
-                  color={copied ? colors.success : colors.foreground}
-                />
-              </TouchableOpacity>
+              {showCopy && (
+                <TouchableOpacity
+                  onPress={() => copy(address)}
+                  disabled={!address}
+                  style={styles.iconButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Copy wallet address"
+                >
+                  <Ionicons
+                    name={copied ? "checkmark" : "copy-outline"}
+                    size={16}
+                    color={copied ? colors.success : colors.foreground}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
           {footerContent}
