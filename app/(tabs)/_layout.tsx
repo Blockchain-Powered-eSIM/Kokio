@@ -6,6 +6,7 @@ import { Tabs, router } from "expo-router";
 import { Theme } from "@/constants/Colors";
 import { useNavBarInset } from "@/hooks/useBottomInset"; 
 import { useColors } from "@/hooks/useColors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ROUTE_NAMES } from "@/constants/route.constants";
@@ -28,6 +29,8 @@ const createStyles = (colors: Palette) => StyleSheet.create({
 
 export default function TabLayout() {
   const navBarInset = useNavBarInset();
+  const headerBackground = useThemeColor({}, "background");
+  const headerText = useThemeColor({}, "headerText");
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   return (
@@ -147,6 +150,9 @@ export default function TabLayout() {
           headerShown: true,
           title: "Install eSIM",
           headerTitleAlign: "center",
+          headerStyle: { backgroundColor: headerBackground },
+          headerTintColor: headerText,
+          headerTitleStyle: { fontFamily: "Lexend", fontSize: 18, color: headerText },
           headerLeft: ({ tintColor }) => (
             <HeaderBackControl
               tintColor={tintColor}
