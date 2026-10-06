@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Updates from "expo-updates";
@@ -25,14 +24,6 @@ const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; descripti
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  backButton: {
-    width: 44,
-    height: 44,
-    marginLeft: 8,
-    marginTop: 4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   iconCircle: {
     width: 84,
     height: 84,
@@ -104,17 +95,8 @@ export default function CreateWalletScreen() {
   }, [deployDeviceWallet, router, showMessage]);
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.container}>
+    <View style={styles.container}>
       <SignupRequiredModal visible={errorMessage === "signup"} onRelaunch={handleRelaunch} />
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-      >
-        <Ionicons name="chevron-back-outline" size={28} color={colors.headerText} />
-      </TouchableOpacity>
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8 }}>
         <View style={[styles.iconCircle, { backgroundColor: colors.walletAccent }]}>
           <Ionicons name="finger-print-outline" size={42} color={colors.primaryForeground} />
@@ -198,6 +180,6 @@ export default function CreateWalletScreen() {
           </ThemedText>
         </TouchableOpacity>
       </BottomActionBar>
-    </SafeAreaView>
+    </View>
   );
 }

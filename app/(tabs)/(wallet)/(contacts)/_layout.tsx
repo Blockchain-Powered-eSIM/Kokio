@@ -1,28 +1,12 @@
-import { Pressable } from "react-native";
-import { Stack, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Stack } from "expo-router";
+import { HeaderBackControl, useStackHeaderOptions } from "@/components/navigation/stackHeader";
 import { ROUTE_NAMES } from "@/constants/route.constants";
-import { useColors } from "@/hooks/useColors";
 
-function StackBackButton() {
-    const router = useRouter();
-    const colors = useColors();
-    return (
-        <Pressable
-            onPress={() => router.back()}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            style={{ paddingHorizontal: 8 }}
-        >
-            <Ionicons name="chevron-back" size={26} color={colors.text} />
-        </Pressable>
-    );
-}
-
+// Contacts screens can be entered directly from the Wallet tab, so the back control must render even with no previous screen.
 export default function ContactsStack() {
+    const headerOptions = useStackHeaderOptions();
     return (
-        <Stack screenOptions={{ headerLeft: () => <StackBackButton /> }}>
+        <Stack screenOptions={{ ...headerOptions, headerLeft: () => <HeaderBackControl /> }}>
             <Stack.Screen name={ROUTE_NAMES.HOME} options={{ title: "Contacts" }} />
             <Stack.Screen name={ROUTE_NAMES.ADD_CONTACTS_SCREEN} options={{ title: "Add Contact" }} />
             <Stack.Screen name={ROUTE_NAMES.CONTACT_DETAILS} options={{ title: "Contact Details" }} />

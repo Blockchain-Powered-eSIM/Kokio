@@ -25,6 +25,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 import { TESTNET_DISCLOSURE_MESSAGE } from '@/constants/general.constants';
+import Header from '@/components/Header';
+import { HeaderBackControl } from '@/components/navigation/stackHeader';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 
 const createStyles = (colors: Palette) => StyleSheet.create({
@@ -67,21 +69,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingBottom: 8,
-  },
-  aboutHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.muted,
-  },
-  aboutTitle: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: "600",
-    paddingTop: 20,
   },
   closeButton: {
     color: colors.icon,
@@ -217,7 +204,7 @@ const MenuItem = ({
   );
 };
 
-const AboutContent = ({ onClose }: { onClose: () => void }) => {
+const AboutContent = () => {
   const styles = useThemedStyles(createStyles);
   const handleLinkPress = useCallback(async (url: string) => {
     try {
@@ -229,12 +216,6 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <View style={styles.aboutContainer}>
-      <View style={styles.aboutHeader}>
-        <ThemedText style={styles.aboutTitle}>About</ThemedText>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
-        </TouchableOpacity>
-      </View>
       <ScrollView
         style={styles.aboutContent}
         showsVerticalScrollIndicator={false}
@@ -294,17 +275,11 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-const ContactContent = ({ onClose }: { onClose: () => void }) => {
+const ContactContent = () => {
   const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.aboutContainer}>
-      <View style={styles.aboutHeader}>
-        <ThemedText style={styles.aboutTitle}>Contact Support</ThemedText>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
-        </TouchableOpacity>
-      </View>
       <View style={styles.aboutContent}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -410,13 +385,24 @@ export default function MenuScreen() {
     }] : []),
   ];
 
+  const isSubView = showAbout || showContact;
+  const headerTitle = showAbout ? "About" : showContact ? "Contact Support" : "Settings";
+  const closeSubView = () => {
+    setShowAbout(false);
+    setShowContact(false);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
+      <Header
+        title={headerTitle}
+        leftElement={isSubView ? <HeaderBackControl onPress={closeSubView} tintColor={colors.text} /> : undefined}
+      />
       <ThemedView style={styles.container}>
         {showAbout ? (
-          <AboutContent onClose={() => setShowAbout(false)} />
+          <AboutContent />
         ) : showContact ? (
-          <ContactContent onClose={() => setShowContact(false)} />
+          <ContactContent />
         ) : (
           <>
             <FlatList

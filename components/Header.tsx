@@ -1,9 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, View, ViewStyle, TextStyle } from "react-native";
-import { useNavigation, router } from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
-
-import _isFunction from "lodash/isFunction";
+import { View, ViewStyle, TextStyle } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 
@@ -15,10 +11,8 @@ interface HeaderProps {
   style?: ViewStyle;
   titleStyle?: TextStyle;
   containerStyle?: ViewStyle;
-  hasBack?: boolean;
-  goBackFallBack?: Parameters<typeof router.navigate>[0];
-  goBackHandler?: () => void;
   rightElement?: ReactNode;
+  leftElement?: ReactNode;
 }
 
 const Header = ({
@@ -26,30 +20,9 @@ const Header = ({
   style = {},
   titleStyle = {},
   containerStyle = {},
-  hasBack,
-  goBackFallBack,
-  goBackHandler,
   rightElement,
+  leftElement,
 }: HeaderProps) => {
-  const navigation = useNavigation();
-
-  const handleBack = () => {
-    if (_isFunction(goBackHandler)) {
-      goBackHandler();
-      return;
-    }
-
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-
-    if (goBackFallBack) {
-      router.navigate(goBackFallBack);
-    }
-  };
-
-  const iconColor = useThemeColor({}, "icon");
   const headerTextColor = useThemeColor({}, "headerText");
   const backgroundColor = useThemeColor({}, "background");
 
@@ -66,22 +39,9 @@ const Header = ({
         ...containerStyle,
       }}
     >
-      {/* left — back button or empty spacer */}
-      <View style={{ width: SIDE_WIDTH }}>
-        {hasBack && (
-          <Pressable
-            onPress={handleBack}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons
-              name="chevron-back-outline"
-              size={28}
-              color={iconColor}
-            />
-          </Pressable>
-        )}
+      {/* left slot keeps the title centred when empty */}
+      <View style={leftElement ? { minWidth: SIDE_WIDTH, alignItems: "flex-start" } : { width: SIDE_WIDTH }}>
+        {leftElement}
       </View>
 
       {/* centre — title */}

@@ -12,6 +12,7 @@ import { ROUTE_NAMES } from "@/constants/route.constants";
 import { getRouteName, getIsTabBarVisible } from "@/helpers/navigator.helper";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import Header from "@/components/Header";
+import { HeaderBackControl } from "@/components/navigation/stackHeader";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   tabBar: {
@@ -24,21 +25,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     marginTop: Theme.spacing.xs,
   },
 });
-
-function InstallationHeader() {
-  return (
-    <SafeAreaView edges={["top"]}>
-      <Header
-        title="Install eSIM"
-        style={{ justifyContent: "center" }}
-        hasBack
-        goBackHandler={() => {
-          router.navigate("/(tabs)/orders");
-        }}
-      />
-    </SafeAreaView>
-  );
-}
 
 export default function TabLayout() {
   const navBarInset = useNavBarInset();
@@ -159,7 +145,14 @@ export default function TabLayout() {
         options={{
           href: null, // Hide from tab bar
           headerShown: true,
-          header: () => <InstallationHeader />,
+          title: "Install eSIM",
+          headerTitleAlign: "center",
+          headerLeft: ({ tintColor }) => (
+            <HeaderBackControl
+              tintColor={tintColor}
+              onPress={() => router.navigate("/(tabs)/orders")}
+            />
+          ),
         }}
       />
     </Tabs>
