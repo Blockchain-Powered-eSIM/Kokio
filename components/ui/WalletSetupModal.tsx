@@ -13,17 +13,17 @@ import {
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { openBrowserAsync } from "expo-web-browser";
 import * as Updates from "expo-updates";
-import { type Hex } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/constants/Colors";
 import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
-import { useKokio } from "@/hooks/useKokio";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
+import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
 import { logger } from '@/utils/logger';
+import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
 
 interface WalletSetupModalProps {
   visible: boolean;
@@ -210,22 +210,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingTop: 20,
     backgroundColor: "transparent",
   },
-  signupPromptContainer: {
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    alignItems: "center",
-  },
-  singleButton: {
-    alignSelf: "stretch",
-    borderRadius: 25,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  singleButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
 });
 
 const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
@@ -237,6 +221,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+  const [showSubmitted, setShowSubmitted] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [eoaAddress, setEoaAddress] = useState("");
@@ -244,7 +229,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     undefined
   );
   const modalRef = React.useRef<Modal>(null);
-  const { kokio, setupKokioUserWallet } = useKokio();
+  const { deployDeviceWallet } = useWalletDeployment();
   const { showMessage } = useToast();
   const textColor = useThemeColor({}, "text");
   const foregroundColor = useThemeColor({}, "foreground");
@@ -265,104 +250,19 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     setIsLoading(true);
     setShowRetry(false);
 
-    const { deviceWalletAddress, deviceUID, userPasskey, rawSalt, sdk } = kokio;
-
-    logger.debug('WALLET_CONTINUE_STATE', {
-      deviceWalletAddress: !!deviceWalletAddress,
-      deviceUID: !!deviceUID,
-      hasX: !!userPasskey?.x,
-      hasY: !!userPasskey?.y,
-      hasRawSalt: !!rawSalt,
-      sdkReady: !!sdk,
-    });
-
-    if (!deviceWalletAddress || !userPasskey?.x || !userPasskey?.y || !rawSalt || !sdk) {
-      // These fields only ever come from completing passkey signup, never from
-      // wallet deployment itself — missing them means the user hasn't signed
-      // up yet (e.g. cancelled out of first-launch auth), not that deployment
-      // failed. Send them to sign up instead of the generic failure/retry loop.
-      logger.warn('WALLET_SETUP_GUARD_FAILED — Missing', {
-        deviceWalletAddress,
-        x: userPasskey?.x,
-        y: userPasskey?.y,
-        rawSalt: !!rawSalt,
-        sdk: !!sdk,
-      });
-      setShowSignupPrompt(true);
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      setWalletAddress(deviceWalletAddress);
-
-      // Reconstruct the smart account from the stored P-256 public key.
-      // This computes the same counterfactual address the server derived at registration.
-      const ownerKey: [Hex, Hex] = [userPasskey.x, userPasskey.y];
-      const salt = BigInt(rawSalt);
-
-      logger.debug('GET_SMART_WALLET_INPUTS', {
-        deviceUID,
-        ownerKeyX: userPasskey.x,
-        ownerKeyY: userPasskey.y,
-        rawSalt,
-        saltBigInt: salt.toString(),
-        saltHex: '0x' + salt.toString(16).padStart(64, '0'),
-        serverAddress: deviceWalletAddress,
-      });
-
-      const deviceWallet = await sdk.smartAccount.getSmartWallet(
-        deviceUID,
-        ownerKey,
-        salt,
-      );
-
-      const deviceWalletClient = await sdk.smartAccount.getSmartWalletClient(deviceWallet);
-
-      const sdkAddress = deviceWalletClient.account?.address;
-      logger.debug('GET_SMART_WALLET_RESULT', {
-        sdkAddress,
-        serverAddress: deviceWalletAddress,
-        match: sdkAddress?.toLowerCase() === deviceWalletAddress.toLowerCase(),
-      });
-
-      // A no-op userOp that includes the initCode on first send, deploying the contract.
-      // This triggers Passkey.get() inside the SDK's _stamp() — the biometric prompt.
-      /**
-       * ERROR SIGNATURE HERE
-       * components/ui/WalletSetupModal.tsx:307:50 - error TS2345: Argument of type '{ uo: { target: `0x${string}`; data: "0x"; value: bigint; }; overrides: { preVerificationGas: number; }; }' is not assignable to parameter of type 'SendUserOperationParameters<SmartContractAccount | undefined, UserOperationContext | undefined, keyof EntryPointRegistryBase<unknown>>'.
-       * Property 'account' is missing in type '{ uo: { target: `0x${string}`; data: "0x"; value: bigint; }; overrides: { preVerificationGas: number; }; }' but required in type '{ account: SmartContractAccount<string, keyof EntryPointRegistryBase<unknown>>; }'.
-       * 307       await deviceWalletClient.sendUserOperation({                                            ~
-       * 308         uo: {
-       *          ~~~~~~~~~~~~~
-       *          ... 
-       * 313              overrides: { preVerificationGas: 0xeeee },
-       *          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       * 314       });
-       *          ~~~~~~~
-       *
-       * node_modules/@aa-sdk/core/dist/types/account/smartContractAccount.d.ts:29:50
-       * 29     account: TAccountOverride;
-       *        ~~~~~~~
-       *        'account' is declared here.
-       *        components/ui/WalletSetupModal.tsx:309:19 - error TS18048: 'deviceWalletClient.account' is possibly 'undefined'.
-       * 309           target: deviceWalletClient.account.address,
-       */
-      // @ts-expect-error Ownership with wallet features (ideally protected against empty accounts, but should be explicit)
-      await deviceWalletClient.sendUserOperation({
-        uo: {
-          // error TS18048: 'deviceWalletClient.account' is possibly 'undefined'
-          // @ts-expect-error
-          target: deviceWalletClient.account.address,
-          data: '0x',
-          value: 0n,
-        },
-        overrides: { preVerificationGas: 0xeeee },
-      });
-
-      await setupKokioUserWallet(deviceUID, deviceWallet);
-      setShowRecovery(true);
+      const result = await deployDeviceWallet();
+      setWalletAddress(result.walletAddress);
+      if (result.status === 'already_deployed') {
+        setShowRecovery(true);
+      } else {
+        setShowSubmitted(true);
+      }
     } catch (err: unknown) {
+      if (err instanceof MissingSignupDataError) {
+        setShowSignupPrompt(true);
+        return;
+      }
       logger.error('WALLET_DEPLOYMENT_FAILED', { err });
       const message = err instanceof AuthError
         ? err.userMessage
@@ -374,11 +274,12 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [kokio, setupKokioUserWallet, showMessage]);
+  }, [deployDeviceWallet, showMessage]);
 
   const handleClose = useCallback(() => {
     setIsLoading(false);
     setShowRecovery(false);
+    setShowSubmitted(false);
     setShowRetry(false);
     setShowSignupPrompt(false);
     setEoaAddress("");
@@ -433,34 +334,13 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
       <View style={styles.loadingContainer}>
         <ActivityIndicator size={90} color={colors.primary} />
         <Text style={[styles.loadingText, { color: foregroundColor }]}>
-          Please wait while your wallet is being deployed...
+          Requesting your wallet...
         </Text>
       </View>
     ),
     // styles have their own memo watching for changes based on theme
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  const signupPromptContent = useMemo(
-    () => (
-      <View style={styles.signupPromptContainer}>
-        <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
-          Please sign-up to proceed
-        </ThemedText>
-        <TouchableOpacity
-          style={[styles.singleButton, { backgroundColor: colors.primary }]}
-          onPress={handleRelaunch}
-        >
-          <Text style={[styles.singleButtonText, { color: colors.cardForeground }]}>
-            Let&apos;s go
-          </Text>
-        </TouchableOpacity>
-      </View>
-    ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleRelaunch, textColor]
+    [foregroundColor]
   );
 
   const retryContent = useMemo(
@@ -500,6 +380,39 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     [handleClose, handleContinue, foregroundColor, textColor]
   );
 
+  const handleSubmittedDone = useCallback(() => {
+    setShowSubmitted(false);
+    setWalletAddress(undefined);
+    onContinue();
+  }, [onContinue]);
+
+  const submittedContent = useMemo(
+    () => (
+      <View style={styles.errorContainer}>
+        <MaterialCommunityIcons
+          name="clock-outline"
+          size={60}
+          color={colors.primary}
+          style={styles.errorIcon}
+        />
+        <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
+          Wallet request submitted
+        </ThemedText>
+        <Text style={[styles.errorDescription, { color: foregroundColor }]}>
+          This can take a few minutes to complete on-chain. Feel free to keep browsing, we will let you know once it is ready.
+        </Text>
+        <View style={[styles.buttonContainer, { borderTopColor: mutedColor, marginTop: 20 }]}>
+          <TouchableOpacity style={styles.continueButton} onPress={handleSubmittedDone}>
+            <Text style={[styles.continueButtonText, { color: colors.primary }]}>Got it</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    ),
+    // styles have their own memo watching for changes based on theme
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [handleSubmittedDone, foregroundColor, textColor]
+  );
+
   const handleRemindLater = useCallback(() => {
     setShowRecovery(false);
     setEoaAddress("");
@@ -512,7 +425,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     // for the backend ask) — don't let the user believe it was saved when it
     // wasn't; tell them plainly instead of silently closing as if it succeeded.
     if (!eoaAddress) return;
-    showMessage("Recovery address saving isn't available yet — it wasn't saved. This will be added in a future update.", 'info');
+    showMessage("Recovery address saving isn't available yet. This will be added in a future update.", 'info');
   }, [eoaAddress, showMessage]);
 
   const handleDone = useCallback(() => {
@@ -600,11 +513,15 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
   const renderContent = () => {
     if (isLoading) return loadingContent;
-    if (showSignupPrompt) return signupPromptContent;
     if (showRetry) return retryContent;
+    if (showSubmitted) return submittedContent;
     if (showRecovery) return recoveryContent;
     return initialContent;
   };
+
+  if (showSignupPrompt) {
+    return <SignupRequiredModal visible={visible} onRelaunch={handleRelaunch} />;
+  }
 
   return (
     <Modal

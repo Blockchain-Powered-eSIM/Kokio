@@ -9,6 +9,7 @@ type CreateOrderResponse = components['schemas']['CreateOrderResponse'];
 type OrderStatusResponse = components['schemas']['OrderStatusResponse'];
 type OrderListItem       = components['schemas']['OrderListItem'];
 type OrderListResponse   = components['schemas']['OrderListResponse'];
+type SubmitPaymentResponse = components['schemas']['SubmitPaymentResponse'];
 
 export type InstallationDetails = components['schemas']['InstallationDetails'];
 
@@ -31,6 +32,18 @@ export function submitOrder(
 
 export function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
   return unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
+}
+
+// Recovery fallback for a DEVICE_WALLET order whose payment webhook hasn't
+// landed yet — records the hash so a reconcile job can classify it. Not
+// needed on the happy path, and a no-op if the order already advanced.
+export function submitPaymentHash(
+  idempotencyKey: string,
+  userOperationHash: string,
+): Promise<SubmitPaymentResponse> {
+  return unwrapBffResponse<SubmitPaymentResponse>(
+    api.post(`/v1/order/${idempotencyKey}/payment-submission`, { userOperationHash }),
+  );
 }
 
 export function getOrderList(page = 1, pageSize = 25): Promise<OrderListResponse> {
@@ -110,6 +123,7 @@ export async function pollOrderStatus(
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
       const waitMs = Math.min(backoffMs, remaining);
+      logger.debug('ESIM_POLL_RATE_LIMITED', { idempotencyKey, attempt: retryAttempt, waitMs });
       onUpdate?.({ kind: 'retrying', attempt: retryAttempt, waitMs });
       await new Promise<void>((r) => setTimeout(r, waitMs));
       backoffMs = Math.min(backoffMs * 2, BACKOFF_CAP_MS);

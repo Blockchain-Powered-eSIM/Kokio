@@ -139,7 +139,7 @@ export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => 
 
           <ThemedText style={styles.body}>
             Until you remove it, your device will still hold a passkey for Kokio. It no
-            longer grants access to anything — the account behind it is gone — but it will
+            longer grants access to anything, the account behind it is gone but it will
             keep appearing in your password manager.
           </ThemedText>
 
@@ -153,7 +153,7 @@ export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => 
 
           <ThemedText style={styles.note}>
             Any eSIM you already paid for KEEPS working until it expires. To use Kokio
-            again, create a new account — this generates a new passkey and a new wallet.
+            again, create a new account which generates a new passkey and a new wallet.
             The deleted account cannot be restored.
           </ThemedText>
 

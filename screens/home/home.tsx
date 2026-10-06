@@ -1,25 +1,29 @@
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import ActiveESIMsScroll from "@/components/home/active-esim-scroll";
 import Wallet from "@/components/home/wallet";
 import Hero from "@/components/home/hero";
 import { useKokio } from "@/hooks/useKokio";
 import { useThemeColor } from "@/hooks/useThemeColor";
-
-import { useState } from "react";
-import WalletSetupModal from "@/components/ui/WalletSetupModal";
+import { useWalletTokens } from "@/hooks/useWalletTokens";
 
 export default function HomeScreen() {
   const { kokio, setupKokio } = useKokio();
-  const [showWalletSetup, setShowWalletSetup] = useState(false);
   const bg = useThemeColor({}, "background");
+  const router = useRouter();
+  const { totalUsd: balance, isLoading: isBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress);
 
   const handleOpenWalletSetup = async () => {
     if (!kokio.sdk) {
       await setupKokio();
     }
-    setShowWalletSetup(true);
+    router.push("/(tabs)/(wallet)/create-wallet" as any);
+  };
+
+  const handleOpenWallet = () => {
+    router.push("/(tabs)/(wallet)" as any);
   };
 
   return (
@@ -27,25 +31,16 @@ export default function HomeScreen() {
       <ScrollView style={{ backgroundColor: bg }}>
         <Hero />
         <ActiveESIMsScroll />
-        {kokio.userWallet ? (
-            <Wallet
-              walletId={kokio.userWallet?.address}
-              balance="0"
-              isWalletAdded
-            />
-        ) : (
-          <Wallet
-            isWalletAdded={false}
-            onSetupWallet={handleOpenWalletSetup}
-          />
-        )}
+        <Wallet
+          isWalletAdded={!!kokio.userWallet}
+          isWalletDeploying={kokio.isWalletDeploying}
+          walletDeploymentError={kokio.walletDeploymentError}
+          balance={balance}
+          isBalanceLoading={isBalanceLoading}
+          onSetupWallet={handleOpenWalletSetup}
+          onOpenWallet={handleOpenWallet}
+        />
       </ScrollView>
-      <WalletSetupModal
-        visible={showWalletSetup}
-        onClose={() => setShowWalletSetup(false)}
-        onContinue={() => setShowWalletSetup(false)}
-      />
     </SafeAreaView>
   );
 }
-

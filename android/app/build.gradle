@@ -2,12 +2,6 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
-import groovy.json.JsonSlurper
-
-def kokioVersion = new JsonSlurper()
-    .parseText(file("../../package.json").text)
-    .version
-
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 /**
@@ -99,8 +93,10 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName kokioVersion
-        resValue "string", "expo_runtime_version", "${kokioVersion}"
+        // Kept in step with package.json by scripts/sync-native-version.mjs.
+        // EAS reads versionName without running Groovy, so it must be a literal.
+        versionName "1.6.1"
+        resValue "string", "expo_runtime_version", "1.6.1"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

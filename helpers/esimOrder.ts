@@ -5,22 +5,31 @@ type EsimOrderPayloadParams = {
   eSimItem: Esim;
   discountCode: string;
   applyAsTopup: boolean;
-  compatibleTopUpEsimId: string | undefined;
+  compatibleTopUpEsimRef: string | undefined;
 };
 
 type OrderPayload = CreateOrderRequest;
+
+export function formatPlanLabel(plan?: Esim | null): string | undefined {
+  if (!plan?.serviceRegionName) return undefined;
+  const parts = [plan.serviceRegionName];
+  if (plan.validity) parts.push(`${plan.validity} Days`);
+  if (plan.isUnlimited) parts.push('Unlimited');
+  else if (plan.data) parts.push(`${plan.data}GB`);
+  return parts.join(' · ');
+}
 
 export const getEsimOrderPayload = ({
   eSimItem,
   discountCode,
   applyAsTopup,
-  compatibleTopUpEsimId,
+  compatibleTopUpEsimRef,
 }: EsimOrderPayloadParams): OrderPayload => ({
   catalogueId: eSimItem.catalogueId,
   isNewESim: true,
   coupon: discountCode || undefined,
-  isCryptoPayment: true,
-  ...(applyAsTopup && compatibleTopUpEsimId
-    ? { isNewESim: false, esimId: compatibleTopUpEsimId }
+  paymentMethod: "CRYPTO",
+  ...(applyAsTopup && compatibleTopUpEsimRef
+    ? { isNewESim: false, eSimRef: compatibleTopUpEsimRef }
     : {}),
 });

@@ -3,19 +3,21 @@ import { Stack } from "expo-router";
 import { ROUTE_NAMES } from "@/constants/route.constants";
 
 import Header from "@/components/Header";
+import { useStackHeaderOptions } from "@/components/navigation/stackHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
 export default function WalletStack() {
+  const headerOptions = useStackHeaderOptions();
   return (
-    <Stack>
+    <Stack screenOptions={headerOptions}>
       <Stack.Screen
         name={ROUTE_NAMES.HOME}
         options={{
             header: () => (
               <SafeAreaView edges={["top"]}>
                 <Header
-                  title="Install eSIM"
+                  title="Wallet"
                   style={{ justifyContent: "center" }}
                 />
               </SafeAreaView>
@@ -24,57 +26,20 @@ export default function WalletStack() {
         
       />
       <Stack.Screen
-        name={ROUTE_NAMES.TOKENS}
-        options={ {
-          
-          
-            header: () => (
-              <Header
-                title="Tokens"
-                hasBack
-                style={{ justifyContent: "center" }}
-              />
-            ),
-          
-        }}
+        name={ROUTE_NAMES.CREATE_WALLET}
+        options={{ title: "" }}
       />
       <Stack.Screen
-        name={ROUTE_NAMES.TRANSACTIONS}
-        options={ {
-          
-          
-          
-            header: () => (
-              <Header
-                title="Transactions"
-                hasBack
-                style={{ justifyContent: "center" }}
-              />
-            ),
-          
-        }}
+        name={ROUTE_NAMES.ESIM_WALLET}
+        options={({ route }: any) => ({
+          title: route?.params?.name ? `${route.params.name} eSIM wallet` : "eSIM wallet",
+          headerTitleAlign: "center",
+        })}
       />
-      <Stack.Screen
-        name={ROUTE_NAMES.TRANSACTIONDETAILS}
-        options={ {
-          
-          
-          
-            header: () => (
-              <Header
-                title="Transaction Details"
-                hasBack
-                style={{ justifyContent: "center" }}
-              />
-            ),
-          
-        }}
-      />
-      
-     
+
       <Stack.Screen
         name={ROUTE_NAMES.CONTACTS}
-        options={{headerShown:false}}
+        options={{ headerShown: false }}
       />
       
       </Stack>

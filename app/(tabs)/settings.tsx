@@ -24,6 +24,10 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
+import { TESTNET_DISCLOSURE_MESSAGE } from '@/constants/general.constants';
+import Header from '@/components/Header';
+import { HeaderBackControl } from '@/components/navigation/stackHeader';
+import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
@@ -65,21 +69,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingBottom: 8,
-  },
-  aboutHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.muted,
-  },
-  aboutTitle: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: "600",
-    paddingTop: 20,
   },
   closeButton: {
     color: colors.icon,
@@ -141,57 +130,73 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     fontWeight: "500",
     color: colors.text,
   },
+  testnetNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+    borderRadius: 16,
+    marginHorizontal: 4,
+    backgroundColor: colors.itemBackground,
+  },
+  testnetNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.mutedForeground,
+  },
+  aboutTestnetNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.muted,
+    backgroundColor: colors.itemBackground,
+    marginBottom: 16,
+  },
+  aboutTestnetNoticeText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
 });
-
-const MENU_ITEM_ENABLED = {
-  CONTACT: false, // moved from the bottom Phone tab — enable once contacts feature is ready
-};
-
-// Disabled menu item styling
-const DISABLED_OPACITY = 0.4;
 
 const MenuItem = ({
   title,
   iconLeft,
   iconRight,
   action,
-  disabled = false,
 }: {
   title: string;
   iconLeft: string;
   iconRight: string;
   action: (() => void) | undefined;
-  disabled?: boolean;
 }) => {
   const styles = useThemedStyles(createStyles);
-  const colors = useColors();
   return (
   <TouchableOpacity
-    style={[styles.menuItem, disabled && { opacity: DISABLED_OPACITY }]}
-    onPress={() => !disabled && action && action()}
-    disabled={disabled}
+    style={styles.menuItem}
+    onPress={() => action?.()}
   >
     <View style={styles.menuItemContent}>
       <Ionicons
         /* @ts-ignore */
         name={iconLeft}
         size={24}
-        color={disabled ? colors.inactive : "white"}
+        color="white"
         style={styles.iconLeft}
       />
-      <ThemedText
-        style={{
-          ...styles.menuItemText,
-          ...(disabled && { color: colors.inactive }),
-        }}
-      >
+      <ThemedText style={styles.menuItemText}>
         {title}
       </ThemedText>
       <Ionicons
         /* @ts-ignore */
         name={iconRight}
         size={24}
-        color={disabled ? colors.inactive : "white"}
+        color="white"
         style={styles.iconRight}
       />
     </View>
@@ -199,7 +204,7 @@ const MenuItem = ({
   );
 };
 
-const AboutContent = ({ onClose }: { onClose: () => void }) => {
+const AboutContent = () => {
   const styles = useThemedStyles(createStyles);
   const handleLinkPress = useCallback(async (url: string) => {
     try {
@@ -211,16 +216,16 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <View style={styles.aboutContainer}>
-      <View style={styles.aboutHeader}>
-        <ThemedText style={styles.aboutTitle}>About</ThemedText>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
-        </TouchableOpacity>
-      </View>
       <ScrollView
         style={styles.aboutContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.aboutTestnetNotice}>
+          <Ionicons name="bulb-outline" size={18} color={styles.aboutTestnetNoticeText.color} style={styles.iconLeft} />
+          <ThemedText style={styles.aboutTestnetNoticeText}>
+            {TESTNET_DISCLOSURE_MESSAGE}
+          </ThemedText>
+        </View>
         <ThemedText style={styles.aboutText}>
           You are using official Kokio mobile app.
         </ThemedText>
@@ -270,17 +275,11 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-const ContactContent = ({ onClose }: { onClose: () => void }) => {
+const ContactContent = () => {
   const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.aboutContainer}>
-      <View style={styles.aboutHeader}>
-        <ThemedText style={styles.aboutTitle}>Contact Support</ThemedText>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
-        </TouchableOpacity>
-      </View>
       <View style={styles.aboutContent}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -338,13 +337,6 @@ export default function MenuScreen() {
 
   const menuItems = [
     {
-      id: "1",
-      title: "Contact",
-      iconLeft: "call-outline",
-      iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.CONTACT,
-    },
-    {
       id: "3",
       title: "Privacy Policy",
       iconLeft: "lock-closed-outline",
@@ -387,18 +379,30 @@ export default function MenuScreen() {
       iconRight: "chevron-forward-outline",
       action: async () => {
         await clearKokioUser();
+        await purgeAccountLocalState();
         await logout();
       },
     }] : []),
   ];
 
+  const isSubView = showAbout || showContact;
+  const headerTitle = showAbout ? "About" : showContact ? "Contact Support" : "Settings";
+  const closeSubView = () => {
+    setShowAbout(false);
+    setShowContact(false);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
+      <Header
+        title={headerTitle}
+        leftElement={isSubView ? <HeaderBackControl onPress={closeSubView} tintColor={colors.text} /> : undefined}
+      />
       <ThemedView style={styles.container}>
         {showAbout ? (
-          <AboutContent onClose={() => setShowAbout(false)} />
+          <AboutContent />
         ) : showContact ? (
-          <ContactContent onClose={() => setShowContact(false)} />
+          <ContactContent />
         ) : (
           <>
             <FlatList
@@ -409,7 +413,6 @@ export default function MenuScreen() {
                   iconLeft={item.iconLeft}
                   iconRight={item.iconRight}
                   action={item.action}
-                  disabled={item.disabled}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -423,6 +426,17 @@ export default function MenuScreen() {
                 setShowDeleteAccount(false);
               }}
             />
+            <View style={styles.testnetNotice}>
+              <Ionicons
+                name="bulb-outline"
+                size={20}
+                color={colors.icon}
+                style={styles.iconLeft}
+              />
+              <ThemedText style={styles.testnetNoticeText}>
+                {TESTNET_DISCLOSURE_MESSAGE}
+              </ThemedText>
+            </View>
             { <View style={styles.themeRow}>
               <Ionicons
                 name={isDark ? "moon-outline" : "sunny-outline"}

@@ -272,6 +272,7 @@
 		};
 		AFEE2A4AA36F4AE99E6DF6CC /* [Expo Dev Launcher] Strip Local Network Keys for Release */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);

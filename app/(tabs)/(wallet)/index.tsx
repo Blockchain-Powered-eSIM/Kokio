@@ -1,138 +1,313 @@
-import React, { useState, useCallback } from 'react';
-import { View, ScrollView, Image, Pressable } from 'react-native';
+import React, { useRef, useCallback } from 'react';
+import { View, ScrollView, Image, Pressable, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useRouter , useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from '@/contexts/ThemeContext';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import BottomSheet from '@gorhom/bottom-sheet';
 
-import Wallet from '@/components/home/wallet';
-import { useToast } from '@/contexts/ToastContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WalletHeroCard } from '@/components/wallet/WalletHeroCard';
+import { ContactAvatar } from '@/components/wallet/ContactAvatar';
+import { ReceiveSheet } from '@/components/wallet/sheets/ReceiveSheet';
+import { AddTokenSheet } from '@/components/wallet/sheets/AddTokenSheet';
+import { TokenGrid } from '@/components/wallet/TokenGrid';
+import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
+import { useKokio } from '@/hooks/useKokio';
+import { useEsims } from '@/hooks/useDeviceEsims';
+import { useWalletTokens } from '@/hooks/useWalletTokens';
+import { useContacts } from '@/hooks/useContacts';
+import { useWalletActivity } from '@/hooks/useWalletActivity';
+import { esimDocToDisplayItem } from '@/helpers/esimDisplay';
+import { walletActivityEntryToDisplayItem } from '@/helpers/walletActivityDisplay';
+import type { ESimDocument } from '@/utils/bff/esim';
+import CountryFlag from '@/components/ui/CountryFlag';
 import { logger } from '@/utils/logger';
 
-const tokens = [
-  { id: '1', name: 'USDC', symbol: 'USDC', balance: '0.5', value: '$85.23 USD', icon: require("../../../assets/images/wallet/usdc.png") },
-  { id: '2', name: 'Ethereum', symbol: 'ETH', balance: '2.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/eth.png") },
-  { id: '3', name: 'Unicorn', symbol: 'UNI', balance: '10.0', value: '$55.23 USD', icon: require("../../../assets/images/wallet/uni.png") },
-  { id: '4', name: 'Matic', symbol: 'MATIC', balance: '10.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/matic.png") },
+const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
+
+
+// Count of most recent wallet-activity entries the compact preview card shows before "See all" is needed
+const TRANSACTIONS_PREVIEW_COUNT = 3;
+
+const WALLET_BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [
+  { icon: 'wallet-outline', title: 'Pay in stablecoins (USDC and more)', description: 'No card fees, no foriegn markup, no surprise declines' },
+  { icon: 'wifi-outline', title: 'Top up without the card', description: 'No card details to type again' },
+  { icon: 'shield-checkmark-outline', title: 'Own it', description: 'Funds stay on this phone, not with us' },
+  { icon: 'arrow-up-circle-outline', title: 'Move leftover balance', description: 'Send unused balance to anyone' },
 ];
 
-const transactions = [
-  { id: '1', name: 'Alice', amount: '$150.00', status: "pending", type: "sending", icon: require('../../../assets/images/wallet/contact1.png') },
-  { id: '2', name: 'Ethan', amount: '$150.00', status: "completed", type: "recieved", icon: require('../../../assets/images/wallet/contact2.png') },
-  { id: '3', name: 'Alice', amount: '$150.00', status: "completed", type: "recieved", icon: require('../../../assets/images/wallet/contact3.png') },
-];
+interface EsimWalletRowProps {
+  doc: ESimDocument & { esimId: string };
+  onPress: () => void;
+}
 
-// const contacts = [
-//   { id: '1', name: 'Alice', icon: require("../../../assets/images/wallet/contact1.png") },
-//   { id: '2', name: 'Bob', icon: require("../../../assets/images/wallet/contact2.png") },
-//   { id: '3', name: 'Charlie', icon: require("../../../assets/images/wallet/contact3.png") },
-// ];
+function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
+  const colors = useColors();
+  const display = esimDocToDisplayItem(doc);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 12,
+        borderRadius: 14,
+        backgroundColor: colors.card,
+        borderWidth: 1, borderColor: colors.mutedForeground,
+      }}
+    >
+      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
+      <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1} style={{ flex: 1 }}>
+        {doc.label ?? display.serviceRegionName ?? 'eSIM'}
+      </ThemedText>
+      <Ionicons name='chevron-forward' size={19} color={colors.cardForeground} />
+    </Pressable>
+  );
+}
+
+function PendingEsimWalletRow({ doc }: { doc: ESimDocument }) {
+  const colors = useColors();
+  const display = esimDocToDisplayItem(doc);
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 12,
+        borderRadius: 14,
+        backgroundColor: colors.card,
+        borderWidth: 1, borderColor: colors.mutedForeground,
+        opacity: 0.7,
+      }}
+    >
+      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
+      <View style={{ flex: 1 }}>
+        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1}>
+          {doc.label ?? display.serviceRegionName ?? 'eSIM'}
+        </ThemedText>
+        <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>Setting up wallet…</ThemedText>
+      </View>
+      <ActivityIndicator size="small" color={colors.cardForeground} />
+    </View>
+  );
+}
 
 const WalletPage = () => {
   const colors = useColors();
+  const { isDark } = useTheme();
+  // walletAccent is teal in light mode (fine on a white card) but yellow in
+  // dark mode, which now matches the card's own yellow background exactly -
+  // an icon/border/chip in that color would be invisible. Fall back to
+  // cardForeground (black) for on-card accents specifically in dark mode only.
+  const accentOnCardColor = isDark ? colors.cardForeground : colors.walletAccent;
   const router = useRouter();
-  const {showToast} = useToast();
-  const [contacts, setContacts] = useState<{ firstName: string; monogramUrl: string; [key: string]: any }[]>([]);
+  const { kokio } = useKokio();
+  const { esims } = useEsims();
+  const { contacts } = useContacts();
+  const { entries: walletActivityEntries } = useWalletActivity();
+  const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT).map(walletActivityEntryToDisplayItem);
+  const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress);
 
-  const getAllContacts = async () => {
+  const receiveSheetRef = useRef<BottomSheet>(null);
+  const depositSheetRef = useRef<BottomSheet>(null);
+  const addTokenSheetRef = useRef<BottomSheet>(null);
+
+  const handleOpenHiddenCostBlog = useCallback(async () => {
     try {
-      // Get the array of contact IDs
-      const contactIdsJson = await AsyncStorage.getItem('contactIds');
-      const contactIds = contactIdsJson ? JSON.parse(contactIdsJson) : [];
-      
-      // Fetch all contacts using the IDs
-      const contactsArray = await Promise.all(
-        contactIds.map(async (contactId:string) => {
-          const contactJson = await AsyncStorage.getItem(`contact_${contactId}`);
-          return contactJson ? JSON.parse(contactJson) : null;
-        })
-      );
-  
-      // Filter out any null values and update state
-      const validContacts = contactsArray?.filter(contact => contact !== null);
-      setContacts(validContacts);
+      await Linking.openURL(HIDDEN_COST_BLOG_URL);
     } catch (error) {
-      logger.error('CONTACTS_FETCH_FAILED', { error });
-      setContacts([]); // Set empty array in case of error
+      logger.error('BROWSER_OPEN_FAILED', { error });
     }
-  };
-  
-  useFocusEffect(
-    useCallback(() => {
-      getAllContacts();
-    }, []) 
+  }, []);
+
+  const acct: 'fiat' | 'device' | 'esim' = !kokio.userWallet ? 'fiat' : esims.length > 0 ? 'esim' : 'device';
+
+  // Only eSIMs that already have a deployed on-chain wallet get a full row in
+  // the "eSIM wallets" list below — a lazy eSIM (server still deploying its
+  // wallet during order fulfilment) gets a "setting up" row instead, see
+  // pendingEsims.
+  const deployedEsims = esims.filter(
+    (doc): doc is ESimDocument & { esimId: string } => !!doc.esimId,
   );
-  
+  const pendingEsims = esims.filter(
+    (doc) => !doc.esimId && (doc.activationStatus === 'RELEASED' || doc.activationStatus === 'INSTALLED'),
+  );
+
+  if (acct === 'fiat') {
+    return (
+      <ThemedView className='flex-1 h-full w-full bg-black'>
+        <ScrollView contentContainerStyle={{ paddingBottom: 100, padding: 16 }}>
+          <ThemedView darkColor={colors.card} lightColor={colors.card} style={{ borderRadius: 21, padding: 18 }}>
+            <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold variant='xl'>What a Kokio wallet adds</ThemedText>
+            <ThemedText
+              lightColor={colors.cardForeground}
+              darkColor={colors.cardForeground}
+              style={{ marginTop: 6, marginBottom: 16, lineHeight: 20 }}
+            >
+              Paying by card works fine. Here&apos;s what changes with a wallet.
+            </ThemedText>
+            {WALLET_BENEFITS.map((m) => (
+              <View key={m.title} style={{ flexDirection: 'row', gap: 12, marginBottom: 14, alignItems: 'flex-start' }}>
+                <View style={{ width: 34, height: 34, borderRadius: 14, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={m.icon} size={17} color={colors.mutedForeground} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>{m.title}</ThemedText>
+                  <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 2 }}>{m.description}</ThemedText>
+                </View>
+              </View>
+            ))}
+            <TouchableOpacity
+              onPress={handleOpenHiddenCostBlog}
+              accessibilityRole="link"
+              accessibilityLabel="Why not just a card? The hidden cost of paying by card"
+              style={{ marginTop: 4 }}
+            >
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>
+                Why not just a card?
+              </ThemedText>
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, textDecorationLine: 'underline', fontWeight: '700', marginTop: 2 }}>
+                The hidden cost of freedom of connectivity →
+              </ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+
+          <ThemedView
+            darkColor={colors.card}
+            lightColor={colors.card}
+            style={{
+              borderRadius: 21,
+              padding: 18,
+              marginTop: 16,
+              borderWidth: 1.5,
+              borderColor: accentOnCardColor,
+            }}
+          >
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <Ionicons
+                name={kokio.isWalletDeploying ? 'time-outline' : kokio.walletDeploymentError ? 'alert-circle-outline' : 'finger-print-outline'}
+                size={22}
+                color={kokio.walletDeploymentError && !kokio.isWalletDeploying ? colors.destructive : accentOnCardColor}
+              />
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold variant='xl'>
+                {kokio.isWalletDeploying
+                  ? 'Setting up your wallet'
+                  : kokio.walletDeploymentError
+                    ? "Wallet setup didn't finish"
+                    : 'Add a Kokio wallet'}
+              </ThemedText>
+            </View>
+            <ThemedText style={{ color: colors.cardForeground, marginTop: 7, marginBottom: 14, lineHeight: 20 }}>
+              {kokio.isWalletDeploying
+                ? 'This can take a few minutes. Purchases are restricted at the moment, feel free to explore plans.'
+                : kokio.walletDeploymentError
+                  ? kokio.walletDeploymentError
+                  : 'Optional, do this anytime, setup in a second and the card keeps working.'}
+            </ThemedText>
+            {kokio.isWalletDeploying ? (
+              <ActivityIndicator color={accentOnCardColor} style={{ marginTop: 4 }} />
+            ) : (
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  minHeight: 50,
+                  borderRadius: 999,
+                  paddingHorizontal: 20,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 16,
+                  backgroundColor: colors.ctaBackground,
+                }}
+                onPress={() => router.push('/(tabs)/(wallet)/create-wallet' as any)}
+                accessibilityRole="button"
+                accessibilityLabel={kokio.walletDeploymentError ? "Try creating wallet again" : "Create wallet"}
+              >
+                <ThemedText
+                  style={{ fontSize: 18, fontWeight: '700', color: colors.ctaForeground }}
+                >
+                  {kokio.walletDeploymentError ? 'Try again' : 'Create wallet'}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+          </ThemedView>
+        </ScrollView>
+      </ThemedView>
+    );
+  }
+
   return (
-    <ThemedView className='flex-1 h-full justify-center items-center w-full bg-black' >
-      <ScrollView className='flex-1'>
+    <ThemedView className='flex-1 h-full w-full bg-black'>
+      <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 100 }}>
         <View className='flex-1  mb-2'>
-          <Wallet walletId='0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef7' balance='500'/>
+          <WalletHeroCard address={kokio.deviceWalletAddress} balance={deviceBalance} isBalanceLoading={isDeviceBalanceLoading} />
         </View>
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
-          { /** @ts-expect-error non-reachable code for now, should be fixed when enabled */ }
-          <Pressable onPress={()=>showToast("$50","0.0001 ETH","sent","Sandra",null)} className='flex-1'>
-          <ThemedView darkColor={colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
-            <View className='p-[12] rounded-full' style={{ backgroundColor: colors.warning }}>
-              <Image source={require("../../../assets/images/wallet/arrow_up.png")} className='h-[32] w-[32]' />
-            </View>
-            <ThemedText variant='sm' className='text-white mt-2' bold>Send</ThemedText>
-          </ThemedView>
+          <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/sendToContact' as any)} className='flex-1'>
+            <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 rounded-3xl py-5  justify-center items-center'>
+              <View className='p-[12] rounded-full' style={{ backgroundColor: colors.warning }}>
+                <Ionicons name='arrow-up' size={20} color='#fff' />
+              </View>
+              <ThemedText variant='sm' lightColor={colors.cardForeground} darkColor={colors.cardForeground} className='text-white mt-2' bold>Send</ThemedText>
+            </ThemedView>
           </Pressable>
-          { /** @ts-expect-error non-reachable code for now, should be fixed when enabled */ }
-          <Pressable onPress={()=>showToast("$500","0.00013 ETH","recieved","Sandra",null)} className='flex-1'>
-          <ThemedView darkColor={colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
-            <View className='p-[12] rounded-full' style={{ backgroundColor: colors.success }}>
-              <Image source={require("../../../assets/images/wallet/arrow_down.png")} className='h-[32] w-[32]' />
-            </View>
-            <ThemedText variant='sm' className='text-white mt-2' bold>Recieve</ThemedText>
-          </ThemedView>
+          <Pressable onPress={() => receiveSheetRef.current?.snapToIndex(0)} className='flex-1'>
+            <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 rounded-3xl py-5  justify-center items-center'>
+              <View className='p-[12] rounded-full' style={{ backgroundColor: colors.success }}>
+                <Ionicons name='arrow-down' size={20} color='#fff' />
+              </View>
+              <ThemedText variant='sm' lightColor={colors.cardForeground} darkColor={colors.cardForeground} className='text-white mt-2' bold>Recieve</ThemedText>
+            </ThemedView>
           </Pressable>
-          <ThemedView darkColor={colors.itemBackground} className='flex-1 rounded-3xl py-5  justify-center items-center'>
-            <View className='p-[12] rounded-full' style={{ backgroundColor: colors.systemBlue }}>
-              <Image source={require("../../../assets/images/wallet/square_arrow.png")} className='h-[32] w-[32]' />
-            </View>
-            <ThemedText variant='sm' className='text-white mt-2' bold>Deposit</ThemedText>
-          </ThemedView>
+          <Pressable onPress={() => depositSheetRef.current?.snapToIndex(0)} className='flex-1'>
+            <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 rounded-3xl py-5  justify-center items-center'>
+              <View className='p-[12] rounded-full' style={{ backgroundColor: colors.systemBlue }}>
+                <Ionicons name='add-circle-outline' size={22} color='#fff' />
+              </View>
+              <ThemedText variant='sm' lightColor={colors.cardForeground} darkColor={colors.cardForeground} className='text-white mt-2' bold>Deposit</ThemedText>
+            </ThemedView>
+          </Pressable>
         </View>
 
-        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/(contacts)/sendToContact")}>
-          <ThemedView darkColor={colors.itemBackground} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
-            <View className='flex-row justify-between'>
-              <ThemedText darkColor={colors.foreground} className=' ml-6'>Your Tokens</ThemedText>
-              {tokens.length > 0 &&
-                <ThemedText darkColor={colors.foreground} className=' mr-5'>See all</ThemedText>}
+        <Pressable
+          className='flex-1 mx-2 mt-5'
+          onPress={() => router.navigate('/(tabs)/(shop)' as any)}
+        >
+          <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 flex-row items-center py-4 px-4 rounded-3xl'>
+            <View className='w-[38] h-[38] rounded-2xl items-center justify-center' style={{ backgroundColor: accentOnCardColor }}>
+              <Ionicons name='flash' size={19} color='#fff' />
             </View>
-            {tokens.length === 0 ?
-              <ThemedText darkColor={colors.foreground} className=' mt-5 ml-6 mb-2' >You don&#39;t hold any tokens yet.</ThemedText>
-              :
-              <View className='flex-1 gap-y-3 mt-5 mb-3'>
-                {tokens.map((token, index) => {
-                  return (
-                    <View key={index} className='flex-row items-center justify-between  mx-5 '>
-                      <View className='flex-row items-center'>
-                        <Image source={token.icon} className='h-[48px] w-[48px]  ' />
-                        <ThemedText bold variant='xl' className='ml-3 ' >{token.symbol}</ThemedText>
-                      </View>
-                      <View className='flex-col items-end '>
-                        <ThemedText variant='xl'>{token.balance}</ThemedText>
-                        <ThemedText darkColor={colors.foreground} variant='sm'>{token.value}</ThemedText>
-                      </View>
-
-                    </View>
-                  )
-                })}
-              </View>
-            }
+            <View className='ml-3 flex-1'>
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>Buy eSIMs with USDC</ThemedText>
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 2 }}>No card, no personal details</ThemedText>
+            </View>
+            <Ionicons name='chevron-forward' size={19} color={colors.cardForeground} />
           </ThemedView>
         </Pressable>
-        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/Transactions')}>
-        <ThemedView darkColor={colors.itemBackground} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
+
+
+        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/Tokens" as any)}>
+          <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
+            <View className='flex-row justify-between'>
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Your Tokens</ThemedText>
+              {tokens.length > 0 &&
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mr-5'>See all</ThemedText>}
+            </View>
+            <TokenGrid tokens={tokens.filter((token) => token.symbol !== "USDCt")} onAddToken={() => addTokenSheetRef.current?.snapToIndex(0)} />
+          </ThemedView>
+        </Pressable>
+        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/Transactions' as any)}>
+        <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
-            <ThemedText darkColor={colors.foreground} className=' ml-6'>Transactions</ThemedText>
+            <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Transactions</ThemedText>
             {transactions.length > 0 &&
-              <ThemedText darkColor={colors.foreground} className=' mr-5'>See all</ThemedText>}
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mr-5'>See all</ThemedText>}
           </View>
           {transactions.length > 0 ?
             <View className='flex-1 gap-y-6 mt-5 mb-3'>
@@ -142,62 +317,100 @@ const WalletPage = () => {
                     <View className='flex-row items-center'>
                       <Image source={tr.icon} className='h-[48px] w-[48px]  ' />
                       <View className='flex-col items-start ml-3 '>
-                        <ThemedText variant='xl'>{tr.name}</ThemedText>
-                        {tr.type === "recieved"?<ThemedText darkColor={colors.foreground} variant='sm'>{tr.type}</ThemedText>:
-                        <ThemedText darkColor={colors.primary} variant='sm'>{tr.type}</ThemedText>
+                        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='xl'>{tr.name}</ThemedText>
+                        {tr.type === "recieved"?<ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='sm'>{tr.statusLabel}</ThemedText>:
+                        <ThemedText darkColor={colors.cardForeground} variant='sm'>{tr.statusLabel}</ThemedText>
                         }
                       </View>
                     </View>
                     <View className='flex-col items-end '>
-                      <ThemedText variant='xl'>{tr.amount}</ThemedText>
-                      {tr.status === "completed"?<ThemedText darkColor={colors.foreground} variant='sm'>{tr.status}</ThemedText>:
-                        <ThemedText darkColor={colors.primary} variant='sm'>{tr.status}</ThemedText>
+                      <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='xl'>{tr.amount}</ThemedText>
+                      {tr.status === "completed"?<ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='sm'>{tr.status}</ThemedText>:
+                        <ThemedText darkColor={colors.cardForeground} variant='sm'>{tr.status}</ThemedText>
                         }
                     </View>
                   </View>
                 )
               })}
             </View> :
-            <ThemedText darkColor={colors.foreground} className=' mt-5 ml-6 mb-2' >No Transactions to show</ThemedText>}
+            <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mt-5 ml-6 mb-2' >No Transactions to show</ThemedText>}
 
         </ThemedView>
         </Pressable>
-        <Pressable className='flex-1' onPress={()=>router.push({pathname:'/(tabs)/(wallet)/(contacts)',params:{contacts:JSON.stringify(contacts)}})}>
-        <ThemedView darkColor={colors.itemBackground} className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
-          <View className='flex-row justify-between'>
-            <ThemedText darkColor={colors.foreground} className=' ml-6'>Contacts</ThemedText>
-            {contacts.length > 0 &&
-              <ThemedText darkColor={colors.foreground} className=' mr-5'>See all</ThemedText>}
-          </View>
-          {contacts.length > 0 ? <View className='flex-row ml-3 gap-y-6 mt-5 mb-3'>
-            {contacts.slice(0,4).map((person, index) => {
-              return (
-                <View key={index} className=' items-center justify-between  mx-5 '>
-                  <View className='flex-col items-center'>
-                    <Image  source={person.monogramUrl ? { uri: person.monogramUrl } : require('../../../assets/images/wallet/sampleProfileImg.png')} className='h-[53px] w-[53px]  ' />
-                    <View className='flex-col items-start mt-3 '>
-                      <ThemedText >{person?.firstName}</ThemedText>
-                    </View>
-                  </View>
-                  <View className='flex-col items-end '>
+        <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
+          <Pressable onPress={()=>router.push({pathname:'/(tabs)/(wallet)/(contacts)' as any,params:{contacts:JSON.stringify(contacts)}})}>
+            <View className='flex-row justify-between'>
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Contacts</ThemedText>
+              {contacts.length > 0 &&
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mr-5'>See all</ThemedText>}
+            </View>
+          </Pressable>
+          <View className='flex-row ml-3 gap-y-6 mt-5 mb-3'>
+            {/* Add contact is always the first item in this list. */}
+            <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/addContactScreen' as any)} className='items-center justify-between mx-5'>
+              <View className='flex-col items-center'>
+                <View className='h-[53px] w-[53px] rounded-full items-center justify-center' style={{ backgroundColor: colors.warning }}>
+                  <Image source={require("../../../assets/images/wallet/add_contact.png")} className='h-[26] w-[30]' />
+                </View>
+                <View className='flex-col items-start mt-3 '>
+                  <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground}>Add new</ThemedText>
+                </View>
+              </View>
+            </Pressable>
+            {contacts.slice(0, 3).map((person) => (
+              <Pressable
+                key={person.id}
+                onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/contactDetails' as any, params: { id: person.id, alias: person.alias, avatarColorKey: person.avatarColorKey, transactions: JSON.stringify(person.transactions ?? []), walletAddress: person.walletAddress } })}
+                className='items-center justify-between mx-5'
+              >
+                <View className='flex-col items-center'>
+                  <ContactAvatar seed={person.id} colorKey={person.avatarColorKey} alias={person.alias} size={53} />
+                  <View className='flex-col items-start mt-3 '>
+                    <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground}>{person?.alias}</ThemedText>
                   </View>
                 </View>
-              )
-            })}
-          </View> :
-            <View className=' justify-center '>
-              <View className='ml-8 mt-4 h-16 items-center justify-center w-16 rounded-full' style={{ backgroundColor: colors.warning }}>
-                <Image source={require("../../../assets/images/wallet/add_contact.png")} className='h-[32] w-[38]' />
-              </View>
-              <ThemedText darkColor={colors.foreground} className='ml-8 mt-2'>Add new</ThemedText>
-            </View>
-          }
+              </Pressable>
+            ))}
+          </View>
         </ThemedView>
-        </Pressable>
-        {/* <TouchableOpacity className='flex-1 items-center py-5'  onPress={() => showToast("$50","0.0001 ETH","sent")}>
-          <ThemedText >Toggle Toast Notification</ThemedText>
-        </TouchableOpacity> */}
+        {acct === 'esim' && (
+          <View className='mx-2 mt-5'>
+            <ThemedView lightColor={colors.card} darkColor={colors.card} className='py-3 px-4 rounded-3xl'>
+              <View className='flex-row justify-between items-center'>
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>eSIM wallets</ThemedText>
+                <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} style={{ fontSize: 12, color: colors.cardForeground }}>
+                  {deployedEsims.length} active{pendingEsims.length > 0 ? ` · ${pendingEsims.length} setting up` : ''}
+                </ThemedText>
+              </View>
+              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 4, marginBottom: 12 }}>
+                Each eSIM has its own wallet, owned by this device wallet.
+              </ThemedText>
+              <View style={{ gap: 10 }}>
+                {deployedEsims.map((doc) => {
+                  const display = esimDocToDisplayItem(doc);
+                  return (
+                    <EsimWalletRow
+                      key={doc.eSimRef}
+                      doc={doc}
+                      onPress={() => router.push({
+                        pathname: '/(tabs)/(wallet)/esim-wallet' as any,
+                        params: { esimId: doc.esimId, name: display.serviceRegionName ?? '' },
+                      })}
+                    />
+                  );
+                })}
+                {pendingEsims.map((doc) => (
+                  <PendingEsimWalletRow key={doc.eSimRef} doc={doc} />
+                ))}
+              </View>
+            </ThemedView>
+          </View>
+        )}
+
       </ScrollView>
+      <ReceiveSheet ref={receiveSheetRef} address={kokio.deviceWalletAddress ?? ''} />
+      <DepositSheet ref={depositSheetRef} address={kokio.deviceWalletAddress ?? ''} />
+      <AddTokenSheet ref={addTokenSheetRef} />
     </ThemedView>
   );
 };

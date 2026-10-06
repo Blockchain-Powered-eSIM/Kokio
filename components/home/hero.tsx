@@ -10,7 +10,6 @@ import {
 import { router } from "expo-router";
 
 import { Theme } from "@/constants/Colors";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
@@ -63,14 +62,13 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingVertical: 5,
   },
   heroButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "500",
     textAlign: "center",
   },
 });
 
 const Hero = () => {
-  const { isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const handleShopCTAClick = useCallback(() => {
@@ -93,20 +91,16 @@ const Hero = () => {
       </ImageBackground>
       <CardFooter style={styles.cardFooter}>
         <View>
-          <Text style={styles.header}>Plan Your Next Adventure</Text>
-          <Text style={styles.subHeader}>The world awaits you!</Text>
+          <Text style={styles.header}>Plan My Next Adventure</Text>
+          <Text style={styles.subHeader}>The world is waiting</Text>
         </View>
         <TouchableOpacity
-          style={[styles.heroButton, {
-            backgroundColor: isDark ? colors.text : colors.shopCta,
-          }]}
+          style={[styles.heroButton, { backgroundColor: colors.ctaBackground }]}
           onPress={handleShopCTAClick}
           accessibilityRole="button"
           accessibilityLabel="Shop for eSIM plans"
         >
-          <Text style={[styles.heroButtonText, {
-            color: isDark ? colors.background : colors.secondaryForeground,
-          }]}>Shop</Text>
+          <Text style={[styles.heroButtonText, { color: colors.ctaForeground }]}>Shop</Text>
         </TouchableOpacity>
       </CardFooter>
     </Card>

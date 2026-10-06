@@ -11,10 +11,7 @@ export const ROUTE_NAMES = {
   SETTINGS:               "settings",
   BY_COUNTRY:             "country/[id]",
   BY_REGION:              "region/[id]",
-  TOKENS:                 "tokens",
-  TRANSACTIONS:           "transactions",
-  TRANSACTIONDETAILS:     "transactionDetails",
-  INSTALLATION:           "installation",
+  INSTALLATION:          "installation",
   OFFLINE:                "Offline",
   CONTACTS:               "(contacts)",
   CONTACTS_SCREEN:        "contactsScreen",
@@ -24,6 +21,8 @@ export const ROUTE_NAMES = {
   EDIT_CONTACT:           "editContact",
   SEND_TO_CONTACT:        "sendToContact",
   CONTACT_TRANSACTIONS:   "contactTransactions",
+  CREATE_WALLET:          "create-wallet",
+  ESIM_WALLET:            "esim-wallet",
 } as const;
 
 export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
@@ -38,7 +37,5 @@ export const TAB_BAR_ENABLED_ROUTES: string[] = [
   ROUTE_NAMES.WALLET,
   ROUTE_NAMES.ORDERS,
   ROUTE_NAMES.SETTINGS,
-  `${ROUTE_NAMES.WALLET}/${ROUTE_NAMES.TOKENS}`,
-  `${ROUTE_NAMES.WALLET}/${ROUTE_NAMES.TRANSACTIONS}`,
   `${ROUTE_NAMES.WALLET}/${ROUTE_NAMES.HOME}`,
 ];

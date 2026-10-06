@@ -1,48 +1,50 @@
-import { View, Image } from 'react-native'
-import React from 'react'
+import { View, Image, ScrollView } from 'react-native'
+import React, { useRef } from 'react'
+import BottomSheet from '@gorhom/bottom-sheet';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import _ from "lodash";
 import { useColors } from "@/hooks/useColors";
+import { useWalletTokens } from '@/hooks/useWalletTokens';
+import { useKokio } from '@/hooks/useKokio';
+import { AddTokenSheet } from '@/components/wallet/sheets/AddTokenSheet';
+import { AddTokenButton } from '@/components/wallet/TokenGrid';
 
 const Tokens = () => {
   const colors = useColors();
-  const tokens = [
-    { id: '1', name: 'USDC', symbol: 'USDC', balance: '0.5', value: '$85.23 USD', icon: require("../../../assets/images/wallet/usdc.png") },
-    { id: '2', name: 'Ethereum', symbol: 'ETH', balance: '2.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/eth.png") },
-    { id: '3', name: 'Unicorn', symbol: 'UNI', balance: '10.0', value: '$55.23 USD', icon: require("../../../assets/images/wallet/uni.png") },
-    { id: '4', name: 'Matic', symbol: 'MATIC', balance: '10.0', value: '$35.23 USD', icon: require("../../../assets/images/wallet/matic.png") },
-  ];
+  const { kokio } = useKokio();
+  const { tokens } = useWalletTokens(kokio.deviceWalletAddress);
+  const addTokenSheetRef = useRef<BottomSheet>(null);
   return (
+    <ThemedView lightColor="#FFFFFF" darkColor="#000000" className='flex-1'>
+      <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 140 }}>
+        <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
+          <View className="px-4">
+            <View className='flex-row justify-between'>
+              <ThemedText darkColor={colors.foreground} className='ml-2'>Your Tokens</ThemedText>
+              <ThemedText darkColor={colors.foreground} className='mr-2'>Amount</ThemedText>
+            </View>
 
-    <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
-      <View className="px-4">
-        <View className='flex-row justify-between'>
-          <ThemedText darkColor={colors.foreground} className='ml-2'>Your Tokens</ThemedText>
-          <ThemedText darkColor={colors.foreground} className='mr-2'>Amount</ThemedText>
-        </View>
-
-        {_.size(tokens) === 0 ? (
-          <ThemedText darkColor={colors.foreground} className='mt-5 ml-2 mb-2'>
-            You don&#39;t hold any tokens yet.
-          </ThemedText>
-        ) : (
-          <View className='gap-y-3 mt-5 mb-3'>
-            {_.map(tokens, (token, index) => (
-              <View key={index} className='flex-row items-center justify-between mx-3'>
-                <View className='flex-row items-center'>
-                  <Image source={token?.icon} className='h-[48px] w-[48px]' />
-                  <ThemedText bold variant='xl' className='ml-3'>{token?.symbol}</ThemedText>
+            <View className='gap-y-3 mt-5 mb-3'>
+              {tokens.map((token) => (
+                <View key={token.symbol} className='flex-row items-center justify-between mx-3'>
+                  <View className='flex-row items-center'>
+                    <Image source={token.icon} className='h-[48px] w-[48px]' />
+                    <ThemedText bold variant='xl' className='ml-3'>{token.symbol}</ThemedText>
+                  </View>
+                  <View className='flex-col items-end'>
+                    <ThemedText variant='xl'>{token.amount ?? '—'}</ThemedText>
+                    <ThemedText darkColor={colors.foreground} variant='sm'>{token.usd ? `$${token.usd}` : ''}</ThemedText>
+                  </View>
                 </View>
-                <View className='flex-col items-end'>
-                  <ThemedText variant='xl'>{token?.balance}</ThemedText>
-                  <ThemedText darkColor={colors.foreground} variant='sm'>{token?.value}</ThemedText>
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        )}
+        </ThemedView>
+      </ScrollView>
+      <View pointerEvents='box-none' className='absolute inset-x-0 bottom-0 items-center pb-6'>
+        <AddTokenButton color={colors.text} onPress={() => addTokenSheetRef.current?.snapToIndex(0)} />
       </View>
+      <AddTokenSheet ref={addTokenSheetRef} />
     </ThemedView>
   )
 }

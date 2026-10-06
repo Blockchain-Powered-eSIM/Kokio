@@ -4,7 +4,7 @@ import type { CompatibilityResponse, CompatibilityResult, CheckCompatibilityPara
 
 export type UseEsimCompatibilityParams = {
   planId?: string;
-  esimId?: string;
+  eSimRef?: string;
 };
 
 type ExtraOptions = Omit<
@@ -27,8 +27,8 @@ export function useEsimCompatibility(
   options?: ExtraOptions,
 ) {
   const query = useQuery<CompatibilityResponse>({
-    queryKey: ['esim-compatibility', params.planId, params.esimId],
-    queryFn:  () => checkEsimCompatibility({ planId: params.planId } as CheckCompatibilityParams, params.esimId),
+    queryKey: ['esim-compatibility', params.planId, params.eSimRef],
+    queryFn:  () => checkEsimCompatibility({ planId: params.planId } as CheckCompatibilityParams, params.eSimRef),
     enabled:  (options?.enabled ?? true) && !!params.planId,
     ...options,
   });

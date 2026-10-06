@@ -14,12 +14,12 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
-import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
 import CountryFlag from "@/components/ui/CountryFlag";
+import { HeaderBackControl } from "@/components/navigation/stackHeader";
 
 import DetailItem from "../ui/DetailItem";
 
@@ -270,19 +270,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     () => (
       <View style={styles.countryFlagContainer}>
         <View style={styles.mainContent}>
-          <Pressable
-            onPress={handleBack}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons
-              name="chevron-back-outline"
-              size={36}
-              color={colors.background}
-              style={{ marginRight: Theme.spacing.sm }}
-            />
-          </Pressable>
+          <HeaderBackControl onPress={handleBack} tintColor={colors.background} />
           <Text
             style={[styles.countryText, { color: colors.cardForeground }]}
             numberOfLines={2}

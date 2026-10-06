@@ -1,20 +1,14 @@
 import { View, Image, Pressable } from 'react-native';
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 import _ from "lodash"
 import { useColors } from "@/hooks/useColors";
+import { useWalletActivity } from '@/hooks/useWalletActivity';
+import { walletActivityEntryToDisplayItem, type WalletActivityDisplayItem } from '@/helpers/walletActivityDisplay';
 
-interface Transaction {
-  id?: string;
-  status: string;
-  icon?: any;
-  name?: string;
-  walletId?: string;
-  type: string;
-  amount: string;
-}
+type Transaction = WalletActivityDisplayItem & { walletId?: string };
 
 const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
   if (!address) return "";
@@ -24,108 +18,15 @@ const shortenId = (address: string|undefined, startLength = 3, endLength = 6) =>
 const Transactions = () => {
   const router = useRouter();
   const colors = useColors();
-  const transactions = useMemo(() => [
-    {
-
-      name: 'Alice',
-      amount: '$150.00',
-      status: 'pending',
-      type: 'sending',
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef5',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-      icon: require('../../../assets/images/wallet/contact1.png')
-    },
-    {
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef6',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-      name: 'Ethan',
-      amount: '$150.00',
-      status: 'completed',
-      type: 'received',
-      icon: require('../../../assets/images/wallet/contact2.png')
-    },
-    {
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef7',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-      name: 'Alice',
-      amount: '$150.00',
-      status: 'completed',
-      type: 'received',
-      icon: require('../../../assets/images/wallet/contact3.png')
-    },
-    {
-      id: '0x9bfbf5000f10121edc519bdc198f2fb93e16c4fd9c20846ff837e82a8b1e2ef8',
-      walletId: '0x3A57aD2f5F118Ee412F2bB6B76BcF9b3E4890714',
-      dateTime: "2024-03-05 14:30:00 UTC",
-      ethAmount: "0.000461 ETH",
-
-      amount: '$150.00',
-      status: 'completed',
-      type: 'received',
-      icon: require('../../../assets/images/wallet/wallet.png')
-    },
-  ], []);
-
-  const renderTransaction = useCallback(
-    (tr: Transaction, index: number) => (
-      tr.status === 'pending' && (
-        <Pressable
-          onPress={() => router.push({
-            pathname: "/(tabs)/(wallet)/TransactionDetails",
-            params: { transaction: JSON.stringify(transactions[index]) }
-          })}
-          key={tr?.id}
-          className="flex-row items-center justify-between mx-5"
-        >
-          <View className='flex-row items-center'>
-            <Image source={tr?.icon} className='h-[48px] w-[48px]' />
-            <View className='flex-col items-start ml-3'>
-              {tr.name ? (
-                <ThemedText variant='xl'>{tr?.name}</ThemedText>
-              ) : (
-                <ThemedText variant='xl'>{tr?.walletId}</ThemedText>
-              )}
-              <ThemedText
-                darkColor={tr?.type === 'received' ? colors.foreground : colors.primary}
-                variant='sm'
-              >
-                {tr?.type}
-              </ThemedText>
-            </View>
-          </View>
-          <View className='flex-col items-end'>
-            <ThemedText variant='xl'>{tr?.amount}</ThemedText>
-            <ThemedText
-              darkColor={colors.primary}
-              variant='sm'
-            >
-              {tr?.status}
-            </ThemedText>
-          </View>
-        </Pressable>
-      )
-    ),
-    [router, transactions, colors] // Dependencies array
+  const { entries } = useWalletActivity();
+  const transactions = useMemo<Transaction[]>(
+    () => entries.map(walletActivityEntryToDisplayItem),
+    [entries],
   );
+
 
   return (
     <ThemedView>
-      <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
-        <ThemedText darkColor={colors.foreground} className='ml-6'>Pending</ThemedText>
-        {_.size(transactions) > 0 ? (
-          <View className='gap-y-6 mt-5 mb-3'>
-            {_.map(transactions, renderTransaction)}
-        </View>
-      ) : (
-        <ThemedText darkColor={colors.foreground} className='mt-5 ml-6 mb-2'>
-          No Transactions to show
-        </ThemedText>
-      )}
-
-      </ThemedView>
       <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
         <ThemedText darkColor={colors.foreground} className='ml-6'>Completed</ThemedText>
         {transactions.length > 0 ? (
@@ -149,7 +50,7 @@ const Transactions = () => {
                         darkColor={tr?.type === 'received' ? colors.foreground : colors.primary}
                         variant='sm'
                       >
-                        {tr?.type}
+                        {tr?.statusLabel}
                       </ThemedText>
                     </View>
                   </View>

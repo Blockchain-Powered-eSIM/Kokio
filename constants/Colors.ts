@@ -55,7 +55,7 @@ export const Colors = {
     accentForeground: "#8E8E93",
     destructive: "#FF453A",
     destructiveForeground: "#ffffff",
-    border: "#FF9F0A",
+    border: "#3A3A3C",
     input: "#46464B",
     ring: "#006FEE",
     success: "#30D158",
@@ -97,11 +97,15 @@ export const DARK_TOKENS = {
   shopCta: "#FFAF01",               // dark: keeps current goldenYellow
   payButton: "#FFD60A",             // dark: keeps current secondary
   walletModalBackground: "rgba(60, 60, 60, 0.9)", // dark: same as modalBackground
+  ctaBackground: "#FFAF01",         // dark: goldenYellow/shopCta (deliberately muted yellow, distinct from brighter #FFD60A)
+  ctaForeground: "#000000",         // dark: black text/icon, matching checkout's pay button (payButton bg + cardForeground text)
+  walletAccent: "#FFCC00",          // dark: yellow accent for wallet icons/borders (matches highlight)
 };
 
 export const LIGHT_TOKENS = {
   ...Colors.light,
   ...EXTRA_TOKENS,
+  headerText: Colors.light.text,    // override inherited #4A8090 (too low-contrast on sky-blue background)
   background: "#A8D8E8",
   inputBackground: "#EEF8FC",
   surface: "#EEF8FC",
@@ -123,6 +127,9 @@ export const LIGHT_TOKENS = {
   contentBackground: "#FFFFFF",
   itemBackground: "#FFFFFF",
   sheetBackground: "rgba(255, 255, 255, 0.95)",
+  ctaBackground: Colors.light.primary,   // light: solid-CTA buttons stay on-brand teal
+  ctaForeground: Colors.light.primaryForeground,
+  walletAccent: Colors.light.primary,    // light: same teal used elsewhere (no yellow in light theme)
 };
 
 export const THEME_STORAGE_KEY = "@kokio_theme";

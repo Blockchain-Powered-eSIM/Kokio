@@ -390,7 +390,7 @@ export function AuthenticationModal() {
           <>
             <ThemedText style={[styles.deletedBody, { color: colors.foreground }]}>
               This account has been deleted and cannot be restored. If your Kokio passkey
-              is still on this device, remove it from your password manager — it no longer
+              is still on this device, remove it from your password manager as it no longer
               grants access to anything.
             </ThemedText>
             <ThemedText style={[styles.deletedBody, { color: colors.foreground }]}>

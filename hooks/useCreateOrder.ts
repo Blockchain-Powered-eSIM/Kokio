@@ -4,7 +4,10 @@ import * as Linking from 'expo-linking';
 
 import { submitOrder, pollOrderStatus, OrderNotFoundError } from '@/utils/bff/order';
 import type { CreateOrderRequest, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
+import { BffError } from '@/utils/bff/koKioBffClient';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
+import { formatPlanLabel } from '@/helpers/esimOrder';
+import { addPendingOrder, removePendingOrder, PENDING_ORDERS_KEY } from '@/hooks/usePendingOrders';
 import type { Esim } from '@/components/ESIMItem';
 
 export type CreateOrderVariables = {
@@ -27,6 +30,16 @@ export type CreateOrderResult =
       orderId: string;
       moonpayChargeId: string;
       moonpayPaymentPageUrl: string;
+    }
+  | {
+      kind: 'awaiting_device_wallet_payment';
+      correlationId: string;
+      orderId: string;
+      // The generated type (from the OpenAPI schema) models this as a single
+      // {to, data} object, but the real response is an array of ordered calls
+      // to submit as one user operation - the schema doesn't match the server.
+      userOperations: { to: string; data: string }[];
+      paymentSessionExpiresAt: string | null;
     };
 
 // SecureStore key for the most recently purchased eSIM wallet address.
@@ -34,16 +47,21 @@ export type CreateOrderResult =
 export const ESIM_ID_KEY = 'esimId';
 
 /**
- * Thrown when order creation itself fails, or when polling after payment times out. 
- * Carries whatever correlationId is known (the client-generated idempotency key, 
+ * Thrown when order creation itself fails, or when polling after payment times out.
+ * Carries whatever correlationId is known (the client-generated idempotency key,
  * else the BFF envelope's correlationId) so the caller can record the order as FAILED.
+ * Also carries the originating BffError's code when there was one, so callers
+ * can distinguish specific failures (e.g. the wallet-deployment order block)
+ * without parsing message text.
  */
 export class OrderCreationError extends Error {
   correlationId: string | null;
-  constructor(message: string, correlationId: string | null) {
+  code: string | null;
+  constructor(message: string, correlationId: string | null, code: string | null = null) {
     super(message);
     this.name = 'OrderCreationError';
     this.correlationId = correlationId;
+    this.code = code;
   }
 }
 
@@ -86,16 +104,30 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
     useStripePaymentSheet();
 
   return useMutation<CreateOrderResult, Error, CreateOrderVariables>({
-    mutationFn: async ({ request }) => {
+    mutationFn: async ({ request, eSimItem }) => {
       const { data, correlationId } = await submitOrder(request).catch((err) => {
         const bffErr = err as { correlationId?: string | null };
         throw new OrderCreationError(
           (err as Error)?.message ?? 'Order creation failed',
           bffErr?.correlationId ?? null,
+          err instanceof BffError ? err.code : null,
         );
       });
 
       await options.onOrderCreated?.(correlationId);
+
+      // Recorded before any payment step so a reference id exists even if the
+      // order later gets stuck (payment timeout, a backend job hanging) and
+      // never reaches the terminal order list on its own.
+      await addPendingOrder({
+        correlationId,
+        orderId: data.orderId,
+        catalogueId: request.catalogueId,
+        planLabel: formatPlanLabel(eSimItem),
+        paymentMethod: request.paymentMethod,
+        createdAt: new Date().toISOString(),
+      });
+      queryClient.invalidateQueries({ queryKey: [PENDING_ORDERS_KEY] });
 
       // FIAT — clientSecret present.
       if (data.clientSecret) {
@@ -137,6 +169,27 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
       }
 
       /**
+       * DEVICE_WALLET — userOperations present (an array of ordered calls,
+       * despite the generated type modeling it as a single {to, data} object -
+       * cast past the stale type and validate at runtime instead). Caller must
+       * sign and submit it (sendUserOperation) before any polling starts;
+       * unlike FIAT/CRYPTO, payment has not happened yet at this point, so
+       * returning here rather than polling is deliberate.
+       */
+      const rawUserOperations = data.userOperations as unknown;
+      const isValidCall = (op: unknown): op is { to: string; data: string } =>
+        !!op && typeof (op as { to?: unknown }).to === 'string' && typeof (op as { data?: unknown }).data === 'string';
+      if (Array.isArray(rawUserOperations) && rawUserOperations.length > 0 && rawUserOperations.every(isValidCall)) {
+        return {
+          kind: 'awaiting_device_wallet_payment',
+          correlationId,
+          orderId: data.orderId,
+          userOperations: rawUserOperations,
+          paymentSessionExpiresAt: data.paymentSessionExpiresAt ?? null,
+        };
+      }
+
+      /**
        * COUPON (full coverage) — neither field present,
        * $0 invoice already auto-paid server-side. Poll immediately.
        * TODO: Partial coupon flow to be extended from here.
@@ -150,7 +203,9 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
       if (result.order.esimId) {
         await SecureStore.setItemAsync(ESIM_ID_KEY, result.order.esimId);
       }
+      await removePendingOrder(result.correlationId);
       await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      await queryClient.invalidateQueries({ queryKey: [PENDING_ORDERS_KEY] });
     },
   });
 }
