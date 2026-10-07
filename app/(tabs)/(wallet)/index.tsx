@@ -19,7 +19,7 @@ import { useEsims } from '@/hooks/useDeviceEsims';
 import { useWalletTokens } from '@/hooks/useWalletTokens';
 import { useContacts } from '@/hooks/useContacts';
 import { useWalletActivity } from '@/hooks/useWalletActivity';
-import { esimDocToDisplayItem } from '@/helpers/esimDisplay';
+import { esimDisplayName, esimDocToDisplayItem } from '@/helpers/esimDisplay';
 import { walletActivityEntryToDisplayItem } from '@/helpers/walletActivityDisplay';
 import type { ESimDocument } from '@/utils/bff/esim';
 import CountryFlag from '@/components/ui/CountryFlag';
@@ -62,7 +62,7 @@ function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
     >
       <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
       <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1} style={{ flex: 1 }}>
-        {doc.label ?? display.serviceRegionName ?? 'eSIM'}
+        {esimDisplayName(doc)}
       </ThemedText>
       <Ionicons name='chevron-forward' size={19} color={colors.cardForeground} />
     </Pressable>
@@ -89,7 +89,7 @@ function PendingEsimWalletRow({ doc }: { doc: ESimDocument }) {
       <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
       <View style={{ flex: 1 }}>
         <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1}>
-          {doc.label ?? display.serviceRegionName ?? 'eSIM'}
+          {esimDisplayName(doc)}
         </ThemedText>
         <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>Setting up wallet…</ThemedText>
       </View>
@@ -387,14 +387,13 @@ const WalletPage = () => {
               </ThemedText>
               <View style={{ gap: 10 }}>
                 {deployedEsims.map((doc) => {
-                  const display = esimDocToDisplayItem(doc);
                   return (
                     <EsimWalletRow
                       key={doc.eSimRef}
                       doc={doc}
                       onPress={() => router.push({
                         pathname: '/(tabs)/(wallet)/esim-wallet' as any,
-                        params: { esimId: doc.esimId, name: display.serviceRegionName ?? '' },
+                        params: { esimId: doc.esimId, name: esimDisplayName(doc) },
                       })}
                     />
                   );

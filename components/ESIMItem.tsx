@@ -56,11 +56,13 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 4,
   },
+  titleContainer: {
+    marginBottom: 5,
+    paddingRight: 90,
+  },
   country: {
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 5,
-    paddingRight: 90,
   },
   detailsContainer: {
     flexDirection: "row",
@@ -99,6 +101,7 @@ const ESIMItem = ({
   containerStyle = {},
   onPress,
   footer,
+  title,
 }: {
   item: Esim;
   showBuyButton: boolean;
@@ -107,6 +110,8 @@ const ESIMItem = ({
   // Optional extra content rendered below the plan details. Used by the home
   // page eSIM component to show install affordances / remaining data.
   footer?: React.ReactNode;
+  // Replaces the plain region-name heading, e.g. an editable eSIM name.
+  title?: React.ReactNode;
 }) => {
   const colors = useColors();
 
@@ -139,9 +144,13 @@ const ESIMItem = ({
             )}
         </View>
         <View style={[styles.esimItem, { backgroundColor: colors.card }]}>
-          <Text style={[styles.country, { color: colors.cardForeground }]}>
-            {item.serviceRegionName}
-          </Text>
+          <View style={styles.titleContainer}>
+            {title ?? (
+              <Text style={[styles.country, { color: colors.cardForeground }]}>
+                {item.serviceRegionName}
+              </Text>
+            )}
+          </View>
           <View style={styles.detailsContainer}>
             <DetailItem
               iconName="calendar-outline"
@@ -185,7 +194,7 @@ const ESIMItem = ({
         </View>
       </>
     ),
-    [item, showBuyButton, handleBuyCTAClick, colors, footer]
+    [item, showBuyButton, handleBuyCTAClick, colors, footer, title]
   );
 
   if (onPress) {

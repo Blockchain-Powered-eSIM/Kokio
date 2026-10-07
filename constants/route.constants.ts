@@ -11,6 +11,7 @@ export const ROUTE_NAMES = {
   SETTINGS:               "settings",
   BY_COUNTRY:             "country/[id]",
   BY_REGION:              "region/[id]",
+  MULTI_COUNTRY:          "multi-country",
   INSTALLATION:          "installation",
   OFFLINE:                "Offline",
   CONTACTS:               "(contacts)",

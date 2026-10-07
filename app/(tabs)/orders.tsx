@@ -3,7 +3,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   FlatList,
   Linking,
-  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -25,10 +24,12 @@ import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
 import type { ESimDocument } from "@/utils/bff/esim";
-import type { OrderListItem } from "@/utils/bff/order";
 import ESIMItem from "@/components/ESIMItem";
+import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
+import PurchaseDetailsSheet, { CopyRow, type EnrichedOrder } from "@/components/orders/PurchaseDetailsSheet";
 import type { Esim } from "@/components/ESIMItem";
-import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { openInstallation } from "@/helpers/esimInstall";
 import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
 import { usePendingOrders } from "@/hooks/usePendingOrders";
 import type { PendingOrderRecord } from "@/hooks/usePendingOrders";
@@ -47,9 +48,6 @@ const ESIM_STATUS_LABEL: Record<ActivationStatus, string> = {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 // An OrderListItem enriched with its matched ESimDocument, joined by eSimRef.
-type EnrichedOrder = OrderListItem & {
-  esim?: ESimDocument;
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -134,12 +132,26 @@ const createStyles = (colors: Palette) => StyleSheet.create({
       borderRadius: 4,
     },
     actionRow: {
+      alignSelf: "stretch",
       flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
       gap: 8,
       marginTop: 4,
     },
+    walletBtn: {
+      position: "absolute",
+      right: 14,
+      bottom: 14,
+      width: 46,
+      height: 40,
+      borderRadius: 10,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     actionBtn: {
-      flex: 1,
+      width: "48%",
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
@@ -194,6 +206,14 @@ const createStyles = (colors: Palette) => StyleSheet.create({
       fontWeight: "600",
       textTransform: "uppercase",
     },
+    pendingHint: {
+      marginTop: 10,
+      gap: 2,
+    },
+    pendingHintText: {
+      fontSize: 12,
+      lineHeight: 17,
+    },
     pendingActionsRow: {
       flexDirection: "row",
       gap: 8,
@@ -214,132 +234,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
       fontWeight: "500",
     },
   });
-
-// ─── Purchase Details Modal styles ────────────────────────────────────────────
-
-const purchaseStyles = (colors: Palette) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: colors.overlayMedium,
-  },
-  sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    maxHeight: "80%",
-  },
-  sheetHeader: {
-    alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  pillHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.muted,
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingTop: 8,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  copyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.muted,
-  },
-  copyLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    marginBottom: 3,
-    textTransform: "uppercase",
-  },
-  copyValue: {
-    fontSize: 13,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.muted,
-  },
-  infoLabel: {
-    fontSize: 13,
-  },
-  infoValue: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  planHistoryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.muted,
-  },
-});
-
-// ─── CopyRow ──────────────────────────────────────────────────────────────────
-
-const CopyRow = ({
-  label,
-  value,
-  displayValue,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  // Text shown in place of `value` (which is still what gets copied) — used
-  // when the raw value (e.g. an LPA string) is unhelpful to show as-is.
-  displayValue?: string;
-  // Overrides the default value text color (colors.cardForeground) — used
-  // when a caller renders this row against a background other than colors.card.
-  valueColor?: string;
-}) => {
-  const pdStyles = useThemedStyles(purchaseStyles);
-  const colors = useColors();
-  const { copied, copy } = useCopyFeedback();
-  return (
-    <TouchableOpacity onPress={() => copy(value)} style={pdStyles.copyRow} activeOpacity={0.7}>
-      <View style={{ flex: 1, marginRight: 12 }}>
-        <Text style={[pdStyles.copyLabel, { color: colors.inactive }]}>{label}</Text>
-        <Text
-          style={[pdStyles.copyValue, { color: valueColor ?? colors.cardForeground }]}
-          numberOfLines={2}
-        >
-          {displayValue ?? value}
-        </Text>
-      </View>
-      <Ionicons
-        name={copied ? "checkmark-circle" : "copy-outline"}
-        size={18}
-        color={copied ? colors.success : colors.mutedForeground}
-      />
-    </TouchableOpacity>
-  );
-};
 
 // ─── PendingOrderCard ─────────────────────────────────────────────────────────
 
@@ -409,6 +303,15 @@ const PendingOrderCard = ({
         />
       </TouchableOpacity>
 
+      <View style={styles.pendingHint}>
+        <Text style={[styles.pendingHintText, { color: colors.inactive }]}>
+          Haven&apos;t received your eSIM after a few minutes?
+        </Text>
+        <Text style={[styles.pendingHintText, { color: colors.inactive }]}>
+          Reach out with this reference ID.
+        </Text>
+      </View>
+
       <View style={styles.pendingActionsRow}>
         <TouchableOpacity
           onPress={handleContactSupport}
@@ -428,122 +331,6 @@ const PendingOrderCard = ({
   );
 };
 
-// ─── PurchaseDetailsModal ─────────────────────────────────────────────────────
-
-const PurchaseDetailsModal = ({
-  visible,
-  onClose,
-  order,
-  invoiceUrl,
-  lpa,
-  supportRef,
-  colors,
-  pdStyles,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  order: EnrichedOrder;
-  invoiceUrl: string | null;
-  lpa: string | null;
-  supportRef: string | null;
-  colors: Palette;
-  pdStyles: ReturnType<typeof purchaseStyles>;
-}) => (
-  <Modal
-    visible={visible}
-    transparent
-    animationType="slide"
-    onRequestClose={onClose}
-    statusBarTranslucent
-  >
-    <View style={pdStyles.overlay}>
-      <TouchableOpacity
-        style={StyleSheet.absoluteFill}
-        onPress={onClose}
-        activeOpacity={1}
-      />
-      <View style={[pdStyles.sheet, { backgroundColor: colors.card }]}>
-        <View style={pdStyles.sheetHeader}>
-          <View style={pdStyles.pillHandle} />
-        </View>
-        <View style={pdStyles.titleRow}>
-          <Text style={[pdStyles.title, { color: colors.cardForeground }]}>
-            Purchase Details
-          </Text>
-          <TouchableOpacity onPress={onClose} hitSlop={8}>
-            <Ionicons
-              name="close-circle-outline"
-              size={24}
-              color={colors.mutedForeground}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 8 }}
-        >
-          {order.iccid ? <CopyRow label="ICCID" value={order.iccid} /> : null}
-          {supportRef ? <CopyRow label="Reference" value={supportRef} /> : null}
-          {lpa ? <CopyRow label="LPA String" value={lpa} /> : null}
-
-          {order.paymentMethod ? (
-            <View style={pdStyles.infoRow}>
-              <Text style={[pdStyles.infoLabel, { color: colors.inactive }]}>
-                Payment Method
-              </Text>
-              <Text style={[pdStyles.infoValue, { color: colors.cardForeground }]}>
-                {order.paymentMethod}
-              </Text>
-            </View>
-          ) : null}
-
-          {order.orderStatus ? (
-            <View style={pdStyles.infoRow}>
-              <Text style={[pdStyles.infoLabel, { color: colors.inactive }]}>Status</Text>
-              <Text
-                style={[pdStyles.infoValue, { color: colorForStatus(order.orderStatus) }]}
-              >
-                {labelForStatus(order.orderStatus)}
-              </Text>
-            </View>
-          ) : null}
-
-          {invoiceUrl ? (
-            <TouchableOpacity
-              onPress={() => Linking.openURL(invoiceUrl)}
-              style={pdStyles.infoRow}
-            >
-              <Text style={[pdStyles.infoLabel, { color: colors.inactive }]}>Invoice</Text>
-              <Text style={{ color: colors.link, fontSize: 13, fontWeight: "500" }}>
-                View invoice →
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-
-          {order.esim?.planHistory?.length ? (
-            <View>
-              <Text style={[pdStyles.sectionLabel, { color: colors.inactive }]}>
-                Plan History
-              </Text>
-              {order.esim.planHistory.map((entry, i) => (
-                <View key={i} style={pdStyles.planHistoryRow}>
-                  <Text style={{ color: colors.cardForeground, fontSize: 13 }}>
-                    {entry.planId}
-                  </Text>
-                  <Text style={{ color: colors.inactive, fontSize: 12 }}>
-                    {entry.validity}d · {new Date(entry.purchaseDate).toLocaleDateString()}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </ScrollView>
-      </View>
-    </View>
-  </Modal>
-);
-
 // ─── OrderCard ────────────────────────────────────────────────────────────────
 
 const OrderCard = ({
@@ -557,15 +344,24 @@ const OrderCard = ({
   isExpanded: boolean;
   onToggle: () => void;
 }) => {
-  const pdStyles = useThemedStyles(purchaseStyles);
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { isDark } = useTheme();
+  const router = useRouter();
   const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
 
   const statusColor = colorForStatus(order.orderStatus);
 
   const isInstalled = order.esim?.activationStatus === "INSTALLED";
+  const esimWalletId = order.esim?.esimId ?? null;
+
+  const openEsimWallet = () => {
+    if (!esimWalletId || !order.esim) return;
+    router.push({
+      pathname: "/(tabs)/(wallet)/esim-wallet",
+      params: { esimId: esimWalletId, name: esimDisplayName(order.esim) },
+    });
+  };
 
   const ESIM_STATUS_COLOR: Record<ActivationStatus, string> = {
     RELEASED:    colors.info,
@@ -622,8 +418,12 @@ const OrderCard = ({
   return (
     <View style={styles.orderCardWrapper}>
       <TouchableOpacity onPress={onToggle} activeOpacity={0.85}>
-        {displayItem ? (
-          <ESIMItem item={displayItem} showBuyButton={false} />
+        {displayItem && order.esim ? (
+          <ESIMItem
+            item={displayItem}
+            showBuyButton={false}
+            title={<EsimLabelEditor doc={order.esim} color={colors.cardForeground} />}
+          />
         ) : (
           // Fallback header for orders without a linked eSIM document
           <View style={{ padding: 12 }}>
@@ -705,26 +505,18 @@ const OrderCard = ({
               </View>
             </>
           ) : null}
-          {order.iccid ? (
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.inactive }]}>ICCID</Text>
-              <Text style={[styles.summaryValue, { color: colors.text }]}>
-                {order.iccid}
-              </Text>
-            </View>
-          ) : null}
-
           {lpa && !isInstalled && Platform.OS === "android" ? (
             <CopyRow
               label="LPA String"
               value={lpa}
               displayValue="Install using this Code in SIM settings"
               valueColor={isDark ? "white" : undefined}
+              variant="inline"
             />
           ) : null}
 
           <View style={styles.actionRow}>
-            {lpa && onInstall ? (
+            {lpa && onInstall && !isInstalled ? (
               <TouchableOpacity
                 onPress={() => onInstall(lpa)}
                 style={[styles.actionBtn, { backgroundColor: colors.primary }]}
@@ -743,18 +535,28 @@ const OrderCard = ({
               </Text>
             </TouchableOpacity>
           </View>
+
+          {isInstalled && esimWalletId ? (
+            <TouchableOpacity
+              onPress={openEsimWallet}
+              style={[styles.walletBtn, { borderColor: colors.muted }]}
+              accessibilityRole="button"
+              accessibilityLabel="Open eSIM wallet"
+              hitSlop={6}
+            >
+              <Ionicons name="wallet-outline" size={18} color={colors.text} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
 
-      <PurchaseDetailsModal
+      <PurchaseDetailsSheet
         visible={showPurchaseDetails}
         onClose={() => setShowPurchaseDetails(false)}
         order={order}
         invoiceUrl={invoiceUrl}
         lpa={lpa}
         supportRef={supportRef}
-        colors={colors}
-        pdStyles={pdStyles}
       />
     </View>
   );
@@ -763,7 +565,6 @@ const OrderCard = ({
 // ─── OrdersScreen ─────────────────────────────────────────────────────────────
 
 export default function OrdersScreen() {
-  const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const bg = useThemeColor({}, "background");
@@ -825,19 +626,6 @@ export default function OrdersScreen() {
     }, [expandOrderId, enrichedOrders]),
   );
 
-  const handleInstall = useCallback((lpa: string) => {
-    // Parse LPA string: LPA:1$<smdpAddress>$<matchingId>
-    const parts = lpa.split("$");
-    const qrcode = lpa;
-    const appleInstallationUrl = parts[1] && parts[2]
-      ? `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${lpa}`
-      : "";
-    router.push({
-      pathname: "/(tabs)/installation",
-      params: { qrcode, appleInstallationUrl, iccid: "", orderId: "" },
-    });
-  }, [router]);
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["bottom"]}>
       <ThemedView style={styles.container}>
@@ -864,7 +652,7 @@ export default function OrdersScreen() {
             renderItem={({ item }) => (
               <OrderCard
                 order={item}
-                onInstall={handleInstall}
+                onInstall={openInstallation}
                 isExpanded={expandedId === getOrderKey(item)}
                 onToggle={() =>
                   setExpandedId((prev) =>

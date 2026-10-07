@@ -44,7 +44,7 @@ import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS, DEVICE_WALLET_PAYMENT_ASSET, DEV_DEVICE_WALLET_TEST_ASSETS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import * as WebBrowser from "expo-web-browser";
 import {
   MoonpayCommerceProvider,
@@ -285,7 +285,7 @@ const Checkout = () => {
   // Falls back to ICCID last-4, then eSimRef abbreviation.
   const buildTopupEsimLabel = useCallback((eSimRef: string, iccid?: string): string => {
     const doc  = esims.find((e) => e.eSimRef === eSimRef);
-    const plan = doc ? esimDocToDisplayItem(doc) : null;
+    const plan = doc ? { ...esimDocToDisplayItem(doc), serviceRegionName: esimDisplayName(doc) } : null;
     const label = formatPlanLabel(plan);
     if (label) return label;
     if (iccid) return `ICCID ...${iccid.slice(-4)}`;
@@ -570,7 +570,7 @@ const Checkout = () => {
   const handleTopupDone = useCallback(() => {
     setShowSuccessModal(false);
     router.dismissAll();
-    router.navigate("/(tabs)");
+    router.navigate("/(tabs)/orders");
   }, []);
 
   const handleWalletModalClose = useCallback(() => {
