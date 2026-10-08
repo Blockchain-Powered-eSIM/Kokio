@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import CountryFlag from "@/components/ui/CountryFlag";
+import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
 import { TestnetBadge, WalletHeroCard } from "@/components/wallet/WalletHeroCard";
 import { useColors } from "@/hooks/useColors";
@@ -66,7 +66,12 @@ export default function EsimWalletScreen() {
                 <TestnetBadge />
               </View>
               <View style={{ marginTop: 12 }}>
-                <CountryFlag size={68} flagUrl={display.serviceRegionFlag ?? ""} />
+                <CountryFlag
+                  size={68}
+                  flagUrl={display.serviceRegionFlag ?? ""}
+                  coverageType={display.coverageType as CoverageType}
+                  serviceRegionName={display.serviceRegionName}
+                />
               </View>
             </View>
           }

@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
-import CountryFlag from "@/components/ui/CountryFlag";
+import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
 export interface Esim {
@@ -29,6 +29,12 @@ export interface Esim {
     countryCode?: string;
     countryName?: string;
     networks?: { name?: string; type?: string }[];
+  }[];
+  // Only present on catalogue plans (Custom Regional) — used to pick the
+  // two regions shown in its split flag image. Purchased eSIMs don't carry this.
+  coverageCountries?: {
+    countryCode?: string;
+    countryName?: string;
   }[];
 }
 
@@ -132,16 +138,16 @@ const ESIMItem = ({
     () => (
       <>
         <View style={styles.flagContainer}>
-          {item?.coverageType === "LOCAL" &&
-            (item?.serviceRegionCode || item?.serviceRegionFlag) && (
-              <CountryFlag
-                style={[showBuyButton && styles.flag]}
-                isoCode={item?.serviceRegionCode ?? ""}
-                //@ts-expect-error - null values are handled in the component
-                flagUrl={item?.serviceRegionFlag}
-                size={40}
-              />
-            )}
+          <CountryFlag
+            style={[showBuyButton && styles.flag]}
+            isoCode={item?.serviceRegionCode ?? ""}
+            flagUrl={item?.serviceRegionFlag}
+            size={40}
+            coverageType={item?.coverageType as CoverageType}
+            serviceRegionCode={item?.serviceRegionCode}
+            serviceRegionName={item?.serviceRegionName}
+            countryCodes={item?.coverageCountries?.flatMap((c) => (c.countryCode ? [c.countryCode] : []))}
+          />
         </View>
         <View style={[styles.esimItem, { backgroundColor: colors.card }]}>
           <View style={styles.titleContainer}>

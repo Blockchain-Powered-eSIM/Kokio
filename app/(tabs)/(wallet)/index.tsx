@@ -22,7 +22,7 @@ import { useWalletActivity } from '@/hooks/useWalletActivity';
 import { esimDisplayName, esimDocToDisplayItem } from '@/helpers/esimDisplay';
 import { walletActivityEntryToDisplayItem } from '@/helpers/walletActivityDisplay';
 import type { ESimDocument } from '@/utils/bff/esim';
-import CountryFlag from '@/components/ui/CountryFlag';
+import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
 import { logger } from '@/utils/logger';
 
 const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
@@ -60,7 +60,7 @@ function EsimWalletRow({ doc, onPress }: EsimWalletRowProps) {
         borderWidth: 1, borderColor: colors.mutedForeground,
       }}
     >
-      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
+      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} coverageType={display.coverageType as CoverageType} serviceRegionName={display.serviceRegionName} />
       <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1} style={{ flex: 1 }}>
         {esimDisplayName(doc)}
       </ThemedText>
@@ -86,7 +86,7 @@ function PendingEsimWalletRow({ doc }: { doc: ESimDocument }) {
         opacity: 0.7,
       }}
     >
-      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} />
+      <CountryFlag size={28} flagUrl={display.serviceRegionFlag ?? ''} coverageType={display.coverageType as CoverageType} serviceRegionName={display.serviceRegionName} />
       <View style={{ flex: 1 }}>
         <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold numberOfLines={1}>
           {esimDisplayName(doc)}
