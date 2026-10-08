@@ -773,7 +773,14 @@ const Checkout = () => {
         {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && checkErrors.length === 0 && vendorMismatches.length > 0 && (
           <View style={styles.discountErrorContainer}>
             <ThemedText style={styles.discountErrorText}>
-              Your existing eSIM isn&apos;t compatible with this plan for top-up.
+              {(() => {
+                const names = vendorMismatches.map((r) => {
+                  const doc = esims.find((e) => e.eSimRef === r.eSimRef);
+                  return doc ? esimDisplayName(doc) : buildTopupEsimLabel(r.eSimRef, r.iccid);
+                });
+                const isPlural = names.length > 1;
+                return `Your existing ${isPlural ? "eSIMs" : "eSIM"} ${names.join(", ")} ${isPlural ? "aren't" : "isn't"} compatible with this plan for top-up. The purchase will be a new eSIM.`;
+              })()}
             </ThemedText>
           </View>
         )}
