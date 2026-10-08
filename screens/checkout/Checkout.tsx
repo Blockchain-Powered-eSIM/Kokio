@@ -25,6 +25,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import UseCreditBalanceToggle from "@/components/checkout/UseCreditBalanceToggle";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
@@ -806,6 +807,7 @@ const Checkout = () => {
       </KeyboardAwareScrollView>
 
       <BottomActionBar>
+        <UseCreditBalanceToggle />
         <View style={{ flexDirection: "row", marginBottom: 12 }}>
           <Checkbox onChange={setIsESimEnabled} checked={isESimEnabled} />
           <Text style={{ color: colors.foreground, marginLeft: 8 }}>
