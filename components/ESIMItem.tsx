@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
-import CountryFlag from "@/components/ui/CountryFlag";
+import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";
 
 export interface Esim {
@@ -29,6 +29,12 @@ export interface Esim {
     countryCode?: string;
     countryName?: string;
     networks?: { name?: string; type?: string }[];
+  }[];
+  // Only present on catalogue plans (Custom Regional) — used to pick the
+  // two regions shown in its split flag image. Purchased eSIMs don't carry this.
+  coverageCountries?: {
+    countryCode?: string;
+    countryName?: string;
   }[];
 }
 
@@ -56,11 +62,13 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 4,
   },
+  titleContainer: {
+    marginBottom: 5,
+    paddingRight: 90,
+  },
   country: {
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 5,
-    paddingRight: 90,
   },
   detailsContainer: {
     flexDirection: "row",
@@ -99,6 +107,7 @@ const ESIMItem = ({
   containerStyle = {},
   onPress,
   footer,
+  title,
 }: {
   item: Esim;
   showBuyButton: boolean;
@@ -107,6 +116,8 @@ const ESIMItem = ({
   // Optional extra content rendered below the plan details. Used by the home
   // page eSIM component to show install affordances / remaining data.
   footer?: React.ReactNode;
+  // Replaces the plain region-name heading, e.g. an editable eSIM name.
+  title?: React.ReactNode;
 }) => {
   const colors = useColors();
 
@@ -127,21 +138,25 @@ const ESIMItem = ({
     () => (
       <>
         <View style={styles.flagContainer}>
-          {item?.coverageType === "LOCAL" &&
-            (item?.serviceRegionCode || item?.serviceRegionFlag) && (
-              <CountryFlag
-                style={[showBuyButton && styles.flag]}
-                isoCode={item?.serviceRegionCode ?? ""}
-                //@ts-expect-error - null values are handled in the component
-                flagUrl={item?.serviceRegionFlag}
-                size={40}
-              />
-            )}
+          <CountryFlag
+            style={[showBuyButton && styles.flag]}
+            isoCode={item?.serviceRegionCode ?? ""}
+            flagUrl={item?.serviceRegionFlag}
+            size={40}
+            coverageType={item?.coverageType as CoverageType}
+            serviceRegionCode={item?.serviceRegionCode}
+            serviceRegionName={item?.serviceRegionName}
+            countryCodes={item?.coverageCountries?.flatMap((c) => (c.countryCode ? [c.countryCode] : []))}
+          />
         </View>
         <View style={[styles.esimItem, { backgroundColor: colors.card }]}>
-          <Text style={[styles.country, { color: colors.cardForeground }]}>
-            {item.serviceRegionName}
-          </Text>
+          <View style={styles.titleContainer}>
+            {title ?? (
+              <Text style={[styles.country, { color: colors.cardForeground }]}>
+                {item.serviceRegionName}
+              </Text>
+            )}
+          </View>
           <View style={styles.detailsContainer}>
             <DetailItem
               iconName="calendar-outline"
@@ -185,7 +200,7 @@ const ESIMItem = ({
         </View>
       </>
     ),
-    [item, showBuyButton, handleBuyCTAClick, colors, footer]
+    [item, showBuyButton, handleBuyCTAClick, colors, footer, title]
   );
 
   if (onPress) {

@@ -279,14 +279,18 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
             {_get(eSimItem, "serviceRegionName")}
           </Text>
         </View>
-        {eSimItem?.coverageType === "LOCAL" && eSimItem?.serviceRegionCode && (
-          <CountryFlag
-            style={styles.flag}
-            isoCode={eSimItem?.serviceRegionCode}
-            flagUrl={eSimItem?.serviceRegionFlag}
-            size={60}
-          />
-        )}
+        <CountryFlag
+          style={styles.flag}
+          isoCode={eSimItem?.serviceRegionCode}
+          flagUrl={eSimItem?.serviceRegionFlag}
+          size={60}
+          coverageType={eSimItem?.coverageType}
+          serviceRegionCode={eSimItem?.serviceRegionCode}
+          serviceRegionName={eSimItem?.serviceRegionName}
+          countryCodes={eSimItem?.coverageCountries?.flatMap((c: { countryCode?: string }) =>
+            c.countryCode ? [c.countryCode] : []
+          )}
+        />
       </View>
     ),
     // All missing dependencies are of style attributes which are in their on useMemo() call
@@ -370,14 +374,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
           animatedHeaderStyle,
         ]}
       >
-        <View
-          style={{
-            marginBottom:
-              eSimItem?.coverageType === "LOCAL" && eSimItem?.serviceRegionCode
-                ? 4
-                : 18,
-          }}
-        >
+        <View style={{ marginBottom: 4 }}>
           {countryAndFlagWithGoBack}
           {detailItems}
         </View>

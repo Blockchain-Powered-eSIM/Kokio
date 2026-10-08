@@ -4,6 +4,7 @@ import { StyleSheet, FlatList, Pressable, StyleProp, View, ViewStyle } from "rea
 import _get from "lodash/get";
 import _groupBy from "lodash/groupBy";
 import _isEmpty from "lodash/isEmpty";
+import _sortBy from "lodash/sortBy";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -131,7 +132,7 @@ function DataPackTabGroup({
   onClearFilters?: () => void;
 }) {
   const { plansByData, plansByDataCallsSMS } = useMemo(() => {
-    const plansGroupedByPlanType = _groupBy(plans, "planType");
+    const plansGroupedByPlanType = _groupBy(_sortBy(plans, "actualSellingPrice"), "planType");
     const plansByData = _get(plansGroupedByPlanType, TAB_KEYS.DATA);
     const plansByDataCallsSMS = _get(
       plansGroupedByPlanType,

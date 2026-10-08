@@ -17,6 +17,7 @@ interface WalletProps {
   walletDeploymentError?: string | null;
   balance?: string;
   isBalanceLoading?: boolean;
+  onRefreshBalance?: () => void;
   onSetupWallet?: () => void;
   onOpenWallet?: () => void;
 }
@@ -44,6 +45,12 @@ const createStyles = () => StyleSheet.create({
     gap: 8,
     backgroundColor: "transparent",
   },
+  balanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "transparent",
+  },
   primaryButton: {
     width: "100%",
     minHeight: 50,
@@ -66,7 +73,7 @@ const createStyles = () => StyleSheet.create({
   },
 });
 
-const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balance, isBalanceLoading, onSetupWallet, onOpenWallet }: WalletProps) => {
+const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balance, isBalanceLoading, onRefreshBalance, onSetupWallet, onOpenWallet }: WalletProps) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const router = useRouter();
@@ -99,18 +106,31 @@ const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balan
                   Kokio wallet
                 </ThemedText>
               </View>
-              {isBalanceLoading ? (
-                <ActivityIndicator size="small" color={iconOnCardColor} />
-              ) : (
-                <ThemedText
-                  bold
-                  variant="xl"
-                  lightColor={LIGHT_TOKENS.cardForeground}
-                  darkColor={DARK_TOKENS.cardForeground}
-                >
-                  {balance === undefined ? "—" : `$${balance}`}
-                </ThemedText>
-              )}
+              <View style={styles.balanceRow}>
+                {isBalanceLoading ? (
+                  <ActivityIndicator size="small" color={iconOnCardColor} />
+                ) : (
+                  <ThemedText
+                    bold
+                    variant="xl"
+                    lightColor={LIGHT_TOKENS.cardForeground}
+                    darkColor={DARK_TOKENS.cardForeground}
+                  >
+                    {balance === undefined ? "—" : `$${balance}`}
+                  </ThemedText>
+                )}
+                {onRefreshBalance && (
+                  <TouchableOpacity
+                    onPress={onRefreshBalance}
+                    disabled={isBalanceLoading}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Refresh wallet balance"
+                  >
+                    <Ionicons name="refresh-outline" size={18} color={iconOnCardColor} />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
             <ThemedText
               lightColor={LIGHT_TOKENS.cardForeground}

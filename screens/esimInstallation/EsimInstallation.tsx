@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Linking,
   Platform,
@@ -220,7 +220,7 @@ const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
 const EsimInstallation = () => {
   const { isDark } = useTheme();
   const colors = useColors();
-  const { qrcode, appleInstallationUrl: rawAppleUrl } = useLocalSearchParams();
+  const { qrcode, appleInstallationUrl: rawAppleUrl, tab: rawTab } = useLocalSearchParams();
   const appleInstallationUrl = Array.isArray(rawAppleUrl) ? rawAppleUrl[0] : (rawAppleUrl ?? "");
   const router = useRouter();
   const rawQrData = Array.isArray(qrcode) ? _head(qrcode) : qrcode;
@@ -230,7 +230,12 @@ const EsimInstallation = () => {
   const qrDataSplit = _split(qrData, "$");
   const activationAddress = _get(qrDataSplit, [1]);
   const activationCode = _get(qrDataSplit, [2]);
-  const [activeTab, setActiveTab] = useState<TabType>("Direct");
+  const requestedTab: TabType | undefined = rawTab === "QR" ? "QR" : undefined;
+  const [activeTab, setActiveTab] = useState<TabType>(requestedTab ?? "Direct");
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
 
   if (!hasQrData) {
     return (

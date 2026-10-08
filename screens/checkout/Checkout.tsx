@@ -25,6 +25,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import UseCreditBalanceToggle from "@/components/checkout/UseCreditBalanceToggle";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
@@ -44,7 +45,7 @@ import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
 import { RADIO_KEYS, DEVICE_WALLET_PAYMENT_ASSET, DEV_DEVICE_WALLET_TEST_ASSETS } from "@/constants/checkout.constants";
 import { useKokio } from "@/hooks/useKokio";
-import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import * as WebBrowser from "expo-web-browser";
 import {
   MoonpayCommerceProvider,
@@ -285,7 +286,7 @@ const Checkout = () => {
   // Falls back to ICCID last-4, then eSimRef abbreviation.
   const buildTopupEsimLabel = useCallback((eSimRef: string, iccid?: string): string => {
     const doc  = esims.find((e) => e.eSimRef === eSimRef);
-    const plan = doc ? esimDocToDisplayItem(doc) : null;
+    const plan = doc ? { ...esimDocToDisplayItem(doc), serviceRegionName: esimDisplayName(doc) } : null;
     const label = formatPlanLabel(plan);
     if (label) return label;
     if (iccid) return `ICCID ...${iccid.slice(-4)}`;
@@ -570,7 +571,7 @@ const Checkout = () => {
   const handleTopupDone = useCallback(() => {
     setShowSuccessModal(false);
     router.dismissAll();
-    router.navigate("/(tabs)");
+    router.navigate("/(tabs)/orders");
   }, []);
 
   const handleWalletModalClose = useCallback(() => {
@@ -772,7 +773,14 @@ const Checkout = () => {
         {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && checkErrors.length === 0 && vendorMismatches.length > 0 && (
           <View style={styles.discountErrorContainer}>
             <ThemedText style={styles.discountErrorText}>
-              Your existing eSIM isn&apos;t compatible with this plan for top-up.
+              {(() => {
+                const names = vendorMismatches.map((r) => {
+                  const doc = esims.find((e) => e.eSimRef === r.eSimRef);
+                  return doc ? esimDisplayName(doc) : buildTopupEsimLabel(r.eSimRef, r.iccid);
+                });
+                const isPlural = names.length > 1;
+                return `Your existing ${isPlural ? "eSIMs" : "eSIM"} ${names.join(", ")} ${isPlural ? "aren't" : "isn't"} compatible with this plan for top-up. The purchase will be a new eSIM.`;
+              })()}
             </ThemedText>
           </View>
         )}
@@ -806,6 +814,7 @@ const Checkout = () => {
       </KeyboardAwareScrollView>
 
       <BottomActionBar>
+        <UseCreditBalanceToggle />
         <View style={{ flexDirection: "row", marginBottom: 12 }}>
           <Checkbox onChange={setIsESimEnabled} checked={isESimEnabled} />
           <Text style={{ color: colors.foreground, marginLeft: 8 }}>
