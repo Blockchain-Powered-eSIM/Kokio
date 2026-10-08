@@ -337,6 +337,13 @@ export default function MenuScreen() {
 
   const menuItems = [
     {
+      id: "2",
+      title: "Refer & Earn",
+      iconLeft: "gift-outline",
+      iconRight: "chevron-forward-outline",
+      action: () => router.push("/refer-and-earn"),
+    },
+    {
       id: "3",
       title: "Privacy Policy",
       iconLeft: "lock-closed-outline",

@@ -5,6 +5,7 @@ export const ROUTE_NAMES = {
   COVERAGE:               "coverage",
   COVERAGE_MODAL:         "coverage-modal",
   PRIVACY_POLICY:         "privacy-policy",
+  REFER_AND_EARN:         "refer-and-earn",
   WALLET:                 "(wallet)",
   PHONE:                  "phone",
   ORDERS:                 "orders",

@@ -174,6 +174,7 @@ export default function RootLayout() {
           <Stack.Screen name="wc-session" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="coverage-modal" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="refer-and-earn" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
       </View>
       <AuthenticationModal />
