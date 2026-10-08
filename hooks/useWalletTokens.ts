@@ -140,6 +140,8 @@ export function useWalletTokens(address?: string) {
     tokens,
     totalUsd: stablecoinBalances ? sumStablecoinsCents(stablecoinBalances) : undefined,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
+    refetch: query.refetch,
   };
 }

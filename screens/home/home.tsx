@@ -13,7 +13,7 @@ export default function HomeScreen() {
   const { kokio, setupKokio } = useKokio();
   const bg = useThemeColor({}, "background");
   const router = useRouter();
-  const { totalUsd: balance, isLoading: isBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress);
+  const { totalUsd: balance, isFetching: isBalanceLoading, refetch: refetchBalance } = useWalletTokens(kokio.deviceWalletAddress);
 
   const handleOpenWalletSetup = async () => {
     if (!kokio.sdk) {
@@ -37,6 +37,7 @@ export default function HomeScreen() {
           walletDeploymentError={kokio.walletDeploymentError}
           balance={balance}
           isBalanceLoading={isBalanceLoading}
+          onRefreshBalance={() => refetchBalance()}
           onSetupWallet={handleOpenWalletSetup}
           onOpenWallet={handleOpenWallet}
         />
