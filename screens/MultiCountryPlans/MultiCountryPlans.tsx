@@ -11,6 +11,8 @@ import SearchInput from "@/components/SearchInput";
 import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
 import { useMultiCountryPlans } from "@/hooks/useMultiCountryPlans";
+import { useShopFilters } from "@/contexts/ShopFiltersContext";
+import { applyShopFilters } from "@/utils/shopFilters";
 import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 
 const MAX_SUGGESTIONS = 8;
@@ -36,7 +38,13 @@ export default function MultiCountryPlans() {
   }, [countries, normalisedQuery, selected]);
 
   const { matches, isLoading, isError, refetch } = useMultiCountryPlans(selected);
-  const fullMatches = matches.filter((m) => m.coveredCount === selected.length).length;
+  // Only plans that cover every selected country — partial matches are left out entirely.
+  const fullMatches = matches.filter((m) => m.coveredCount === selected.length);
+  const { filters, isActive: filtersActive, clearFilters } = useShopFilters();
+  const filteredPlans = useMemo(
+    () => applyShopFilters(fullMatches.map((m) => m.plan), filters),
+    [fullMatches, filters]
+  );
 
   const toggle = (code: string) =>
     setSelected((current) =>
@@ -48,9 +56,9 @@ export default function MultiCountryPlans() {
       ? "Pick the countries you'll travel to."
       : isLoading
         ? "Finding plans…"
-        : fullMatches > 0
-          ? `${fullMatches} ${fullMatches === 1 ? "plan covers" : "plans cover"} all ${selected.length} countries.`
-          : `No plan covers all ${selected.length} countries. Closest matches are shown first.`;
+        : fullMatches.length > 0
+          ? `${fullMatches.length} ${fullMatches.length === 1 ? "plan covers" : "plans cover"} all ${selected.length} countries.`
+          : `No plan covers all ${selected.length} countries.`;
 
   return (
     <ThemedView style={styles.container}>
@@ -110,8 +118,10 @@ export default function MultiCountryPlans() {
 
       {selected.length > 0 && (
         <DataPackTabGroup
-          plans={matches.map((m) => m.plan)}
-          isLoading={isLoading && matches.length === 0}
+          plans={filteredPlans}
+          isLoading={isLoading}
+          filtersActive={filtersActive}
+          onClearFilters={clearFilters}
           containerStyle={styles.results}
         />
       )}

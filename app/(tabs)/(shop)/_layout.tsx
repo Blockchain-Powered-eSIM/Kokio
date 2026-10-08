@@ -72,6 +72,7 @@ function StackContent() {
         name={ROUTE_NAMES.MULTI_COUNTRY}
         options={{
           title: "Plans for countries",
+          headerRight: () => <ShopFilterHeaderButton />,
         }}
       />
       <Stack.Screen
