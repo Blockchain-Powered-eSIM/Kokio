@@ -146,6 +146,7 @@ export const OP_SEPOLIA_TESTNET =
   "https://sepolia-optimism.etherscan.io/address";
 
 export const BASE_SEPOLIA_TESTNET = "https://sepolia.basescan.org/address";
+export const BASE_SEPOLIA_TESTNET_TX = "https://sepolia.basescan.org/tx";
 
 // ─── Testnet disclosure & mainnet cutover (2026-09-22) ─────────────────────
 // Kokio currently runs on Base Sepolia. Wallets/passkeys created before the

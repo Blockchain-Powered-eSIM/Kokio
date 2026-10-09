@@ -17,6 +17,7 @@ import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
 import { useKokio } from '@/hooks/useKokio';
 import { useEsims } from '@/hooks/useDeviceEsims';
 import { useWalletTokens } from '@/hooks/useWalletTokens';
+import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useContacts } from '@/hooks/useContacts';
 import { useWalletActivity } from '@/hooks/useWalletActivity';
 import { esimDisplayName, esimDocToDisplayItem } from '@/helpers/esimDisplay';
@@ -112,7 +113,16 @@ const WalletPage = () => {
   const { contacts } = useContacts();
   const { entries: walletActivityEntries } = useWalletActivity();
   const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT).map(walletActivityEntryToDisplayItem);
-  const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress);
+  const { tokens: customTokens, addToken } = useCustomTokens();
+  const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
+  // A custom-added token still needs its balance resolved (via `tokens`, so
+  // it's covered by the on-chain read above and shows up in the full Tokens
+  // list), it just doesn't belong in this card's compact grid - that stays
+  // built-ins only.
+  const customTokenAddresses = new Set(customTokens.map((t) => t.address.toLowerCase()));
+  const builtInTokens = tokens.filter(
+    (token) => token.symbol !== "USDCt" && !(token.address && customTokenAddresses.has(token.address.toLowerCase())),
+  );
 
   const receiveSheetRef = useRef<BottomSheet>(null);
   const depositSheetRef = useRef<BottomSheet>(null);
@@ -299,7 +309,7 @@ const WalletPage = () => {
               {tokens.length > 0 &&
                 <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mr-5'>See all</ThemedText>}
             </View>
-            <TokenGrid tokens={tokens.filter((token) => token.symbol !== "USDCt")} onAddToken={() => addTokenSheetRef.current?.snapToIndex(0)} />
+            <TokenGrid tokens={builtInTokens} onAddToken={() => addTokenSheetRef.current?.snapToIndex(0)} />
           </ThemedView>
         </Pressable>
         <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/Transactions' as any)}>
@@ -409,7 +419,7 @@ const WalletPage = () => {
       </ScrollView>
       <ReceiveSheet ref={receiveSheetRef} address={kokio.deviceWalletAddress ?? ''} />
       <DepositSheet ref={depositSheetRef} address={kokio.deviceWalletAddress ?? ''} />
-      <AddTokenSheet ref={addTokenSheetRef} />
+      <AddTokenSheet ref={addTokenSheetRef} onAdd={addToken} onAdded={() => addTokenSheetRef.current?.close()} />
     </ThemedView>
   );
 };

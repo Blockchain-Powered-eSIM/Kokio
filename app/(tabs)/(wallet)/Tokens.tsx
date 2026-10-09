@@ -1,18 +1,21 @@
-import { View, Image, ScrollView } from 'react-native'
+import { View, ScrollView } from 'react-native'
 import React, { useRef } from 'react'
 import BottomSheet from '@gorhom/bottom-sheet';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColors } from "@/hooks/useColors";
 import { useWalletTokens } from '@/hooks/useWalletTokens';
+import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useKokio } from '@/hooks/useKokio';
 import { AddTokenSheet } from '@/components/wallet/sheets/AddTokenSheet';
 import { AddTokenButton } from '@/components/wallet/TokenGrid';
+import { TokenIcon } from '@/components/wallet/TokenIcon';
 
 const Tokens = () => {
   const colors = useColors();
   const { kokio } = useKokio();
-  const { tokens } = useWalletTokens(kokio.deviceWalletAddress);
+  const { tokens: customTokens, addToken } = useCustomTokens();
+  const { tokens } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
   const addTokenSheetRef = useRef<BottomSheet>(null);
   return (
     <ThemedView lightColor="#FFFFFF" darkColor="#000000" className='flex-1'>
@@ -28,7 +31,7 @@ const Tokens = () => {
               {tokens.map((token) => (
                 <View key={token.symbol} className='flex-row items-center justify-between mx-3'>
                   <View className='flex-row items-center'>
-                    <Image source={token.icon} className='h-[48px] w-[48px]' />
+                    <TokenIcon symbol={token.symbol} icon={token.icon} size={48} />
                     <ThemedText bold variant='xl' className='ml-3'>{token.symbol}</ThemedText>
                   </View>
                   <View className='flex-col items-end'>
@@ -44,7 +47,7 @@ const Tokens = () => {
       <View pointerEvents='box-none' className='absolute inset-x-0 bottom-0 items-center pb-6'>
         <AddTokenButton color={colors.text} onPress={() => addTokenSheetRef.current?.snapToIndex(0)} />
       </View>
-      <AddTokenSheet ref={addTokenSheetRef} />
+      <AddTokenSheet ref={addTokenSheetRef} onAdd={addToken} onAdded={() => addTokenSheetRef.current?.close()} />
     </ThemedView>
   )
 }

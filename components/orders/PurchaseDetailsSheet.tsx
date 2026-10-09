@@ -198,7 +198,7 @@ const InfoRow = ({
   );
 };
 
-const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => {
+export const LinkRow = ({ label, onPress }: { label: string; onPress: () => void }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   return (

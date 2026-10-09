@@ -14,10 +14,11 @@ interface HeaderBackControlProps {
 
 // Single back control for the app: chevron only, no label, themed by the navigation header tint.
 export function HeaderBackControl({ onPress, tintColor }: HeaderBackControlProps) {
+  const headerText = useThemeColor({}, "headerText");
   return (
     <HeaderBackButton
       displayMode="minimal"
-      tintColor={tintColor as string | undefined}
+      tintColor={(tintColor ?? headerText) as string}
       onPress={onPress ?? (() => router.back())}
       accessibilityLabel="Go back"
     />

@@ -7,12 +7,42 @@ import { isAddress } from "viem";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { PillButton } from "@/components/ui/PillButton";
+import { useToast } from "@/contexts/ToastContext";
+import { CustomTokenError, type CustomToken } from "@/hooks/useCustomTokens";
+import { logger } from "@/utils/logger";
 
-export const AddTokenSheet = forwardRef<BottomSheet>((_props, ref) => {
+interface AddTokenSheetProps {
+  onAdd: (address: string) => Promise<CustomToken>;
+  onAdded?: (token: CustomToken) => void;
+}
+
+export const AddTokenSheet = forwardRef<BottomSheet, AddTokenSheetProps>(({ onAdd, onAdded }, ref) => {
   const colors = useColors();
+  const { showMessage } = useToast();
   const [contractAddress, setContractAddress] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const trimmed = contractAddress.trim();
   const showInvalid = trimmed.length > 0 && !isAddress(trimmed);
+  const canSubmit = isAddress(trimmed) && !isSubmitting;
+
+  const handleAdd = async () => {
+    if (!canSubmit) return;
+    setIsSubmitting(true);
+    try {
+      const token = await onAdd(trimmed);
+      showMessage(`Added ${token.symbol}`, "info");
+      setContractAddress("");
+      onAdded?.(token);
+    } catch (error) {
+      const message = error instanceof CustomTokenError ? error.message : "Failed to add token";
+      if (!(error instanceof CustomTokenError)) {
+        logger.error("ADD_TOKEN_FAILED", { error });
+      }
+      showMessage(message, "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <BottomSheet
@@ -91,7 +121,9 @@ export const AddTokenSheet = forwardRef<BottomSheet>((_props, ref) => {
           </ThemedText>
         )}
         <View style={{ marginTop: 24 }}>
-          <PillButton variant="solid" disabled>Add token</PillButton>
+          <PillButton variant="solid" disabled={!isAddress(trimmed)} loading={isSubmitting} onPress={handleAdd}>
+            Add token
+          </PillButton>
         </View>
       </BottomSheetView>
     </BottomSheet>

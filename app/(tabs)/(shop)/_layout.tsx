@@ -52,6 +52,10 @@ function StackContent() {
           return {
             title: countryLabel,
             headerRight: () => <ShopFilterHeaderButton />,
+            // Function-valued `options` isn't merged against the Stack's own
+            // `screenOptions`, so the shared back control has to be re-specified
+            // here - see the COVERAGE screen below for the same pattern.
+            headerLeft: stackScreenOptions.headerLeft,
           };
         }}
       />
@@ -65,6 +69,7 @@ function StackContent() {
           return {
             title: regionLabel,
             headerRight: () => <ShopFilterHeaderButton />,
+            headerLeft: stackScreenOptions.headerLeft,
           };
         }}
       />

@@ -1,5 +1,5 @@
 import { View, Pressable, Platform, ActivityIndicator, KeyboardAvoidingView, ScrollView } from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { BottomActionBar } from '@/components/ui/BottomActionBar'
@@ -7,13 +7,18 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { TextInput } from 'react-native-gesture-handler'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { isAddress, parseUnits, erc20Abi, encodeFunctionData, type Address } from 'viem';
+import * as Clipboard from 'expo-clipboard'
+import { isAddress, parseUnits, type Address } from 'viem';
 import { useToast } from '@/contexts/ToastContext'
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useContacts, type Contact } from '@/hooks/useContacts';
 import { ContactAvatar } from '@/components/wallet/ContactAvatar';
-import { useUsdcAsset, useWalletBalance } from '@/hooks/useWalletBalance';
+import { TokenIcon } from '@/components/wallet/TokenIcon';
+import { useWalletTokens, type WalletToken } from '@/hooks/useWalletTokens';
+import { useCustomTokens } from '@/hooks/useCustomTokens';
+import { useGasEstimate, formatFeeEth } from '@/hooks/useGasEstimate';
+import { buildTransferCall } from '@/helpers/walletTransferCall';
 import { useKokio } from '@/hooks/useKokio';
 import { logger } from '@/utils/logger';
 import { isUserCancelledPasskeyError } from '@/utils/formatOnChainError';
@@ -43,10 +48,19 @@ const SendToContact = () => {
   const [pastedAddress, setPastedAddress] = useState("");
   const [amount, setAmount] = useState("0");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedSymbol, setSelectedSymbol] = useState("USDC");
+  const [showTokenPicker, setShowTokenPicker] = useState(false);
   const { showMessage } = useToast();
 
-  const { data: asset } = useUsdcAsset();
-  const { balance, isLoading: isBalanceLoading } = useWalletBalance(kokio.deviceWalletAddress);
+  const { tokens: customTokens } = useCustomTokens();
+  const { tokens, isLoading: isTokensLoading } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
+  // Only tokens whose balance actually resolved can be picked - one that
+  // failed to read (amount undefined) can't be validated against a balance,
+  // so offering it would let a send attempt through with no real check.
+  const sendableTokens = tokens.filter((t) => t.amount !== undefined);
+  const selectedToken: WalletToken | undefined = tokens.find((t) => t.symbol === selectedSymbol);
+  const isBalanceLoading = isTokensLoading;
+  const balance = selectedToken?.amount;
 
   // A QR scan (see qrCodeScreen.tsx's `returnTo: 'send'` mode) comes back as a
   // route param rather than a direct callback, since expo-router has no
@@ -88,10 +102,10 @@ const SendToContact = () => {
     : !!activeContact && !!contactWalletAddress && isAddress(contactWalletAddress);
 
   const trimmedAmount = amount.trim();
-  // Restrict fractional digits to the asset's real decimals so nothing gets
+  // Restrict fractional digits to the token's real decimals so nothing gets
   // silently rounded by parseUnits - block instead of guessing.
-  const amountFormatValid = asset
-    ? new RegExp(`^\\d+(\\.\\d{1,${asset.decimals}})?$`).test(trimmedAmount)
+  const amountFormatValid = selectedToken
+    ? new RegExp(`^\\d+(\\.\\d{1,${selectedToken.decimals}})?$`).test(trimmedAmount)
     : /^\d+(\.\d+)?$/.test(trimmedAmount);
   const parsedAmount = Number(trimmedAmount);
   const isAmountValid = amountFormatValid && Number.isFinite(parsedAmount) && parsedAmount > 0;
@@ -101,7 +115,70 @@ const SendToContact = () => {
   const isBalanceKnown = balance !== undefined;
   const exceedsBalance = isBalanceKnown && isAmountValid && parsedAmount > parseFloat(balance as string);
 
-  const canSend = !isLoading && isRecipientValid && isAmountValid && isBalanceKnown && !exceedsBalance && !!asset;
+  // The recipient this screen currently resolves to, for the live fee
+  // preview only - `handleSend` re-resolves it fresh (re-reading the contact
+  // from AsyncStorage) before actually sending, so a stale preview address
+  // can never affect where funds go.
+  const previewRecipient: Address | undefined = isRawAddressMode
+    ? (isAddress(trimmedAddress) ? (trimmedAddress as Address) : undefined)
+    : (contactWalletAddress && isAddress(contactWalletAddress) ? (contactWalletAddress as Address) : undefined);
+
+  // Debounced so a gas estimate (a real bundler + paymaster round trip) isn't
+  // fired on every keystroke.
+  const [debouncedAmount, setDebouncedAmount] = useState(trimmedAmount);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedAmount(trimmedAmount), 500);
+    return () => clearTimeout(timer);
+  }, [trimmedAmount]);
+
+  const previewCall = useMemo(() => {
+    if (!selectedToken || !previewRecipient) return undefined;
+    if (!new RegExp(`^\\d+(\\.\\d{1,${selectedToken.decimals}})?$`).test(debouncedAmount)) return undefined;
+    const parsed = Number(debouncedAmount);
+    if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+    try {
+      return buildTransferCall(selectedToken, previewRecipient, parseUnits(debouncedAmount, selectedToken.decimals));
+    } catch {
+      return undefined;
+    }
+  }, [selectedToken, previewRecipient, debouncedAmount]);
+
+  const { data: gasEstimate, isLoading: isGasEstimateLoading, isError: isGasEstimateError } = useGasEstimate(previewCall);
+
+  // Gas (when not sponsored) is always paid from the account's own ETH,
+  // regardless of which token is being sent - so it's checked against the
+  // ETH balance, not the sent token's balance.
+  const ethToken = tokens.find((t) => t.symbol === 'ETH');
+  const needsOwnFee = gasEstimate && !gasEstimate.isSponsored ? gasEstimate.feeWei : undefined;
+  const nativeNeededWei = needsOwnFee !== undefined
+    ? needsOwnFee + (selectedToken?.symbol === 'ETH' && isAmountValid ? parseUnits(trimmedAmount, 18) : 0n)
+    : undefined;
+  const insufficientForGas = !!(
+    nativeNeededWei !== undefined &&
+    ethToken?.amount !== undefined &&
+    nativeNeededWei > parseUnits(ethToken.amount, 18)
+  );
+
+  const canSend = !isLoading && isRecipientValid && isAmountValid && isBalanceKnown && !exceedsBalance && !!selectedToken && !insufficientForGas;
+
+  const networkFeeLabel = !previewCall
+    ? '—'
+    : isGasEstimateLoading
+      ? 'Estimating…'
+      : isGasEstimateError
+        ? 'Unavailable'
+        : gasEstimate?.isSponsored
+          ? 'Sponsored - free'
+          : gasEstimate?.feeWei !== undefined
+            ? `~${formatFeeEth(gasEstimate.feeWei)} ETH`
+            : '—';
+
+  // The fee is only foldable into "Total" when it's paid in the same
+  // currency being sent (a native ETH send) - otherwise it's a separate ETH
+  // cost shown on its own row, not added to a USDC/custom-token amount.
+  const totalLabel = gasEstimate && !gasEstimate.isSponsored && gasEstimate.feeWei !== undefined && selectedToken?.symbol === 'ETH'
+    ? `${formatFeeEth((isAmountValid ? parseUnits(trimmedAmount, 18) : 0n) + gasEstimate.feeWei)} ${selectedSymbol}`
+    : `${trimmedAmount || '0'} ${selectedSymbol}`;
 
   const handleScanQr = () => {
     router.push({ pathname: '/(tabs)/(wallet)/(contacts)/qrCodeScreen', params: { returnTo: 'send' } });
@@ -110,6 +187,35 @@ const SendToContact = () => {
   const handleSelectContact = (contactId: string) => {
     setSelectedContactId(contactId);
     setPastedAddress('');
+  };
+
+  // Starting value is "0" so the field never shows blank, but a controlled
+  // TextInput just appends - typing "1" on top of "0" produces the full
+  // string "01", not "1". Strip a leading zero immediately followed by
+  // another digit, same as a normal numeric field - "0.5" is left alone
+  // since the zero there is required syntax, not a stray prefix.
+  const handleAmountChange = (text: string) => {
+    setAmount(text.replace(/^0+(?=\d)/, ''));
+  };
+
+  const handlePasteAddress = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      const trimmedText = text.trim();
+      if (!trimmedText) {
+        showMessage("Clipboard is empty", "error");
+        return;
+      }
+      // Clipboard content is often more than just the address - a label, a
+      // deep link, extra characters picked up from wherever it was copied.
+      // Pull the address itself out rather than rejecting the whole blob.
+      const match = trimmedText.match(/0x[0-9a-fA-F]{40}/);
+      setPastedAddress(match ? match[0] : trimmedText);
+      setSelectedContactId(undefined);
+    } catch (error) {
+      logger.error('CLIPBOARD_PASTE_FAILED', { error });
+      showMessage("Couldn't read from clipboard", "error");
+    }
   };
 
   const handleSend = async () => {
@@ -161,8 +267,13 @@ const SendToContact = () => {
       return;
     }
 
-    if (!asset) {
-      showMessage("Asset details unavailable right now - try again in a moment", "error");
+    if (!selectedToken) {
+      showMessage("Token details unavailable right now - try again in a moment", "error");
+      return;
+    }
+
+    if (insufficientForGas) {
+      showMessage("Not enough ETH to cover the network fee", "error");
       return;
     }
 
@@ -175,14 +286,12 @@ const SendToContact = () => {
 
     setIsLoading(true);
     try {
-      const amountInSmallestUnit = parseUnits(trimmedAmount, asset.decimals);
+      const amountInSmallestUnit = parseUnits(trimmedAmount, selectedToken.decimals);
+      const call = buildTransferCall(selectedToken, recipient, amountInSmallestUnit);
 
       // Fires the passkey/biometric prompt. Resolves with the user operation
       // hash, NOT a receipt - the transfer is not confirmed yet.
-      const hash = await deviceWallet.sendUserOperation([{
-        to: asset.token,
-        data: encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [recipient, amountInSmallestUnit] }),
-      }]);
+      const hash = await deviceWallet.sendUserOperation([call]);
 
       const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
 
@@ -194,13 +303,13 @@ const SendToContact = () => {
       }
 
       const txHash = receipt.receipt.transactionHash;
-      const displayAmount = asset.isDollarUnit ? `$${parsedAmount.toFixed(2)}` : `${trimmedAmount} USDC`;
+      const displayAmount = `${trimmedAmount} ${selectedToken.symbol}`;
 
       if (contactForLog && activeContact) {
         const newTransaction: Transaction = {
           id: txHash,
           dateTime: new Date().toISOString(),
-          tokenAmount: `${trimmedAmount} USDC`,
+          tokenAmount: displayAmount,
           name: activeContact.alias,
           amount: displayAmount,
           status: "completed",
@@ -226,7 +335,7 @@ const SendToContact = () => {
         const newTransaction: Transaction = {
           id: txHash,
           dateTime: new Date().toISOString(),
-          tokenAmount: `${trimmedAmount} USDC`,
+          tokenAmount: displayAmount,
           walletId: recipient,
           amount: displayAmount,
           status: "completed",
@@ -237,7 +346,7 @@ const SendToContact = () => {
         router.push({ pathname: "/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) } });
       }
 
-      showMessage(`Sent ${trimmedAmount} USDC`, "info");
+      showMessage(`Sent ${displayAmount}`, "info");
     } catch (error) {
       if (isUserCancelledPasskeyError(error)) {
         // Quiet, distinct outcome - no scary red error toast for a user
@@ -335,6 +444,15 @@ const SendToContact = () => {
                 autoCorrect={false}
                 style={{ color: pastedAddressTextColor, flex: 1 }}
               />
+              <Pressable
+                onPress={handlePasteAddress}
+                disabled={isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Paste address from clipboard"
+                style={{ paddingLeft: 10 }}
+              >
+                <ThemedText bold style={{ color: colors.primary }}>Paste</ThemedText>
+              </Pressable>
             </View>
             {showAddressError && (
               <ThemedText style={{ color: colors.destructive }} className='ml-2 mt-1'>
@@ -354,33 +472,69 @@ const SendToContact = () => {
                   className='text-[18px] font-LexendSemiBold mb-2 ml-6 mt-1 '
                   style={{ color: amountTextColor }}
                   placeholderTextColor={colors.mutedForeground}
-                  onChangeText={(text) => setAmount(text)}
+                  onChangeText={handleAmountChange}
                   keyboardType='numeric'
                 />
               </View>
-              <View className='w-[32%]'>
-                <ThemedText lightColor="#000000" light className='mt-2'>Token</ThemedText>
-                <View className='flex-row mt-1 gap-x-2 items-center '>
-                  <ThemedText lightColor="#000000" variant='xl'>USDC</ThemedText>
+              <Pressable
+                onPress={() => setShowTokenPicker((v) => !v)}
+                disabled={isLoading}
+                className='w-[32%] flex-row items-center justify-between pr-3'
+              >
+                <View>
+                  <ThemedText lightColor="#000000" light className='mt-2'>Token</ThemedText>
+                  <View className='flex-row mt-1 gap-x-2 items-center '>
+                    <ThemedText lightColor="#000000" variant='xl'>{selectedSymbol}</ThemedText>
+                  </View>
                 </View>
-              </View>
+                <Ionicons name={showTokenPicker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
+              </Pressable>
             </ThemedView>
+
+            {showTokenPicker && (
+              <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[95%] mt-2 py-2 rounded-3xl'>
+                {sendableTokens.map((token) => (
+                  <Pressable
+                    key={token.symbol}
+                    onPress={() => { setSelectedSymbol(token.symbol); setShowTokenPicker(false); }}
+                    className='flex-row items-center justify-between py-2 px-5'
+                  >
+                    <View className='flex-row items-center gap-x-3'>
+                      <TokenIcon symbol={token.symbol} icon={token.icon} size={28} />
+                      <ThemedText lightColor="#000000" bold={token.symbol === selectedSymbol}>{token.symbol}</ThemedText>
+                    </View>
+                    <ThemedText lightColor="#000000" style={{ color: colors.mutedForeground }}>{token.amount}</ThemedText>
+                  </Pressable>
+                ))}
+              </ThemedView>
+            )}
+
             <ThemedText lightColor="#000000" className='mt-3'>
               {isBalanceLoading
                 ? 'Balance: Loading…'
                 : isBalanceKnown
-                  ? `Balance: ${balance} USDC`
+                  ? `Balance: ${balance} ${selectedSymbol}`
                   : 'Balance: unavailable'}
             </ThemedText>
             <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[95%] mt-3 px-6 py-5 rounded-3xl '>
               <View className='flex-row justify-between'>
-                <ThemedText lightColor="#000000">Estimated Gas Fee:</ThemedText>
-                <ThemedText lightColor="#000000"> 0.0014 USDC</ThemedText>
+                <ThemedText lightColor="#000000">Network fee:</ThemedText>
+                <ThemedText lightColor="#000000">{networkFeeLabel}</ThemedText>
               </View>
+              {gasEstimate && !gasEstimate.isSponsored && selectedToken?.symbol !== 'ETH' && (
+                <ThemedText style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
+                  Paid from your ETH balance, separately from this transfer.
+                </ThemedText>
+              )}
               <View className='flex-row mt-2 justify-between'>
                 <ThemedText lightColor="#000000">Total:</ThemedText>
-                <ThemedText lightColor="#000000">{(parseFloat(amount || '0') + 0.0014).toFixed(4)} USDC</ThemedText>
+                <ThemedText lightColor="#000000">{totalLabel}</ThemedText>
               </View>
+              {insufficientForGas && (
+                <ThemedText style={{ color: colors.destructive, fontSize: 12.5, marginTop: 6 }}>
+                  Not enough ETH to cover the network fee.
+                </ThemedText>
+              )}
             </ThemedView>
           </View>
         </ScrollView>
@@ -393,7 +547,7 @@ const SendToContact = () => {
             style={{ backgroundColor: colors.secondary, opacity: canSend ? 1 : 0.5 }}
           >
             {isLoading ? <ActivityIndicator size='small' /> :
-            <ThemedText lightColor="#000000" darkColor='black' className='text-center'>Confirm & Send {amount} USDC</ThemedText>}
+            <ThemedText lightColor="#000000" darkColor='black' className='text-center'>Confirm & Send {amount} {selectedSymbol}</ThemedText>}
           </Pressable>
         </BottomActionBar>
       </ThemedView>

@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Image, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
+import { TokenIcon } from "@/components/wallet/TokenIcon";
 import type { WalletToken } from "@/hooks/useWalletTokens";
 
 interface TokenGridProps {
@@ -15,7 +16,7 @@ function TokenCell({ token }: { token: WalletToken }) {
   const colors = useColors();
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Image source={token.icon} style={{ width: 40, height: 40 }} />
+      <TokenIcon symbol={token.symbol} icon={token.icon} size={40} />
       <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold style={{ marginTop: 8 }}>
         {token.symbol}
       </ThemedText>
