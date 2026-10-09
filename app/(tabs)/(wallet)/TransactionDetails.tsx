@@ -1,11 +1,13 @@
 import React, { Children, Fragment, useMemo } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 
 import type { Palette } from "@/constants/Colors";
 import { ContactAvatar } from "@/components/wallet/ContactAvatar";
-import { CopyRow, LinkRow } from "@/components/orders/PurchaseDetailsSheet";
+import { CopyRow } from "@/components/orders/PurchaseDetailsSheet";
+import { PillButton } from "@/components/ui/PillButton";
 import { BASE_SEPOLIA_TESTNET_TX } from "@/constants/general.constants";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
@@ -206,7 +208,7 @@ const TransactionDetails = () => {
   const handleOpenExplorer = async () => {
     if (!isRealTxHash) return;
     try {
-      await Linking.openURL(`${BASE_SEPOLIA_TESTNET_TX}/${tx.id}`);
+      await WebBrowser.openBrowserAsync(`${BASE_SEPOLIA_TESTNET_TX}/${tx.id}`);
     } catch (error) {
       logger.error('BROWSER_OPEN_FAILED', { error });
     }
@@ -252,12 +254,14 @@ const TransactionDetails = () => {
         {!tx.name && tx.walletId ? <CopyRow label="Wallet" value={tx.walletId} /> : null}
         {tx.dateTime ? <InfoRow label="Date and Time" value={tx.dateTime} /> : null}
         {tx.status ? <InfoRow label="Status" value={tx.status} /> : null}
+        {tx.id ? <CopyRow label="Transaction ID" value={tx.id} /> : null}
       </Section>
 
-      <Section title="Transaction">
-        {tx.id ? <CopyRow label="Transaction ID" value={tx.id} /> : null}
-        {isRealTxHash ? <LinkRow label="See on block explorer" onPress={handleOpenExplorer} /> : null}
-      </Section>
+      {isRealTxHash ? (
+        <PillButton variant="outline" onPress={handleOpenExplorer}>
+          View on block explorer
+        </PillButton>
+      ) : null}
     </ScrollView>
   );
 };

@@ -85,13 +85,13 @@ export default function UseCreditBalanceToggle() {
         </View>
         <View style={styles.textBlock}>
           <View style={styles.titleRow}>
-            <Text style={styles.title}>Use credit balance</Text>
+            <Text style={styles.title}>Use Kokio credits</Text>
             <View style={styles.soonPill}>
               <Text style={styles.soonPillText}>Soon</Text>
             </View>
           </View>
           <Text style={[styles.subtitle, !isDark && { color: colors.text }]}>
-            Apply your Kokio credit toward this order
+            Apply Kokio credits toward this order
           </Text>
         </View>
         <Switch
@@ -99,7 +99,7 @@ export default function UseCreditBalanceToggle() {
           disabled
           trackColor={{ false: colors.muted, true: colors.primary }}
           thumbColor={colors.primaryForeground}
-          accessibilityLabel="Use credit balance (coming soon)"
+          accessibilityLabel="Use Kokio credits (coming soon)"
         />
       </LinearGradient>
     </View>

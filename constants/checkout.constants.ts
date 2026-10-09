@@ -8,12 +8,15 @@ export const RADIO_KEYS = {
 
 export type RadioKey = (typeof RADIO_KEYS)[keyof typeof RADIO_KEYS];
 
-export const DEVICE_WALLET_PAYMENT_ASSET = "USDC";
+// Stablecoins the Device Wallet can pay with: the PaymentAdapter-backed
+// stablecoins in hooks/useWalletTokens.ts. Excludes ETH, custom tokens, and
+// the __DEV__-only USDCt test token. Each symbol must also be whitelisted by
+// the backend's payment adapter for the order to be accepted.
+export const DEVICE_WALLET_PAYMENT_ASSETS = ["USDC", "USDT", "DAI"] as const;
 
-// __DEV__-only alternates for testing, when the official testnet USDC faucet
-// supply runs low - swapping the asset symbol here must match an asset the
-// backend's payment adapter actually recognizes.
-export const DEV_DEVICE_WALLET_TEST_ASSETS = ["USDC", "USDCt"] as const;
+export type DeviceWalletPaymentAsset = (typeof DEVICE_WALLET_PAYMENT_ASSETS)[number];
+
+export const DEFAULT_DEVICE_WALLET_PAYMENT_ASSET: DeviceWalletPaymentAsset = "USDC";
 
 export const PLAN_TYPES = {
   DATA: "DATA",

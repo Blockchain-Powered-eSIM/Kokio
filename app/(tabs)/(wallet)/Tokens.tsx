@@ -4,7 +4,7 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useColors } from "@/hooks/useColors";
-import { useWalletTokens } from '@/hooks/useWalletTokens';
+import { sortTokensByBalance, useWalletTokens } from '@/hooks/useWalletTokens';
 import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useKokio } from '@/hooks/useKokio';
 import { AddTokenSheet } from '@/components/wallet/sheets/AddTokenSheet';
@@ -23,12 +23,12 @@ const Tokens = () => {
         <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
           <View className="px-4">
             <View className='flex-row justify-between'>
-              <ThemedText darkColor={colors.foreground} className='ml-2'>Your Tokens</ThemedText>
+              <ThemedText darkColor={colors.foreground} className='ml-2'>Tokens</ThemedText>
               <ThemedText darkColor={colors.foreground} className='mr-2'>Amount</ThemedText>
             </View>
 
             <View className='gap-y-3 mt-5 mb-3'>
-              {tokens.map((token) => (
+              {sortTokensByBalance(tokens).map((token) => (
                 <View key={token.symbol} className='flex-row items-center justify-between mx-3'>
                   <View className='flex-row items-center'>
                     <TokenIcon symbol={token.symbol} icon={token.icon} size={48} />

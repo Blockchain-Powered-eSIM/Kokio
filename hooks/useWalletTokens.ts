@@ -84,6 +84,32 @@ function sumStablecoinsCents(balances: RawBalance[]): string | undefined {
   return `${cents / 100n}.${(cents % 100n).toString().padStart(2, '0')}`;
 }
 
+function parsedAmount(token: WalletToken): number | undefined {
+  if (token.amount === undefined) return undefined;
+  const value = parseFloat(token.amount);
+  return Number.isNaN(value) ? undefined : value;
+}
+
+/** True only for a resolved balance that is numerically zero; an unresolved (undefined/NaN) amount is not zero. */
+export function isZeroBalance(token: WalletToken): boolean {
+  return parsedAmount(token) === 0;
+}
+
+/**
+ * Largest balance first, compared by raw amount. A token whose amount is
+ * unresolved (undefined or unparseable) sorts last. Returns a new array.
+ */
+export function sortTokensByBalance(tokens: WalletToken[]): WalletToken[] {
+  return [...tokens].sort((a, b) => {
+    const left = parsedAmount(a);
+    const right = parsedAmount(b);
+    if (left === undefined && right === undefined) return 0;
+    if (left === undefined) return 1;
+    if (right === undefined) return -1;
+    return right - left;
+  });
+}
+
 export function useWalletTokens(address?: string, customTokens: CustomToken[] = []) {
   const { kokio } = useKokio();
   const isActive = useIsAppActive();

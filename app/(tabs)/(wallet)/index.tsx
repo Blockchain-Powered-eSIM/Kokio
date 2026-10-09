@@ -16,7 +16,7 @@ import { TokenGrid } from '@/components/wallet/TokenGrid';
 import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
 import { useKokio } from '@/hooks/useKokio';
 import { useEsims } from '@/hooks/useDeviceEsims';
-import { useWalletTokens } from '@/hooks/useWalletTokens';
+import { isZeroBalance, sortTokensByBalance, useWalletTokens } from '@/hooks/useWalletTokens';
 import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useContacts } from '@/hooks/useContacts';
 import { useWalletActivity } from '@/hooks/useWalletActivity';
@@ -120,8 +120,15 @@ const WalletPage = () => {
   // list), it just doesn't belong in this card's compact grid - that stays
   // built-ins only.
   const customTokenAddresses = new Set(customTokens.map((t) => t.address.toLowerCase()));
-  const builtInTokens = tokens.filter(
-    (token) => token.symbol !== "USDCt" && !(token.address && customTokenAddresses.has(token.address.toLowerCase())),
+  // Zero balances stay out of the grid (they remain in the full Tokens list);
+  // a still-unresolved amount is kept and sorts last.
+  const builtInTokens = sortTokensByBalance(
+    tokens.filter(
+      (token) =>
+        token.symbol !== "USDCt" &&
+        !(token.address && customTokenAddresses.has(token.address.toLowerCase())) &&
+        !isZeroBalance(token),
+    ),
   );
 
   const receiveSheetRef = useRef<BottomSheet>(null);
@@ -305,7 +312,7 @@ const WalletPage = () => {
         <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/Tokens" as any)}>
           <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
             <View className='flex-row justify-between'>
-              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Your Tokens</ThemedText>
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Tokens</ThemedText>
               {tokens.length > 0 &&
                 <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' mr-5'>See all</ThemedText>}
             </View>

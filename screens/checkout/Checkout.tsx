@@ -43,7 +43,9 @@ import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
-import { RADIO_KEYS, DEVICE_WALLET_PAYMENT_ASSET, DEV_DEVICE_WALLET_TEST_ASSETS } from "@/constants/checkout.constants";
+import { RADIO_KEYS, DEFAULT_DEVICE_WALLET_PAYMENT_ASSET } from "@/constants/checkout.constants";
+import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
+import { useWalletTokens } from "@/hooks/useWalletTokens";
 import { useKokio } from "@/hooks/useKokio";
 import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import * as WebBrowser from "expo-web-browser";
@@ -198,7 +200,7 @@ const Checkout = () => {
 
   const [isESimEnabled, setIsESimEnabled]                 = useState<boolean>(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>();
-  const [devDeviceWalletAsset, setDevDeviceWalletAsset] = useState<string>(DEVICE_WALLET_PAYMENT_ASSET);
+  const [deviceWalletAsset, setDeviceWalletAsset]       = useState<DeviceWalletPaymentAsset>(DEFAULT_DEVICE_WALLET_PAYMENT_ASSET);
   const [showSuccessModal, setShowSuccessModal]           = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading]         = useState(false);
   const [loadingMessage, setLoadingMessage]               = useState('');
@@ -224,11 +226,13 @@ const Checkout = () => {
   } | null>(null);
 
   const radioButtons: RadioButtonProps[] = useMemo(
-    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors),
+    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors, deviceWalletAsset, setDeviceWalletAsset),
     // All missing dependencies are of style attributes which are in their on useMemo() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedPaymentMethod, colors],
+    [selectedPaymentMethod, colors, deviceWalletAsset],
   );
+  const { tokens: walletTokens } = useWalletTokens(kokio.deviceWalletAddress);
+  const deviceWalletBalance = walletTokens.find((t) => t.symbol === deviceWalletAsset)?.amount;
 
   const { showMessage }       = useToast();
   const orderCorrelationRef   = useRef<string | null>(null);
@@ -472,7 +476,7 @@ const Checkout = () => {
       // A coupon is not permitted alongside DEVICE_WALLET - drop it rather than
       // let a stale discount-code entry cause a request rejection.
       ...(isDeviceWalletPayment
-        ? { asset: __DEV__ ? devDeviceWalletAsset : DEVICE_WALLET_PAYMENT_ASSET, coupon: undefined }
+        ? { asset: deviceWalletAsset, coupon: undefined }
         : {}),
     };
 
@@ -551,7 +555,7 @@ const Checkout = () => {
   }, [
     selectedPaymentMethod, eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef,
     createOrderMutation, handleOrderResult, handleBrowserPay, handleRemoveDiscount, showMessage,
-    handleDeviceWalletPayment, devDeviceWalletAsset,
+    handleDeviceWalletPayment, deviceWalletAsset,
   ]);
 
   const handleInstallESIM = useCallback(() => {
@@ -619,9 +623,24 @@ const Checkout = () => {
     return eSimItem.actualSellingPrice;
   }, [eSimItem.actualSellingPrice, isDiscountApplied, discountAmount]);
 
+  // A coupon is dropped from DEVICE_WALLET requests (see handleCheckout), so the
+  // wallet is charged the full price, not the discounted totalAmount. The
+  // credit-balance toggle is an inert placeholder and does not reduce it either.
+  const deviceWalletCharge = eSimItem.actualSellingPrice;
+  const deviceWalletBalanceNumber = deviceWalletBalance === undefined ? NaN : parseFloat(deviceWalletBalance);
+  const isDeviceWalletSelected = selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET;
+  const hasDeviceWalletFunds =
+    Number.isFinite(deviceWalletBalanceNumber) && deviceWalletBalanceNumber >= deviceWalletCharge;
+  const isDeviceWalletShort =
+    isDeviceWalletSelected && Number.isFinite(deviceWalletBalanceNumber) && !hasDeviceWalletFunds;
+
   const canCheckout = useMemo(
-    () => isESimEnabled && !isCheckoutLoading && !!selectedPaymentMethod,
-    [isESimEnabled, isCheckoutLoading, selectedPaymentMethod],
+    () =>
+      isESimEnabled &&
+      !isCheckoutLoading &&
+      !!selectedPaymentMethod &&
+      (!isDeviceWalletSelected || hasDeviceWalletFunds),
+    [isESimEnabled, isCheckoutLoading, selectedPaymentMethod, isDeviceWalletSelected, hasDeviceWalletFunds],
   );
 
   return (
@@ -647,27 +666,11 @@ const Checkout = () => {
           </View>
         </View>
 
-        {__DEV__ && selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET && (
-          <View style={{ marginTop: 12 }}>
-            <ThemedText style={{ fontSize: 12 }}>Dev: pay with</ThemedText>
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
-              {DEV_DEVICE_WALLET_TEST_ASSETS.map((asset) => (
-                <TouchableOpacity
-                  key={asset}
-                  onPress={() => setDevDeviceWalletAsset(asset)}
-                  style={{
-                    paddingVertical: 6,
-                    paddingHorizontal: 14,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: colors.mutedForeground,
-                    backgroundColor: devDeviceWalletAsset === asset ? colors.inputBackground : "transparent",
-                  }}
-                >
-                  <Text style={{ color: colors.foreground }}>{asset}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {isDeviceWalletShort && (
+          <View style={styles.discountErrorContainer}>
+            <ThemedText style={styles.discountErrorText}>
+              {`Not enough ${deviceWalletAsset} in your Device Wallet to cover this order.`}
+            </ThemedText>
           </View>
         )}
 

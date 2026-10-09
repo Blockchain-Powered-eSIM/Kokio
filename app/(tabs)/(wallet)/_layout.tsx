@@ -1,9 +1,9 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 
 import { ROUTE_NAMES } from "@/constants/route.constants";
 
 import Header from "@/components/Header";
-import { stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stackHeader";
+import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stackHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
@@ -44,7 +44,19 @@ export default function WalletStack() {
 
       <Stack.Screen
         name={ROUTE_NAMES.TRANSACTION_DETAILS}
-        options={{ title: "Transaction Details" }}
+        options={{
+          title: "Transaction Details",
+          // Reached from several places (send flow, contact history, the list),
+          // so a plain back would land wherever it came from. Always return to
+          // the transaction list; dismissTo pops to it when it's already in the
+          // stack (navigate would push a duplicate) and swaps itself for it otherwise.
+          headerLeft: ({ tintColor }) => (
+            <HeaderBackControl
+              tintColor={tintColor}
+              onPress={() => router.dismissTo("/(tabs)/(wallet)/Transactions")}
+            />
+          ),
+        }}
       />
 
       <Stack.Screen

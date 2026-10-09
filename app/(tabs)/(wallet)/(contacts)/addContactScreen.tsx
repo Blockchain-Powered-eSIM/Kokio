@@ -13,6 +13,7 @@ import { useContacts, findContactConflict } from '@/hooks/useContacts';
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
+import { pasteAddressFromClipboard } from '@/helpers/clipboardAddress';
 import { logger } from '@/utils/logger';
 
 const AddContactScreen = () => {
@@ -44,6 +45,20 @@ const AddContactScreen = () => {
 
     const handleScan = async () => {
         router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit: "false" } });
+    };
+
+    const handlePasteAddress = async () => {
+        try {
+            const address = await pasteAddressFromClipboard();
+            if (!address) {
+                showMessage("Clipboard is empty", "error");
+                return;
+            }
+            setWalletAddress(address);
+        } catch (error) {
+            logger.error('CLIPBOARD_PASTE_FAILED', { error });
+            showMessage("Couldn't read from clipboard", "error");
+        }
     };
 
     const handleAdd = async () => {
@@ -130,7 +145,12 @@ const AddContactScreen = () => {
                             />
                         </ThemedView>
                         <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText lightColor="#000000" darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
+                            <View className='flex-row items-center justify-between mr-5'>
+                                <ThemedText lightColor="#000000" darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
+                                <Pressable onPress={handlePasteAddress} accessibilityRole="button" accessibilityLabel="Paste address from clipboard">
+                                    <ThemedText bold style={{ color: colors.primary }}>Paste</ThemedText>
+                                </Pressable>
+                            </View>
                             <TextInput
                                 value={walletAddress}
                                 placeholder='Enter wallet address or scan QR code'
