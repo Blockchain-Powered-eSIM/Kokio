@@ -13,14 +13,13 @@ export const createRadioButtons = (
   buttonStyles = {},
   colors: Palette,
   deviceWalletAsset: DeviceWalletPaymentAsset,
-  onSelectDeviceWalletAsset: (asset: DeviceWalletPaymentAsset) => void,
+  onOpenTokenPicker: () => void,
 ): RadioButtonProps[] => {
   const radioButtonComponents: Record<string, JSX.Element> = {
     [RADIO_KEYS.E_SIM_WALLET]: (
       <ESimWallet
-        isSelected={selectedId === RADIO_KEYS.E_SIM_WALLET}
         selectedSymbol={deviceWalletAsset}
-        onSelectSymbol={onSelectDeviceWalletAsset}
+        onOpenTokenPicker={onOpenTokenPicker}
       />
     ),
     [RADIO_KEYS.CREDIT_CARD]: <CreditCard />,

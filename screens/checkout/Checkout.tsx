@@ -43,9 +43,11 @@ import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
-import { RADIO_KEYS, DEFAULT_DEVICE_WALLET_PAYMENT_ASSET } from "@/constants/checkout.constants";
+import { RADIO_KEYS, DEFAULT_DEVICE_WALLET_PAYMENT_ASSET, DEVICE_WALLET_PAYMENT_ASSETS, DEV_DEVICE_WALLET_PAYMENT_ASSETS } from "@/constants/checkout.constants";
 import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
 import { useWalletTokens } from "@/hooks/useWalletTokens";
+import BottomSheet from "@gorhom/bottom-sheet";
+import { TokenPickerSheet } from "@/components/wallet/sheets/TokenPickerSheet";
 import { useKokio } from "@/hooks/useKokio";
 import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import * as WebBrowser from "expo-web-browser";
@@ -225,14 +227,25 @@ const Checkout = () => {
     manualReviewReason?: string | null;
   } | null>(null);
 
+  const deviceWalletTokenSheetRef = useRef<BottomSheet>(null);
   const radioButtons: RadioButtonProps[] = useMemo(
-    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors, deviceWalletAsset, setDeviceWalletAsset),
+    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors, deviceWalletAsset, () => deviceWalletTokenSheetRef.current?.snapToIndex(0)),
     // All missing dependencies are of style attributes which are in their on useMemo() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedPaymentMethod, colors, deviceWalletAsset],
   );
   const { tokens: walletTokens } = useWalletTokens(kokio.deviceWalletAddress);
   const deviceWalletBalance = walletTokens.find((t) => t.symbol === deviceWalletAsset)?.amount;
+  // Only the server-whitelisted stablecoins are payable with - not ETH, not
+  // custom tokens - same set Checkout already validates `asset` against. The
+  // __DEV__ test token is an addition on top, only ever reachable in dev
+  // builds (useWalletTokens.ts itself gates it the same way).
+  const selectableDeviceWalletAssets: readonly string[] = __DEV__
+    ? [...DEVICE_WALLET_PAYMENT_ASSETS, ...DEV_DEVICE_WALLET_PAYMENT_ASSETS]
+    : DEVICE_WALLET_PAYMENT_ASSETS;
+  const deviceWalletPickerTokens = walletTokens.filter((t) =>
+    selectableDeviceWalletAssets.includes(t.symbol)
+  );
 
   const { showMessage }       = useToast();
   const orderCorrelationRef   = useRef<string | null>(null);
@@ -874,6 +887,16 @@ const Checkout = () => {
           const method = pendingPaymentMethod;
           handleWalletModalClose();
           if (method) setSelectedPaymentMethod(method);
+        }}
+      />
+
+      <TokenPickerSheet
+        ref={deviceWalletTokenSheetRef}
+        tokens={deviceWalletPickerTokens}
+        selectedSymbol={deviceWalletAsset}
+        onSelect={(symbol) => {
+          setDeviceWalletAsset(symbol as DeviceWalletPaymentAsset);
+          deviceWalletTokenSheetRef.current?.close();
         }}
       />
 

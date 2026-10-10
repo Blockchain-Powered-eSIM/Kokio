@@ -1,11 +1,12 @@
 import React from "react";
 import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
 import { useKokio } from "@/hooks/useKokio";
 import { useWalletTokens } from "@/hooks/useWalletTokens";
-import { DEVICE_WALLET_PAYMENT_ASSETS } from "@/constants/checkout.constants";
 import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
 import type { Palette } from "@/constants/Colors";
 
@@ -52,43 +53,17 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
   },
-  chipRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
-  },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.mutedForeground,
-  },
-  chipSelected: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-    backgroundColor: colors.surfaceElevated,
-  },
-  chipIcon: {
-    width: 18,
-    height: 18,
-    objectFit: "contain",
-  },
 });
 
 const ESimWallet = ({
-  isSelected,
   selectedSymbol,
-  onSelectSymbol,
+  onOpenTokenPicker,
 }: {
-  isSelected: boolean;
   selectedSymbol: DeviceWalletPaymentAsset;
-  onSelectSymbol: (symbol: DeviceWalletPaymentAsset) => void;
+  onOpenTokenPicker: () => void;
 }) => {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const { kokio } = useKokio();
   const { tokens, isLoading } = useWalletTokens(kokio.deviceWalletAddress);
   const selectedToken = tokens.find((t) => t.symbol === selectedSymbol);
@@ -98,8 +73,12 @@ const ESimWallet = ({
     <View style={styles.walletContainer}>
       <View style={styles.walletRow}>
         <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
-        <View style={styles.selectedToken}>
-          {selectedToken?.icon && <Image source={selectedToken.icon} style={styles.logoImage} />}
+        <TouchableOpacity
+          onPress={onOpenTokenPicker}
+          style={styles.selectedToken}
+          accessibilityRole="button"
+          accessibilityLabel={`Change payment token, currently ${selectedSymbol}`}
+        >
           <View style={{ alignItems: "flex-end" }}>
             <ThemedText style={styles.tokenSymbol}>{selectedSymbol}</ThemedText>
             {balance === undefined && isLoading ? (
@@ -110,29 +89,13 @@ const ESimWallet = ({
               </ThemedText>
             )}
           </View>
-        </View>
+          {/* Icon trails the symbol/balance text, matching Send's token
+              selector where the "tap to change" glyph sits at the row's
+              trailing edge rather than leading it. */}
+          {selectedToken?.icon && <Image source={selectedToken.icon} style={styles.logoImage} />}
+          <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
+        </TouchableOpacity>
       </View>
-      {isSelected && (
-        <View style={styles.chipRow}>
-          {DEVICE_WALLET_PAYMENT_ASSETS.map((symbol) => {
-            const icon = tokens.find((t) => t.symbol === symbol)?.icon;
-            const active = symbol === selectedSymbol;
-            return (
-              <TouchableOpacity
-                key={symbol}
-                onPress={() => onSelectSymbol(symbol)}
-                style={[styles.chip, active && styles.chipSelected]}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: active }}
-                accessibilityLabel={`Pay with ${symbol}`}
-              >
-                {icon && <Image source={icon} style={styles.chipIcon} />}
-                <ThemedText style={styles.textContent}>{symbol}</ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
     </View>
   );
 };
