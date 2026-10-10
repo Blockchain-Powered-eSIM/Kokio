@@ -228,8 +228,14 @@ const Checkout = () => {
   } | null>(null);
 
   const deviceWalletTokenSheetRef = useRef<BottomSheet>(null);
+  const openDeviceWalletTokenPicker = useCallback(() => {
+    deviceWalletTokenSheetRef.current?.snapToIndex(0);
+  }, []);
   const radioButtons: RadioButtonProps[] = useMemo(
-    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors, deviceWalletAsset, () => deviceWalletTokenSheetRef.current?.snapToIndex(0)),
+    // createRadioButtons only forwards this callback as a prop to ESimWallet,
+    // which invokes it from onPress - the ref is never read during this render.
+    // eslint-disable-next-line react-hooks/refs
+    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors, deviceWalletAsset, openDeviceWalletTokenPicker),
     // All missing dependencies are of style attributes which are in their on useMemo() call
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedPaymentMethod, colors, deviceWalletAsset],
