@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import { useKokio } from "@/hooks/useKokio";
-import { useWalletTokens } from "@/hooks/useWalletTokens";
+import { useWalletTokens, truncateDecimals } from "@/hooks/useWalletTokens";
 import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
 import type { Palette } from "@/constants/Colors";
 
@@ -79,16 +79,14 @@ const ESimWallet = ({
           accessibilityRole="button"
           accessibilityLabel={`Change payment token, currently ${selectedSymbol}`}
         >
-          <View style={{ alignItems: "flex-end" }}>
-            <ThemedText style={styles.tokenSymbol}>{selectedSymbol}</ThemedText>
-            {balance === undefined && isLoading ? (
-              <ActivityIndicator size="small" />
-            ) : (
-              <ThemedText style={styles.tokenBalance}>
-                {balance === undefined ? "Balance unavailable" : `Balance: ${balance}`}
-              </ThemedText>
-            )}
-          </View>
+          {balance === undefined && isLoading ? (
+            <ActivityIndicator size="small" />
+          ) : (
+            <ThemedText style={styles.tokenBalance}>
+              {balance === undefined ? "—" : truncateDecimals(balance, 2)}
+            </ThemedText>
+          )}
+          <ThemedText style={styles.tokenSymbol}>{selectedSymbol}</ThemedText>
           {/* Icon trails the symbol/balance text, matching Send's token
               selector where the "tap to change" glyph sits at the row's
               trailing edge rather than leading it. */}

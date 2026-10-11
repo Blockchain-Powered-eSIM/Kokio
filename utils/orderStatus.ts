@@ -69,6 +69,18 @@ export function colorForStatus(status?: string | null): string {
   return STATUS_COLORS[status] ?? '#6b7280';
 }
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  FIAT:          'Card',
+  CRYPTO:        'Crypto',
+  DEVICE_WALLET: 'Device Wallet',
+  COUPON:        'Coupon',
+};
+
+export function labelForPaymentMethod(method?: string | null): string {
+  if (!method) return '';
+  return PAYMENT_METHOD_LABELS[method] ?? method.replace(/_/g, ' ');
+}
+
 /** Inline polling message shown in checkout loading overlay. */
 export function pollingLabel(status: string): string {
   const map: Record<string, string> = {

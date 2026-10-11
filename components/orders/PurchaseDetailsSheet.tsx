@@ -17,7 +17,8 @@ import { useColors } from "@/hooks/useColors";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { esimDisplayName } from "@/helpers/esimDisplay";
-import { colorForStatus, labelForStatus } from "@/utils/orderStatus";
+import { openInstallation } from "@/helpers/esimInstall";
+import { colorForStatus, labelForStatus, labelForPaymentMethod } from "@/utils/orderStatus";
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import type { OrderListItem } from "@/utils/bff/order";
 import { logger } from "@/utils/logger";
@@ -344,11 +345,21 @@ export default function PurchaseDetailsSheet({
             <Section title="Identifiers">
               {order.iccid ? <CopyRow label="ICCID" value={order.iccid} /> : null}
               {supportRef ? <CopyRow label="Reference" value={supportRef} /> : null}
-              {lpa ? <CopyRow label="LPA string" value={lpa} /> : null}
+              {lpa ? (
+                <LinkRow
+                  label="Installation Guide"
+                  onPress={() => {
+                    onClose();
+                    openInstallation(lpa);
+                  }}
+                />
+              ) : null}
             </Section>
 
             <Section title="Payment">
-              {order.paymentMethod ? <InfoRow label="Method" value={order.paymentMethod} /> : null}
+              {order.paymentMethod ? (
+                <InfoRow label="Method" value={labelForPaymentMethod(order.paymentMethod)} />
+              ) : null}
               {order.orderStatus ? (
                 <InfoRow
                   label="Status"

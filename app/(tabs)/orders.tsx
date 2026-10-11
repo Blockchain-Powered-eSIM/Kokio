@@ -20,7 +20,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
-import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
+import { labelForStatus, colorForStatus, labelForPaymentMethod } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
 import type { ESimDocument } from "@/utils/bff/esim";
@@ -237,12 +237,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
 
 // ─── PendingOrderCard ─────────────────────────────────────────────────────────
 
-const PAYMENT_METHOD_LABEL: Record<PendingOrderRecord["paymentMethod"], string> = {
-  FIAT: "Card",
-  CRYPTO: "Crypto",
-  DEVICE_WALLET: "Device Wallet",
-};
-
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diffMs / 60_000);
@@ -280,7 +274,7 @@ const PendingOrderCard = ({
             {record.planLabel ?? "Your eSIM order"}
           </Text>
           <Text style={[styles.pendingMeta, { color: colors.inactive }]}>
-            {PAYMENT_METHOD_LABEL[record.paymentMethod]} · {timeAgo(record.createdAt)}
+            {labelForPaymentMethod(record.paymentMethod)} · {timeAgo(record.createdAt)}
           </Text>
         </View>
         <View style={[styles.pendingBadge, { backgroundColor: colors.warning + "22" }]}>
@@ -370,12 +364,22 @@ const OrderCard = ({
     DEACTIVATED: colors.destructive,
   };
 
-  // Remaining data is only meaningful once installed, and fetched only for the
-  // expanded card, not for every card in the list.
+  // Fetched for any non-terminal eSIM on the expanded card (not gated on
+  // activationStatus === "INSTALLED" - that status can lag the real-world
+  // install, whereas the vendor only starts returning real usage once the
+  // eSIM has actually connected. That's the authoritative "really installed"
+  // signal used below, not just for display.
+  const canHaveUsage =
+    order.esim?.activationStatus === "RELEASED" || order.esim?.activationStatus === "INSTALLED";
   const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
-    useEsimUsage(isExpanded && isInstalled ? order.eSimRef : undefined);
+    useEsimUsage(isExpanded && canHaveUsage ? order.eSimRef : undefined);
 
-  const remainingDataText = !isInstalled
+  // Confirmation that the eSIM is actually installed: either the server already
+  // says so, or - earlier and more reliably - the vendor has started returning
+  // real usage data for it. Gates the Install button's visibility below.
+  const hasConfirmedInstall = isInstalled || (!!usage && usage.usageError == null);
+
+  const remainingDataText = !hasConfirmedInstall
     ? "—"
     : usageLoading
       ? "Loading…"
@@ -505,7 +509,7 @@ const OrderCard = ({
               </View>
             </>
           ) : null}
-          {lpa && !isInstalled && Platform.OS === "android" ? (
+          {lpa && !hasConfirmedInstall && Platform.OS === "android" ? (
             <CopyRow
               label="LPA String"
               value={lpa}
@@ -516,7 +520,7 @@ const OrderCard = ({
           ) : null}
 
           <View style={styles.actionRow}>
-            {lpa && onInstall && !isInstalled ? (
+            {lpa && onInstall && !hasConfirmedInstall ? (
               <TouchableOpacity
                 onPress={() => onInstall(lpa)}
                 style={[styles.actionBtn, { backgroundColor: colors.primary }]}
@@ -527,10 +531,24 @@ const OrderCard = ({
             ) : null}
             <TouchableOpacity
               onPress={() => setShowPurchaseDetails(true)}
-              style={[styles.actionBtn, { borderWidth: 1, borderColor: colors.muted }]}
+              style={[
+                styles.actionBtn,
+                hasConfirmedInstall
+                  ? { backgroundColor: colors.primary }
+                  : { borderWidth: 1, borderColor: colors.muted },
+              ]}
             >
-              <Ionicons name="receipt-outline" size={15} color={colors.text} />
-              <Text style={[styles.detailsBtnText, { color: colors.text }]}>
+              <Ionicons
+                name="receipt-outline"
+                size={15}
+                color={hasConfirmedInstall ? "white" : colors.text}
+              />
+              <Text
+                style={[
+                  hasConfirmedInstall ? styles.installBtnText : styles.detailsBtnText,
+                  { color: hasConfirmedInstall ? "white" : colors.text },
+                ]}
+              >
                 Purchase Details
               </Text>
             </TouchableOpacity>
@@ -539,12 +557,12 @@ const OrderCard = ({
           {isInstalled && esimWalletId ? (
             <TouchableOpacity
               onPress={openEsimWallet}
-              style={[styles.walletBtn, { borderColor: colors.muted }]}
+              style={[styles.walletBtn, { backgroundColor: colors.primary, borderWidth: 0 }]}
               accessibilityRole="button"
               accessibilityLabel="Open eSIM wallet"
               hitSlop={6}
             >
-              <Ionicons name="wallet-outline" size={18} color={colors.text} />
+              <Ionicons name="wallet-outline" size={18} color="white" />
             </TouchableOpacity>
           ) : null}
         </View>

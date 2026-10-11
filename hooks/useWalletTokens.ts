@@ -68,7 +68,7 @@ const BUILT_IN_TOKEN_DEFINITIONS = __DEV__ ? [...TOKEN_DEFINITIONS, ...DEV_TOKEN
 type RawBalance = { raw: bigint; decimals: number; address?: Address } | undefined;
 
 // Truncates rather than rounds: a displayed balance must never overstate what the wallet holds.
-function truncateDecimals(value: string, places: number): string {
+export function truncateDecimals(value: string, places: number): string {
   const [whole, frac = ''] = value.split('.');
   if (places === 0) return whole;
   return `${whole}.${frac.slice(0, places).padEnd(places, '0')}`;
