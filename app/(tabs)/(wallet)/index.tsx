@@ -16,7 +16,7 @@ import { TokenGrid } from '@/components/wallet/TokenGrid';
 import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
 import { useKokio } from '@/hooks/useKokio';
 import { useEsims } from '@/hooks/useDeviceEsims';
-import { isZeroBalance, sortTokensByBalance, useWalletTokens } from '@/hooks/useWalletTokens';
+import { parsedAmount, sortTokensByBalance, useWalletTokens } from '@/hooks/useWalletTokens';
 import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useContacts } from '@/hooks/useContacts';
 import { useWalletActivity } from '@/hooks/useWalletActivity';
@@ -27,6 +27,8 @@ import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
 import { logger } from '@/utils/logger';
 
 const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
+
+const BUILT_IN_GRID_SYMBOLS = new Set(['USDC', 'USDT', 'DAI', 'ETH']);
 
 
 // Count of most recent wallet-activity entries the compact preview card shows before "See all" is needed
@@ -115,21 +117,28 @@ const WalletPage = () => {
   const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT).map(walletActivityEntryToDisplayItem);
   const { tokens: customTokens, addToken } = useCustomTokens();
   const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
-  // A custom-added token still needs its balance resolved (via `tokens`, so
-  // it's covered by the on-chain read above and shows up in the full Tokens
-  // list), it just doesn't belong in this card's compact grid - that stays
-  // built-ins only.
   const customTokenAddresses = new Set(customTokens.map((t) => t.address.toLowerCase()));
-  // Zero balances stay out of the grid (they remain in the full Tokens list);
-  // a still-unresolved amount is kept and sorts last.
-  const builtInTokens = sortTokensByBalance(
-    tokens.filter(
-      (token) =>
-        token.symbol !== "USDCt" &&
-        !(token.address && customTokenAddresses.has(token.address.toLowerCase())) &&
-        !isZeroBalance(token),
-    ),
-  );
+  // The grid always shows all four built-ins, zero balance or not. A custom
+  // token only earns a spot by bumping out whichever built-in currently has
+  // the lowest balance - it never shrinks or grows the grid beyond 4 cells.
+  const builtInTokens = (() => {
+    const builtIns = tokens.filter((token) => BUILT_IN_GRID_SYMBOLS.has(token.symbol));
+    const customEntries = tokens.filter(
+      (token) => token.address && customTokenAddresses.has(token.address.toLowerCase()),
+    );
+    const bestCustom = sortTokensByBalance(customEntries)[0];
+    const lowestBuiltIn = sortTokensByBalance(builtIns)[builtIns.length - 1];
+    const bestCustomAmount = bestCustom ? parsedAmount(bestCustom) : undefined;
+    const lowestBuiltInAmount = lowestBuiltIn ? parsedAmount(lowestBuiltIn) : undefined;
+    const shouldSwap =
+      bestCustom && lowestBuiltIn && bestCustomAmount !== undefined && lowestBuiltInAmount !== undefined &&
+      bestCustomAmount > lowestBuiltInAmount;
+    return sortTokensByBalance(
+      shouldSwap
+        ? builtIns.filter((token) => token.symbol !== lowestBuiltIn.symbol).concat(bestCustom)
+        : builtIns,
+    );
+  })();
 
   const receiveSheetRef = useRef<BottomSheet>(null);
   const depositSheetRef = useRef<BottomSheet>(null);

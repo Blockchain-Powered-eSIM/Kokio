@@ -88,7 +88,9 @@ export default function EsimLabelEditor({ doc, color, textStyle }: EsimLabelEdit
 
   return (
     <View style={styles.row}>
-      <Text style={[styles.name, textStyle, { color }]} numberOfLines={2}>
+      {/* Single line, truncated with an ellipsis rather than wrapped - every
+          card stays the same compact height regardless of name length. */}
+      <Text style={[styles.name, textStyle, { color }]} numberOfLines={1}>
         {esimDisplayName(doc)}
       </Text>
       <TouchableOpacity

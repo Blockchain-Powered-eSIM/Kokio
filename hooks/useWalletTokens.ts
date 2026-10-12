@@ -84,7 +84,7 @@ function sumStablecoinsCents(balances: RawBalance[]): string | undefined {
   return `${cents / 100n}.${(cents % 100n).toString().padStart(2, '0')}`;
 }
 
-function parsedAmount(token: WalletToken): number | undefined {
+export function parsedAmount(token: WalletToken): number | undefined {
   if (token.amount === undefined) return undefined;
   const value = parseFloat(token.amount);
   return Number.isNaN(value) ? undefined : value;

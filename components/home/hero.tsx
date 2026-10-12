@@ -63,7 +63,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
   heroButtonText: {
     fontSize: 20,
-    fontWeight: "500",
+    fontWeight: "700",
     textAlign: "center",
   },
 });

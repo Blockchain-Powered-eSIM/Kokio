@@ -48,8 +48,11 @@ import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
 import { useWalletTokens } from "@/hooks/useWalletTokens";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { TokenPickerSheet } from "@/components/wallet/sheets/TokenPickerSheet";
+import { EsimTopupPickerSheet } from "@/components/wallet/sheets/EsimTopupPickerSheet";
+import { ApplyTopupConfirmModal } from "@/components/ui/ApplyTopupConfirmModal";
 import { useKokio } from "@/hooks/useKokio";
 import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import * as WebBrowser from "expo-web-browser";
 import {
   MoonpayCommerceProvider,
@@ -108,12 +111,10 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   discountAppliedContent:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   discountAppliedText:     { color: colors.success, fontSize: 14 },
   topupOptionRow: {
-    marginTop: 4, padding: 12, borderRadius: 8, borderWidth: 1,
-    backgroundColor: colors.inputBackground, borderColor: colors.mutedForeground,
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    flexDirection: "row", alignItems: "center", gap: 10, width: "100%",
+    marginTop: 8, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14,
   },
-  topupOptionRowSelected:  { borderColor: colors.success, borderWidth: 2 },
-  topupOptionText:         { color: colors.foreground, fontSize: 14 },
+  topupOptionText:         { fontSize: 14, fontWeight: "600", flex: 1 },
   removeDiscountButton:    { padding: 4, backgroundColor: colors.destructiveBackground, borderRadius: 32 },
   discountErrorContainer:  { marginTop: 8, padding: 12, backgroundColor: colors.destructiveBackground, borderRadius: 8 },
   discountErrorText:       { color: colors.destructive, fontSize: 14 },
@@ -290,13 +291,15 @@ const Checkout = () => {
   const isTopupCompatible = compatibleEsims.length > 0;
   const [applyAsTopup, setApplyAsTopup]                     = useState(false);
   const [compatibleTopUpEsimRef, setCompatibleTopUpEsimRef] = useState<string | undefined>();
+  const [showTopupConfirm, setShowTopupConfirm]             = useState(false);
+  const topupPickerSheetRef = useRef<BottomSheet>(null);
+  // Set synchronously at the start of each handleCheckout call, read by
+  // handleOrderResult whenever that order's result eventually resolves -
+  // see handleOrderResult for why this can't just be component state.
+  const topupSelectionRef = useRef<{ applyAsTopup: boolean; compatibleTopUpEsimRef?: string }>({
+    applyAsTopup: false,
+  });
   const bg = useThemeColor({}, "background");
-
-  // useEffect(() => {
-  //   if (compatibleEsims.length > 0 && !compatibleTopUpEsimRef) {
-  //     setCompatibleTopUpEsimRef(compatibleEsims[0].eSimRef);
-  //   }
-  // }, [compatibleEsims, compatibleTopUpEsimRef]);
 
   // Build a human-readable label for a compatible topup eSIM.
   // Source of truth is the live ESimDocument from useEsims() (server-truth),
@@ -325,6 +328,33 @@ const Checkout = () => {
     }));
   }, [compatibleEsims, buildTopupEsimLabel]);
 
+  const topupPickerItems = useMemo(
+    () => topupEsimOptions.map((o) => ({
+      eSimRef: o.eSimRef,
+      label:   o.label,
+      doc:     esims.find((e) => e.eSimRef === o.eSimRef),
+    })),
+    [topupEsimOptions, esims],
+  );
+
+  const selectedTopupDoc = compatibleTopUpEsimRef
+    ? esims.find((e) => e.eSimRef === compatibleTopUpEsimRef)
+    : undefined;
+
+  // Defaults to the most recently purchased compatible eSIM, once, the first
+  // time a compatible match shows up - a manual pick or "Buy a new eSIM"
+  // afterwards must stick, not get overridden by a later recompute.
+  const hasAppliedDefaultTopupRef = useRef(false);
+  useEffect(() => {
+    if (hasAppliedDefaultTopupRef.current || topupPickerItems.length === 0) return;
+    hasAppliedDefaultTopupRef.current = true;
+    const latest = [...topupPickerItems].sort(
+      (a, b) => (b.doc?.createdAt ?? '').localeCompare(a.doc?.createdAt ?? ''),
+    )[0];
+    setApplyAsTopup(true);
+    setCompatibleTopUpEsimRef(latest.eSimRef);
+  }, [topupPickerItems]);
+
   const handleOrderResult = useCallback(async (
     order: OrderStatusResponse | null,
     correlationId?: string | null,
@@ -338,11 +368,16 @@ const Checkout = () => {
       queryClient.invalidateQueries({ queryKey: [DEVICE_ESIMS_KEY] });
       queryClient.invalidateQueries({ queryKey: [DEVICE_ORDERS_KEY] });
       setOrderResponse(order);
+      // Reads the ref (set synchronously at the start of the checkout that
+      // produced this order), not component state - state may have already
+      // moved on by the time this resolves (e.g. a device-wallet payment
+      // awaiting a passkey confirmation).
+      const topupSelection = topupSelectionRef.current;
       setTopupSuccessInfo(
-        applyAsTopup && compatibleTopUpEsimRef
+        topupSelection.applyAsTopup && topupSelection.compatibleTopUpEsimRef
           ? {
               fromLabel: formatPlanLabel(eSimItem) ?? 'your new plan',
-              toLabel:   buildTopupEsimLabel(compatibleTopUpEsimRef),
+              toLabel:   buildTopupEsimLabel(topupSelection.compatibleTopUpEsimRef),
             }
           : null,
       );
@@ -363,7 +398,7 @@ const Checkout = () => {
       order.orderStatus === 'ABANDONED'       ? 'Order expired. Please try again.'   :
       'Order could not be completed. Please try again.';
     showMessage(msg, 'info');
-  }, [queryClient, showMessage, applyAsTopup, compatibleTopUpEsimRef, eSimItem, buildTopupEsimLabel]);
+  }, [queryClient, showMessage, eSimItem, buildTopupEsimLabel]);
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
@@ -477,7 +512,11 @@ const Checkout = () => {
     }
   }, [kokio.sdk, handlePollUpdate, handleOrderResult, showMessage]);
 
-  const handleCheckout = useCallback(async () => {
+  const handleCheckout = useCallback(async (
+    override?: { applyAsTopup: boolean; compatibleTopUpEsimRef?: string },
+  ) => {
+    const topupSelection = override ?? { applyAsTopup, compatibleTopUpEsimRef };
+    topupSelectionRef.current = topupSelection;
     const isDeviceWalletPayment = selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET;
     const paymentMethod: CreateOrderRequest['paymentMethod'] = isDeviceWalletPayment
       ? 'DEVICE_WALLET'
@@ -485,7 +524,11 @@ const Checkout = () => {
         ? 'FIAT'
         : 'CRYPTO';
     const request: CreateOrderRequest = {
-      ...getEsimOrderPayload({ eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef }),
+      ...getEsimOrderPayload({
+        eSimItem, discountCode,
+        applyAsTopup: topupSelection.applyAsTopup,
+        compatibleTopUpEsimRef: topupSelection.compatibleTopUpEsimRef,
+      }),
       paymentMethod,
       // A coupon is not permitted alongside DEVICE_WALLET - drop it rather than
       // let a stale discount-code entry cause a request rejection.
@@ -657,6 +700,26 @@ const Checkout = () => {
     [isESimEnabled, isCheckoutLoading, selectedPaymentMethod, isDeviceWalletSelected, hasDeviceWalletFunds],
   );
 
+  const handleCheckoutPress = useCallback(() => {
+    if (applyAsTopup && compatibleTopUpEsimRef) {
+      setShowTopupConfirm(true);
+      return;
+    }
+    handleCheckout();
+  }, [applyAsTopup, compatibleTopUpEsimRef, handleCheckout]);
+
+  const confirmTopupAndCheckout = useCallback(() => {
+    setShowTopupConfirm(false);
+    handleCheckout();
+  }, [handleCheckout]);
+
+  const buyNewInsteadOfTopup = useCallback(() => {
+    setShowTopupConfirm(false);
+    setApplyAsTopup(false);
+    setCompatibleTopUpEsimRef(undefined);
+    handleCheckout({ applyAsTopup: false });
+  }, [handleCheckout]);
+
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <KeyboardAwareScrollView
@@ -803,29 +866,49 @@ const Checkout = () => {
         )}
         {!isCheckingTopup && isTopupCompatible && (
           <View style={{ marginTop: 16 }}>
-            <ThemedText>Apply as Top-up</ThemedText>
-            <Text style={{ color: colors.foreground, marginTop: 4, marginBottom: 12 }}>
-              Select an eSIM to top up, or leave unselected to buy a new one
+            <Text style={{ color: colors.foreground, fontSize: 13 }} numberOfLines={1}>
+              <ThemedText style={{ fontSize: 13 }} bold>Top Up: </ThemedText>
+              Apply this plan as top up, else disable to buy a new one
             </Text>
-            {topupEsimOptions.map((r) => {
-              const isSelected = applyAsTopup && compatibleTopUpEsimRef === r.eSimRef;
-              return (
-                <TouchableOpacity
-                  key={r.eSimRef}
-                  onPress={() => {
-                    if (isSelected) { setApplyAsTopup(false); setCompatibleTopUpEsimRef(undefined); }
-                    else { setApplyAsTopup(true); setCompatibleTopUpEsimRef(r.eSimRef); }
-                  }}
-                  style={[styles.topupOptionRow, isSelected && styles.topupOptionRowSelected]}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: isSelected }}
-                  accessibilityLabel={`Apply this plan as a top-up to ${r.label}`}
-                >
-                  <ThemedText style={styles.topupOptionText}>{r.label}</ThemedText>
-                  {isSelected && <Ionicons name="checkmark-circle" size={18} color={colors.success} />}
-                </TouchableOpacity>
-              );
-            })}
+            <TouchableOpacity
+              onPress={() => topupPickerSheetRef.current?.snapToIndex(0)}
+              style={[
+                styles.topupOptionRow,
+                { backgroundColor: applyAsTopup ? colors.primary : colors.inputBackground },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                applyAsTopup && compatibleTopUpEsimRef
+                  ? `Change top-up eSIM, currently ${buildTopupEsimLabel(compatibleTopUpEsimRef)}`
+                  : "Choose an eSIM to top up"
+              }
+            >
+              {applyAsTopup && selectedTopupDoc && (() => {
+                const display = esimDocToDisplayItem(selectedTopupDoc);
+                return (
+                  <CountryFlag
+                    size={24}
+                    flagUrl={display.serviceRegionFlag ?? ""}
+                    coverageType={display.coverageType as CoverageType}
+                    serviceRegionName={display.serviceRegionName}
+                  />
+                );
+              })()}
+              <ThemedText
+                style={[
+                  styles.topupOptionText,
+                  { color: applyAsTopup ? colors.primaryForeground : colors.foreground },
+                ]}
+                numberOfLines={1}
+              >
+                {applyAsTopup && compatibleTopUpEsimRef ? buildTopupEsimLabel(compatibleTopUpEsimRef) : "Buy a new eSIM"}
+              </ThemedText>
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={applyAsTopup ? colors.primaryForeground : colors.mutedForeground}
+              />
+            </TouchableOpacity>
           </View>
         )}
       </KeyboardAwareScrollView>
@@ -841,7 +924,7 @@ const Checkout = () => {
         <TouchableOpacity
           key={`total-checkout-${canCheckout}`}
           style={!canCheckout && { opacity: 0.5 }}
-          onPress={canCheckout ? handleCheckout : undefined}
+          onPress={canCheckout ? handleCheckoutPress : undefined}
           disabled={!canCheckout}
           accessibilityRole="button"
           accessibilityLabel={`Pay ${totalAmount} USD`}
@@ -899,6 +982,29 @@ const Checkout = () => {
           setDeviceWalletAsset(symbol as DeviceWalletPaymentAsset);
           deviceWalletTokenSheetRef.current?.close();
         }}
+      />
+
+      <EsimTopupPickerSheet
+        ref={topupPickerSheetRef}
+        items={topupPickerItems}
+        selectedEsimRef={applyAsTopup ? compatibleTopUpEsimRef : undefined}
+        onSelect={(eSimRef) => {
+          setApplyAsTopup(true);
+          setCompatibleTopUpEsimRef(eSimRef);
+          topupPickerSheetRef.current?.close();
+        }}
+        onBuyNew={() => {
+          setApplyAsTopup(false);
+          setCompatibleTopUpEsimRef(undefined);
+          topupPickerSheetRef.current?.close();
+        }}
+      />
+
+      <ApplyTopupConfirmModal
+        visible={showTopupConfirm}
+        esimLabel={compatibleTopUpEsimRef ? buildTopupEsimLabel(compatibleTopUpEsimRef) : "your eSIM"}
+        onConfirm={confirmTopupAndCheckout}
+        onBuyNew={buyNewInsteadOfTopup}
       />
 
       {helioChargeToken && (
