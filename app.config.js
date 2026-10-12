@@ -12,7 +12,6 @@ module.exports = ({ config }) => {
     gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
     chainId: process.env.CHAIN_ID,
     chainRpcUrl: process.env.CHAIN_RPC_URL,
-    usdcAddress: process.env.USDC_ADDRESS,
     stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     stripeMerchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER,
     walletConnectProjectId: process.env.WALLETCONNECT_PROJECT_ID,
