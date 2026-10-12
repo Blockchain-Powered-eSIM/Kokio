@@ -7,13 +7,13 @@
  * Removing the credential is a step only the user can perform, in their platform password manager.
  */
 import React from 'react';
-import { Modal, View, Pressable, Platform, StyleSheet, Linking } from 'react-native';
+import { Modal, View, Pressable, Platform, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/ThemedText';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
-import { logger } from '@/utils/logger';
+import { openAppSettings } from '@/utils/openAppSettings';
 
 interface Props {
   visible: boolean;
@@ -115,12 +115,6 @@ export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => 
   const styles = useThemedStyles(createStyles);
   const isDark = useTheme();
 
-  const openSettings = () => {
-    Linking.openSettings().catch((err) =>
-      logger.error('PASSKEY_REMOVAL_OPEN_SETTINGS_FAILED', { err }),
-    );
-  };
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <BlurView
@@ -160,7 +154,7 @@ export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => 
           <View style={styles.actions}>
             {Platform.OS === 'ios' && (
               <Pressable
-                onPress={openSettings}
+                onPress={openAppSettings}
                 style={[styles.btn, styles.btnGhost]}
                 accessibilityRole="button"
               >

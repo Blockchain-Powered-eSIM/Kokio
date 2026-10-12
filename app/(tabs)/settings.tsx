@@ -28,6 +28,10 @@ import { TESTNET_DISCLOSURE_MESSAGE } from '@/constants/general.constants';
 import Header from '@/components/Header';
 import { HeaderBackControl } from '@/components/navigation/stackHeader';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
+import * as SecureStore from 'expo-secure-store';
+import { VERSION_KEY } from '@/utils/auth/mainnetCutoverReset';
+import { clearWelcomeBackSeen } from '@/utils/auth/returningUserProbe';
+import { useToast } from '@/contexts/ToastContext';
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
@@ -309,6 +313,7 @@ const ContactContent = () => {
 export default function MenuScreen() {
   const { logout, deleteAccount } = useAuthRelay();
   const { clearKokioUser } = useKokio();
+  const { showMessage } = useToast();
   const { isDark, toggleTheme } = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
@@ -388,6 +393,17 @@ export default function MenuScreen() {
         await clearKokioUser();
         await purgeAccountLocalState();
         await logout();
+      },
+    }] : []),
+    ...(__DEV__ ? [{
+      id: "10",
+      title: "Reset Cutover Test State",
+      iconLeft: "refresh-outline",
+      iconRight: "chevron-forward-outline",
+      action: async () => {
+        await SecureStore.deleteItemAsync(VERSION_KEY);
+        await clearWelcomeBackSeen();
+        showMessage('Cutover test state cleared. Relaunch the app to see it again.', 'info');
       },
     }] : []),
   ];

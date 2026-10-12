@@ -142,11 +142,10 @@ export const COUNTRY_TO_REGIONS: Record<string, string[]> = {
   TT: ["CARIBBEAN_ISLANDS"], VC: ["CARIBBEAN_ISLANDS"],
 };
 
-export const OP_SEPOLIA_TESTNET =
-  "https://sepolia-optimism.etherscan.io/address";
-
 export const BASE_SEPOLIA_TESTNET = "https://sepolia.basescan.org/address";
 export const BASE_SEPOLIA_TESTNET_TX = "https://sepolia.basescan.org/tx";
+export const BASE_MAINNET_EXPLORER = "https://basescan.org/address";
+export const BASE_MAINNET_EXPLORER_TX = "https://basescan.org/tx";
 
 // ─── Testnet disclosure & mainnet cutover (2026-09-22) ─────────────────────
 // Kokio currently runs on Base Sepolia. Wallets/passkeys created before the

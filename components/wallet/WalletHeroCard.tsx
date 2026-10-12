@@ -15,7 +15,7 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
-import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
+import { getExplorerAddressBase } from "@/utils/explorerLinks";
 import { shortenAddress } from "@/utils/address";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { logger } from "@/utils/logger";
@@ -155,7 +155,7 @@ export function WalletHeroCard({
 
   const handleAddressPress = async () => {
     if (!address) return;
-    const url = `${BASE_SEPOLIA_TESTNET}/${address}`;
+    const url = `${getExplorerAddressBase()}/${address}`;
     try {
       await Linking.openURL(url);
     } catch (error) {

@@ -8,15 +8,10 @@ export const RADIO_KEYS = {
 
 export type RadioKey = (typeof RADIO_KEYS)[keyof typeof RADIO_KEYS];
 
-// Stablecoins the Device Wallet can pay with: the PaymentAdapter-backed
-// stablecoins in hooks/useWalletTokens.ts. Excludes ETH and custom tokens.
-// Each symbol must also be whitelisted by the backend's payment adapter for
-// the order to be accepted.
+// Must also be whitelisted by the backend's payment adapter.
 export const DEVICE_WALLET_PAYMENT_ASSETS = ["USDC", "USDT", "DAI"] as const;
 
-// __DEV__-only alternate, for testing when the testnet USDC faucet supply
-// runs low - hooks/useWalletTokens.ts only resolves this token in __DEV__
-// builds at all, so it's never reachable in production regardless of this list.
+// __DEV__-only; useWalletTokens.ts gates this the same way.
 export const DEV_DEVICE_WALLET_PAYMENT_ASSETS = ["USDCt"] as const;
 
 export type DeviceWalletPaymentAsset =

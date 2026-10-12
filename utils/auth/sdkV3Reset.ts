@@ -14,8 +14,9 @@ const CURRENT_VERSION = '2';
 
 export async function runSdkV3MigrationIfNeeded(): Promise<void> {
   try {
+    // Numeric: a device already past this version must not be re-purged.
     const stored = await SecureStore.getItemAsync(VERSION_KEY);
-    if (stored === CURRENT_VERSION) return;
+    if (Number(stored) >= Number(CURRENT_VERSION)) return;
 
     await purgeAccountLocalState();
     await useAuthStore.getState().clearTokens();

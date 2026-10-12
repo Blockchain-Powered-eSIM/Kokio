@@ -18,7 +18,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/constants/Colors";
-import { BASE_SEPOLIA_TESTNET } from "@/constants/general.constants";
+import { getExplorerAddressBase } from "@/utils/explorerLinks";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
@@ -237,7 +237,7 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
   const handleAddressPress = useCallback(async () => {
     if (walletAddress) {
-      const url = `${BASE_SEPOLIA_TESTNET}/${walletAddress}`;
+      const url = `${getExplorerAddressBase()}/${walletAddress}`;
       try {
         await openBrowserAsync(url);
       } catch (error) {

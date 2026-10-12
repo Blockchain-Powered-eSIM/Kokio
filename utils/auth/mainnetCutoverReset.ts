@@ -15,21 +15,25 @@ import { useAuthStore } from '@/stores/authStore';
 import { logger } from '@/utils/logger';
 import { MAINNET_CUTOVER_ENABLED } from '@/constants/general.constants';
 
-const VERSION_KEY = 'kokioLocalDataVersion';
-const MAINNET_CUTOVER_VERSION = '3';
+export const VERSION_KEY = 'kokioLocalDataVersion';
+export const MAINNET_CUTOVER_VERSION = '3';
 
-export async function runMainnetCutoverIfNeeded(): Promise<void> {
-  if (!MAINNET_CUTOVER_ENABLED) return;
+// Returns true only on the boot that actually performed the purge. Callers
+// must use this return value rather than re-reading VERSION_KEY afterward.
+export async function runMainnetCutoverIfNeeded(): Promise<boolean> {
+  if (!MAINNET_CUTOVER_ENABLED) return false;
 
   try {
     const stored = await SecureStore.getItemAsync(VERSION_KEY);
-    if (stored === MAINNET_CUTOVER_VERSION) return;
+    if (Number(stored) >= Number(MAINNET_CUTOVER_VERSION)) return false;
 
     await purgeAccountLocalState();
     await useAuthStore.getState().clearTokens();
     await SecureStore.setItemAsync(VERSION_KEY, MAINNET_CUTOVER_VERSION);
     logger.debug('MAINNET_CUTOVER_LOCAL_DATA_RESET');
+    return true;
   } catch (err) {
     logger.error('MAINNET_CUTOVER_MIGRATION_FAILED', { err });
+    return false;
   }
 }

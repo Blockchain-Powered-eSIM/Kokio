@@ -87,9 +87,6 @@ const ESimWallet = ({
             </ThemedText>
           )}
           <ThemedText style={styles.tokenSymbol}>{selectedSymbol}</ThemedText>
-          {/* Icon trails the symbol/balance text, matching Send's token
-              selector where the "tap to change" glyph sits at the row's
-              trailing edge rather than leading it. */}
           {selectedToken?.icon && <Image source={selectedToken.icon} style={styles.logoImage} />}
           <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
         </TouchableOpacity>

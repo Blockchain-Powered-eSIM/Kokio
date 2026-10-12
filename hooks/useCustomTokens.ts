@@ -16,7 +16,7 @@ import { erc20Abi, isAddress, type Address } from 'viem';
 import { useKokio } from '@/hooks/useKokio';
 import { logger } from '@/utils/logger';
 
-const CUSTOM_TOKENS_KEY = 'customTokens';
+export const CUSTOM_TOKENS_KEY = 'customTokens';
 
 export interface CustomToken {
   address: Address;

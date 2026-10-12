@@ -26,6 +26,7 @@ export const ROUTE_NAMES = {
   CREATE_WALLET:          "create-wallet",
   ESIM_WALLET:            "esim-wallet",
   TRANSACTION_DETAILS:    "TransactionDetails",
+  WELCOME_BACK:           "welcome-back",
 } as const;
 
 export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];

@@ -23,6 +23,7 @@ import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { runSdkV3MigrationIfNeeded } from "@/utils/auth/sdkV3Reset";
 import { runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";
+import { shouldShowWelcomeBack } from "@/utils/auth/returningUserProbe";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import {
   getSkipNextOfflineRedirect,
@@ -39,6 +40,8 @@ export default function RootLayout() {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [bootstrapDismissed, setBootstrapDismissed] = useState(false);
   const [resetReady, setResetReady] = useState(false);
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const welcomeBackRedirectedRef = useRef(false);
   const [loaded] = useFonts({
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
@@ -64,6 +67,8 @@ export default function RootLayout() {
   useEffect(() => {
     runSdkV3MigrationIfNeeded()
       .then(() => runMainnetCutoverIfNeeded())
+      .then((justCutOver) => shouldShowWelcomeBack(justCutOver))
+      .then(setShowWelcomeBack)
       .finally(() => setResetReady(true));
   }, []);
 
@@ -154,6 +159,15 @@ export default function RootLayout() {
 
   const showLoader = !bootstrapDismissed && (!resetReady || !loaded || _isNull(isConnected) || isLoading || !!bootstrapError);
 
+  // One-shot redirect; the ref latch stops it firing again on later re-renders.
+  useEffect(() => {
+    if (showLoader || !showWelcomeBack || welcomeBackRedirectedRef.current) return;
+    welcomeBackRedirectedRef.current = true;
+    router.replace(ROUTE_NAMES.WELCOME_BACK as any);
+    // router is a stable singleton reference from expo-router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showLoader, showWelcomeBack]);
+
   const inner =
     showLoader ? (
       <FullScreenLoader
@@ -169,6 +183,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
           <Stack.Screen name="Offline" options={{ headerShown: false }} />
+          <Stack.Screen name="welcome-back" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="moonpay-return" options={{ headerShown: false }} />
           <Stack.Screen name="wc-connect" options={{ headerShown: false }} />
           <Stack.Screen name="wc-session" options={{ headerShown: false, presentation: "modal" }} />
@@ -177,7 +192,7 @@ export default function RootLayout() {
           <Stack.Screen name="refer-and-earn" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
       </View>
-      <AuthenticationModal />
+      {pathname !== `/${ROUTE_NAMES.WELCOME_BACK}` && <AuthenticationModal />}
       <StepUpPromptModal />
     </Providers>
     );

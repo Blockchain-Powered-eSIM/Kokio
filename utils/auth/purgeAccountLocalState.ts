@@ -17,6 +17,7 @@ import { queryClient, asyncStoragePersister } from '@/providers';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 import { PENDING_ORDERS_STORAGE_KEY } from '@/hooks/usePendingOrders';
 import { walletActivityStorageKey } from '@/utils/walletActivity';
+import { CUSTOM_TOKENS_KEY } from '@/hooks/useCustomTokens';
 import { logger } from '@/utils/logger';
 
 const SECURE_KEYS = [
@@ -54,6 +55,8 @@ export async function purgeAccountLocalState(): Promise<void> {
   }
 
   await AsyncStorage.removeItem(PENDING_ORDERS_STORAGE_KEY).catch(() => {});
+  // Global key, not deviceUID-scoped.
+  await AsyncStorage.removeItem(CUSTOM_TOKENS_KEY).catch(() => {});
   await AsyncStorage.getAllKeys()
     .then((keys) => keys.filter((k) => k === 'contactIds' || k.startsWith('contact_')))
     .then((keys) => AsyncStorage.multiRemove(keys))

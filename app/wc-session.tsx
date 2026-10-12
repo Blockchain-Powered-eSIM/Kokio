@@ -110,6 +110,9 @@ export default function WcSessionScreen() {
   }
 
   const { name, url, icons } = proposal.params.proposer.metadata;
+  if (!__DEV__ && Config.CHAIN_ID === undefined) {
+    logger.error("WC_SESSION_CHAIN_ID_MISSING");
+  }
   const chainId = Config.CHAIN_ID ?? 84532;
   const walletAddress = (kokio.userWallet as any)?.address ?? "";
 

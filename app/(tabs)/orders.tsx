@@ -364,19 +364,12 @@ const OrderCard = ({
     DEACTIVATED: colors.destructive,
   };
 
-  // Fetched for any non-terminal eSIM on the expanded card (not gated on
-  // activationStatus === "INSTALLED" - that status can lag the real-world
-  // install, whereas the vendor only starts returning real usage once the
-  // eSIM has actually connected. That's the authoritative "really installed"
-  // signal used below, not just for display.
   const canHaveUsage =
     order.esim?.activationStatus === "RELEASED" || order.esim?.activationStatus === "INSTALLED";
   const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
     useEsimUsage(isExpanded && canHaveUsage ? order.eSimRef : undefined);
 
-  // Confirmation that the eSIM is actually installed: either the server already
-  // says so, or - earlier and more reliably - the vendor has started returning
-  // real usage data for it. Gates the Install button's visibility below.
+  // True once the vendor returns real usage data, not just activationStatus.
   const hasConfirmedInstall = isInstalled || (!!usage && usage.usageError == null);
 
   const remainingDataText = !hasConfirmedInstall

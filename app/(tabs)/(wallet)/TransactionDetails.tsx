@@ -8,7 +8,7 @@ import type { Palette } from "@/constants/Colors";
 import { ContactAvatar } from "@/components/wallet/ContactAvatar";
 import { CopyRow } from "@/components/orders/PurchaseDetailsSheet";
 import { PillButton } from "@/components/ui/PillButton";
-import { BASE_SEPOLIA_TESTNET_TX } from "@/constants/general.constants";
+import { getExplorerTxBase } from "@/utils/explorerLinks";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { logger } from "@/utils/logger";
@@ -208,7 +208,7 @@ const TransactionDetails = () => {
   const handleOpenExplorer = async () => {
     if (!isRealTxHash) return;
     try {
-      await WebBrowser.openBrowserAsync(`${BASE_SEPOLIA_TESTNET_TX}/${tx.id}`);
+      await WebBrowser.openBrowserAsync(`${getExplorerTxBase()}/${tx.id}`);
     } catch (error) {
       logger.error('BROWSER_OPEN_FAILED', { error });
     }

@@ -232,8 +232,7 @@ const Checkout = () => {
     deviceWalletTokenSheetRef.current?.snapToIndex(0);
   }, []);
   const radioButtons: RadioButtonProps[] = useMemo(
-    // createRadioButtons only forwards this callback as a prop to ESimWallet,
-    // which invokes it from onPress - the ref is never read during this render.
+    // ref is only read from onPress inside ESimWallet, not during this render
     // eslint-disable-next-line react-hooks/refs
     () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors, deviceWalletAsset, openDeviceWalletTokenPicker),
     // All missing dependencies are of style attributes which are in their on useMemo() call
@@ -242,10 +241,6 @@ const Checkout = () => {
   );
   const { tokens: walletTokens } = useWalletTokens(kokio.deviceWalletAddress);
   const deviceWalletBalance = walletTokens.find((t) => t.symbol === deviceWalletAsset)?.amount;
-  // Only the server-whitelisted stablecoins are payable with - not ETH, not
-  // custom tokens - same set Checkout already validates `asset` against. The
-  // __DEV__ test token is an addition on top, only ever reachable in dev
-  // builds (useWalletTokens.ts itself gates it the same way).
   const selectableDeviceWalletAssets: readonly string[] = __DEV__
     ? [...DEVICE_WALLET_PAYMENT_ASSETS, ...DEV_DEVICE_WALLET_PAYMENT_ASSETS]
     : DEVICE_WALLET_PAYMENT_ASSETS;
