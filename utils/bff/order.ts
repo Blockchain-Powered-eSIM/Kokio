@@ -10,10 +10,11 @@ type OrderStatusResponse = components['schemas']['OrderStatusResponse'];
 type OrderListItem       = components['schemas']['OrderListItem'];
 type OrderListResponse   = components['schemas']['OrderListResponse'];
 type SubmitPaymentResponse = components['schemas']['SubmitPaymentResponse'];
+type OrderPricing        = components['schemas']['OrderPricing'];
 
 export type InstallationDetails = components['schemas']['InstallationDetails'];
 
-export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, OrderListItem, OrderListResponse };
+export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, OrderListItem, OrderListResponse, OrderPricing };
 
 // ─── Order functions ──────────────────────────────────────────────────────────
 
@@ -30,8 +31,19 @@ export function submitOrder(
 }
  
 
-export function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
-  return unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
+export function previewOrder(request: CreateOrderRequest): Promise<OrderPricing> {
+  return unwrapBffResponse<OrderPricing>(api.post('/v1/order/preview', request as Record<string, unknown>));
+}
+
+export async function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
+  try {
+    return await unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
+  } catch (err) {
+    if (err instanceof BffError && err.httpStatus === 404 && err.code !== 'ACCOUNT_DELETED') {
+      throw new OrderNotFoundError();
+    }
+    throw err;
+  }
 }
 
 // Recovery fallback for a DEVICE_WALLET order whose payment webhook hasn't
@@ -70,10 +82,9 @@ export function isOrderSuccess(status: string): boolean {
 }
 
 /**
- * Thrown when GET /order/{idempotencyKey} returns "no order found" shape, i.e.
- * HTTP 200, success envelope, all data fields null and the message containing ORDER_NOT_FOUND.
- * Per spec this means no order exists for this idempotency key + device.
- * It should only occur transiently, if at all, immediately after creation. 
+ * Thrown when GET /order/{idempotencyKey} returns HTTP 404 (other than ACCOUNT_DELETED),
+ * meaning no order exists for this idempotency key + device.
+ * It should only occur transiently, if at all, immediately after creation.
  * Not retried.
  */
 export class OrderNotFoundError extends Error {

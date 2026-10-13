@@ -18,7 +18,7 @@ import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { esimDisplayName } from "@/helpers/esimDisplay";
 import { openInstallation } from "@/helpers/esimInstall";
-import { colorForStatus, labelForStatus, labelForPaymentMethod } from "@/utils/orderStatus";
+import { colorForStatus, labelForStatus, labelForPricing, formatCents } from "@/utils/orderStatus";
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import type { OrderListItem } from "@/utils/bff/order";
 import { logger } from "@/utils/logger";
@@ -313,6 +313,7 @@ export default function PurchaseDetailsSheet({
 
   const subtitle = order.esim ? esimDisplayName(order.esim) : (order.planId ?? null);
   const history = order.esim?.planHistory ?? [];
+  const pricing = order.pricing ?? null;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -358,7 +359,22 @@ export default function PurchaseDetailsSheet({
 
             <Section title="Payment">
               {order.paymentMethod ? (
-                <InfoRow label="Method" value={labelForPaymentMethod(order.paymentMethod)} />
+                <InfoRow label="Method" value={labelForPricing(order.pricing, order.paymentMethod)} />
+              ) : null}
+              {pricing ? (
+                <InfoRow label="List price" value={formatCents(pricing.listPriceCents)} />
+              ) : null}
+              {pricing && pricing.codeDiscountCents > 0 ? (
+                <InfoRow
+                  label={pricing.code ? `${pricing.codeKind === "REFERRAL" ? "Referral" : "Coupon"} ${pricing.code}` : "Discount"}
+                  value={`-${formatCents(pricing.codeDiscountCents)}`}
+                />
+              ) : null}
+              {pricing && pricing.creditAppliedCents > 0 ? (
+                <InfoRow label="Store credit" value={`-${formatCents(pricing.creditAppliedCents)}`} />
+              ) : null}
+              {pricing ? (
+                <InfoRow label="Amount paid" value={formatCents(pricing.railAmountCents)} />
               ) : null}
               {order.orderStatus ? (
                 <InfoRow

@@ -15,13 +15,13 @@ import { useLocalSearchParams, router } from "expo-router";
 import { RadioButtonProps, RadioGroup } from "react-native-radio-buttons-group";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useQueryClient } from '@tanstack/react-query';
-import _subtract from "lodash/subtract";
-import _toNumber from "lodash/toNumber";
 import _toUpper from "lodash/toUpper";
+import * as Clipboard from "expo-clipboard";
 
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useTheme } from "@/contexts/ThemeContext";
 import type { Palette } from "@/constants/Colors";
 import { ThemedText } from "@/components/ThemedText";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
@@ -33,17 +33,21 @@ import { getEsimOrderPayload, formatPlanLabel } from "@/helpers/esimOrder";
 import { useEsims, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 import { isOrderSuccess, pollOrderStatus, submitPaymentHash } from "@/utils/bff/order";
 import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/utils/bff/order";
-import { pollingLabel } from "@/utils/orderStatus";
+import { pollingLabel, formatCents, isUserActionableManualReview } from "@/utils/orderStatus";
 import OrderFailureModal from "@/components/ui/OrderFailureModal";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
-import { useCouponLookup } from "@/hooks/useCouponLookup";
+import { resolveBffErrorMessage } from "@/utils/bff/errors";
+import { useCouponLookup, isLookupableCode } from "@/hooks/useCouponLookup";
+import type { CodeLookupResponse } from "@/utils/bff/coupon";
+import { useOrderPreview } from "@/hooks/useOrderPreview";
+import { useCreditBalance, heldCreditCents, CREDIT_BALANCE_KEY } from "@/hooks/useCreditHistory";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
 import { useCreateOrder, StripeCancelledError, StripeSheetError, OrderCreationError } from "@/hooks/useCreateOrder";
 import { useToast } from "@/contexts/ToastContext";
 import CheckoutSuccessModal from "@/components/ui/CheckoutSuccessModal";
 import WalletSetupModal from "@/components/ui/WalletSetupModal";
 import { createRadioButtons } from "./checkout.helpers";
-import { RADIO_KEYS, DEFAULT_DEVICE_WALLET_PAYMENT_ASSET, DEVICE_WALLET_PAYMENT_ASSETS, DEV_DEVICE_WALLET_PAYMENT_ASSETS } from "@/constants/checkout.constants";
+import { RADIO_KEYS, DEFAULT_DEVICE_WALLET_PAYMENT_ASSET, DEVICE_WALLET_PAYMENT_ASSETS, DEV_DEVICE_WALLET_PAYMENT_ASSETS, FIAT_MINIMUM_CENTS } from "@/constants/checkout.constants";
 import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
 import { useWalletTokens } from "@/hooks/useWalletTokens";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -83,6 +87,51 @@ const DEVICE_WALLET_PAYMENT_POLL_MAX_DURATION_MS = 120000;
 // change until the poll gives up. 8s leaves headroom for concurrent traffic.
 const DEVICE_WALLET_PAYMENT_POLL_INTERVAL_MS = 8000;
 
+const CODE_ERROR_CODES: ReadonlySet<string> = new Set([
+  'PROMO_CODE_INVALID_FORMAT',
+  'PROMO_CODE_NOT_FOUND',
+  'PROMO_CODE_NOT_YET_VALID',
+  'PROMO_CODE_EXPIRED',
+  'PROMO_CODE_REVOKED',
+  'PROMO_CODE_EXHAUSTED',
+  'PROMO_ACCOUNT_LIMIT_REACHED',
+  'PROMO_FIRST_PURCHASE_ONLY',
+  'PROMO_CODE_NOT_APPLICABLE',
+  'REFERRAL_NOT_ALLOWED',
+]);
+
+const MAPPED_ORDER_ERROR_CODES: ReadonlySet<string> = new Set([
+  ...CODE_ERROR_CODES,
+  'FIAT_MINIMUM_NOT_MET',
+  'STORE_CREDIT_INSUFFICIENT',
+  'FIRST_ORDER_IN_PROGRESS',
+]);
+
+const LIGHT_SUCCESS_TEXT = "#1B8A42";
+
+const toApiPaymentMethod = (selected: string | undefined): CreateOrderRequest['paymentMethod'] =>
+  selected === RADIO_KEYS.E_SIM_WALLET
+    ? 'DEVICE_WALLET'
+    : (selected === RADIO_KEYS.CREDIT_CARD || selected === RADIO_KEYS.APPLE_PAY)
+      ? 'FIAT'
+      : 'CRYPTO';
+
+const describeCodeTerms = (lookup: CodeLookupResponse): string => {
+  if (lookup.kind === 'REFERRAL' && lookup.referral) {
+    return `${lookup.referral.refereePercent}% off, up to ${formatCents(lookup.referral.refereeCapCents)}`;
+  }
+  const terms = lookup.coupon?.terms;
+  if (!terms) return 'Discount applied at checkout';
+  if (terms.amountCents != null) return `${formatCents(terms.amountCents)} off`;
+  if (terms.percent != null) {
+    return terms.maxDiscountCents != null
+      ? `${terms.percent}% off, up to ${formatCents(terms.maxDiscountCents)}`
+      : `${terms.percent}% off`;
+  }
+  if (terms.planId != null) return terms.planActive ? 'Free plan voucher' : 'Plan voucher (plan no longer available)';
+  return 'Discount applied at checkout';
+};
+
 const createStyles = (colors: Palette) => StyleSheet.create({
   container:              { flex: 1 },
   scrollContent:          { flex: 1, paddingHorizontal: 12 },
@@ -99,25 +148,38 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     backgroundColor: colors.inputBackground, paddingVertical: 16, paddingHorizontal: 24,
     marginHorizontal: 0, marginVertical: 2, borderRadius: 12, borderWidth: 1,
   },
-  discountContainer:       { flexDirection: "row", marginTop: 12, gap: 8 },
-  discountInput: {
-    flex: 1, backgroundColor: colors.inputBackground, borderRadius: 12,
-    paddingVertical: 8, paddingHorizontal: 16, color: colors.foreground,
-    fontSize: 16, borderWidth: 1, borderColor: "transparent",
+  selectedPaymentRow:      { marginTop: 12, alignItems: "center", paddingRight: 16 },
+  changePaymentMethodButton: {
+    marginLeft: 8, width: 32, height: 32, borderRadius: 16,
+    alignItems: "center", justifyContent: "center",
   },
-  applyButton:             { borderRadius: 12, paddingVertical: 8, paddingHorizontal: 24, justifyContent: "center", alignItems: "center" },
-  applyButtonText:         { color: colors.secondaryForeground, fontSize: 16, fontWeight: "600" },
-  discountAppliedContainer:{ marginTop: 8, padding: 12, backgroundColor: colors.successBackground, borderRadius: 8 },
-  discountAppliedContent:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  discountAppliedText:     { color: colors.success, fontSize: 14 },
+  promoInputRow: {
+    flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12,
+    backgroundColor: colors.inputBackground, borderRadius: 12, paddingHorizontal: 12,
+  },
+  promoInput: { flex: 1, color: colors.foreground, fontSize: 16, paddingVertical: 10 },
+  promoInputTyped: { fontFamily: "monospace", fontWeight: "700" },
+  promoStatusRow:          { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  promoStatusText:         { flex: 1, fontSize: 13 },
+  applyButton:             { borderRadius: 999, paddingVertical: 6, paddingHorizontal: 16 },
+  applyButtonText:         { fontSize: 14, fontWeight: "700" },
+  promoAppliedCard: {
+    flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12,
+    padding: 12, borderRadius: 12,
+  },
+  promoAppliedCodeRow:     { flex: 1, flexDirection: "row", alignItems: "baseline", gap: 8 },
+  promoAppliedCode:        { fontSize: 14, fontWeight: "700", fontFamily: "monospace" },
+  promoAppliedAmount:      { fontSize: 13, fontWeight: "600" },
   topupOptionRow: {
     flexDirection: "row", alignItems: "center", gap: 10, width: "100%",
     marginTop: 8, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14,
   },
   topupOptionText:         { fontSize: 14, fontWeight: "600", flex: 1 },
-  removeDiscountButton:    { padding: 4, backgroundColor: colors.destructiveBackground, borderRadius: 32 },
   discountErrorContainer:  { marginTop: 8, padding: 12, backgroundColor: colors.destructiveBackground, borderRadius: 8 },
   discountErrorText:       { color: colors.destructive, fontSize: 14 },
+  breakdownContainer:      { marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: colors.inputBackground, gap: 6 },
+  breakdownRow:            { flexDirection: "row", justifyContent: "space-between" },
+  breakdownTotalRow:       { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
   loadingOverlay: {
     ...StyleSheet.absoluteFill, backgroundColor: colors.overlay,
     justifyContent: 'center', alignItems: 'center', gap: 16, zIndex: 10,
@@ -192,6 +254,7 @@ const ExternalWalletCheckout = ({
 const Checkout = () => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const { isDark } = useTheme();
   const { item: eSimDetails } = useLocalSearchParams();
 
   const eSimItem: Esim = React.useMemo(() => {
@@ -203,6 +266,7 @@ const Checkout = () => {
 
   const [isESimEnabled, setIsESimEnabled]                 = useState<boolean>(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>();
+  const [isPaymentMethodExpanded, setIsPaymentMethodExpanded] = useState(false);
   const [deviceWalletAsset, setDeviceWalletAsset]       = useState<DeviceWalletPaymentAsset>(DEFAULT_DEVICE_WALLET_PAYMENT_ASSET);
   const [showSuccessModal, setShowSuccessModal]           = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading]         = useState(false);
@@ -216,7 +280,7 @@ const Checkout = () => {
   const [discountCode, setDiscountCode]                   = useState<string>("");
   const [debouncedCode, setDebouncedCode]                 = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied]         = useState<boolean>(false);
-  const [discountAmount, setDiscountAmount]               = useState<number>(0);
+  const [useStoreCredit, setUseStoreCredit]               = useState<boolean>(false);
   const [orderResponse, setOrderResponse]                 = useState<OrderStatusResponse | null>(null);
   const [orderCompleted, setOrderCompleted]               = useState(false);
   const [topupSuccessInfo, setTopupSuccessInfo]           = useState<{ fromLabel: string; toLabel: string } | null>(null);
@@ -240,6 +304,8 @@ const Checkout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedPaymentMethod, colors, deviceWalletAsset],
   );
+  const selectedRadioButton = radioButtons.find((button) => button.id === selectedPaymentMethod);
+  const showAllPaymentMethods = !selectedPaymentMethod || isPaymentMethodExpanded;
   const { tokens: walletTokens } = useWalletTokens(kokio.deviceWalletAddress);
   const deviceWalletBalance = walletTokens.find((t) => t.symbol === deviceWalletAsset)?.amount;
   const selectableDeviceWalletAssets: readonly string[] = __DEV__
@@ -269,11 +335,17 @@ const Checkout = () => {
     return () => clearTimeout(timer);
   }, [discountCode]);
 
+  const canLookupCode = isLookupableCode(debouncedCode);
+  const isCodeSettled = debouncedCode === discountCode && canLookupCode;
   const {
-    data: coupon, isLoading: isCouponLoading, isError: isCouponError,
-  } = useCouponLookup(debouncedCode, debouncedCode.length === 8);
+    data: coupon, isLoading: isCouponLoading, isError: isCouponError, error: couponError,
+  } = useCouponLookup(debouncedCode, canLookupCode);
 
   const queryClient  = useQueryClient();
+  const { data: creditBalance, isLoading: isCreditLoading, refetch: refetchCredit } = useCreditBalance();
+  const availableCreditCents = creditBalance?.availableCents ?? 0;
+  const heldCreditCentsValue = creditBalance ? heldCreditCents(creditBalance) : 0;
+  const storeCreditActive    = useStoreCredit && availableCreditCents > 0;
   const { esims }    = useEsims();
   const hasPriorEsim = esims.length > 0;
   const {
@@ -367,6 +439,7 @@ const Checkout = () => {
       setOrderCompleted(true);
       queryClient.invalidateQueries({ queryKey: [DEVICE_ESIMS_KEY] });
       queryClient.invalidateQueries({ queryKey: [DEVICE_ORDERS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CREDIT_BALANCE_KEY] });
       setOrderResponse(order);
       // Reads the ref (set synchronously at the start of the checkout that
       // produced this order), not component state - state may have already
@@ -384,7 +457,7 @@ const Checkout = () => {
       setShowSuccessModal(true);
       return;
     }
-    if (order.flaggedForManualReview) {
+    if (isUserActionableManualReview(order.flaggedForManualReview, order.manualReviewReason)) {
       setFailedOrderInfo({
         orderStatus: order.orderStatus,
         referenceId: correlationId ?? order.orderId ?? null,
@@ -402,7 +475,6 @@ const Checkout = () => {
 
   const handleRemoveDiscount = useCallback(() => {
     setIsDiscountApplied(false);
-    setDiscountAmount(0);
     setDiscountCode("");
     setDiscountError("");
   }, []);
@@ -512,30 +584,39 @@ const Checkout = () => {
     }
   }, [kokio.sdk, handlePollUpdate, handleOrderResult, showMessage]);
 
+  const appliedCode = isDiscountApplied ? discountCode : undefined;
+  const isPreviewInPlay = !!selectedPaymentMethod && (!!appliedCode || storeCreditActive);
+
+  const buildOrderRequest = useCallback(
+    (topup: { applyAsTopup: boolean; compatibleTopUpEsimRef?: string }): CreateOrderRequest => {
+      const paymentMethod = toApiPaymentMethod(selectedPaymentMethod);
+      return {
+        ...getEsimOrderPayload({
+          eSimItem, appliedCode, useStoreCredit: storeCreditActive,
+          applyAsTopup: topup.applyAsTopup,
+          compatibleTopUpEsimRef: topup.compatibleTopUpEsimRef,
+        }),
+        paymentMethod,
+        ...(paymentMethod === 'DEVICE_WALLET' ? { asset: deviceWalletAsset } : {}),
+      };
+    },
+    [selectedPaymentMethod, eSimItem, appliedCode, storeCreditActive, deviceWalletAsset],
+  );
+
+  const previewRequest = useMemo(
+    () => (isPreviewInPlay ? buildOrderRequest({ applyAsTopup, compatibleTopUpEsimRef }) : null),
+    [isPreviewInPlay, buildOrderRequest, applyAsTopup, compatibleTopUpEsimRef],
+  );
+  const {
+    pricing: quote, error: previewError, isLoading: isPreviewLoading, refresh: refreshPreview,
+  } = useOrderPreview(previewRequest);
+
   const handleCheckout = useCallback(async (
     override?: { applyAsTopup: boolean; compatibleTopUpEsimRef?: string },
   ) => {
     const topupSelection = override ?? { applyAsTopup, compatibleTopUpEsimRef };
     topupSelectionRef.current = topupSelection;
-    const isDeviceWalletPayment = selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET;
-    const paymentMethod: CreateOrderRequest['paymentMethod'] = isDeviceWalletPayment
-      ? 'DEVICE_WALLET'
-      : (selectedPaymentMethod === RADIO_KEYS.CREDIT_CARD || selectedPaymentMethod === RADIO_KEYS.APPLE_PAY)
-        ? 'FIAT'
-        : 'CRYPTO';
-    const request: CreateOrderRequest = {
-      ...getEsimOrderPayload({
-        eSimItem, discountCode,
-        applyAsTopup: topupSelection.applyAsTopup,
-        compatibleTopUpEsimRef: topupSelection.compatibleTopUpEsimRef,
-      }),
-      paymentMethod,
-      // A coupon is not permitted alongside DEVICE_WALLET - drop it rather than
-      // let a stale discount-code entry cause a request rejection.
-      ...(isDeviceWalletPayment
-        ? { asset: deviceWalletAsset, coupon: undefined }
-        : {}),
-    };
+    const request = buildOrderRequest(topupSelection);
 
     setIsCheckoutLoading(true);
     setLoadingMessage('Preparing your payment...');
@@ -590,13 +671,20 @@ const Checkout = () => {
         setLoadingMessage('');
         return;
       }
-      const e = err as { code?: string; message?: string };
-      if (e.code === 'COUPON_INSUFFICIENT_BALANCE') {
-        showMessage('Coupon has insufficient balance. Discount removed.', 'info');
-        handleRemoveDiscount();
+      const errorCode = err instanceof OrderCreationError ? err.code : null;
+      if (errorCode && MAPPED_ORDER_ERROR_CODES.has(errorCode)) {
+        const message = resolveBffErrorMessage(errorCode);
+        showMessage(message, 'info');
+        if (errorCode === 'STORE_CREDIT_INSUFFICIENT') {
+          refetchCredit();
+          refreshPreview();
+        } else if (CODE_ERROR_CODES.has(errorCode)) {
+          setIsDiscountApplied(false);
+          setDiscountError(message);
+        }
       } else if (
         err instanceof OrderCreationError &&
-        (err.code === 'WALLET_DEPLOYMENT_IN_PROGRESS' || /wallet deployment is in progress/i.test(err.message))
+        (errorCode === 'WALLET_DEPLOYMENT_IN_PROGRESS' || /wallet deployment is in progress/i.test(err.message))
       ) {
         // By design, every payment method, including fiat, is blocked while this device's wallet is DEPLOYING to avoid a race between order fulfilment and deployment completing.
         showMessage(
@@ -610,9 +698,9 @@ const Checkout = () => {
       setLoadingMessage('');
     }
   }, [
-    selectedPaymentMethod, eSimItem, discountCode, applyAsTopup, compatibleTopUpEsimRef,
-    createOrderMutation, handleOrderResult, handleBrowserPay, handleRemoveDiscount, showMessage,
-    handleDeviceWalletPayment, deviceWalletAsset,
+    selectedPaymentMethod, eSimItem, applyAsTopup, compatibleTopUpEsimRef, buildOrderRequest,
+    createOrderMutation, handleOrderResult, handleBrowserPay, showMessage,
+    handleDeviceWalletPayment, refetchCredit, refreshPreview,
   ]);
 
   const handleInstallESIM = useCallback(() => {
@@ -652,6 +740,7 @@ const Checkout = () => {
         return;
       }
       setSelectedPaymentMethod(value);
+      setIsPaymentMethodExpanded(false);
     },
     [kokio.userWallet],
   );
@@ -659,31 +748,50 @@ const Checkout = () => {
   const handleDiscountCodeChange = useCallback((text: string) => {
     setDiscountCode(_toUpper(text));
     setIsDiscountApplied(false);
-    setDiscountAmount(0);
     setDiscountError('');
   }, []);
 
-  const handleApplyDiscount = useCallback(() => {
-    if (!coupon || coupon.isExhausted) return;
-    setDiscountError('');
-    const couponBalance = _toNumber(coupon.balance || 0);
-    if (eSimItem.actualSellingPrice > couponBalance) {
-      setDiscountError('Cannot sponsor the entire amount');
-      return;
+  const handlePasteDiscountCode = useCallback(async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      const trimmed = text.trim();
+      if (!trimmed) {
+        showMessage("Clipboard is empty", "error");
+        return;
+      }
+      handleDiscountCodeChange(trimmed);
+    } catch (error) {
+      logger.error('CLIPBOARD_PASTE_FAILED', { error });
+      showMessage("Couldn't read from clipboard", "error");
     }
+  }, [handleDiscountCodeChange, showMessage]);
+
+  const handleApplyDiscount = useCallback(() => {
+    if (!coupon?.eligibility.eligible || coupon.code !== discountCode) return;
+    setDiscountError('');
     setIsDiscountApplied(true);
-    setDiscountAmount(eSimItem.actualSellingPrice);
-  }, [coupon, eSimItem.actualSellingPrice]);
+  }, [coupon, discountCode]);
 
-  const totalAmount = useMemo(() => {
-    if (isDiscountApplied) return _subtract(eSimItem.actualSellingPrice, discountAmount);
-    return eSimItem.actualSellingPrice;
-  }, [eSimItem.actualSellingPrice, isDiscountApplied, discountAmount]);
+  const quoteInPlay = isPreviewInPlay ? quote : undefined;
+  const payableUsd = quoteInPlay ? quoteInPlay.railAmountCents / 100 : eSimItem.actualSellingPrice;
+  const payLabel: string | number = quoteInPlay
+    ? payableUsd.toFixed(2)
+    : isPreviewInPlay
+      ? '...'
+      : eSimItem.actualSellingPrice;
+  const isFiatFloorViolated =
+    !!quoteInPlay &&
+    toApiPaymentMethod(selectedPaymentMethod) === 'FIAT' &&
+    quoteInPlay.railAmountCents > 0 &&
+    quoteInPlay.railAmountCents < FIAT_MINIMUM_CENTS;
+  const wasCreditTrimmed =
+    !!quoteInPlay &&
+    storeCreditActive &&
+    quoteInPlay.creditAppliedCents <
+      Math.min(availableCreditCents, quoteInPlay.listPriceCents - quoteInPlay.codeDiscountCents);
+  const previewErrorMessage = isPreviewInPlay && previewError ? formatBffError(previewError) : '';
 
-  // A coupon is dropped from DEVICE_WALLET requests (see handleCheckout), so the
-  // wallet is charged the full price, not the discounted totalAmount. The
-  // credit-balance toggle is an inert placeholder and does not reduce it either.
-  const deviceWalletCharge = eSimItem.actualSellingPrice;
+  const deviceWalletCharge = payableUsd;
   const deviceWalletBalanceNumber = deviceWalletBalance === undefined ? NaN : parseFloat(deviceWalletBalance);
   const isDeviceWalletSelected = selectedPaymentMethod === RADIO_KEYS.E_SIM_WALLET;
   const hasDeviceWalletFunds =
@@ -696,8 +804,12 @@ const Checkout = () => {
       isESimEnabled &&
       !isCheckoutLoading &&
       !!selectedPaymentMethod &&
-      (!isDeviceWalletSelected || hasDeviceWalletFunds),
-    [isESimEnabled, isCheckoutLoading, selectedPaymentMethod, isDeviceWalletSelected, hasDeviceWalletFunds],
+      (!isDeviceWalletSelected || hasDeviceWalletFunds) &&
+      (!isPreviewInPlay || (!!quote && !isPreviewLoading && !previewError && !isFiatFloorViolated)),
+    [
+      isESimEnabled, isCheckoutLoading, selectedPaymentMethod, isDeviceWalletSelected, hasDeviceWalletFunds,
+      isPreviewInPlay, quote, isPreviewLoading, previewError, isFiatFloorViolated,
+    ],
   );
 
   const handleCheckoutPress = useCallback(() => {
@@ -733,14 +845,30 @@ const Checkout = () => {
       >
         <View style={{ marginTop: 16 }}>
           <ThemedText>Payment Method</ThemedText>
-          <View style={{ flexDirection: "row", marginTop: 12 }}>
-            <RadioGroup
-              radioButtons={radioButtons}
-              onPress={handlePaymentMethodChange}
-              selectedId={selectedPaymentMethod}
-              containerStyle={styles.containerStyle}
-            />
-          </View>
+          {showAllPaymentMethods ? (
+            <View style={{ flexDirection: "row", marginTop: 12 }}>
+              <RadioGroup
+                radioButtons={radioButtons}
+                onPress={handlePaymentMethodChange}
+                selectedId={selectedPaymentMethod}
+                containerStyle={styles.containerStyle}
+              />
+            </View>
+          ) : (
+            <View style={[styles.buttonStyle, styles.selectedPaymentRow, { borderColor: colors.primary, borderWidth: 2 }]}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+              <View style={{ flex: 1, flexShrink: 1 }}>{selectedRadioButton?.label}</View>
+              <TouchableOpacity
+                onPress={() => setIsPaymentMethodExpanded(true)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Change payment method"
+                style={[styles.changePaymentMethodButton, { backgroundColor: colors.primary }]}
+              >
+                <Ionicons name="chevron-down" size={16} color={colors.primaryForeground} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {isDeviceWalletShort && (
@@ -752,82 +880,165 @@ const Checkout = () => {
         )}
 
         <View style={{ marginTop: 16 }}>
-          <ThemedText>Discount</ThemedText>
-          <View style={styles.discountContainer}>
-            <TextInput
-              style={styles.discountInput}
-              value={discountCode}
-              onChangeText={handleDiscountCodeChange}
-              placeholder="Enter coupon code"
-              placeholderTextColor={colors.muted}
-              autoCapitalize="characters"
-              maxLength={8}
-            />
-          </View>
-          {isCouponLoading && (
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
-              <ActivityIndicator size="small" color={colors.foreground} />
-              <ThemedText style={{ marginLeft: 8, color: colors.muted, fontSize: 14 }}>
-                Validating coupon…
+          <ThemedText>Promo code</ThemedText>
+          {!isDiscountApplied && (
+            <>
+              <View style={styles.promoInputRow}>
+                <Ionicons name="pricetag-outline" size={18} color={colors.mutedForeground} />
+                <TextInput
+                  style={[styles.promoInput, !!discountCode && styles.promoInputTyped]}
+                  value={discountCode}
+                  onChangeText={handleDiscountCodeChange}
+                  placeholder="Coupon or referral code"
+                  placeholderTextColor={colors.mutedForeground}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={16}
+                />
+                {isCouponLoading && <ActivityIndicator size="small" color={colors.mutedForeground} />}
+                {!isCouponLoading && !discountCode && (
+                  <TouchableOpacity
+                    onPress={handlePasteDiscountCode}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Paste code from clipboard"
+                  >
+                    <ThemedText bold style={{ color: colors.primary, fontSize: 14 }}>Paste</ThemedText>
+                  </TouchableOpacity>
+                )}
+                {!isCouponLoading && !!discountCode && (
+                  <TouchableOpacity
+                    onPress={() => handleDiscountCodeChange('')}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear code"
+                  >
+                    <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {isCodeSettled && !isCouponLoading && coupon?.eligibility.eligible && (
+                <View style={styles.promoStatusRow}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                  <ThemedText style={styles.promoStatusText} numberOfLines={1}>
+                    {describeCodeTerms(coupon)}
+                  </ThemedText>
+                  <TouchableOpacity
+                    style={[styles.applyButton, { backgroundColor: colors.primary }]}
+                    onPress={handleApplyDiscount}
+                    accessibilityRole="button"
+                    accessibilityLabel="Apply code"
+                  >
+                    <ThemedText style={[styles.applyButtonText, { color: colors.primaryForeground }]}>Apply</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+          {isDiscountApplied && (
+            <View style={[styles.promoAppliedCard, { backgroundColor: colors.successBackground }]}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              <View style={styles.promoAppliedCodeRow}>
+                <ThemedText style={styles.promoAppliedCode} numberOfLines={1}>{discountCode}</ThemedText>
+                <ThemedText
+                  style={[styles.promoAppliedAmount, { color: isDark ? colors.success : LIGHT_SUCCESS_TEXT }]}
+                  numberOfLines={1}
+                >
+                  {quoteInPlay && quoteInPlay.codeDiscountCents > 0
+                    ? `-${formatCents(quoteInPlay.codeDiscountCents)} off`
+                    : coupon ? describeCodeTerms(coupon) : 'Applied'}
+                </ThemedText>
+              </View>
+              <TouchableOpacity
+                onPress={handleRemoveDiscount}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Remove discount"
+              >
+                <Ionicons name="close-circle" size={20} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {isCodeSettled && !isCouponLoading && coupon && !coupon.eligibility.eligible && !isDiscountApplied && (
+            <View style={styles.promoStatusRow}>
+              <Ionicons name="alert-circle" size={18} color={colors.destructive} />
+              <ThemedText style={[styles.promoStatusText, { color: colors.destructive }]} numberOfLines={2}>
+                {resolveBffErrorMessage(coupon.eligibility.reason ?? '')}
               </ThemedText>
             </View>
           )}
-          {!isCouponLoading && debouncedCode.length === 8 && coupon && !coupon.isExhausted && !isDiscountApplied && (
-            <View style={styles.discountAppliedContainer}>
-              <View style={styles.discountAppliedContent}>
-                <ThemedText style={styles.discountAppliedText}>
-                  {`Balance: $${_toNumber(coupon.balance).toFixed(2)} ${coupon.tokenName}`}
-                </ThemedText>
-                <TouchableOpacity
-                  style={[styles.applyButton, { paddingVertical: 6, paddingHorizontal: 14 }]}
-                  onPress={handleApplyDiscount}
-                  accessibilityRole="button"
-                  accessibilityLabel="Apply coupon"
-                >
-                  <ThemedText style={styles.applyButtonText}>Apply Coupon</ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-          {isDiscountApplied && (
-            <View style={styles.discountAppliedContainer}>
-              <View style={styles.discountAppliedContent}>
-                <ThemedText style={styles.discountAppliedText}>
-                  Discount applied: -${discountAmount.toFixed(2)}
-                </ThemedText>
-                <TouchableOpacity
-                  onPress={handleRemoveDiscount}
-                  style={styles.removeDiscountButton}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove discount"
-                >
-                  <Ionicons name="close" size={16} color={colors.destructive} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-          {!isCouponLoading && debouncedCode.length === 8 && coupon?.isExhausted && (
-            <View style={styles.discountErrorContainer}>
-              <ThemedText style={styles.discountErrorText}>This coupon has been fully used</ThemedText>
-            </View>
-          )}
-          {!isCouponLoading && isCouponError && debouncedCode.length === 8 && (
-            <View style={styles.discountErrorContainer}>
-              <ThemedText style={styles.discountErrorText}>Invalid coupon code</ThemedText>
+          {isCodeSettled && !isCouponLoading && isCouponError && (
+            <View style={styles.promoStatusRow}>
+              <Ionicons name="alert-circle" size={18} color={colors.destructive} />
+              <ThemedText style={[styles.promoStatusText, { color: colors.destructive }]} numberOfLines={2}>
+                {formatBffError(couponError)}
+              </ThemedText>
             </View>
           )}
           {discountError ? (
-            <View style={styles.discountErrorContainer}>
-              <ThemedText style={styles.discountErrorText}>{discountError}</ThemedText>
+            <View style={styles.promoStatusRow}>
+              <Ionicons name="alert-circle" size={18} color={colors.destructive} />
+              <ThemedText style={[styles.promoStatusText, { color: colors.destructive }]} numberOfLines={2}>
+                {discountError}
+              </ThemedText>
             </View>
           ) : null}
         </View>
 
+        {isPreviewInPlay && (
+          <View style={styles.breakdownContainer}>
+            {isPreviewLoading && (
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <ActivityIndicator size="small" color={colors.foreground} />
+                <ThemedText style={{ marginLeft: 8, color: colors.mutedForeground, fontSize: 14 }}>
+                  Calculating your total…
+                </ThemedText>
+              </View>
+            )}
+            {!isPreviewLoading && !!previewErrorMessage && (
+              <ThemedText style={styles.discountErrorText}>{previewErrorMessage}</ThemedText>
+            )}
+            {!isPreviewLoading && quoteInPlay && (
+              <>
+                <View style={styles.breakdownRow}>
+                  <ThemedText>Plan price</ThemedText>
+                  <ThemedText>{formatCents(quoteInPlay.listPriceCents)}</ThemedText>
+                </View>
+                {quoteInPlay.codeDiscountCents > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>{quoteInPlay.codeKind === 'REFERRAL' ? 'Referral discount' : 'Coupon discount'}</ThemedText>
+                    <ThemedText>{`-${formatCents(quoteInPlay.codeDiscountCents)}`}</ThemedText>
+                  </View>
+                )}
+                {quoteInPlay.creditAppliedCents > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <ThemedText>Kokio credits</ThemedText>
+                    <ThemedText>{`-${formatCents(quoteInPlay.creditAppliedCents)}`}</ThemedText>
+                  </View>
+                )}
+                <View style={[styles.breakdownRow, styles.breakdownTotalRow]}>
+                  <ThemedText bold>Amount to pay</ThemedText>
+                  <ThemedText bold>{formatCents(quoteInPlay.railAmountCents)}</ThemedText>
+                </View>
+                {wasCreditTrimmed && (
+                  <ThemedText style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                    Credits were reduced so the card payment stays at {formatCents(FIAT_MINIMUM_CENTS)}.
+                  </ThemedText>
+                )}
+                {isFiatFloorViolated && (
+                  <ThemedText style={styles.discountErrorText}>
+                    The amount to pay by card must be {formatCents(FIAT_MINIMUM_CENTS)} or more.
+                  </ThemedText>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
         {isCheckingTopup && (
           <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center" }}>
             <ActivityIndicator size="small" color={colors.foreground} />
-            <ThemedText style={{ marginLeft: 8, color: colors.muted }}>
+            <ThemedText style={{ marginLeft: 8, color: colors.mutedForeground }}>
               Checking top-up compatibility…
             </ThemedText>
           </View>
@@ -914,7 +1125,13 @@ const Checkout = () => {
       </KeyboardAwareScrollView>
 
       <BottomActionBar>
-        <UseCreditBalanceToggle />
+        <UseCreditBalanceToggle
+          value={storeCreditActive}
+          onValueChange={setUseStoreCredit}
+          availableCents={availableCreditCents}
+          heldCents={heldCreditCentsValue}
+          loading={isCreditLoading}
+        />
         <View style={{ flexDirection: "row", marginBottom: 12 }}>
           <Checkbox onChange={setIsESimEnabled} checked={isESimEnabled} />
           <Text style={{ color: colors.foreground, marginLeft: 8 }}>
@@ -927,12 +1144,12 @@ const Checkout = () => {
           onPress={canCheckout ? handleCheckoutPress : undefined}
           disabled={!canCheckout}
           accessibilityRole="button"
-          accessibilityLabel={`Pay ${totalAmount} USD`}
+          accessibilityLabel={`Pay ${payLabel} USD`}
           accessibilityState={{ disabled: !canCheckout }}
         >
           <DetailItem
             prefix="Pay "
-            value={totalAmount}
+            value={payLabel}
             suffix="USD"
             containerStyles={[styles.checkoutButton, { backgroundColor: colors.payButton }]}
           />
@@ -970,7 +1187,10 @@ const Checkout = () => {
         onContinue={() => {
           const method = pendingPaymentMethod;
           handleWalletModalClose();
-          if (method) setSelectedPaymentMethod(method);
+          if (method) {
+            setSelectedPaymentMethod(method);
+            setIsPaymentMethodExpanded(false);
+          }
         }}
       />
 

@@ -67,11 +67,12 @@ export default function EsimLabelEditor({ doc, color, textStyle }: EsimLabelEdit
           accessibilityRole="button"
           accessibilityLabel="Save eSIM name"
           hitSlop={8}
+          style={[styles.iconCircle, { backgroundColor: colors.successBackground }]}
         >
           {setLabel.isPending ? (
-            <ActivityIndicator size="small" color={color} />
+            <ActivityIndicator size="small" color={colors.success} />
           ) : (
-            <Ionicons name="checkmark" size={20} color={colors.success} />
+            <Ionicons name="checkmark" size={18} color={colors.success} />
           )}
         </TouchableOpacity>
         <TouchableOpacity
@@ -79,8 +80,9 @@ export default function EsimLabelEditor({ doc, color, textStyle }: EsimLabelEdit
           accessibilityRole="button"
           accessibilityLabel="Cancel editing eSIM name"
           hitSlop={8}
+          style={[styles.iconCircle, { backgroundColor: colors.destructiveBackground }]}
         >
-          <Ionicons name="close" size={20} color={color} />
+          <Ionicons name="close" size={18} color={colors.destructive} />
         </TouchableOpacity>
       </View>
     );
@@ -137,6 +139,13 @@ const styles = StyleSheet.create({
   },
   pencil: {
     paddingVertical: 2,
+  },
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   namePill: {
     flexDirection: "row",

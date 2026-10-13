@@ -114,3 +114,9 @@ export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
     hideWhenNullish: true,
   },
 ];
+
+export const PROMO_CODE_PATTERN = /^[A-Za-z0-9]{4,16}$/;
+
+export const MIN_PROMO_CODE_LOOKUP_LENGTH = 8;
+
+export const FIAT_MINIMUM_CENTS = 100;

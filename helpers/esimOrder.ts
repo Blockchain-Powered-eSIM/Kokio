@@ -3,7 +3,8 @@ import type { CreateOrderRequest } from "@/utils/bff/order";
 
 type EsimOrderPayloadParams = {
   eSimItem: Esim;
-  discountCode: string;
+  appliedCode?: string;
+  useStoreCredit: boolean;
   applyAsTopup: boolean;
   compatibleTopUpEsimRef: string | undefined;
 };
@@ -21,13 +22,15 @@ export function formatPlanLabel(plan?: Esim | null): string | undefined {
 
 export const getEsimOrderPayload = ({
   eSimItem,
-  discountCode,
+  appliedCode,
+  useStoreCredit,
   applyAsTopup,
   compatibleTopUpEsimRef,
 }: EsimOrderPayloadParams): OrderPayload => ({
   catalogueId: eSimItem.catalogueId,
   isNewESim: true,
-  coupon: discountCode || undefined,
+  coupon: appliedCode || undefined,
+  useStoreCredit,
   paymentMethod: "CRYPTO",
   ...(applyAsTopup && compatibleTopUpEsimRef
     ? { isNewESim: false, eSimRef: compatibleTopUpEsimRef }

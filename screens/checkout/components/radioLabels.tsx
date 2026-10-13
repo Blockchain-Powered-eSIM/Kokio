@@ -31,15 +31,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     height: 24,
     objectFit: "contain",
   },
-  walletContainer: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  walletRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   selectedToken: {
     flexDirection: "row",
     alignItems: "center",
@@ -70,27 +61,25 @@ const ESimWallet = ({
   const balance = selectedToken?.amount;
 
   return (
-    <View style={styles.walletContainer}>
-      <View style={styles.walletRow}>
-        <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
-        <TouchableOpacity
-          onPress={onOpenTokenPicker}
-          style={styles.selectedToken}
-          accessibilityRole="button"
-          accessibilityLabel={`Change payment token, currently ${selectedSymbol}`}
-        >
-          {balance === undefined && isLoading ? (
-            <ActivityIndicator size="small" />
-          ) : (
-            <ThemedText style={styles.tokenBalance}>
-              {balance === undefined ? "—" : truncateDecimals(balance, 2)}
-            </ThemedText>
-          )}
-          <ThemedText style={styles.tokenSymbol}>{selectedSymbol}</ThemedText>
-          {selectedToken?.icon && <Image source={selectedToken.icon} style={styles.logoImage} />}
-          <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.labelContainer}>
+      <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
+      <TouchableOpacity
+        onPress={onOpenTokenPicker}
+        style={styles.selectedToken}
+        accessibilityRole="button"
+        accessibilityLabel={`Change payment token, currently ${selectedSymbol}`}
+      >
+        {balance === undefined && isLoading ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <ThemedText style={styles.tokenBalance}>
+            {balance === undefined ? "—" : truncateDecimals(balance, 2)}
+          </ThemedText>
+        )}
+        <ThemedText style={styles.tokenSymbol}>{selectedSymbol}</ThemedText>
+        {selectedToken?.icon && <Image source={selectedToken.icon} style={styles.logoImage} />}
+        <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -99,7 +88,7 @@ const CreditCard = () => {
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>Credit Card</ThemedText>
+      <ThemedText style={styles.textContent}>Credit/Debit Cards</ThemedText>
       <Image
         source={require("@/assets/images/credit-cards.png")}
         style={styles.creditCards}

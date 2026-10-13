@@ -2,9 +2,11 @@ import type { components } from './generated/koKioBff';
 import { unwrapBffResponse } from './koKioBffClient';
 import api from '@/services/httpService';
 
-type AccountResponse = components['schemas']['AccountResponse'];
+type AccountResponse       = components['schemas']['AccountResponse'];
+type ReferralResponse      = components['schemas']['ReferralResponse'];
+type CreditHistoryResponse = components['schemas']['CreditHistoryResponse'];
 
-export type { AccountResponse };
+export type { AccountResponse, ReferralResponse, CreditHistoryResponse };
 
 /**
  * Wallet-derivation material (pubKeyX/pubKeyY/salt/deviceWalletAddress) the client SDK needs 
@@ -13,6 +15,16 @@ export type { AccountResponse };
  */
 export function getAccount(): Promise<AccountResponse> {
   return unwrapBffResponse<AccountResponse>(api.get('/v1/account'));
+}
+
+export function getReferral(): Promise<ReferralResponse> {
+  return unwrapBffResponse<ReferralResponse>(api.get('/v1/account/referral'));
+}
+
+export function getCredit(
+  params?: { page?: number; pageSize?: number },
+): Promise<CreditHistoryResponse> {
+  return unwrapBffResponse<CreditHistoryResponse>(api.get('/v1/account/credit', { params }));
 }
 
 // Permanently delete the authenticated device's account. IRREVERSIBLE.

@@ -7,6 +7,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
+import { formatCents } from "@/utils/orderStatus";
 
 const createStyles = (colors: Palette) =>
   StyleSheet.create({
@@ -16,7 +17,6 @@ const createStyles = (colors: Palette) =>
       borderColor: colors.primary + "40",
       overflow: "hidden",
       marginBottom: 14,
-      opacity: 0.6,
     },
     gradient: {
       flexDirection: "row",
@@ -47,17 +47,16 @@ const createStyles = (colors: Palette) =>
       fontWeight: "700",
       color: colors.text,
     },
-    soonPill: {
+    pendingPill: {
       borderRadius: 999,
       paddingHorizontal: 6,
       paddingVertical: 2,
       backgroundColor: colors.primary,
     },
-    soonPillText: {
+    pendingPillText: {
       fontSize: 10,
       fontWeight: "700",
       color: colors.primaryForeground,
-      textTransform: "uppercase",
     },
     subtitle: {
       fontSize: 12,
@@ -65,15 +64,30 @@ const createStyles = (colors: Palette) =>
     },
   });
 
-// UI-only placeholder — toggling it has no effect on the order yet. Wired up
-// once credit balances are supported by the backend.
-export default function UseCreditBalanceToggle() {
+type Props = {
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+  availableCents: number;
+  heldCents: number;
+  disabled?: boolean;
+  loading?: boolean;
+};
+
+export default function UseCreditBalanceToggle({
+  value,
+  onValueChange,
+  availableCents,
+  heldCents,
+  disabled = false,
+  loading = false,
+}: Props) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { isDark } = useTheme();
+  const enabled = availableCents > 0 && !disabled && !loading;
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, !enabled && { opacity: 0.6 }]}>
       <LinearGradient
         colors={[colors.primary + "1f", colors.surfaceElevated]}
         start={{ x: 0, y: 0 }}
@@ -86,20 +100,23 @@ export default function UseCreditBalanceToggle() {
         <View style={styles.textBlock}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>Use Kokio credits</Text>
-            <View style={styles.soonPill}>
-              <Text style={styles.soonPillText}>Soon</Text>
-            </View>
+            {heldCents > 0 && (
+              <View style={styles.pendingPill}>
+                <Text style={styles.pendingPillText}>{`+ ${formatCents(heldCents)} Pending`}</Text>
+              </View>
+            )}
           </View>
           <Text style={[styles.subtitle, !isDark && { color: colors.text }]}>
-            Apply Kokio credits toward this order
+            {loading ? "Checking your balance..." : `Available: ${formatCents(availableCents)}`}
           </Text>
         </View>
         <Switch
-          value={false}
-          disabled
+          value={value && enabled}
+          onValueChange={onValueChange}
+          disabled={!enabled}
           trackColor={{ false: colors.muted, true: colors.primary }}
           thumbColor={colors.primaryForeground}
-          accessibilityLabel="Use Kokio credits (coming soon)"
+          accessibilityLabel="Use Kokio credits"
         />
       </LinearGradient>
     </View>

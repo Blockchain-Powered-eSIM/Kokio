@@ -1,8 +1,10 @@
 import React from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/constants/Colors";
 
 interface ApplyTopupConfirmModalProps {
@@ -21,60 +23,98 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 24,
   },
-  card: {
-    width: "100%",
-    maxWidth: 360,
+  container: {
+    backgroundColor: colors.contentBackground,
     borderRadius: 20,
     padding: 24,
-    backgroundColor: colors.contentBackground,
+    width: "100%",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconRow: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.successBackground,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
-    fontSize: 17,
-    lineHeight: 23,
+    fontSize: 18,
+    fontWeight: "600",
     textAlign: "center",
-    color: colors.foreground,
-    marginBottom: 20,
   },
-  confirmButton: {
-    borderRadius: 32,
+  body: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    color: colors.mutedForeground,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    width: "100%",
+    opacity: 0.3,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+  },
+  button: {
+    flex: 1,
     paddingVertical: 12,
+    borderRadius: 12,
     alignItems: "center",
+  },
+  primaryButton: {
     backgroundColor: colors.primary,
-    marginBottom: 10,
   },
-  confirmButtonText: {
-    fontSize: 16,
+  secondaryButton: {
+    backgroundColor: colors.muted,
+  },
+  buttonText: {
+    fontSize: 14,
     fontWeight: "600",
-    color: colors.primaryForeground,
-  },
-  buyNewButton: {
-    borderRadius: 32,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  buyNewButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.foreground,
+    color: "#fff",
   },
 });
 
 export function ApplyTopupConfirmModal({ visible, esimLabel, onConfirm, onBuyNew }: ApplyTopupConfirmModalProps) {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onBuyNew} statusBarTranslucent>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onBuyNew}
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
       <View style={styles.overlay}>
-        <View style={styles.card}>
-          <ThemedText style={styles.title}>
-            {`Confirm to apply this plan as a top up on ${esimLabel}`}
+        <View style={styles.container}>
+          <View style={styles.iconRow}>
+            <Ionicons name="swap-horizontal" size={28} color={colors.success} />
+          </View>
+
+          <ThemedText bold style={styles.title}>Apply as Top Up</ThemedText>
+
+          <ThemedText style={styles.body}>
+            {`Confirm to apply this plan as a top up on ${esimLabel}.`}
           </ThemedText>
-          <TouchableOpacity style={styles.confirmButton} onPress={onConfirm} accessibilityRole="button">
-            <ThemedText style={styles.confirmButtonText}>Confirm</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.buyNewButton} onPress={onBuyNew} accessibilityRole="button">
-            <ThemedText style={styles.buyNewButtonText}>Buy a new eSIM</ThemedText>
-          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={onBuyNew} accessibilityRole="button">
+              <ThemedText style={styles.buttonText}>Buy a new eSIM</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={onConfirm} accessibilityRole="button">
+              <ThemedText style={styles.buttonText}>Confirm</ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>

@@ -2,18 +2,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import * as Linking from 'expo-linking';
 
-import { submitOrder, pollOrderStatus, OrderNotFoundError } from '@/utils/bff/order';
-import type { CreateOrderRequest, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
+import { submitOrder, pollOrderStatus, getOrderStatus, OrderNotFoundError } from '@/utils/bff/order';
+import type { CreateOrderRequest, OrderPricing, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
 import { BffError } from '@/utils/bff/koKioBffClient';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import { formatPlanLabel } from '@/helpers/esimOrder';
 import { addPendingOrder, removePendingOrder, PENDING_ORDERS_KEY } from '@/hooks/usePendingOrders';
 import type { Esim } from '@/components/ESIMItem';
+import { logger } from '@/utils/logger';
 
 export type CreateOrderVariables = {
   request: CreateOrderRequest;
   eSimItem: Esim;
-  idempotencyKey?: string;
 };
 
 // Fired once order creation succeeds, before any payment step.
@@ -23,11 +23,12 @@ export type CreateOrderOptions = {
 };
 
 export type CreateOrderResult =
-  | { kind: 'terminal'; order: OrderStatusResponse; correlationId: string }
+  | { kind: 'terminal'; order: OrderStatusResponse; correlationId: string; pricing?: OrderPricing }
   | {
       kind: 'awaiting_crypto_payment';
       correlationId: string;
       orderId: string;
+      pricing?: OrderPricing;
       moonpayChargeId: string;
       moonpayPaymentPageUrl: string;
     }
@@ -35,6 +36,7 @@ export type CreateOrderResult =
       kind: 'awaiting_device_wallet_payment';
       correlationId: string;
       orderId: string;
+      pricing?: OrderPricing;
       // The generated type (from the OpenAPI schema) models this as a single
       // {to, data} object, but the real response is an array of ordered calls
       // to submit as one user operation - the schema doesn't match the server.
@@ -98,6 +100,21 @@ async function pollToTerminal(
   });
 }
 
+// Pricing is immutable per order, so the status endpoint returns what create would have.
+// It is display-only: a failed lookup must never fail the order.
+async function resolvePricing(
+  pricing: OrderPricing | undefined,
+  correlationId: string,
+): Promise<OrderPricing | undefined> {
+  if (pricing) return pricing;
+  try {
+    return (await getOrderStatus(correlationId)).pricing;
+  } catch (err) {
+    logger.warn('ORDER_PRICING_LOOKUP_FAILED', { err });
+    return undefined;
+  }
+}
+
 export function useCreateOrder(options: CreateOrderOptions = {}) {
   const queryClient = useQueryClient();
   const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
@@ -150,7 +167,7 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
 
         const order = await pollToTerminal(correlationId, options.onPollUpdate);
 
-        return { kind: 'terminal', order, correlationId };
+        return { kind: 'terminal', order, correlationId, pricing: data.pricing ?? order.pricing };
       }
 
       /**
@@ -163,6 +180,7 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
           kind: 'awaiting_crypto_payment',
           correlationId,
           orderId: data.orderId,
+          pricing: await resolvePricing(data.pricing, correlationId),
           moonpayChargeId: data.moonpayChargeId,
           moonpayPaymentPageUrl: data.moonpayPaymentPageUrl,
         };
@@ -184,18 +202,19 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
           kind: 'awaiting_device_wallet_payment',
           correlationId,
           orderId: data.orderId,
+          pricing: await resolvePricing(data.pricing, correlationId),
           userOperations: rawUserOperations,
           paymentSessionExpiresAt: data.paymentSessionExpiresAt ?? null,
         };
       }
 
       /**
-       * COUPON (full coverage) — neither field present,
-       * $0 invoice already auto-paid server-side. Poll immediately.
-       * TODO: Partial coupon flow to be extended from here.
+       * COUPON (code and credit cover everything) — no payment fields, the
+       * server completes the order. An idempotent replay of any rail also has
+       * no payment fields and lands here; polling yields its true state.
        */
       const order = await pollToTerminal(correlationId, options.onPollUpdate);
-      return { kind: 'terminal', order, correlationId };
+      return { kind: 'terminal', order, correlationId, pricing: data.pricing ?? order.pricing };
     },
 
     onSuccess: async (result) => {

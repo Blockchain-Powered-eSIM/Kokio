@@ -20,7 +20,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
-import { labelForStatus, colorForStatus, labelForPaymentMethod } from "@/utils/orderStatus";
+import { labelForStatus, colorForStatus, labelForPaymentMethod, isUserActionableManualReview } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
 import type { ESimDocument } from "@/utils/bff/esim";
@@ -404,7 +404,7 @@ const OrderCard = ({
       : order.esim?.installationDetails?.qrcode ?? null;
 
   const invoiceUrl = order.stripeInvoiceUrl ?? null;
-  const flagged    = order.flaggedForManualReview ?? false;
+  const flagged    = isUserActionableManualReview(order.flaggedForManualReview, order.manualReviewReason);
   // idempotencyKey is the correlation id equivalent on OrderListItem.
   const supportRef = order.idempotencyKey ?? order.orderId ?? null;
 
