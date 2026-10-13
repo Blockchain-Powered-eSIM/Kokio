@@ -12,6 +12,7 @@ type OrderListResponse   = components['schemas']['OrderListResponse'];
 type SubmitPaymentResponse = components['schemas']['SubmitPaymentResponse'];
 type OrderPricing        = components['schemas']['OrderPricing'];
 
+export type CancelOrderResponse = components['schemas']['CancelOrderResponse'];
 export type InstallationDetails = components['schemas']['InstallationDetails'];
 
 export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, OrderListItem, OrderListResponse, OrderPricing };
@@ -55,6 +56,14 @@ export function submitPaymentHash(
 ): Promise<SubmitPaymentResponse> {
   return unwrapBffResponse<SubmitPaymentResponse>(
     api.post(`/v1/order/${idempotencyKey}/payment-submission`, { userOperationHash }),
+  );
+}
+
+// Irreversible: a payment that completes after cancelling is not matched or
+// refunded. Call only after the user has confirmed they understand that.
+export function cancelOrder(idempotencyKey: string): Promise<CancelOrderResponse> {
+  return unwrapBffResponse<CancelOrderResponse>(
+    api.post(`/v1/order/${idempotencyKey}/cancel`),
   );
 }
 

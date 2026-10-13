@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
+  ActivityIndicator,
   FlatList,
   Linking,
   Platform,
@@ -33,6 +34,10 @@ import { openInstallation } from "@/helpers/esimInstall";
 import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
 import { usePendingOrders } from "@/hooks/usePendingOrders";
 import type { PendingOrderRecord } from "@/hooks/usePendingOrders";
+import { CancelOrderConfirmModal } from "@/components/ui/CancelOrderConfirmModal";
+import { cancelOrder } from "@/utils/bff/order";
+import { BffError, formatBffError, resolveBffErrorMessage } from "@/utils/bff/errors";
+import { logger } from "@/utils/logger";
 
 // ─── eSIM activation-status labeling ─────────────────────────────────────────
 
@@ -557,6 +562,17 @@ const OrderCard = ({
             >
               <Ionicons name="wallet-outline" size={18} color="white" />
             </TouchableOpacity>
+          ) : isInstalled ? (
+            // esim.esimId (the on-chain wallet address) is backfilled only as
+            // part of device-wallet deployment during fulfilment, so it can
+            // stay null for a while after the eSIM itself is installed - show
+            // that it's in progress rather than silently showing nothing.
+            <View
+              style={[styles.walletBtn, { borderColor: colors.mutedForeground }]}
+              accessibilityLabel="eSIM wallet is being set up"
+            >
+              <ActivityIndicator size="small" color={colors.mutedForeground} />
+            </View>
           ) : null}
         </View>
       )}
@@ -637,6 +653,56 @@ export default function OrdersScreen() {
     }, [expandOrderId, enrichedOrders]),
   );
 
+  const [cancelTarget, setCancelTarget] = useState<PendingOrderRecord | null>(null);
+  const [cancelMode, setCancelMode] = useState<"confirm" | "notCancellable">("confirm");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const cancelInFlightRef = useRef(false);
+
+  const closeCancelModal = useCallback(() => {
+    setCancelTarget(null);
+    setCancelMode("confirm");
+    setCancelError(null);
+  }, []);
+
+  const openCancelModal = useCallback((record: PendingOrderRecord) => {
+    setCancelMode("confirm");
+    setCancelError(null);
+    setCancelTarget(record);
+  }, []);
+
+  const handleConfirmCancel = useCallback(async () => {
+    if (!cancelTarget) return;
+    if (cancelInFlightRef.current) return;
+    cancelInFlightRef.current = true;
+    const { correlationId } = cancelTarget;
+    setCancelLoading(true);
+    setCancelError(null);
+    try {
+      await cancelOrder(correlationId);
+      dismissPendingOrder(correlationId);
+      closeCancelModal();
+    } catch (err) {
+      if (err instanceof BffError && err.httpStatus === 404 && err.code === "ORDER_NOT_FOUND") {
+        dismissPendingOrder(correlationId);
+        closeCancelModal();
+      } else if (err instanceof BffError && err.httpStatus === 409 && err.code === "ORDER_NOT_CANCELLABLE") {
+        setCancelMode("notCancellable");
+      } else {
+        logger.debug("ORDER_CANCEL_FAILED", { code: err instanceof BffError ? err.code : undefined });
+        setCancelError(formatBffError(err));
+      }
+    } finally {
+      cancelInFlightRef.current = false;
+      setCancelLoading(false);
+    }
+  }, [cancelTarget, dismissPendingOrder, closeCancelModal]);
+
+  const handleHideCancelTarget = useCallback(() => {
+    if (cancelTarget) dismissPendingOrder(cancelTarget.correlationId);
+    closeCancelModal();
+  }, [cancelTarget, dismissPendingOrder, closeCancelModal]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["bottom"]}>
       <ThemedView style={styles.container}>
@@ -684,7 +750,7 @@ export default function OrdersScreen() {
                     <PendingOrderCard
                       key={record.correlationId}
                       record={record}
-                      onDismiss={() => dismissPendingOrder(record.correlationId)}
+                      onDismiss={() => openCancelModal(record)}
                     />
                   ))}
                   {enrichedOrders.length > 0 ? (
@@ -706,6 +772,16 @@ export default function OrdersScreen() {
           />
         )}
       </ThemedView>
+      <CancelOrderConfirmModal
+        visible={cancelTarget !== null}
+        mode={cancelMode}
+        loading={cancelLoading}
+        errorMessage={cancelError}
+        notCancellableMessage={resolveBffErrorMessage("ORDER_NOT_CANCELLABLE", 409)}
+        onKeep={closeCancelModal}
+        onConfirm={handleConfirmCancel}
+        onHide={handleHideCancelTarget}
+      />
     </SafeAreaView>
   );
 }

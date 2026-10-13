@@ -116,7 +116,7 @@ export interface paths {
          *     billing reference with no client-side use.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["accountGet"];
         put?: never;
@@ -136,7 +136,7 @@ export interface paths {
          *     complete the step-up ceremony on the Auth Server and retry.
          *
          *     **Rate limiting:** Subject to the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          *
          *     ---
          *
@@ -239,7 +239,7 @@ export interface paths {
          *     Provide both `Authorization: DPoP` and `DPoP` headers.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["accountGetWallet"];
         put?: never;
@@ -283,7 +283,7 @@ export interface paths {
          *     additional user friction. Step-up recency window is 5 minutes.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         post: operations["accountWalletDeploy"];
         delete?: never;
@@ -308,7 +308,7 @@ export interface paths {
          *     Provide both `Authorization: DPoP` and `DPoP` headers.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["accountGetReferral"];
         put?: never;
@@ -339,7 +339,7 @@ export interface paths {
          *     Provide both `Authorization: DPoP` and `DPoP` headers.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["accountGetCredit"];
         put?: never;
@@ -511,12 +511,14 @@ export interface paths {
          *       - `DEVICE_WALLET` -> Stripe invoice + device-wallet calls. On a split order the calls
          *         carry the order's `Remainder` payment reference, sign them exactly as returned.
          *
-         *     **First order:** while the account has no verified order, it may have only one order
-         *     in progress; a second is refused with `FIRST_ORDER_IN_PROGRESS` until the first is paid
-         *     or ends.
+         *     **First order:** while the account has no verified order, it may have only one order in
+         *     progress with a first-order code: a referral code or a first-purchase-only coupon. Another
+         *     order with such a code is refused with `FIRST_ORDER_IN_PROGRESS` until the first is paid,
+         *     ends, or is cancelled with `POST /order/{idempotencyKey}/cancel`. Orders without such a
+         *     code are never held back by it.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         post: operations["orderCreate"];
         delete?: never;
@@ -605,7 +607,7 @@ export interface paths {
          *     true `total`. An empty history returns `orders: []` with HTTP 200, not a 404.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["orderList"];
         put?: never;
@@ -647,14 +649,13 @@ export interface paths {
          *     **Pricing:** every state carries `pricing`, the breakdown fixed at creation: list price,
          *     code discount, store credit applied and the rail amount, with the code and its kind.
          *
-         *     **No order found:** If no order exists for the given idempotency key and device,
-         *     the endpoint returns HTTP 200 with the standard success envelope but all `data`
-         *     fields set to `null` (`orderId`, `planId`, `orderStatus`, `paymentMethod`).
-         *     The response message will contain `ORDER_NOT_FOUND`. This is not an error —
-         *     the client should interpret it as "no order was created with this correlation ID."
+         *     **No order found:** If no order exists for the given idempotency key and device, the
+         *     endpoint returns `404` with code `ORDER_NOT_FOUND`. `404` is also returned with
+         *     `ACCOUNT_DELETED` for a deleted account. Branch on `code`, never on the status alone:
+         *     the two need different handling.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["orderGetStatus"];
         put?: never;
@@ -697,13 +698,66 @@ export interface paths {
          *     - Terminal failure (`PAYMENT_FAILED`, `ABANDONED`, `VENDOR_FAILED`, `ESIM_PROVISION_FAILED`,
          *       `ON_CHAIN_FAILED`) — `409 PAYMENT_SUBMISSION_NOT_ALLOWED`. The order is closed, create a new one.
          *     - Not a `DEVICE_WALLET` order — `409 PAYMENT_SUBMISSION_NOT_ALLOWED`.
-         *     - No order for the idempotency key + device — returns HTTP 200 with code `ORDER_NOT_FOUND`
-         *       (mirrors `GET /order/{idempotencyKey}`).
+         *     - No order for the idempotency key + device — `404 ORDER_NOT_FOUND`
+         *       (mirrors `GET /order/{idempotencyKey}`). `404` is also returned with `ACCOUNT_DELETED`;
+         *       branch on `code`.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         post: operations["orderSubmitPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/order/{idempotencyKey}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an unpaid order
+         * @description Cancels the authenticated device's unpaid order and moves it to `ABANDONED`, releasing its
+         *     code, store credit and first-order slot immediately instead of waiting for the cleanup job.
+         *
+         *     > **Warning — irreversible, and any payment made for the order afterwards is lost.**
+         *     > Once cancelled, the order is never fulfilled: a payment that completes later is not
+         *     > matched to it, no eSIM is assigned and no refund is made. Call this endpoint only on an
+         *     > explicit user action, never while a payment session is open or a payment is being made,
+         *     > and only after the user has confirmed they understand these consequences. The user
+         *     > holds the responsibility for any funds lost through cancelling an order.
+         *
+         *     **Cancellable:** a `PAYMENT_PENDING` order on `FIAT`, `CRYPTO` or `DEVICE_WALLET` with no
+         *     payment received. Refused with `409 ORDER_NOT_CANCELLABLE`, before anything changes, when:
+         *     - the order is not `PAYMENT_PENDING`, or is a `COUPON` order with nothing to pay
+         *     - the order is flagged for manual review
+         *     - a payment for it was received: a payment confirmation, a device-wallet user operation
+         *       submitted with `POST /order/{idempotencyKey}/payment-submission`, its payment reference
+         *       spent on chain (`DEVICE_WALLET`), or its Stripe invoice already paid
+         *
+         *     **Effect:** the order's Stripe invoice is voided first, so it can no longer be paid. The
+         *     order then moves to `ABANDONED` and its code, store credit and first-order slot are
+         *     released. A `DEVICE_WALLET` order for a new eSIM returns its eSIM wallet to the account.
+         *
+         *     **Repeat calls:** cancelling an order that is already `ABANDONED` returns `200` with its
+         *     current state and changes nothing.
+         *
+         *     **Retrying the purchase:** send a new `x-correlation-id` with the next `POST /order`. The
+         *     cancelled order's correlation ID returns the cancelled order.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`) and step-up
+         *     authentication (`requireStepUp`). Step-up recency window is 5 minutes.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (20 requests per minute per `deviceWalletAddress`).
+         */
+        post: operations["orderCancel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -728,7 +782,7 @@ export interface paths {
          *     value, all eSIMs for the device are returned regardless of activation state.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimList"];
         put?: never;
@@ -758,7 +812,7 @@ export interface paths {
          *     `ESIM_NOT_FOUND_FOR_DEVICE` is returned.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimGetDetail"];
         put?: never;
@@ -802,7 +856,7 @@ export interface paths {
          *     to confirm compatibility and identify which `eSimRef` to use.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimCheckCompatibility"];
         put?: never;
@@ -880,7 +934,7 @@ export interface paths {
          *     `ESIM_NOT_FOUND_FOR_DEVICE` is returned.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         patch: operations["esimSetLabel"];
         trace?: never;
@@ -905,11 +959,12 @@ export interface paths {
          *
          *     **Eligibility:** `eligibility.reason` is the error code order creation would return for
          *     this code, or null when the account may use it. Checked in this order:
-         *     1. `FIRST_ORDER_IN_PROGRESS`: the account has no verified order and one in flight.
-         *     2. The code: `PROMO_CODE_REVOKED`, `PROMO_CODE_NOT_YET_VALID`, `PROMO_CODE_EXPIRED`,
+         *     1. The code: `PROMO_CODE_REVOKED`, `PROMO_CODE_NOT_YET_VALID`, `PROMO_CODE_EXPIRED`,
          *        `PROMO_CODE_EXHAUSTED`, `PROMO_ACCOUNT_LIMIT_REACHED`, `PROMO_FIRST_PURCHASE_ONLY`, or
          *        `REFERRAL_NOT_ALLOWED` (not the account's first order, its own code, or a referrer
          *        that no longer exists).
+         *     2. `FIRST_ORDER_IN_PROGRESS`: a referral code or first-purchase-only coupon while the
+         *        account has no verified order and another order with such a code is in flight.
          *     3. `PROMO_CODE_NOT_APPLICABLE`: a plan voucher whose plan is no longer active.
          *
          *     Rules that depend on the order are checked by price preview and order creation only: a
@@ -1626,6 +1681,8 @@ export interface components {
              *     | Code | Status | Meaning |
              *     |------|--------|---------|
              *     | `ORDER_NOT_FOUND` | 404 | Presented OrderId was not found on the backend |
+             *     | `ORDER_NOT_CANCELLABLE` | 409 | The order is not an unpaid `PAYMENT_PENDING` order, or a payment for it was received |
+             *     | `STRIPE_INVOICE_VOID_FAILED` | 424 | Stripe could not void the order's invoice on cancellation |
              *     | `ORDER_CREATION_FAILED` | 500 | On-chain buyDataBundle transaction failed |
              *
              *     **eSIM errors**
@@ -2621,19 +2678,29 @@ export interface components {
              */
             flaggedForManualReview?: boolean;
             /**
-             * @description Structured reason code for the manual review flag.
-             *     Present only when `flaggedForManualReview` is `true`.
+             * @description Reason the order was flagged for manual review. Null when not flagged.
+             *     Present only on post-payment terminal failures: `VENDOR_FAILED`,
+             *     `ESIM_PROVISION_FAILED`, `ON_CHAIN_FAILED`.
              *
-             *     Values:
-             *     - `PLAN_DEACTIVATED` — plan was deactivated between payment and fulfilment.
-             *     - `ON_CHAIN_RECORDING_FAILED` — on-chain buyDataBundle recording failed after retry exhaustion.
-             *     - `VENDOR_FULFILMENT_FAILED` — vendor API permanently rejected the order.
-             *     - `ESIM_DELIVERY_FAILED` — eSIM wallet deployment or record persistence failed.
-             *     - `WALLET_REGISTRATION_FAILED` — on-chain device wallet registration failed.
+             *     An open string: new reasons can be added. Map unknown values to a generic "contact support" message.
+             *
+             *     Known values:
+             *     - `STRIPE_AMOUNT_MISMATCH` — the Stripe invoice settled for less than the order's rail amount.
+             *     - `MOONPAY_STRIPE_DISCREPANCY` — MoonPay confirmed payment but the Stripe invoice was not paid.
+             *     - `PLAN_DEACTIVATED` — the plan was deactivated between payment and fulfilment.
+             *     - `ON_CHAIN_RECORDING_FAILED` — on-chain purchase recording failed after retries; the eSIM works.
+             *     - `VENDOR_FULFILMENT_FAILED` — the vendor permanently rejected the order after payment.
+             *     - `ESIM_DELIVERY_FAILED` — eSIM wallet deployment or record persistence failed after the vendor fulfilled.
+             *     - `WALLET_REGISTRATION_FAILED` — on-chain device wallet registration failed after payment.
+             *     - `DEPLOYMENT_STALLED` — the device wallet deployment stalled.
+             *     - `LAZY_HISTORY_DISAGREEMENT` — lazy purchase history was still pending on a deployed account.
+             *     - `WEBHOOK_INTENT_MISMATCH` — a confirmed on-chain payment did not match the order.
+             *     - `PAID_ON_CHAIN_VENDOR_FAILED` — a device-wallet payment settled but the vendor rejected the order.
+             *     - `INVOICE_MARKING_FAILED` — the eSIM was delivered, but marking the device-wallet invoice paid failed.
+             *     - `PROMOTION_CAPTURE_FAILED` — payment verified but its code or credit holds failed to capture; fulfilment continued.
              * @example VENDOR_FULFILMENT_FAILED
-             * @enum {string}
              */
-            manualReviewReason?: "PLAN_DEACTIVATED" | "ON_CHAIN_RECORDING_FAILED" | "VENDOR_FULFILMENT_FAILED" | "ESIM_DELIVERY_FAILED" | "WALLET_REGISTRATION_FAILED";
+            manualReviewReason?: string | null;
         };
         OrderListItem: {
             /**
@@ -2722,7 +2789,9 @@ export interface components {
              */
             flaggedForManualReview: boolean;
             /**
-             * @description Reason the order was flagged for manual review. Null when not flagged.
+             * @description Reason the order was flagged for manual review. Null when not flagged. Returned on
+             *     every item: a `COMPLETED` order can carry a reason, e.g. `PROMOTION_CAPTURE_FAILED`,
+             *     and must not be shown as a failure.
              * @example null
              */
             manualReviewReason?: string | null;
@@ -2794,6 +2863,20 @@ export interface components {
              * @example 0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
              */
             userOperationHash?: string | null;
+        };
+        CancelOrderResponse: {
+            /**
+             * @description MongoDB ObjectId of the cancelled order.
+             * @example 664f1a2b3c4d5e6f7a8b9c0e
+             */
+            orderId: string;
+            /**
+             * @description Always `ABANDONED`: the order was cancelled by this request, or had already been
+             *     abandoned (a repeated cancellation, or the cleanup or reconcile job).
+             * @example ABANDONED
+             * @enum {string}
+             */
+            orderStatus: "ABANDONED";
         };
         CompatibilityResult: {
             /**
@@ -5256,7 +5339,7 @@ export interface operations {
              *     |------|---------|
              *     | `WALLET_DEPLOYMENT_IN_PROGRESS` | Device Wallet is being deployed for the account. Orders are blocked till the deployment is complete. |
              *     | `DEVICE_WALLET_NOT_DEPLOYED` | Device wallet is not deployed and payment method presented for the order is `DEVICE_WALLET`. |
-             *     | `FIRST_ORDER_IN_PROGRESS` | The account has no verified order and already has one in progress. |
+             *     | `FIRST_ORDER_IN_PROGRESS` | A referral code or first-purchase-only coupon while the account has no verified order and another order with such a code in progress. |
              */
             409: {
                 headers: {
@@ -5467,7 +5550,7 @@ export interface operations {
              *     |------|---------|
              *     | `WALLET_DEPLOYMENT_IN_PROGRESS` | The device wallet is being deployed; orders are blocked until it completes |
              *     | `DEVICE_WALLET_NOT_DEPLOYED` | `DEVICE_WALLET` was chosen but the device wallet is not deployed |
-             *     | `FIRST_ORDER_IN_PROGRESS` | The account has no verified order and already has one in flight |
+             *     | `FIRST_ORDER_IN_PROGRESS` | A referral code or first-purchase-only coupon while another order with such a code is in flight and the account has no verified order |
              */
             409: {
                 headers: {
@@ -5675,7 +5758,22 @@ export interface operations {
                 };
             };
             401: components["responses"]["DPoPAuthError"];
-            404: components["responses"]["AccountDeletedError"];
+            /**
+             * @description Branch on `code`: the two cases need different handling.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_FOUND` | No order exists for the idempotency key and the authenticated device |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account`. Discard tokens and return to the unauthenticated entry point |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -5789,7 +5887,22 @@ export interface operations {
                 };
             };
             401: components["responses"]["DPoPAuthError"];
-            404: components["responses"]["AccountDeletedError"];
+            /**
+             * @description Branch on `code`: the two cases need different handling.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_FOUND` | No order exists for the idempotency key and the authenticated device |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account`. Discard tokens and return to the unauthenticated entry point |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /**
              * @description The order cannot accept a payment submission in its current state.
              *
@@ -5808,6 +5921,185 @@ export interface operations {
                      *       "code": "PAYMENT_SUBMISSION_NOT_ALLOWED",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                      *       "message": "Payment submission is not applicable for order 664f1a2b3c4d5e6f7a8b9c0e in its current state."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    orderCancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description The `x-correlation-id` value used when the order was created via `POST /order`.
+                 *     Identifies the order for the authenticated device.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                idempotencyKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order is `ABANDONED`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
+                     *         "orderStatus": "ABANDONED"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CancelOrderResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Authentication, DPoP validation, or step-up recency check failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `STEP_UP_REQUIRED` | Operation requires recent authentication — trigger step-up flow |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm`, `htu`, or `ath` binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the `cnf.jkt` claim |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "STEP_UP_REQUIRED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "This operation requires recent authentication. Please re-authenticate and retry."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Branch on `code`: the two cases need different handling.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_FOUND` | No order exists for the idempotency key and the authenticated device |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ORDER_NOT_FOUND",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "No order found for the provided reference."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description The order cannot be cancelled. Nothing was changed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_CANCELLABLE` | Not an unpaid `PAYMENT_PENDING` order: past payment, nothing to pay, under manual review, or a payment for it was received. The message gives the reason. |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ORDER_NOT_CANCELLABLE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Order 664f1a2b3c4d5e6f7a8b9c0e cannot be cancelled: a payment for it has been received."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Stripe could not void the order's invoice. Nothing was changed; retry.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `STRIPE_INVOICE_VOID_FAILED` | Failed to void the order's Stripe invoice |
+             */
+            424: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "STRIPE_INVOICE_VOID_FAILED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Failed to void Stripe invoice."
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];

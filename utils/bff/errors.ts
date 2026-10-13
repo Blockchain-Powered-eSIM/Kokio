@@ -34,6 +34,8 @@ const BFF_ERROR_MESSAGES: Record<string, string> = {
   STRIPE_CUSTOMER_CREATION_FAILED:   'Could not initiate payment. Please try again.',
   STRIPE_INVOICE_CREATION_FAILED:    'Could not initiate payment. Please try again.',
   STRIPE_INVOICE_FINALIZATION_FAILED: 'Payment could not be finalised. Please try again.',
+  ORDER_NOT_CANCELLABLE:             "This order can't be cancelled. A payment may already have been received.",
+  STRIPE_INVOICE_VOID_FAILED:        "We couldn't cancel this order right now. Please try again.",
   // eSIM
   ESIM_NOT_FOUND_FOR_DEVICE:        'eSIM not found.',
   NO_ACTIVE_ESIMS_FOR_DEVICE:       'No active eSIMs found.',
@@ -54,7 +56,7 @@ const BFF_ERROR_MESSAGES: Record<string, string> = {
   REFERRAL_NOT_ALLOWED:       "You can't use this referral code.",
   FIAT_MINIMUM_NOT_MET:       'The amount to pay by card must be $1.00 or more.',
   STORE_CREDIT_INSUFFICIENT:  'Your available credit changed. Please review your order and try again.',
-  FIRST_ORDER_IN_PROGRESS:    'Your first order is still in progress. Please wait for it to finish.',
+  FIRST_ORDER_IN_PROGRESS:    'You already have an order in progress using a first-order code. Complete or cancel it from Orders, or remove the code.',
   // Vendor
   VENDOR_ORDER_FAILED: 'Order could not be completed. Please try again.',
   VENDOR_PLANS_FAILED: 'Could not load plans. Please try again.',

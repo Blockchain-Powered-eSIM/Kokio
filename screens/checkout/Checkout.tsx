@@ -37,7 +37,7 @@ import { pollingLabel, formatCents, isUserActionableManualReview } from "@/utils
 import OrderFailureModal from "@/components/ui/OrderFailureModal";
 import { formatBffError } from "@/utils/bff/koKioBffClient";
 import { resolveBffErrorMessage } from "@/utils/bff/errors";
-import { useCouponLookup, isLookupableCode } from "@/hooks/useCouponLookup";
+import { getCoupon } from "@/utils/bff/coupon";
 import type { CodeLookupResponse } from "@/utils/bff/coupon";
 import { useOrderPreview } from "@/hooks/useOrderPreview";
 import { useCreditBalance, heldCreditCents, CREDIT_BALANCE_KEY } from "@/hooks/useCreditHistory";
@@ -79,12 +79,12 @@ const DEVICE_WALLET_PAYMENT_SUBMISSION_DELAY_MS = 25000;
 // testing showed can run past 30s even when the payment actually succeeded.
 const DEVICE_WALLET_PAYMENT_POLL_MAX_DURATION_MS = 120000;
 
-// GET /order/{idempotencyKey} shares a 10-requests-per-minute per-device
-// limit with /esim and /order/list, which other screens poll in the
-// background independently. The default 4s poll interval alone is already
-// 15 requests/minute, well over that budget on its own - real-device testing
-// showed this causes silent 429s and backoff that can mask a real status
-// change until the poll gives up. 8s leaves headroom for concurrent traffic.
+// GET /order/{idempotencyKey} shares a 20 requests per minute per-device
+// limit (per deviceWalletAddress) with /esim, /order/list, /coupon/{code},
+// and /order/preview. A device-wallet payment's confirmation depends on the
+// chain webhook's `safe` L1 finality, which takes 30s+. Polling faster
+// wouldn't surface the status sooner; 8s (7.5 req/min) leaves headroom for
+// concurrent traffic.
 const DEVICE_WALLET_PAYMENT_POLL_INTERVAL_MS = 8000;
 
 const CODE_ERROR_CODES: ReadonlySet<string> = new Set([
@@ -161,8 +161,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   promoInputTyped: { fontFamily: "monospace", fontWeight: "700" },
   promoStatusRow:          { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
   promoStatusText:         { flex: 1, fontSize: 13 },
-  applyButton:             { borderRadius: 999, paddingVertical: 6, paddingHorizontal: 16 },
-  applyButtonText:         { fontSize: 14, fontWeight: "700" },
   promoAppliedCard: {
     flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12,
     padding: 12, borderRadius: 12,
@@ -278,8 +276,10 @@ const Checkout = () => {
   const [pendingHelioOrder, setPendingHelioOrder]         = useState<CreateOrderResponse | null>(null);
   const { kokio }                                         = useKokio();
   const [discountCode, setDiscountCode]                   = useState<string>("");
-  const [debouncedCode, setDebouncedCode]                 = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied]         = useState<boolean>(false);
+  const [isCouponLoading, setIsCouponLoading]             = useState<boolean>(false);
+  const [coupon, setCoupon]                               = useState<CodeLookupResponse | null>(null);
+  const [couponError, setCouponError]                     = useState<string>("");
   const [useStoreCredit, setUseStoreCredit]               = useState<boolean>(false);
   const [orderResponse, setOrderResponse]                 = useState<OrderStatusResponse | null>(null);
   const [orderCompleted, setOrderCompleted]               = useState(false);
@@ -329,17 +329,6 @@ const Checkout = () => {
     },
     onPollUpdate: handlePollUpdate,
   });
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedCode(discountCode), 500);
-    return () => clearTimeout(timer);
-  }, [discountCode]);
-
-  const canLookupCode = isLookupableCode(debouncedCode);
-  const isCodeSettled = debouncedCode === discountCode && canLookupCode;
-  const {
-    data: coupon, isLoading: isCouponLoading, isError: isCouponError, error: couponError,
-  } = useCouponLookup(debouncedCode, canLookupCode);
 
   const queryClient  = useQueryClient();
   const { data: creditBalance, isLoading: isCreditLoading, refetch: refetchCredit } = useCreditBalance();
@@ -477,6 +466,8 @@ const Checkout = () => {
     setIsDiscountApplied(false);
     setDiscountCode("");
     setDiscountError("");
+    setCoupon(null);
+    setCouponError("");
   }, []);
 
   const resetHelioState = useCallback(() => {
@@ -749,6 +740,8 @@ const Checkout = () => {
     setDiscountCode(_toUpper(text));
     setIsDiscountApplied(false);
     setDiscountError('');
+    setCoupon(null);
+    setCouponError('');
   }, []);
 
   const handlePasteDiscountCode = useCallback(async () => {
@@ -766,11 +759,26 @@ const Checkout = () => {
     }
   }, [handleDiscountCodeChange, showMessage]);
 
-  const handleApplyDiscount = useCallback(() => {
-    if (!coupon?.eligibility.eligible || coupon.code !== discountCode) return;
-    setDiscountError('');
-    setIsDiscountApplied(true);
-  }, [coupon, discountCode]);
+  const handleApplyDiscount = useCallback(async () => {
+    const code = discountCode.trim().toUpperCase();
+    if (!code || isCouponLoading) return;
+    setIsCouponLoading(true);
+    setCouponError('');
+    try {
+      const result = await getCoupon(code);
+      setCoupon(result);
+      if (result.eligibility.eligible) {
+        setIsDiscountApplied(true);
+      } else {
+        setCouponError(resolveBffErrorMessage(result.eligibility.reason ?? ''));
+      }
+    } catch (err) {
+      setCoupon(null);
+      setCouponError(formatBffError(err));
+    } finally {
+      setIsCouponLoading(false);
+    }
+  }, [discountCode, isCouponLoading]);
 
   const quoteInPlay = isPreviewInPlay ? quote : undefined;
   const payableUsd = quoteInPlay ? quoteInPlay.railAmountCents / 100 : eSimItem.actualSellingPrice;
@@ -882,58 +890,52 @@ const Checkout = () => {
         <View style={{ marginTop: 16 }}>
           <ThemedText>Promo code</ThemedText>
           {!isDiscountApplied && (
-            <>
-              <View style={styles.promoInputRow}>
-                <Ionicons name="pricetag-outline" size={18} color={colors.mutedForeground} />
-                <TextInput
-                  style={[styles.promoInput, !!discountCode && styles.promoInputTyped]}
-                  value={discountCode}
-                  onChangeText={handleDiscountCodeChange}
-                  placeholder="Coupon or referral code"
-                  placeholderTextColor={colors.mutedForeground}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  maxLength={16}
-                />
-                {isCouponLoading && <ActivityIndicator size="small" color={colors.mutedForeground} />}
-                {!isCouponLoading && !discountCode && (
-                  <TouchableOpacity
-                    onPress={handlePasteDiscountCode}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Paste code from clipboard"
-                  >
-                    <ThemedText bold style={{ color: colors.primary, fontSize: 14 }}>Paste</ThemedText>
-                  </TouchableOpacity>
-                )}
-                {!isCouponLoading && !!discountCode && (
-                  <TouchableOpacity
-                    onPress={() => handleDiscountCodeChange('')}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Clear code"
-                  >
-                    <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
-                  </TouchableOpacity>
-                )}
-              </View>
-              {isCodeSettled && !isCouponLoading && coupon?.eligibility.eligible && (
-                <View style={styles.promoStatusRow}>
-                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                  <ThemedText style={styles.promoStatusText} numberOfLines={1}>
-                    {describeCodeTerms(coupon)}
-                  </ThemedText>
-                  <TouchableOpacity
-                    style={[styles.applyButton, { backgroundColor: colors.primary }]}
-                    onPress={handleApplyDiscount}
-                    accessibilityRole="button"
-                    accessibilityLabel="Apply code"
-                  >
-                    <ThemedText style={[styles.applyButtonText, { color: colors.primaryForeground }]}>Apply</ThemedText>
-                  </TouchableOpacity>
-                </View>
+            <View style={styles.promoInputRow}>
+              <Ionicons name="pricetag-outline" size={18} color={colors.mutedForeground} />
+              <TextInput
+                style={[styles.promoInput, !!discountCode && styles.promoInputTyped]}
+                value={discountCode}
+                onChangeText={handleDiscountCodeChange}
+                placeholder="Coupon or referral code"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={16}
+                onSubmitEditing={handleApplyDiscount}
+                returnKeyType="done"
+              />
+              {isCouponLoading && <ActivityIndicator size="small" color={colors.mutedForeground} />}
+              {!isCouponLoading && !discountCode && (
+                <TouchableOpacity
+                  onPress={handlePasteDiscountCode}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Paste code from clipboard"
+                >
+                  <ThemedText bold style={{ color: colors.primary, fontSize: 14 }}>Paste</ThemedText>
+                </TouchableOpacity>
               )}
-            </>
+              {!isCouponLoading && !!discountCode && !couponError && (
+                <TouchableOpacity
+                  onPress={handleApplyDiscount}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Apply code"
+                >
+                  <ThemedText bold style={{ color: colors.primary, fontSize: 14 }}>Apply</ThemedText>
+                </TouchableOpacity>
+              )}
+              {!isCouponLoading && !!discountCode && !!couponError && (
+                <TouchableOpacity
+                  onPress={handleRemoveDiscount}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear code"
+                >
+                  <ThemedText bold style={{ color: colors.destructive, fontSize: 14 }}>Clear</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
           {isDiscountApplied && (
             <View style={[styles.promoAppliedCard, { backgroundColor: colors.successBackground }]}>
@@ -959,22 +961,14 @@ const Checkout = () => {
               </TouchableOpacity>
             </View>
           )}
-          {isCodeSettled && !isCouponLoading && coupon && !coupon.eligibility.eligible && !isDiscountApplied && (
+          {!isDiscountApplied && couponError ? (
             <View style={styles.promoStatusRow}>
               <Ionicons name="alert-circle" size={18} color={colors.destructive} />
               <ThemedText style={[styles.promoStatusText, { color: colors.destructive }]} numberOfLines={2}>
-                {resolveBffErrorMessage(coupon.eligibility.reason ?? '')}
+                {couponError}
               </ThemedText>
             </View>
-          )}
-          {isCodeSettled && !isCouponLoading && isCouponError && (
-            <View style={styles.promoStatusRow}>
-              <Ionicons name="alert-circle" size={18} color={colors.destructive} />
-              <ThemedText style={[styles.promoStatusText, { color: colors.destructive }]} numberOfLines={2}>
-                {formatBffError(couponError)}
-              </ThemedText>
-            </View>
-          )}
+          ) : null}
           {discountError ? (
             <View style={styles.promoStatusRow}>
               <Ionicons name="alert-circle" size={18} color={colors.destructive} />
