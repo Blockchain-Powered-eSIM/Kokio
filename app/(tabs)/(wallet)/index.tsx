@@ -19,11 +19,11 @@ import { useEsims } from '@/hooks/useDeviceEsims';
 import { parsedAmount, sortTokensByBalance, useWalletTokens } from '@/hooks/useWalletTokens';
 import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useContacts } from '@/hooks/useContacts';
-import { useWalletActivity } from '@/hooks/useWalletActivity';
+import { useWalletActivityFeed } from '@/hooks/useWalletActivityFeed';
 import { esimDisplayName, esimDocToDisplayItem } from '@/helpers/esimDisplay';
-import { walletActivityEntryToDisplayItem } from '@/helpers/walletActivityDisplay';
 import type { ESimDocument } from '@/utils/bff/esim';
 import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
+import { shortenAddress } from '@/utils/address';
 import { logger } from '@/utils/logger';
 
 const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
@@ -113,8 +113,8 @@ const WalletPage = () => {
   const { kokio } = useKokio();
   const { esims } = useEsims();
   const { contacts } = useContacts();
-  const { entries: walletActivityEntries } = useWalletActivity();
-  const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT).map(walletActivityEntryToDisplayItem);
+  const { entries: walletActivityEntries } = useWalletActivityFeed();
+  const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT);
   const { tokens: customTokens, addToken } = useCustomTokens();
   const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
   const customTokenAddresses = new Set(customTokens.map((t) => t.address.toLowerCase()));
@@ -343,7 +343,7 @@ const WalletPage = () => {
                     <View className='flex-row items-center'>
                       <Image source={tr.icon} className='h-[48px] w-[48px]  ' />
                       <View className='flex-col items-start ml-3 '>
-                        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='xl'>{tr.name}</ThemedText>
+                        <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='xl'>{tr.name ?? shortenAddress(tr.walletId)}</ThemedText>
                         {tr.type === "recieved"?<ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} variant='sm'>{tr.statusLabel}</ThemedText>:
                         <ThemedText darkColor={colors.cardForeground} variant='sm'>{tr.statusLabel}</ThemedText>
                         }

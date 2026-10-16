@@ -178,6 +178,10 @@ export interface paths {
          *       pseudonymous (a wallet address, no personal data) and persist on the ledger by
          *       design.
          *
+         *     - **Wallet activity history is retained but no longer updated.** The device wallet
+         *       stops being tracked for new on-chain activity. The stored history is not readable
+         *       through this API after deletion.
+         *
          *     ### Auth Server behaviour — important for clients
          *
          *     The Auth Server is **intentionally not informed** of account deletion. The passkey
@@ -342,6 +346,52 @@ export interface paths {
          *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["accountGetCredit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the device wallet's on-chain activity
+         * @description Returns the authenticated device wallet's newest on-chain activity, newest first, at most
+         *     25 entries:
+         *     - **`TRANSFER`:** ETH or any ERC-20 token sent or received by the device wallet.
+         *     - **`PRICE_CAP`:** a price cap change on one of the account's eSIM wallets.
+         *
+         *     **What the history covers:**
+         *     - **Base only:** the configured chain of this environment (Base Sepolia on dev and staging,
+         *       Base mainnet on production).
+         *     - **From deployment on:** tracking starts when the device wallet is deployed. Activity
+         *       before that is not backfilled, and a wallet that is not deployed has an empty history.
+         *     - **No labels:** entries mirror the on-chain record. An eSIM purchase paid from the device
+         *       wallet appears as a transfer to an eSIM wallet; nothing is folded, labelled or hidden.
+         *     - **Every token:** transfers of tokens the BFF does not recognise are included with a
+         *       null `symbol` (display the `token` address). NFT and zero-value transfers are excluded;
+         *       any non-zero amount is kept. Unsolicited tokens can therefore push older entries out of
+         *       the 25.
+         *     - **Possible gaps:** activity delivered while the service was unavailable for longer than
+         *       the notification provider's retry window (about 10 minutes) is missing permanently.
+         *
+         *     **Formats:** addresses and hashes are lowercase. `amount` is in base units as a decimal
+         *     string; scale it by `decimals`. `priceCapUSDCents` is a decimal string.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT.
+         *     Provide both `Authorization: DPoP` and `DPoP` headers.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["accountGetActivity"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1083,7 +1133,7 @@ export interface paths {
          *     | `retry_vendor_fulfilment` | 3 minutes | Retries transient vendor failures (`VENDOR_RETRY_PENDING`) |
          *     | `retry_onchain_recording` | 15 minutes | Retries on-chain recording (`ESIM_PROVISIONED_PENDING_CHAIN`) |
          *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions `UNAVAILABLE` eSIMs to `DEACTIVATED` after a 180-day grace window |
-         *     | `process_wallet_deployments` | 5 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
+         *     | `process_wallet_deployments` | 2 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
          *     | `record_lazy_wallet_history` | 15 minutes | Records pending lazy-wallet purchase history for `NOT_DEPLOYED` accounts into the lazy registry |
          *     | `reconcile_device_wallet_payments` | 30 minutes | Secondary confirmation for expired device-wallet payment sessions. Fulfils the order upon confirmation or marks `PAYMENT_FAILED`/`ABANDONED` |
          *       | `reconcile_promotion_holds` | 24 hours | Releases promotion holds left on orders that ended `ABANDONED` or `PAYMENT_FAILED` |
@@ -1538,7 +1588,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Alchemy Notify chain webhook
+         * Device-Wallet payment webhook
          * @description Receives Alchemy Notify **Custom Webhook** events confirming direct device-wallet
          *     on-chain payments (the `DataBundleBoughtWithToken` event emitted by the ESIMWallet).
          *
@@ -1588,6 +1638,117 @@ export interface paths {
          *     `exempt-` UUID is used.
          */
         post: operations["webhookChain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/activity/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Address activity tracker webhook
+         * @description Receives Alchemy Notify **Address Activity** deliveries for device wallets and stores them
+         *     in each device wallet's activity history, read through `GET /account/activity`.
+         *
+         *     > **Not callable by clients.** Invoked exclusively by Alchemy's webhook delivery
+         *     > infrastructure. Provisioned once per environment; the BFF adds each device wallet to the
+         *     > webhook's address list when the wallet is deployed, and removes it on account deletion.
+         *
+         *     **Authentication:** No auth middleware. HMAC-SHA256 over the raw body with the Address
+         *     Activity webhook's signing key (`ALCHEMY_ACTIVITY_SIGNING_KEY`), compared against the
+         *     `x-alchemy-signature` header in constant time.
+         *
+         *     **Raw body requirement:** The body must be the raw unparsed buffer. Preserved by the
+         *     global `express.json()` verify callback for paths under `/webhooks`.
+         *
+         *     **Flow:**
+         *     1. Verify the `x-alchemy-signature` HMAC.
+         *     2. Ignore the payload unless `type` is `ADDRESS_ACTIVITY` and `event.network` is the
+         *        configured chain's network.
+         *     3. Delete the entries of token transfers reported with `log.removed: true` (reorg).
+         *     4. Keep ETH (`external`, `internal`) and ERC-20 (`token`) transfers; drop NFTs and
+         *        zero-value transfers. A recognised token carries its symbol and decimals from the
+         *        BFF's asset list; any other token has no symbol and the payload's decimals.
+         *     5. Store one entry for each live device wallet the transfer touches, then keep the newest
+         *        25 entries per device wallet.
+         *
+         *     **Idempotency:** every entry is upserted on a unique key, so a redelivery is safe.
+         *
+         *     **Error handling:** processed before answering. A signature failure returns `401`; any
+         *     other failure returns `500`, so Alchemy retries the delivery.
+         *
+         *     **Rate limiting:** Exempt from the global IP rate limiter, as are all `/webhooks/*` paths.
+         *
+         *     **Correlation ID:** Exempt from the `x-correlation-id` requirement; a server-generated
+         *     `exempt-` UUID is used.
+         */
+        post: operations["webhookActivityTransfers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/activity/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Custom event tracker webhook
+         * @description Receives Alchemy Notify **Custom Webhook** (GraphQL) deliveries of the
+         *     `PriceCapUSDCentsUpdated` event emitted by eSIM wallets, and stores each change in the
+         *     owning device wallet's activity history, read through `GET /account/activity`.
+         *
+         *     > **Not callable by clients.** Invoked exclusively by Alchemy's webhook delivery
+         *     > infrastructure. Provisioned once per environment with a block-level GraphQL query for
+         *     > logs filtered by the `PriceCapUSDCentsUpdated` topic.
+         *
+         *     **Webhook type:** Custom Webhook (GraphQL), filtered **topic-only**. The emitter is
+         *     per-eSIM-wallet, so no contract-address filter is used; the BFF matches each emitter to an
+         *     account.
+         *
+         *     **Authentication:** No auth middleware. HMAC-SHA256 over the raw body with the Custom
+         *     webhook's signing key (`ALCHEMY_EVENTS_SIGNING_KEY`), compared against the
+         *     `x-alchemy-signature` header in constant time. The payload carries no network, so the
+         *     per-webhook key is what keeps another environment's webhook out.
+         *
+         *     **Raw body requirement:** The body must be the raw unparsed buffer. Preserved by the
+         *     global `express.json()` verify callback for paths under `/webhooks`.
+         *
+         *     **Flow:**
+         *     1. Verify the `x-alchemy-signature` HMAC.
+         *     2. Ignore the payload unless `type` is `GRAPHQL`.
+         *     3. Keep logs whose `topics[0]` is the `PriceCapUSDCentsUpdated` topic.
+         *     4. Match each emitting eSIM wallet to an account: first through its eSIM, then through an
+         *        account's unassigned eSIM wallets. Logs of unknown wallets or deleted accounts are
+         *        dropped.
+         *     5. Store one entry per log, with the new cap in USD cents as a decimal string (`0` means
+         *        the Kokio default) and the block timestamp as its time, then keep the newest 25 entries
+         *        per device wallet.
+         *
+         *     **Idempotency:** every entry is upserted on a unique key, so a redelivery is safe. A log
+         *     that does not decode is logged and skipped.
+         *
+         *     **Error handling:** processed before answering. A signature failure returns `401`; any
+         *     other failure returns `500`, so Alchemy retries the delivery.
+         *
+         *     **Correlation ID:** Exempt from the `x-correlation-id` requirement; a server-generated
+         *     `exempt-` UUID is used.
+         */
+        post: operations["webhookActivityEvents"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2062,6 +2223,86 @@ export interface components {
              * @example 3
              */
             total: number;
+        };
+        ActivityResponse: {
+            /**
+             * @description The device wallet's newest on-chain activity, newest first (block number descending,
+             *     then position in the block). At most 25 entries; older ones are not kept.
+             */
+            items: {
+                /**
+                 * @description `TRANSFER`: ETH or an ERC-20 token moved to or from the device wallet.
+                 *     `PRICE_CAP`: the price cap of one of the account's eSIM wallets changed.
+                 * @example TRANSFER
+                 * @enum {string}
+                 */
+                type: "TRANSFER" | "PRICE_CAP";
+                /**
+                 * @description `TRANSFER` only, relative to the device wallet: `OUT` when it sent the transfer
+                 *     (including to itself), `IN` when it received it. Null for `PRICE_CAP`.
+                 * @example IN
+                 * @enum {string|null}
+                 */
+                direction: "IN" | "OUT" | null;
+                /**
+                 * @description Transaction hash, lowercase.
+                 * @example 0x7a4a39da2a3fa1fc2ef88fd1eaea070286ed2aba21e0419dcfb6d5c5d9f02a72
+                 */
+                txHash: string;
+                /** @example 14627987 */
+                blockNumber: number;
+                /**
+                 * Format: date-time
+                 * @description `TRANSFER`: when Alchemy reported the transfer. `PRICE_CAP`: the block time.
+                 * @example 2026-10-15T07:42:26.411Z
+                 */
+                time: string;
+                /**
+                 * @description Sender, lowercase. Null for `PRICE_CAP`.
+                 * @example 0x503828976d22510aad0201ac7ec88293211d23da
+                 */
+                from: string | null;
+                /**
+                 * @description Recipient, lowercase. Null for `PRICE_CAP`.
+                 * @example 0xbe3f4b43db5eb49d1f48f53443b9abce45da3b79
+                 */
+                to: string | null;
+                /**
+                 * @description Token contract address, lowercase. Null for ETH and for `PRICE_CAP`. Show it when
+                 *     `symbol` is null.
+                 * @example 0x036cbd53842c5426634e7929541ec2318f3dcf7e
+                 */
+                token: string | null;
+                /**
+                 * @description `ETH`, or the token's symbol when the BFF recognises the token. Null for a token it
+                 *     does not recognise (display `token` instead) and for `PRICE_CAP`.
+                 * @example USDC
+                 */
+                symbol: string | null;
+                /**
+                 * @description Decimals to scale `amount` by. For a token the BFF does not recognise, the value
+                 *     Alchemy reported, or null when it reported none. Null for `PRICE_CAP`.
+                 * @example 6
+                 */
+                decimals: number | null;
+                /**
+                 * @description Amount in base units, as a decimal string (scale by `decimals` to display). Never
+                 *     zero. Null for `PRICE_CAP`.
+                 * @example 1500000
+                 */
+                amount: string | null;
+                /**
+                 * @description The eSIM wallet whose cap changed, lowercase. Null for `TRANSFER`.
+                 * @example null
+                 */
+                eSIMWallet: string | null;
+                /**
+                 * @description The new cap in USD cents, as a decimal string (the on-chain value is a uint64).
+                 *     `0` means the Kokio default cap applies. Null for `TRANSFER`.
+                 * @example null
+                 */
+                priceCapUSDCents: string | null;
+            }[];
         };
         CataloguePlan: {
             /**
@@ -3389,7 +3630,7 @@ export interface components {
              *     | `retry_vendor_fulfilment` | 3 minutes | Retries orders at `VENDOR_RETRY_PENDING` (transient vendor failures). Max 2 retries before `VENDOR_FAILED` |
              *     | `retry_onchain_recording` | 15 minutes | Retries `buildBuyDataBundleTxn` for orders at `ESIM_PROVISIONED_PENDING_CHAIN`. Max 2 retries before `COMPLETED` + `flaggedForManualReview` |
              *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions `UNAVAILABLE` eSIMs to `DEACTIVATED` after a 180-day grace window |
-             *     | `process_wallet_deployments` | 5 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
+             *     | `process_wallet_deployments` | 2 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
              *     | `record_lazy_wallet_history` | 15 minutes | Records pending lazy-wallet purchases (`isLazyWalletTransaction`, `ESIM_PROVISIONED_PENDING_CHAIN`) into the lazy registry for `NOT_DEPLOYED` accounts, grouped by device |
              *     | `reconcile_device_wallet_payments` | 30 minutes | Secondary confirmation for expired device-wallet payment sessions: confirms via chain (`usedPaymentReferences` / bundler receipt) and fulfils, or marks `PAYMENT_FAILED`/`ABANDONED` and returns the eSIM wallet to the pool |
              *     | `reconcile_promotion_holds` | 24 hours | Releases promotion holds and the first-order slot left on orders that ended `ABANDONED` or `PAYMENT_FAILED`, or were since deleted, when the writer's own release did not complete |
@@ -4835,6 +5076,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Authentication or DPoP validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` outside the freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` already used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match `cnf.jkt` |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            404: components["responses"]["AccountDeletedError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    accountGetActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The device wallet's newest activity, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "items": [
+                     *           {
+                     *             "type": "TRANSFER",
+                     *             "direction": "IN",
+                     *             "txHash": "0x7a4a39da2a3fa1fc2ef88fd1eaea070286ed2aba21e0419dcfb6d5c5d9f02a72",
+                     *             "blockNumber": 14627987,
+                     *             "time": "2026-10-15T07:42:26.411Z",
+                     *             "from": "0x503828976d22510aad0201ac7ec88293211d23da",
+                     *             "to": "0xbe3f4b43db5eb49d1f48f53443b9abce45da3b79",
+                     *             "token": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+                     *             "symbol": "USDC",
+                     *             "decimals": 6,
+                     *             "amount": "1500000",
+                     *             "eSIMWallet": null,
+                     *             "priceCapUSDCents": null
+                     *           },
+                     *           {
+                     *             "type": "PRICE_CAP",
+                     *             "direction": null,
+                     *             "txHash": "0xc84eeeb72d2b23161fd93b088f304902cbd8b4510f1455a65fdac160e37b3173",
+                     *             "blockNumber": 14627950,
+                     *             "time": "2026-10-15T07:41:12.000Z",
+                     *             "from": null,
+                     *             "to": null,
+                     *             "token": null,
+                     *             "symbol": null,
+                     *             "decimals": null,
+                     *             "amount": null,
+                     *             "eSIMWallet": "0x7853b3736edba9d7ce681f2a90264307694f97f2",
+                     *             "priceCapUSDCents": "2500"
+                     *           }
+                     *         ]
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["ActivityResponse"];
+                    };
                 };
             };
             /**
@@ -8310,8 +8675,128 @@ export interface operations {
                     };
                 };
             };
-            /** @description Signature verification failed (CHAIN_WEBHOOK_INVALID). */
+            /** @description Signature missing or verification failed (ALCHEMY_WEBHOOK_INVALID). */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    webhookActivityTransfers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Alchemy Address Activity payload. Must not be parsed before signature verification.
+         *     Content-Type is `application/json`; the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example wh_k63lg72rxda78gce */
+                    webhookId?: string;
+                    /** @example whevt_vq499kv7elmlbp2v */
+                    id?: string;
+                    /**
+                     * Format: date-time
+                     * @description Delivery time, stored as the time of each entry.
+                     * @example 2026-10-15T07:42:26.411977228Z
+                     */
+                    createdAt?: string;
+                    /**
+                     * @example ADDRESS_ACTIVITY
+                     * @enum {string}
+                     */
+                    type?: "ADDRESS_ACTIVITY";
+                    /** @description The network (e.g. `BASE_SEPOLIA`) and the `activity[]` transfers. */
+                    event?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Delivery processed, or ignored for another type or network. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        received?: boolean;
+                    };
+                };
+            };
+            /** @description Signature missing or verification failed (ALCHEMY_WEBHOOK_INVALID). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Processing failed; Alchemy retries the delivery. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    webhookActivityEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Alchemy Custom Webhook (GraphQL) payload. Must not be parsed before signature
+         *     verification. Content-Type is `application/json`; the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example wh_a55wfsvq5h8n8u3z */
+                    webhookId?: string;
+                    /** @example whevt_rsdblc6zxi8a6ntl */
+                    id?: string;
+                    /**
+                     * @example GRAPHQL
+                     * @enum {string}
+                     */
+                    type?: "GRAPHQL";
+                    /** @description GraphQL result carrying `data.block.logs[]`. */
+                    event?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Delivery processed, or ignored for another type. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        received?: boolean;
+                    };
+                };
+            };
+            /** @description Signature missing or verification failed (ALCHEMY_WEBHOOK_INVALID). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Processing failed; Alchemy retries the delivery. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

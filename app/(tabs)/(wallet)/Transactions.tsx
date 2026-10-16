@@ -1,28 +1,17 @@
 import { View, Image, Pressable } from 'react-native';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 import _ from "lodash"
 import { useColors } from "@/hooks/useColors";
-import { useWalletActivity } from '@/hooks/useWalletActivity';
-import { walletActivityEntryToDisplayItem, type WalletActivityDisplayItem } from '@/helpers/walletActivityDisplay';
-
-type Transaction = WalletActivityDisplayItem & { walletId?: string };
-
-const shortenId = (address: string|undefined, startLength = 3, endLength = 6) => {
-  if (!address) return "";
-  return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
-};
+import { useWalletActivityFeed } from '@/hooks/useWalletActivityFeed';
+import { shortenAddress } from '@/utils/address';
 
 const Transactions = () => {
   const router = useRouter();
   const colors = useColors();
-  const { entries } = useWalletActivity();
-  const transactions = useMemo<Transaction[]>(
-    () => entries.map(walletActivityEntryToDisplayItem),
-    [entries],
-  );
+  const { entries: transactions } = useWalletActivityFeed();
 
 
   return (
@@ -45,7 +34,7 @@ const Transactions = () => {
                     <Image source={tr?.icon} className='h-[48px] w-[48px]' />
                     <View className='flex-col items-start ml-3'>
                     {tr?.name ? <ThemedText variant='xl'>{tr?.name}</ThemedText>:
-                      <ThemedText variant='xl'>{shortenId(tr?.walletId)}</ThemedText>}
+                      <ThemedText variant='xl'>{shortenAddress(tr?.walletId)}</ThemedText>}
                       <ThemedText
                         darkColor={tr?.type === 'received' ? colors.foreground : colors.primary}
                         variant='sm'

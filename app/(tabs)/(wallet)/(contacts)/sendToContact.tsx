@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { TextInput } from 'react-native-gesture-handler'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useQueryClient } from '@tanstack/react-query'
 import { isAddress, parseUnits, formatUnits, type Address } from 'viem';
 import { useToast } from '@/contexts/ToastContext'
 import { useColors } from "@/hooks/useColors";
@@ -23,6 +24,7 @@ import { pasteAddressFromClipboard } from '@/helpers/clipboardAddress';
 import { useKokio } from '@/hooks/useKokio';
 import { logger } from '@/utils/logger';
 import { isUserCancelledPasskeyError } from '@/utils/formatOnChainError';
+import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from '@/utils/walletActivity';
 
 interface Transaction {
   id: string;
@@ -41,6 +43,7 @@ const SendToContact = () => {
   const pastedAddressTextColor = isDark ? colors.text : '#000000';
   const amountTextColor = isDark ? 'white' : '#000000';
   const { kokio } = useKokio();
+  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ id?: string; alias?: string; scannedAddress?: string }>();
   const hasPreselectedContact = !!params.id;
   const { contacts } = useContacts();
@@ -351,6 +354,21 @@ const SendToContact = () => {
 
       const txHash = receipt.receipt.transactionHash;
       const displayAmount = `${trimmedAmount} ${selectedToken.symbol}`;
+
+      if (kokio.deviceUID) {
+        appendWalletActivityEntry(kokio.deviceUID, {
+          type: 'SENT',
+          timestamp: Date.now(),
+          txHash,
+          amount: amountInSmallestUnit.toString(),
+          decimals: selectedToken.decimals,
+          symbol: selectedToken.symbol,
+          counterparty: recipient,
+          label: activeContact?.alias,
+        })
+          .then(() => queryClient.invalidateQueries({ queryKey: [WALLET_ACTIVITY_KEY, kokio.deviceUID] }))
+          .catch((err) => logger.error('WALLET_ACTIVITY_LOG_FAILED', { err }));
+      }
 
       if (contactForLog && activeContact) {
         const newTransaction: Transaction = {
