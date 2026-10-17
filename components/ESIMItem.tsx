@@ -21,6 +21,9 @@ export interface Esim {
   validity: number | null;
   voice?: number | null;
   planType?: "DATA" | "DATA_CALLS_SMS";
+  // Only present on catalogue plans - BACKUP plans are sorted after ACTIVE
+  // ones (see DataPackTabGroup). Absent on installed eSIMs/purchase history.
+  planStatus?: "ACTIVE" | "BACKUP";
   isTopupAvailable?: boolean;
   isAutoStart?: boolean;
   isKycRequired?: boolean;
