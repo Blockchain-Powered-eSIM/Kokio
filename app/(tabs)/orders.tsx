@@ -460,6 +460,14 @@ const OrderCard = ({
                 </Text>
               </View>
             ) : null}
+            {order.paymentMethod === "DEVICE_WALLET" ? (
+              <Ionicons
+                name="wallet-outline"
+                size={14}
+                color={colors.mutedForeground}
+                accessibilityLabel="Paid with device wallet"
+              />
+            ) : null}
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
               size={14}

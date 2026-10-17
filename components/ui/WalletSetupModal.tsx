@@ -6,19 +6,16 @@ import {
   Modal,
   Text,
   ActivityIndicator,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { openBrowserAsync } from "expo-web-browser";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Updates from "expo-updates";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/constants/Colors";
-import { getExplorerAddressBase } from "@/utils/explorerLinks";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
@@ -30,16 +27,6 @@ interface WalletSetupModalProps {
   onClose: () => void;
   onContinue: () => void;
 }
-
-// Utility function to format wallet address
-const formatWalletAddress = (
-  address: string | undefined,
-  startLength = 4,
-  endLength = 4
-) => {
-  if (!address) return "";
-  return `${address.slice(0, startLength)}...${address.slice(-endLength)}`;
-};
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   overlay: {
@@ -127,89 +114,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 24,
   },
-  warningContainer: {
-    flexDirection: "row",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  warningText: {
-    fontWeight: "600",
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  warningIconTopRight: {
-    position: "absolute",
-    top: -12,
-    right: 14,
-    zIndex: 1,
-  },
-  recoveryCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-  },
-  recoveryTitle: {
-    fontSize: 18,
-    marginBottom: 12,
-  },
-  addressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  clickableAddressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  addressText: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  linkIcon: {
-    marginLeft: 4,
-  },
-  recoveryDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  emailInput: {
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  recoveryButtonContainer: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  remindLaterButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  remindLaterText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  doneButton: {
-    flex: 1,
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  doneButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  expandedContainer: {
-    paddingTop: 20,
-    backgroundColor: "transparent",
-  },
 });
 
 const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
@@ -220,14 +124,9 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const [isLoading, setIsLoading] = useState(false);
-  const [showRecovery, setShowRecovery] = useState(false);
   const [showSubmitted, setShowSubmitted] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
-  const [eoaAddress, setEoaAddress] = useState("");
-  const [walletAddress, setWalletAddress] = useState<string | undefined>(
-    undefined
-  );
   const modalRef = React.useRef<Modal>(null);
   const { deployDeviceWallet } = useWalletDeployment();
   const { showMessage } = useToast();
@@ -235,29 +134,19 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
   const foregroundColor = useThemeColor({}, "foreground");
   const mutedColor = useThemeColor({}, "muted");
 
-  const handleAddressPress = useCallback(async () => {
-    if (walletAddress) {
-      const url = `${getExplorerAddressBase()}/${walletAddress}`;
-      try {
-        await openBrowserAsync(url);
-      } catch (error) {
-        logger.error('BROWSER_OPEN_FAILED', { error });
-      }
-    }
-  }, [walletAddress]);
-
   const handleContinue = useCallback(async () => {
     setIsLoading(true);
     setShowRetry(false);
 
     try {
       const result = await deployDeviceWallet();
-      setWalletAddress(result.walletAddress);
       if (result.status === 'already_deployed') {
-        setShowRecovery(true);
-      } else {
-        setShowSubmitted(true);
+        // Already confirmed on-chain right now - nothing more to show,
+        // close straight back to checkout with the device wallet selected.
+        onContinue();
+        return;
       }
+      setShowSubmitted(true);
     } catch (err: unknown) {
       if (err instanceof MissingSignupDataError) {
         setShowSignupPrompt(true);
@@ -274,16 +163,13 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [deployDeviceWallet, showMessage]);
+  }, [deployDeviceWallet, onContinue, showMessage]);
 
   const handleClose = useCallback(() => {
     setIsLoading(false);
-    setShowRecovery(false);
     setShowSubmitted(false);
     setShowRetry(false);
     setShowSignupPrompt(false);
-    setEoaAddress("");
-    setWalletAddress(undefined);
     onClose();
   }, [onClose]);
 
@@ -382,7 +268,6 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
 
   const handleSubmittedDone = useCallback(() => {
     setShowSubmitted(false);
-    setWalletAddress(undefined);
     onContinue();
   }, [onContinue]);
 
@@ -413,109 +298,10 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     [handleSubmittedDone, foregroundColor, textColor]
   );
 
-  const handleRemindLater = useCallback(() => {
-    setShowRecovery(false);
-    setEoaAddress("");
-    setWalletAddress(undefined);
-    onClose();
-  }, [onClose]);
-
-  const onSaveEOA = useCallback(async () => {
-    // No BFF endpoint exists yet to persist a recovery EOA (see docs/tasks.md
-    // for the backend ask) — don't let the user believe it was saved when it
-    // wasn't; tell them plainly instead of silently closing as if it succeeded.
-    if (!eoaAddress) return;
-    showMessage("Recovery address saving isn't available yet. This will be added in a future update.", 'info');
-  }, [eoaAddress, showMessage]);
-
-  const handleDone = useCallback(() => {
-    onSaveEOA();
-    setShowRecovery(false);
-    setEoaAddress("");
-    onContinue();
-  }, [onContinue, onSaveEOA]);
-
-  const recoveryContent = useMemo(
-    () => (
-      <>
-        <View style={[styles.warningContainer, { backgroundColor: colors.popover }]}>
-          <MaterialCommunityIcons
-            name="comment-alert"
-            size={32}
-            color={colors.primary}
-            style={styles.warningIconTopRight}
-          />
-          <Text style={[styles.warningText, { color: textColor }]}>
-            If you no longer have your device, you&#39;ll need this EOA to restore access to your wallet.
-          </Text>
-        </View>
-
-        <View style={[styles.recoveryCard, { backgroundColor: colors.popover }]}>
-          <ThemedText bold style={styles.recoveryTitle}>
-            Wallet Recovery
-          </ThemedText>
-
-          <View style={styles.addressContainer}>
-            <Text style={[styles.addressText, { color: foregroundColor }]}>Address: </Text>
-            <TouchableOpacity
-              style={styles.clickableAddressContainer}
-              onPress={handleAddressPress}
-              disabled={!walletAddress}
-            >
-              <Text style={[styles.addressText, { color: foregroundColor }]}>
-                {formatWalletAddress(walletAddress)}
-              </Text>
-              {walletAddress && (
-                <MaterialIcons
-                  name="open-in-new"
-                  size={16}
-                  color={colors.foreground}
-                  style={styles.linkIcon}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <Text style={[styles.recoveryDescription, { color: foregroundColor }]}>
-            You may optionally provide an EOA for recovery
-            purpose and to restore access to your device wallet
-          </Text>
-
-          <TextInput
-            style={[styles.emailInput, { backgroundColor: colors.inputBackground, color: textColor }]}
-            placeholder="EOA (Externally-owned Account)"
-            placeholderTextColor={mutedColor}
-            value={eoaAddress}
-            onChangeText={setEoaAddress}
-            keyboardType="default"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.recoveryButtonContainer}>
-          <TouchableOpacity
-            style={[styles.remindLaterButton, { borderColor: colors.primary }]}
-            onPress={handleRemindLater}
-          >
-            <Text style={[styles.remindLaterText, { color: colors.primary }]}>Remind me later</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.doneButton, { backgroundColor: colors.primary }]} onPress={handleDone}>
-            <Text style={[styles.doneButtonText, { color: colors.cardForeground }]}>Done</Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [eoaAddress, handleAddressPress, handleRemindLater, handleDone, walletAddress, foregroundColor]
-  );
-
   const renderContent = () => {
     if (isLoading) return loadingContent;
     if (showRetry) return retryContent;
     if (showSubmitted) return submittedContent;
-    if (showRecovery) return recoveryContent;
     return initialContent;
   };
 
@@ -543,7 +329,6 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
               style={[
                 styles.contentContainer,
                 { backgroundColor: colors.popover },
-                showRecovery && styles.expandedContainer,
               ]}
             >
               {renderContent()}

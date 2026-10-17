@@ -1,15 +1,14 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import {
   StyleSheet,
   FlatList,
   View,
   TouchableOpacity,
-  type LayoutChangeEvent,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import _chunk from "lodash/chunk";
 import _lowerCase from "lodash/lowerCase";
 import _trim from "lodash/trim";
 
@@ -32,32 +31,36 @@ import { COUNTRY_TO_REGIONS } from "@/constants/general.constants";
 const GLOBAL_ITEM = { code: "GLOBAL", name: "Global" };
 
 const SPACING = 8;
-const ARROW_SIZE = 32;
+const GRID_COLUMNS = 2;
+const GRID_VISIBLE_ROWS = 2;
+const GRID_COLUMN_GAP = 16;
+const GRID_ITEM_WIDTH = (Dimensions.get("window").width * 0.9 - GRID_COLUMN_GAP) / GRID_COLUMNS;
+// Flag (80) + label + its own marginBottom, so the grid clips to exactly
+// GRID_VISIBLE_ROWS and the rest of the screen (regions, multi-country row)
+// stays visible below it - more results scroll within the grid itself.
+const GRID_ROW_HEIGHT = 150;
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
   },
-  countrySectionWrapper: { marginTop: 12 },
-  carouselRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  carouselTrack: {
-    flex: 1,
-  },
-  countryColumn: {
-    flexDirection: "row",
+  countrySectionWrapper: {
+    marginTop: 12,
+    width: "90%",
+    alignSelf: "center",
   },
   countryCell: {
-    flex: 1,
+    width: GRID_ITEM_WIDTH,
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 4,
+    marginBottom: Theme.spacing.md,
+  },
+  countryColumnWrapper: {
+    gap: GRID_COLUMN_GAP,
   },
   countryName: {
     textAlign: "center",
+    paddingTop: Theme.spacing.sm,
+    width: GRID_ITEM_WIDTH - 8,
   },
   flag: {
     borderRadius: Theme.borderRadius.large,
@@ -85,13 +88,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     marginBottom: 12,
     color: colors.text,
   },
-  carouselArrow: {
-    width: ARROW_SIZE,
-    height: ARROW_SIZE,
-    borderRadius: ARROW_SIZE / 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });
 
 // `_lowerCase` also deburrs (strips diacritics) on both sides, so a two-letter
@@ -115,33 +111,34 @@ const rankedByName = <T extends ServiceRegion>(items: T[], query: string): T[] =
     .sort((a, b) => a.rank - b.rank || a.item.name.localeCompare(b.item.name))
     .map(({ item }) => item);
 
-const CountryColumn = ({ item, width }: { item: ServiceRegion[]; width: number }) => {
+const CountryCell = ({ item }: { item: ServiceRegion }) => {
   const styles = useThemedStyles(createStyles);
 
   return (
-    <View style={[styles.countryColumn, { width }]}>
-      {item.map((country) => (
-        <TouchableOpacity
-          key={country.code}
-          onPress={navigateToESIMsByCountry(country.code)}
-          style={styles.countryCell}
-          accessibilityRole="button"
-          accessibilityLabel={country.name || "Country"}
-        >
-          <CountryFlag
-            isoCode={country.code}
-            style={styles.flag}
-            flagUrl={country.flag}
-            size={80}
-          />
-          <ThemedText numberOfLines={2} style={styles.countryName}>
-            {country.name}
-          </ThemedText>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <TouchableOpacity
+      onPress={navigateToESIMsByCountry(item.code)}
+      style={styles.countryCell}
+      accessibilityRole="button"
+      accessibilityLabel={item.name || "Country"}
+    >
+      <CountryFlag
+        isoCode={item.code}
+        style={styles.flag}
+        flagUrl={item.flag}
+        size={80}
+      />
+      <ThemedText numberOfLines={2} style={styles.countryName}>
+        {item.name}
+      </ThemedText>
+    </TouchableOpacity>
   );
 };
+
+const CountryEmptyListComponent = () => (
+  <ThemedText style={{ paddingVertical: 8, paddingHorizontal: 12, textAlign: "center" }}>
+    No countries found
+  </ThemedText>
+);
 
 const RegionEmptyListComponent = () => (
   <ThemedText style={{ paddingVertical: 8, paddingHorizontal: 12, textAlign: "center" }}>
@@ -169,8 +166,8 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
 
   const query = _lowerCase(_trim(searchText));
 
-  const { countries, regions, chunkedCountries } = useMemo(() => {
-    if (!query) return { countries: [], regions: [], chunkedCountries: [] };
+  const { countries, regions } = useMemo(() => {
+    if (!query) return { countries: [], regions: [] };
 
     const matchedCountries = rankedByName(Object.values(countryConfig ?? {}), query);
 
@@ -192,81 +189,27 @@ const SearchResult = ({ searchText }: { searchText: string }) => {
     return {
       countries: matchedCountries,
       regions: [...nameMatchedRegions, ...countryMatchedRegions],
-      chunkedCountries: _chunk(matchedCountries, 2),
     };
   }, [countryConfig, regionConfig, query]);
 
-  const [trackWidth, setTrackWidth] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
-  const carouselRef = useRef<FlatList>(null);
-  const snapInterval = trackWidth + SPACING;
-  const maxOffset = Math.max(0, (chunkedCountries.length - 1) * snapInterval);
-
-  const isAtStart = scrollOffset <= 0;
-  const isAtEnd = scrollOffset >= maxOffset - snapInterval;
-
-  const scrollByOnePage = (direction: 1 | -1) => {
-    const target = Math.min(
-      Math.max(scrollOffset + direction * snapInterval, 0),
-      maxOffset
-    );
-    carouselRef.current?.scrollToOffset({ offset: target, animated: true });
-    setScrollOffset(target);
-  };
-
-  const onTrackLayout = (event: LayoutChangeEvent) => {
-    setTrackWidth(event.nativeEvent.layout.width);
-  };
+  const visibleRows = Math.min(Math.ceil(countries.length / GRID_COLUMNS), GRID_VISIBLE_ROWS);
+  const gridHeight = visibleRows * GRID_ROW_HEIGHT;
 
   return (
     <ThemedView style={styles.container}>
       {countries.length ? (
         <ThemedView style={styles.countrySectionWrapper}>
-          <View style={styles.carouselRow}>
-            <TouchableOpacity
-              onPress={() => scrollByOnePage(-1)}
-              disabled={isAtStart}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityRole="button"
-              accessibilityLabel="Scroll countries left"
-              style={[
-                styles.carouselArrow,
-                { backgroundColor: colors.surfaceElevated, opacity: isAtStart ? 0 : 1 },
-              ]}
-            >
-              <Ionicons name="chevron-back" size={20} color={colors.highlight} />
-            </TouchableOpacity>
-            <View style={styles.carouselTrack} onLayout={onTrackLayout}>
-              {trackWidth > 0 ? (
-                <FlatList
-                  ref={carouselRef}
-                  data={chunkedCountries}
-                  renderItem={({ item }) => <CountryColumn item={item} width={trackWidth} />}
-                  keyExtractor={(item, index) => String(item?.[0]?.code || index)}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  snapToInterval={snapInterval}
-                  decelerationRate="fast"
-                  ItemSeparatorComponent={() => <View style={{ width: SPACING }} />}
-                  onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.x)}
-                  scrollEventThrottle={16}
-                />
-              ) : null}
-            </View>
-            <TouchableOpacity
-              onPress={() => scrollByOnePage(1)}
-              disabled={isAtEnd}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityRole="button"
-              accessibilityLabel="Scroll countries right"
-              style={[
-                styles.carouselArrow,
-                { backgroundColor: colors.surfaceElevated, opacity: isAtEnd ? 0 : 1 },
-              ]}
-            >
-              <Ionicons name="chevron-forward" size={20} color={colors.highlight} />
-            </TouchableOpacity>
-          </View>
+          <FlatList
+            data={countries}
+            numColumns={GRID_COLUMNS}
+            renderItem={({ item }) => <CountryCell item={item} />}
+            columnWrapperStyle={styles.countryColumnWrapper}
+            keyExtractor={(item, index) => String(item?.code || index)}
+            style={{ height: gridHeight }}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            ListEmptyComponent={CountryEmptyListComponent}
+          />
         </ThemedView>
       ) : null}
       <ThemedView style={styles.regionSectionWrapper}>
