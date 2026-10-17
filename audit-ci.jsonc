@@ -24,6 +24,22 @@
     // Remove once the Expo/Metro cluster drops or replaces image-size; the grouped
     // Expo Dependabot PRs will surface that bump (expected imminently).
     "GHSA-w3rx-r6r6-pgpr",
-    "GHSA-5p2g-fcmc-qvqq"
+    "GHSA-5p2g-fcmc-qvqq",
+    // GHSA-86w9-cpqp-85rv — node-forge: RSA PKCS#1 v1.5 signature verification accepts extra nested
+    // DigestAlgorithm elements. No fixed release exists (1.4.0, the latest, is affected).
+    // Reached via expo-updates -> @expo/code-signing-certificates, which only verifies signatures when
+    // code signing is configured; app.config.js does not configure it. Also build-time via @expo/cli.
+    // Remove when node-forge publishes a fixed release or expo-updates stops depending on it.
+    "GHSA-86w9-cpqp-85rv",
+    // GHSA-hp3w-g68c-fv3c — sprintf-js: denial of service via unbounded precision specifiers.
+    // No fixed release exists (1.1.3, the latest, is affected). Reached only through jest -> argparse
+    // -> js-yaml, so it is test-only and never in the shipped app bundle.
+    // Remove when sprintf-js publishes a fixed release or the Jest chain drops it.
+    "GHSA-hp3w-g68c-fv3c",
+    // GHSA-vfj7-8cjw-p6xm — braces: denial of service through pattern expansion. No fixed release
+    // exists (3.0.3, the latest, is affected). Reached through micromatch, chokidar and fast-glob in
+    // Metro's file map and the Tailwind and Jest tooling. Build-time only, never in the shipped bundle.
+    // Remove when braces publishes a fixed release.
+    "GHSA-vfj7-8cjw-p6xm"
   ]
 }

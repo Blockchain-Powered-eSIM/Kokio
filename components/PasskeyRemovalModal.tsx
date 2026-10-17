@@ -7,13 +7,13 @@
  * Removing the credential is a step only the user can perform, in their platform password manager.
  */
 import React from 'react';
-import { Modal, View, Pressable, Platform, StyleSheet, Linking } from 'react-native';
+import { Modal, View, Pressable, Platform, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/ThemedText';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
-import { logger } from '@/utils/logger';
+import { openAppSettings } from '@/utils/openAppSettings';
 
 interface Props {
   visible: boolean;
@@ -115,12 +115,6 @@ export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => 
   const styles = useThemedStyles(createStyles);
   const isDark = useTheme();
 
-  const openSettings = () => {
-    Linking.openSettings().catch((err) =>
-      logger.error('PASSKEY_REMOVAL_OPEN_SETTINGS_FAILED', { err }),
-    );
-  };
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <BlurView
@@ -139,7 +133,7 @@ export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => 
 
           <ThemedText style={styles.body}>
             Until you remove it, your device will still hold a passkey for Kokio. It no
-            longer grants access to anything — the account behind it is gone — but it will
+            longer grants access to anything, the account behind it is gone but it will
             keep appearing in your password manager.
           </ThemedText>
 
@@ -153,14 +147,14 @@ export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => 
 
           <ThemedText style={styles.note}>
             Any eSIM you already paid for KEEPS working until it expires. To use Kokio
-            again, create a new account — this generates a new passkey and a new wallet.
+            again, create a new account which generates a new passkey and a new wallet.
             The deleted account cannot be restored.
           </ThemedText>
 
           <View style={styles.actions}>
             {Platform.OS === 'ios' && (
               <Pressable
-                onPress={openSettings}
+                onPress={openAppSettings}
                 style={[styles.btn, styles.btnGhost]}
                 accessibilityRole="button"
               >

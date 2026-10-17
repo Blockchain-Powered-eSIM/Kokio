@@ -27,7 +27,6 @@ const BFF_ERROR_MESSAGES: Record<string, string> = {
   INVALID_VENDORS:             'Invalid request.',
   // Order
   TXN_HASH_ALREADY_USED:             'Payment already processed.',
-  INVALID_OR_INSUFFICIENT_TX:        'Payment transaction invalid or insufficient.',
   ORDER_CREATION_FAILED:             'Order could not be completed. Please try again.',
   INVALID_PAYMENT_METHOD:            'Invalid payment method. Please try again.',
   PAYMENT_FAILED:                    'Payment failed. Please try again.',
@@ -35,6 +34,8 @@ const BFF_ERROR_MESSAGES: Record<string, string> = {
   STRIPE_CUSTOMER_CREATION_FAILED:   'Could not initiate payment. Please try again.',
   STRIPE_INVOICE_CREATION_FAILED:    'Could not initiate payment. Please try again.',
   STRIPE_INVOICE_FINALIZATION_FAILED: 'Payment could not be finalised. Please try again.',
+  ORDER_NOT_CANCELLABLE:             "This order can't be cancelled. A payment may already have been received.",
+  STRIPE_INVOICE_VOID_FAILED:        "We couldn't cancel this order right now. Please try again.",
   // eSIM
   ESIM_NOT_FOUND_FOR_DEVICE:        'eSIM not found.',
   NO_ACTIVE_ESIMS_FOR_DEVICE:       'No active eSIMs found.',
@@ -42,11 +43,20 @@ const BFF_ERROR_MESSAGES: Record<string, string> = {
   NO_EQUIVALENT_TOPUP_PLAN:         'No compatible top-up plan available.',
   INVALID_ESIM_TOPUP:               'This plan cannot be used for this order type.',
   ACCOUNT_NOT_FOUND:                'Account not found. Please sign in again.',
-  // Coupon
-  COUPON_NOT_FOUND:             'Invalid coupon code.',
-  COUPON_INSUFFICIENT_BALANCE:  'Coupon has insufficient balance.',
-  COUPON_ALREADY_ISSUED_FOR_TX: 'A coupon has already been issued for this transaction.',
-  COUPON_CODE_GEN_FAILED:       'Could not generate coupon. Please try again.',
+  // Promo codes, referrals, store credit
+  PROMO_CODE_INVALID_FORMAT:  'Enter a valid code.',
+  PROMO_CODE_NOT_FOUND:       'Invalid code.',
+  PROMO_CODE_NOT_YET_VALID:   'This code is not active yet.',
+  PROMO_CODE_EXPIRED:         'This code has expired.',
+  PROMO_CODE_REVOKED:         'This code is no longer valid.',
+  PROMO_CODE_EXHAUSTED:       'This code has been fully used.',
+  PROMO_ACCOUNT_LIMIT_REACHED: "You've already used this code the maximum number of times.",
+  PROMO_FIRST_PURCHASE_ONLY:  'This code is only valid on your first purchase.',
+  PROMO_CODE_NOT_APPLICABLE:  "This code can't be applied to this order.",
+  REFERRAL_NOT_ALLOWED:       "You can't use this referral code.",
+  FIAT_MINIMUM_NOT_MET:       'The amount to pay by card must be $1.00 or more.',
+  STORE_CREDIT_INSUFFICIENT:  'Your available credit changed. Please review your order and try again.',
+  FIRST_ORDER_IN_PROGRESS:    'You already have an order in progress using a first-order code. Complete or cancel it from Orders, or remove the code.',
   // Vendor
   VENDOR_ORDER_FAILED: 'Order could not be completed. Please try again.',
   VENDOR_PLANS_FAILED: 'Could not load plans. Please try again.',

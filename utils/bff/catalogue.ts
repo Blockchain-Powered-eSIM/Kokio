@@ -22,6 +22,21 @@ export function getCatalogue(params: GetCatalogueParams): Promise<CatalogueRespo
   return unwrapBffResponse(api.get('/v1/catalogue', params as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
 }
 
+const CATALOGUE_PAGE_SIZE = 250;
+
+// Fetches every page of a catalogue query. The server default page size is 50,
+// so a single call silently truncates larger regions.
+export async function getAllCatalogue(params: GetCatalogueParams): Promise<CatalogueResponse> {
+  const first = await getCatalogue({ ...params, page: 1, pageSize: CATALOGUE_PAGE_SIZE });
+  const plans = [...first.plans];
+  for (let page = 2; plans.length < first.total; page++) {
+    const next = await getCatalogue({ ...params, page, pageSize: CATALOGUE_PAGE_SIZE });
+    if (next.plans.length === 0) break;
+    plans.push(...next.plans);
+  }
+  return { ...first, plans };
+}
+
 /** @deprecated Use getCatalogue */
 export const getPlans = getCatalogue;
 

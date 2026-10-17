@@ -9,10 +9,13 @@ type CreateOrderResponse = components['schemas']['CreateOrderResponse'];
 type OrderStatusResponse = components['schemas']['OrderStatusResponse'];
 type OrderListItem       = components['schemas']['OrderListItem'];
 type OrderListResponse   = components['schemas']['OrderListResponse'];
+type SubmitPaymentResponse = components['schemas']['SubmitPaymentResponse'];
+type OrderPricing        = components['schemas']['OrderPricing'];
 
+export type CancelOrderResponse = components['schemas']['CancelOrderResponse'];
 export type InstallationDetails = components['schemas']['InstallationDetails'];
 
-export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, OrderListItem, OrderListResponse };
+export type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, OrderListItem, OrderListResponse, OrderPricing };
 
 // ─── Order functions ──────────────────────────────────────────────────────────
 
@@ -29,8 +32,39 @@ export function submitOrder(
 }
  
 
-export function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
-  return unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
+export function previewOrder(request: CreateOrderRequest): Promise<OrderPricing> {
+  return unwrapBffResponse<OrderPricing>(api.post('/v1/order/preview', request as Record<string, unknown>));
+}
+
+export async function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
+  try {
+    return await unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
+  } catch (err) {
+    if (err instanceof BffError && err.httpStatus === 404 && err.code !== 'ACCOUNT_DELETED') {
+      throw new OrderNotFoundError();
+    }
+    throw err;
+  }
+}
+
+// Recovery fallback for a DEVICE_WALLET order whose payment webhook hasn't
+// landed yet — records the hash so a reconcile job can classify it. Not
+// needed on the happy path, and a no-op if the order already advanced.
+export function submitPaymentHash(
+  idempotencyKey: string,
+  userOperationHash: string,
+): Promise<SubmitPaymentResponse> {
+  return unwrapBffResponse<SubmitPaymentResponse>(
+    api.post(`/v1/order/${idempotencyKey}/payment-submission`, { userOperationHash }),
+  );
+}
+
+// Irreversible: a payment that completes after cancelling is not matched or
+// refunded. Call only after the user has confirmed they understand that.
+export function cancelOrder(idempotencyKey: string): Promise<CancelOrderResponse> {
+  return unwrapBffResponse<CancelOrderResponse>(
+    api.post(`/v1/order/${idempotencyKey}/cancel`),
+  );
 }
 
 export function getOrderList(page = 1, pageSize = 25): Promise<OrderListResponse> {
@@ -57,10 +91,9 @@ export function isOrderSuccess(status: string): boolean {
 }
 
 /**
- * Thrown when GET /order/{idempotencyKey} returns "no order found" shape, i.e.
- * HTTP 200, success envelope, all data fields null and the message containing ORDER_NOT_FOUND.
- * Per spec this means no order exists for this idempotency key + device.
- * It should only occur transiently, if at all, immediately after creation. 
+ * Thrown when GET /order/{idempotencyKey} returns HTTP 404 (other than ACCOUNT_DELETED),
+ * meaning no order exists for this idempotency key + device.
+ * It should only occur transiently, if at all, immediately after creation.
  * Not retried.
  */
 export class OrderNotFoundError extends Error {
@@ -110,6 +143,7 @@ export async function pollOrderStatus(
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
       const waitMs = Math.min(backoffMs, remaining);
+      logger.debug('ESIM_POLL_RATE_LIMITED', { idempotencyKey, attempt: retryAttempt, waitMs });
       onUpdate?.({ kind: 'retrying', attempt: retryAttempt, waitMs });
       await new Promise<void>((r) => setTimeout(r, waitMs));
       backoffMs = Math.min(backoffMs * 2, BACKOFF_CAP_MS);

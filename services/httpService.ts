@@ -294,6 +294,10 @@ const api = {
   put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.put(url, data, config);
   },
+
+  patch(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
+    return instance.patch(url, data, config);
+  },
    
   delete(url: string, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.delete(url, config);

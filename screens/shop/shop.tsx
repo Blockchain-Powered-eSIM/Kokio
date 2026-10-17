@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
-import { useFocusEffect, useNavigation } from "expo-router";
+import { useNavigation } from "expo-router";
 
 import _debounce from "lodash/debounce";
 
@@ -71,27 +71,19 @@ const Shop = () => {
   // when switching back into Shop from a different tab. Remounting
   // TabsNavigator (via the key bump) resets it to its first screen
   // (Countries) instead of silently keeping whatever top-tab (Regions/
-  // Global/Special) was last active.
+  // Global/Special) was last active, and the search is cleared with it.
   useEffect(() => {
     // "tabPress" isn't in expo-router's generic NavigationProp event map
     // (it's specific to tab navigators, which this screen isn't directly),
     // but it still bubbles up correctly to the ancestor Tabs navigator at runtime.
     const unsubscribe = (navigation as any).addListener("tabPress", () => {
+      debouncedOnSearch.cancel();
+      setSearchText("");
+      setSearchResetKey((key) => key + 1);
       setTopTabResetKey((key) => key + 1);
     });
     return unsubscribe;
-  }, [navigation]);
-
-  // Resets the search term whenever this screen regains focus — covers
-  // returning from a purchase flow or anywhere else in the app, not just a
-  // bottom-tab press. Remounting SearchInput (via the key bump) is required
-  // since it keeps its own uncontrolled text state internally.
-  useFocusEffect(
-    useCallback(() => {
-      setSearchText("");
-      setSearchResetKey((key) => key + 1);
-    }, [])
-  );
+  }, [navigation, debouncedOnSearch]);
 
   return (
     <ThemedView style={styles.shopContainer}>

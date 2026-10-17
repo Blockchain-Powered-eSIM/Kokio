@@ -9,11 +9,12 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { useEsims } from "@/hooks/useDeviceEsims";
-import { useEsimUsage } from "@/hooks/useEsimUsage";
-import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { useAllEsimUsage } from "@/hooks/useEsimUsage";
 import ESIMItem from "@/components/ESIMItem";
-import type { ESimDocument } from "@/utils/bff/esim";
+import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
+import type { ESimDocument, ESimUsage } from "@/utils/bff/esim";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { openInstallation } from "@/helpers/esimInstall";
 import { logger } from "@/utils/logger";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -27,6 +28,10 @@ const ITEM_WIDTH   = SCREEN_WIDTH * 0.9;
 const SPACING      = 8;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function purchasedAtMs(doc: ESimDocument): number {
+  return doc.createdAt ? new Date(doc.createdAt).getTime() : 0;
+}
 
 // LPA string: prefer the smdpAddress+matchingId pair from the live eSIM doc
 // (authoritative); fall back to the qrcode stored on installationDetails.
@@ -83,30 +88,18 @@ const createStyles = (colors: Palette) =>
       marginTop: 8,
     },
     quickInstallBtn: {
+      alignSelf: "center",
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      paddingVertical: 10,
-      borderRadius: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 18,
+      borderRadius: 16,
     },
     quickInstallText: {
       fontSize: 14,
-      fontWeight: "600",
-      color: "white",
-    },
-    lpaRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      paddingVertical: 8,
-      paddingHorizontal: 10,
-      borderRadius: 10,
-    },
-    lpaText: {
-      flex: 1,
-      fontSize: 12,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontWeight: "800",
     },
     remainingRow: {
       flexDirection: "row",
@@ -140,21 +133,23 @@ const createStyles = (colors: Palette) =>
 const HomeEsimCard = ({
   doc,
   onPress,
+  usage,
+  usageLoading,
+  usageIsError,
 }: {
   doc: ESimDocument;
   onPress: () => void;
+  usage: ESimUsage | undefined;
+  usageLoading: boolean;
+  usageIsError: boolean;
 }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { isDark } = useTheme();
-  const { copied, copy } = useCopyFeedback();
 
   const isInstalled = doc.activationStatus === "INSTALLED";
   const lpa = buildLpa(doc);
-
-  // Remaining data is only needed once the eSIM is installed.
-  const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
-    useEsimUsage(isInstalled ? doc.esimId : undefined);
+  const usageUnavailable = !!usage?.usageError;
 
   const remainingDataText = usageLoading
     ? "Loading…"
@@ -221,24 +216,22 @@ const HomeEsimCard = ({
       accessibilityRole="button"
       accessibilityLabel="Quick install this eSIM"
     >
-      <Ionicons name="download-outline" size={15} color="white" />
-      <Text style={styles.quickInstallText}>Quick install</Text>
+      <Ionicons name="download-outline" size={15} color={colors.primaryForeground} />
+      <Text style={[styles.quickInstallText, { color: colors.primaryForeground }]}>Quick install</Text>
     </TouchableOpacity>
   ) : (
     <TouchableOpacity
-      style={[styles.footer, styles.lpaRow, { backgroundColor: isDark ? "white" : colors.muted }]}
-      onPress={() => copy(lpa)}
+      style={[
+        styles.footer,
+        styles.quickInstallBtn,
+        { backgroundColor: isDark ? colors.shopCta : colors.primary },
+      ]}
+      onPress={() => openInstallation(lpa)}
       accessibilityRole="button"
-      accessibilityLabel="Copy LPA install string"
+      accessibilityLabel="Install this eSIM"
     >
-      <Text style={[styles.lpaText, { color: colors.cardForeground }]} numberOfLines={2}>
-        Install using this Code in SIM settings
-      </Text>
-      <Ionicons
-        name={copied ? "checkmark-circle" : "copy-outline"}
-        size={16}
-        color={colors.cardForeground}
-      />
+      <Ionicons name="download-outline" size={15} color={colors.primaryForeground} />
+      <Text style={[styles.quickInstallText, { color: colors.primaryForeground }]}>Install eSIM</Text>
     </TouchableOpacity>
   );
 
@@ -248,6 +241,7 @@ const HomeEsimCard = ({
       showBuyButton={false}
       onPress={onPress}
       footer={footer}
+      title={<EsimLabelEditor doc={doc} color={colors.cardForeground} />}
     />
   );
 };
@@ -261,17 +255,22 @@ const ActiveESIMsScroll = () => {
 
   const { esims, isLoading } = useEsims();
 
-  const activeEsims = esims.filter((e) =>
-    ACTIVE_STATUSES.has(e.activationStatus),
-  );
+  const activeEsims = esims
+    .filter((e) => ACTIVE_STATUSES.has(e.activationStatus))
+    .sort((a, b) => purchasedAtMs(b) - purchasedAtMs(a));
+  const hasInstalled = activeEsims.some((e) => e.activationStatus === "INSTALLED");
+
+  // One call for every card's usage instead of one GET per card.
+  const { usageByEsimRef, isLoading: usageLoading, isError: usageIsError } =
+    useAllEsimUsage(hasInstalled);
 
   // Navigate to the Orders tab, expanding the card for this eSIM.
-  // Uses esimId as the expand key — orders.tsx matches on esimId.
+  // Uses eSimRef as the expand key — orders.tsx matches on eSimRef.
   const handleESIMPress = (doc: ESimDocument) => {
     return () => {
       router.push({
         pathname: "/(tabs)/orders",
-        params: { expandOrderId: doc.esimId },
+        params: { expandOrderId: doc.eSimRef },
       });
     };
   };
@@ -288,7 +287,7 @@ const ActiveESIMsScroll = () => {
             No active eSIMs
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.cardForeground }]}>
-            Your purchased eSIMs will appear here
+            Purchased eSIMs will appear here
           </Text>
         </View>
       </View>
@@ -302,10 +301,16 @@ const ActiveESIMsScroll = () => {
         data={activeEsims}
         renderItem={({ item }) => (
           <View style={styles.itemWrapper}>
-            <HomeEsimCard doc={item} onPress={handleESIMPress(item)} />
+            <HomeEsimCard
+              doc={item}
+              onPress={handleESIMPress(item)}
+              usage={usageByEsimRef[item.eSimRef]}
+              usageLoading={usageLoading}
+              usageIsError={usageIsError}
+            />
           </View>
         )}
-        keyExtractor={(item) => item.esimId}
+        keyExtractor={(item) => item.eSimRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
