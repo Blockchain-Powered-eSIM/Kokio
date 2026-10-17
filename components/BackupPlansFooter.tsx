@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { Theme } from "@/constants/Colors";
-import PillButton from "@/components/ui/PillButton";
+import { PillButton } from "@/components/ui/PillButton";
 
 type BackupPlansFooterProps = {
   onPress: () => void;
