@@ -767,7 +767,7 @@ export default function OrdersScreen() {
                     </Text>
                   ) : null}
                 </View>
-              ) : null
+              ) : undefined
             }
             ListFooterComponent={<Text style={styles.refreshHint}>Swipe down to refresh</Text>}
             refreshControl={

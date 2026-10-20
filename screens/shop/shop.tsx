@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet } from "react-native";
-import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
-import type { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
+import { StyleSheet, useWindowDimensions } from "react-native";
+import { SceneMap, TabView } from "react-native-tab-view";
 import { useNavigation } from "expo-router";
 
 import _debounce from "lodash/debounce";
@@ -21,37 +20,34 @@ import Regions from "./tabs/regions";
 import SearchResult from "./searchResult";
 import Custom from "./tabs/custom";
 
-const Tab = createMaterialTopTabNavigator();
+const TOP_TAB_ROUTES = [
+  { key: "Countries", title: "Countries" },
+  { key: "Regions", title: "Regions" },
+  { key: "Global", title: "Global" },
+  { key: "Custom", title: "Special" },
+];
+
+const renderScene = SceneMap({
+  Countries,
+  Regions,
+  Global,
+  Custom,
+});
 
 const TabsNavigator = () => {
   const { isDark } = useTheme();
   const bg = useThemeColor({}, "background");
+  const layout = useWindowDimensions();
+  const [index, setIndex] = useState(0);
   return (
-    <Tab.Navigator
-      tabBar={(props: MaterialTopTabBarProps) => <TabBar {...props} />}
-      screenOptions={{ sceneStyle: { backgroundColor: isDark ? "transparent" : bg } }}
-    >
-      <Tab.Screen
-        name="Countries"
-        component={Countries}
-        options={{ tabBarLabel: "Countries" }}
-      />
-      <Tab.Screen
-        name="Regions"
-        component={Regions}
-        options={{ tabBarLabel: "Regions" }}
-      />
-      <Tab.Screen
-        name="Global"
-        component={Global}
-        options={{ tabBarLabel: "Global" }}
-      />
-      <Tab.Screen
-        name="Custom"
-        component={Custom}
-        options={{ tabBarLabel: "Special" }}
-      />
-    </Tab.Navigator>
+    <TabView
+      navigationState={{ index, routes: TOP_TAB_ROUTES }}
+      renderScene={renderScene}
+      onIndexChange={setIndex}
+      initialLayout={{ width: layout.width }}
+      renderTabBar={(props) => <TabBar {...props} />}
+      style={{ backgroundColor: isDark ? "transparent" : bg }}
+    />
   );
 };
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, useSegments } from "expo-router";
 
 import { Theme } from "@/constants/Colors";
 import { useNavBarInset } from "@/hooks/useBottomInset"; 
@@ -10,7 +10,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ROUTE_NAMES } from "@/constants/route.constants";
-import { getRouteName, getIsTabBarVisible } from "@/helpers/navigator.helper";
+import { getRouteNameFromSegments, getIsTabBarVisible } from "@/helpers/navigator.helper";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import Header from "@/components/Header";
 import { HeaderBackControl } from "@/components/navigation/stackHeader";
@@ -33,13 +33,11 @@ export default function TabLayout() {
   const headerText = useThemeColor({}, "headerText");
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const segments = useSegments();
+  const tabBarVisible = getIsTabBarVisible(getRouteNameFromSegments(segments));
   return (
     <Tabs
-      screenOptions={({ navigation }) => {
-        const navigationState = navigation.getState();
-        const routeName = getRouteName(navigationState);
-        const tabBarVisible = getIsTabBarVisible(routeName);
-
+      screenOptions={() => {
         return {
           tabBarActiveTintColor: colors.highlight,
           tabBarInactiveTintColor: colors.inactive,
@@ -146,7 +144,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name={ROUTE_NAMES.INSTALLATION}
         options={{
-          href: null, // Hide from tab bar
+          // In Expo Router 58, `href: null` marks the tab `hidden`, and a focused hidden tab is redirected to the initial tab (Home)
+          tabBarItemStyle: { display: "none" },
           headerShown: true,
           title: "Install eSIM",
           headerTitleAlign: "center",
