@@ -73,7 +73,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
   headerWithLogo: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginTop: 4,
     marginBottom: 16,
@@ -120,23 +120,23 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-export function TestnetBadge() {
-  const colors = useColors();
-  return (
-    <View
-      style={{
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 999,
-        backgroundColor: colors.itemBackground,
-      }}
-    >
-      <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.foreground }}>
-        TESTNET
-      </ThemedText>
-    </View>
-  );
-}
+// export function TestnetBadge() {
+//   const colors = useColors();
+//   return (
+//     <View
+//       style={{
+//         paddingHorizontal: 10,
+//         paddingVertical: 4,
+//         borderRadius: 999,
+//         backgroundColor: colors.itemBackground,
+//       }}
+//     >
+//       <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.foreground }}>
+//         TESTNET
+//       </ThemedText>
+//     </View>
+//   );
+// }
 
 export function WalletHeroCard({
   address,
@@ -179,7 +179,6 @@ export function WalletHeroCard({
           />
           {headerContent ?? (
             <ThemedView style={styles.headerWithLogo}>
-              <TestnetBadge />
               <Image
                 source={require("@/assets/images/logo.png")}
                 style={styles.logo}

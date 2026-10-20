@@ -24,7 +24,6 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
-import { TESTNET_DISCLOSURE_MESSAGE } from '@/constants/general.constants';
 import Header from '@/components/Header';
 import { HeaderBackControl } from '@/components/navigation/stackHeader';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
@@ -134,38 +133,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     fontWeight: "500",
     color: colors.text,
   },
-  testnetNotice: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginTop: 8,
-    borderRadius: 16,
-    marginHorizontal: 4,
-    backgroundColor: colors.itemBackground,
-  },
-  testnetNoticeText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-    color: colors.mutedForeground,
-  },
-  aboutTestnetNotice: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.muted,
-    backgroundColor: colors.itemBackground,
-    marginBottom: 16,
-  },
-  aboutTestnetNoticeText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.text,
-  },
 });
 
 const MenuItem = ({
@@ -224,12 +191,6 @@ const AboutContent = () => {
         style={styles.aboutContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.aboutTestnetNotice}>
-          <Ionicons name="bulb-outline" size={18} color={styles.aboutTestnetNoticeText.color} style={styles.iconLeft} />
-          <ThemedText style={styles.aboutTestnetNoticeText}>
-            {TESTNET_DISCLOSURE_MESSAGE}
-          </ThemedText>
-        </View>
         <ThemedText style={styles.aboutText}>
           You are using official Kokio mobile app.
         </ThemedText>
@@ -401,7 +362,9 @@ export default function MenuScreen() {
       iconLeft: "refresh-outline",
       iconRight: "chevron-forward-outline",
       action: async () => {
-        await SecureStore.deleteItemAsync(VERSION_KEY);
+        // await SecureStore.deleteItemAsync(VERSION_KEY);
+        // Simulates a device coming from an old build
+        await SecureStore.setItemAsync(VERSION_KEY, '2');
         await clearWelcomeBackSeen();
         showMessage('Cutover test state cleared. Relaunch the app to see it again.', 'info');
       },
@@ -449,17 +412,6 @@ export default function MenuScreen() {
                 setShowDeleteAccount(false);
               }}
             />
-            <View style={styles.testnetNotice}>
-              <Ionicons
-                name="bulb-outline"
-                size={20}
-                color={colors.icon}
-                style={styles.iconLeft}
-              />
-              <ThemedText style={styles.testnetNoticeText}>
-                {TESTNET_DISCLOSURE_MESSAGE}
-              </ThemedText>
-            </View>
             { <View style={styles.themeRow}>
               <Ionicons
                 name={isDark ? "moon-outline" : "sunny-outline"}

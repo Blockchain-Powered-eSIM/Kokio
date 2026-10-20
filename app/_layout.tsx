@@ -22,7 +22,7 @@ import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/services/httpService";
 import { useAuthStore } from "@/stores/authStore";
 import { runSdkV3MigrationIfNeeded } from "@/utils/auth/sdkV3Reset";
-import { runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";
+import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";
 import { shouldShowWelcomeBack } from "@/utils/auth/returningUserProbe";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import {
@@ -65,9 +65,11 @@ export default function RootLayout() {
   // runMainnetCutoverIfNeeded is the same idiom for the future testnet -> mainnet
   // cutover — currently a no-op until MAINNET_CUTOVER_ENABLED flips true.
   useEffect(() => {
-    runSdkV3MigrationIfNeeded()
-      .then(() => runMainnetCutoverIfNeeded())
-      .then((justCutOver) => shouldShowWelcomeBack(justCutOver))
+    isReturningDevice()
+      .then((returningDevice) =>
+        runSdkV3MigrationIfNeeded().then(() => runMainnetCutoverIfNeeded(returningDevice)),
+      )
+      .then(() => shouldShowWelcomeBack())
       .then(setShowWelcomeBack)
       .finally(() => setResetReady(true));
   }, []);

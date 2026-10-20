@@ -7,7 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
-import { TestnetBadge, WalletHeroCard } from "@/components/wallet/WalletHeroCard";
+import { WalletHeroCard } from "@/components/wallet/WalletHeroCard";
 import { useColors } from "@/hooks/useColors";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
@@ -60,7 +60,7 @@ export default function EsimWalletScreen() {
           headerContent={
             <View style={{ marginBottom: 16 }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flex: 1, marginRight: 8 }}>
+                <View style={{ flex: 1 }}>
                   <EsimLabelEditor doc={doc} color={colors.text} textStyle={{ fontSize: 15.5 }} />
                 </View>
                 <TestnetBadge />
