@@ -95,8 +95,8 @@ android {
         versionCode 1
         // Kept in step with package.json by scripts/sync-native-version.mjs.
         // EAS reads versionName without running Groovy, so it must be a literal.
-        versionName "1.6.1"
-        resValue "string", "expo_runtime_version", "1.6.1"
+        versionName "2.0.0"
+        resValue "string", "expo_runtime_version", "2.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
