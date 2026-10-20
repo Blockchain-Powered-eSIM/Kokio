@@ -14,6 +14,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { pasteAddressFromClipboard } from '@/helpers/clipboardAddress';
+import { normalizeAddressInput } from '@/utils/address';
 import { logger } from '@/utils/logger';
 
 const AddContactScreen = () => {
@@ -46,7 +47,16 @@ const AddContactScreen = () => {
     const handleScan = async () => {
         router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit: "false" } });
     };
-
+    
+    const applyAddressInput = (text: string) => {
+        const address = normalizeAddressInput(text);
+        if (address === null) {
+            showMessage("Only Base addresses can be used", "error");
+            return;
+        }
+        setWalletAddress(address);
+    };
+    
     const handlePasteAddress = async () => {
         try {
             const address = await pasteAddressFromClipboard();
@@ -54,7 +64,7 @@ const AddContactScreen = () => {
                 showMessage("Clipboard is empty", "error");
                 return;
             }
-            setWalletAddress(address);
+            applyAddressInput(address);
         } catch (error) {
             logger.error('CLIPBOARD_PASTE_FAILED', { error });
             showMessage("Couldn't read from clipboard", "error");
@@ -157,7 +167,7 @@ const AddContactScreen = () => {
                                 className='text-[15px] w-[80%] font-LexendLight mb-2 ml-6 mt-2 '
                                 style={{ color: inputTextColor }}
                                 placeholderTextColor={colors.mutedForeground}
-                                onChangeText={(text) => setWalletAddress(text)}
+                                onChangeText={applyAddressInput}
                                 multiline={true}
                                 numberOfLines={2}
                                 textAlignVertical="top"

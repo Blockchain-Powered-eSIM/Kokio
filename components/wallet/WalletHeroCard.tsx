@@ -16,7 +16,7 @@ import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { getExplorerAddressBase } from "@/utils/explorerLinks";
-import { shortenAddress } from "@/utils/address";
+import { shortenAddress, withBasePrefix } from "@/utils/address";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { logger } from "@/utils/logger";
 import { ThemedView } from "@/components/ThemedView";
@@ -222,7 +222,7 @@ export function WalletHeroCard({
 
           <View style={styles.addressRow}>
             <ThemedText variant="sm" lightColor={LIGHT_TOKENS.text} darkColor={DARK_TOKENS.text}>
-              {shortenAddress(address)}
+              {withBasePrefix(shortenAddress(address))}
             </ThemedText>
             <View style={styles.iconContainer}>
               <TouchableOpacity
@@ -241,7 +241,7 @@ export function WalletHeroCard({
               </TouchableOpacity>
               {showCopy && (
                 <TouchableOpacity
-                  onPress={() => copy(address)}
+                  onPress={() => copy(withBasePrefix(address))}
                   disabled={!address}
                   style={styles.iconButton}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

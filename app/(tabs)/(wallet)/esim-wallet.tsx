@@ -63,7 +63,6 @@ export default function EsimWalletScreen() {
                 <View style={{ flex: 1 }}>
                   <EsimLabelEditor doc={doc} color={colors.text} textStyle={{ fontSize: 15.5 }} />
                 </View>
-                <TestnetBadge />
               </View>
               <View style={{ marginTop: 12 }}>
                 <CountryFlag

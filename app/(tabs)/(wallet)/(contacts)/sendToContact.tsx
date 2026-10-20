@@ -21,6 +21,7 @@ import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useGasEstimate, formatFeeEth } from '@/hooks/useGasEstimate';
 import { buildTransferCall } from '@/helpers/walletTransferCall';
 import { pasteAddressFromClipboard } from '@/helpers/clipboardAddress';
+import { normalizeAddressInput } from '@/utils/address';
 import { useKokio } from '@/hooks/useKokio';
 import { logger } from '@/utils/logger';
 import { isUserCancelledPasskeyError } from '@/utils/formatOnChainError';
@@ -251,7 +252,18 @@ const SendToContact = () => {
   const handleAmountChange = (text: string) => {
     setAmount(text.replace(/^0+(?=\d)/, ''));
   };
-
+  
+  const applyAddressInput = (text: string) => {
+    const address = normalizeAddressInput(text);
+    if (address === null) {
+      showMessage("Only Base addresses can be used", "error");
+      return;
+    }
+    setPastedAddress(address);
+    setSelectedContactId(undefined);
+    setRecipientSource('manual');
+  };
+  
   const handlePasteAddress = async () => {
     try {
       const address = await pasteAddressFromClipboard();
@@ -259,9 +271,7 @@ const SendToContact = () => {
         showMessage("Clipboard is empty", "error");
         return;
       }
-      setPastedAddress(address);
-      setSelectedContactId(undefined);
-      setRecipientSource('manual');
+      applyAddressInput(address);
     } catch (error) {
       logger.error('CLIPBOARD_PASTE_FAILED', { error });
       showMessage("Couldn't read from clipboard", "error");
@@ -503,7 +513,7 @@ const SendToContact = () => {
               <TextInput
                 value={addressFieldValue}
                 editable={!isLoading && !isRecipientLocked}
-                onChangeText={(text) => { setPastedAddress(text); setSelectedContactId(undefined); setRecipientSource('manual'); }}
+                onChangeText={applyAddressInput}
                 placeholder={recipientSource === 'contact' ? 'No address on file' : '0x...'}
                 placeholderTextColor={colors.mutedForeground}
                 autoCapitalize='none'

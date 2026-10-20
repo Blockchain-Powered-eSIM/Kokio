@@ -12,6 +12,7 @@ import { useContacts, findContactConflict } from '@/hooks/useContacts';
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
+import { normalizeAddressInput } from '@/utils/address';
 import { logger } from '@/utils/logger';
 
 const EditContact = () => {
@@ -41,9 +42,19 @@ const EditContact = () => {
         return unsubscribe;
     }, [navigation, params]);
 
+    const applyAddressInput = (text: string) => {
+        const address = normalizeAddressInput(text);
+        if (address === null) {
+            showMessage("Only Base addresses can be used", "error");
+            return;
+        }
+        setWalletAddress(address);
+    };
+
     const handleScan = async () => {
         router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit:"true",id:params.id } });
     };
+    
     const handleSave = async () => {
         if (alias === "" || walletAddress === "") {
           showMessage("Please fill in an alias and address to proceed", "error");
@@ -147,7 +158,7 @@ const EditContact = () => {
                                 className='text-[15px] w-[80%] font-LexendLight mb-2 ml-6 mt-2 '
                                 style={{ color: inputTextColor }}
                                 placeholderTextColor={colors.mutedForeground}
-                                onChangeText={(text) => setWalletAddress(text)}
+                                onChangeText={applyAddressInput}
                                 multiline={true}
                                 numberOfLines={2}
                                 textAlignVertical="top"
