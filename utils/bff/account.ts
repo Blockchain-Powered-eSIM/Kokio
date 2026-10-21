@@ -16,17 +16,17 @@ export type { AccountResponse, ReferralResponse, CreditHistoryResponse, Activity
  * Identity is resolved server-side from the JWT — no params. Requires a recent step-up assertion.
  */
 export function getAccount(): Promise<AccountResponse> {
-  return unwrapBffResponse<AccountResponse>(api.get('/v1/account'));
+  return unwrapBffResponse<AccountResponse>(api.get('/account'));
 }
 
 export function getReferral(): Promise<ReferralResponse> {
-  return unwrapBffResponse<ReferralResponse>(api.get('/v1/account/referral'));
+  return unwrapBffResponse<ReferralResponse>(api.get('/account/referral'));
 }
 
 export function getCredit(
   params?: { page?: number; pageSize?: number },
 ): Promise<CreditHistoryResponse> {
-  return unwrapBffResponse<CreditHistoryResponse>(api.get('/v1/account/credit', { params }));
+  return unwrapBffResponse<CreditHistoryResponse>(api.get('/account/credit', { params }));
 }
 
 /**
@@ -34,10 +34,10 @@ export function getCredit(
  * 25 entries. Tracking starts from wallet deployment - no backfill, no pagination.
  */
 export function getAccountActivity(): Promise<ActivityResponse> {
-  return unwrapBffResponse<ActivityResponse>(api.get('/v1/account/activity'));
+  return unwrapBffResponse<ActivityResponse>(api.get('/account/activity'));
 }
 
 // Permanently delete the authenticated device's account. IRREVERSIBLE.
 export async function deleteAccount(): Promise<void> {
-  await api.delete('/v1/account', { ...api.getConfig() });
+  await api.delete('/account', { ...api.getConfig() });
 }

@@ -4,7 +4,7 @@
  * Verifies checkEsimCompatibility: correct endpoint, param forwarding,
  * absence of deviceId, response shape, and BffError propagation.
  *
- * esimId is now a path parameter: GET /v1/esim/compatibility/{esimId}
+ * esimId is now a path parameter: GET /esim/compatibility/{esimId}
  */
 
 import api from '@/services/httpService';
@@ -61,20 +61,20 @@ beforeEach(() => jest.clearAllMocks());
 
 describe('checkEsimCompatibility', () => {
   describe('request shape', () => {
-    it('calls api.get with /v1/esim/compatibility/{esimId} when esimId provided', async () => {
+    it('calls api.get with /esim/compatibility/{esimId} when esimId provided', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope());
       await checkEsimCompatibility({ planId: 'plan-1' }, '0xESIM01');
       expect(mockGet).toHaveBeenCalledWith(
-        '/v1/esim/compatibility/0xESIM01',
+        '/esim/compatibility/0xESIM01',
         expect.any(Object),
       );
     });
 
-    it('calls api.get with /v1/esim/compatibility (no esimId) when omitted', async () => {
+    it('calls api.get with /esim/compatibility (no esimId) when omitted', async () => {
       mockGet.mockResolvedValue(compatibilityEnvelope());
       await checkEsimCompatibility({ planId: 'plan-1' });
       expect(mockGet).toHaveBeenCalledWith(
-        '/v1/esim/compatibility',
+        '/esim/compatibility',
         expect.any(Object),
       );
     });

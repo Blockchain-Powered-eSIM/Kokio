@@ -40,7 +40,7 @@ export interface WalletDeployResponse {
 // biometrics. GET /account, by contrast, requires step-up and must not be
 // used for this.
 export function getWalletState(): Promise<WalletStateResponse> {
-  return unwrapBffResponse<WalletStateResponse>(api.get('/v1/account/wallet'));
+  return unwrapBffResponse<WalletStateResponse>(api.get('/account/wallet'));
 }
 
 // POST /account/wallet/deploy requires step-up — the existing STEP_UP_REQUIRED
@@ -51,7 +51,7 @@ export function getWalletState(): Promise<WalletStateResponse> {
 export function requestWalletDeployment(): Promise<{ data: WalletDeployResponse; correlationId: string }> {
   const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<WalletDeployResponse>(
-    api.post('/v1/account/wallet/deploy', {}, {
+    api.post('/account/wallet/deploy', {}, {
       headers: { 'x-correlation-id': idempotencyKey },
     }),
   ).then((r) => ({ ...r, correlationId: idempotencyKey }));

@@ -5,7 +5,7 @@ import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from 'expo-router/react-navigation';
+} from 'expo-router';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
 import { AuthRelayProvider } from './authProvider';

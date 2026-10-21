@@ -16,7 +16,7 @@ import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { getExplorerAddressBase } from "@/utils/explorerLinks";
-import { shortenAddress } from "@/utils/address";
+import { shortenAddress, withBasePrefix } from "@/utils/address";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { logger } from "@/utils/logger";
 import { ThemedView } from "@/components/ThemedView";
@@ -73,7 +73,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
   headerWithLogo: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginTop: 4,
     marginBottom: 16,
@@ -120,23 +120,23 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-export function TestnetBadge() {
-  const colors = useColors();
-  return (
-    <View
-      style={{
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 999,
-        backgroundColor: colors.itemBackground,
-      }}
-    >
-      <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.foreground }}>
-        TESTNET
-      </ThemedText>
-    </View>
-  );
-}
+// export function TestnetBadge() {
+//   const colors = useColors();
+//   return (
+//     <View
+//       style={{
+//         paddingHorizontal: 10,
+//         paddingVertical: 4,
+//         borderRadius: 999,
+//         backgroundColor: colors.itemBackground,
+//       }}
+//     >
+//       <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.foreground }}>
+//         TESTNET
+//       </ThemedText>
+//     </View>
+//   );
+// }
 
 export function WalletHeroCard({
   address,
@@ -179,7 +179,6 @@ export function WalletHeroCard({
           />
           {headerContent ?? (
             <ThemedView style={styles.headerWithLogo}>
-              <TestnetBadge />
               <Image
                 source={require("@/assets/images/logo.png")}
                 style={styles.logo}
@@ -223,7 +222,7 @@ export function WalletHeroCard({
 
           <View style={styles.addressRow}>
             <ThemedText variant="sm" lightColor={LIGHT_TOKENS.text} darkColor={DARK_TOKENS.text}>
-              {shortenAddress(address)}
+              {withBasePrefix(shortenAddress(address))}
             </ThemedText>
             <View style={styles.iconContainer}>
               <TouchableOpacity
@@ -242,7 +241,7 @@ export function WalletHeroCard({
               </TouchableOpacity>
               {showCopy && (
                 <TouchableOpacity
-                  onPress={() => copy(address)}
+                  onPress={() => copy(withBasePrefix(address))}
                   disabled={!address}
                   style={styles.iconButton}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

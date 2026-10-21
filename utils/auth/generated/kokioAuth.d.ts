@@ -248,15 +248,19 @@ export interface paths {
         };
         /**
          * PKCE authorization code issuance
-         * @description Issues a PKCE authorization code and redirects to `https://kokio.app?code=<code>`.
+         * @description Issues a PKCE authorization code and redirects to `https://kokio.app?code=<code>&state=<uuid>`.
          *
          *     Called immediately after a successful `POST /auth/login/complete`.
          *     The client generates PKCE parameters before calling `login/begin` and
          *     presents them here alongside the authentication event values.
          *
          *     **Flow position:** Step 3 of the authentication flow.
-         *     On 302 redirect, extract `code` from `https://kokio.app?code=<code>`
+         *     On 302 redirect, extract `code` from `https://kokio.app?code=<code>&state=<uuid>`
          *     and proceed to `POST /auth/token` with the `authorization_code` grant.
+         *     The `state` parameter is set to the correlationId value passed by the requesting client when
+         *     making this request. The `state` parameter allows the client to ensure the redirect URI returned
+         *     matched the request they made. It is recommended for the client to match the state parameter when
+         *     processing the redirect returned.
          *
          *     **`authTime` recency window:** The `auth_time` parameter must be within
          *     **120 seconds** of the current server time. Calls outside this window
@@ -1972,7 +1976,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /**
-             * @description Authorization code issued. Redirects to `https://kokio.app?code=<code>`.
+             * @description Authorization code issued. Redirects to `https://kokio.app?code=<code>&state=<uuid>`.
              *
              *     Extract the `code` query parameter from the redirect URI and pass it
              *     to `POST /auth/token` with the `authorization_code` grant within
@@ -1983,9 +1987,9 @@ export interface operations {
             302: {
                 headers: {
                     /**
-                     * @description Redirect target URI containing the authorization code.
-                     *     Format: `https://kokio.app?code=<authorization_code>`
-                     * @example https://kokio.app?code=SplxlOBeZQQYbYS6WxSbIA
+                     * @description Redirect target URI containing the authorization code and state association.
+                     *     Format: `https://kokio.app?code=<authorization_code>&state=<uuid>`
+                     * @example https://kokio.app?code=SplxlOBeZQQYbYS6WxSbIA&state=da5853d6-4d54-49f2-a38e-a57c20cd430e
                      */
                     Location?: string;
                     [name: string]: unknown;

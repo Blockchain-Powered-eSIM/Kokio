@@ -238,9 +238,9 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     }
 
     const signerAddress    = resolvedAddress as `0x${string}`;
-    const chainId          = Config.CHAIN_ID ?? baseSepolia.id;
+    const chainId          = Config.CHAIN_ID;
     // Release builds must not silently fall back to testnet on bad config.
-    if (!__DEV__ && chainId !== base.id && chainId !== baseSepolia.id) {
+    if (chainId !== base.id && chainId !== baseSepolia.id) {
       dispatch({ type: "ERROR", payload: "Chain configuration missing or invalid" });
       return;
     }

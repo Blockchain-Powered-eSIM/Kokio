@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { withBasePrefix } from "@/utils/address";
 import QRCode from "react-native-qrcode-svg";
 
 interface ReceiveAddressCardProps {
@@ -24,10 +25,10 @@ export function ReceiveAddressCard({ address }: ReceiveAddressCardProps) {
         {!!address && <QRCode value={address} size={156} />}
       </View>
       <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} style={{ marginTop: 16, textAlign: "center" }} numberOfLines={2}>
-        {address}
+        {withBasePrefix(address)}
       </ThemedText>
       <TouchableOpacity
-        onPress={() => copy(address)}
+        onPress={() => copy(withBasePrefix(address))}
         style={{
           marginTop: 18,
           width: "100%",

@@ -51,6 +51,7 @@ export const Config = {
     if (!extra?.apiBaseUrl) logger.error('CONFIG_MISSING_API_BASE_URL');
     if (!extra?.stripePublishableKey) logger.error('CONFIG_MISSING_STRIPE_PUBLISHABLE_KEY');
     if (!extra?.stripeMerchantIdentifier) logger.warn('CONFIG_MISSING_STRIPE_MERCHANT_IDENTIFIER');
+    if (!extra?.chainId) logger.error('CONFIG_MISSING_CHAIN_ID');
     if (!extra?.walletConnectProjectId) logger.warn('CONFIG_MISSING_WALLETCONNECT_PROJECT_ID');
   },
 };

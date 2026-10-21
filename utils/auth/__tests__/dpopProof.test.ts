@@ -54,19 +54,19 @@ async function verifyProof(proof: string) {
 
 describe('proof structure — header', () => {
   it('sets typ to dpop+jwt', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const { header } = await verifyProof(proof);
     expect(header.typ).toBe('dpop+jwt');
   });
 
   it('sets alg to ES256', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const { header } = await verifyProof(proof);
     expect(header.alg).toBe('ES256');
   });
 
   it('embeds the public JWK in the header', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const { header } = await verifyProof(proof);
     expect(header.jwk).toMatchObject({ kty: 'EC', crv: 'P-256' });
     // Must not include the private key scalar d
@@ -74,7 +74,7 @@ describe('proof structure — header', () => {
   });
 
   it('signature validates against the embedded JWK (reference verifier)', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     // verifyProof throws if the signature is invalid — just resolving is the assertion
     await expect(verifyProof(proof)).resolves.toBeDefined();
   });
@@ -82,13 +82,13 @@ describe('proof structure — header', () => {
 
 describe('proof structure — payload claims', () => {
   it('htm matches the outgoing request method exactly', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const { payload } = await verifyProof(proof);
     expect(payload.htm).toBe('POST');
   });
 
   it('htu matches the outgoing request URL exactly', async () => {
-    const url = 'https://auth.kokio.app/v1/auth/token';
+    const url = 'https://auth.kokio.app/v2/auth/token';
     const proof = await buildDpopProof({ htu: url, htm: 'POST' });
     const { payload } = await verifyProof(proof);
     expect(payload.htu).toBe(url);
@@ -96,7 +96,7 @@ describe('proof structure — payload claims', () => {
 
   it('iat is a unix timestamp close to now', async () => {
     const before = Math.floor(Date.now() / 1000);
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const after = Math.floor(Date.now() / 1000);
     const { payload } = await verifyProof(proof);
     expect(typeof payload.iat).toBe('number');
@@ -105,7 +105,7 @@ describe('proof structure — payload claims', () => {
   });
 
   it('jti is present and is a non-empty string', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const { payload } = await verifyProof(proof);
     expect(typeof payload.jti).toBe('string');
     expect((payload.jti as string).length).toBeGreaterThan(0);
@@ -115,7 +115,7 @@ describe('proof structure — payload claims', () => {
 describe('nonce claim', () => {
   it('includes nonce when provided', async () => {
     const proof = await buildDpopProof({
-      htu: 'https://auth.kokio.app/v1/auth/token',
+      htu: 'https://auth.kokio.app/v2/auth/token',
       htm: 'POST',
       nonce: 'server-nonce-abc',
     });
@@ -124,7 +124,7 @@ describe('nonce claim', () => {
   });
 
   it('omits nonce when not provided', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const { payload } = await verifyProof(proof);
     expect(payload.nonce).toBeUndefined();
   });
@@ -134,7 +134,7 @@ describe('ath claim (access token hash)', () => {
   it('includes ath when accessToken is provided', async () => {
     const accessToken = 'eyJhbGciOiJSUzI1NiJ9.example.token';
     const proof = await buildDpopProof({
-      htu: 'https://api.kokio.app/v1/esim',
+      htu: 'https://api.kokio.app/v2/esim',
       htm: 'GET',
       accessToken,
     });
@@ -145,7 +145,7 @@ describe('ath claim (access token hash)', () => {
   it('ath equals base64url(SHA-256(accessToken))', async () => {
     const accessToken = 'eyJhbGciOiJSUzI1NiJ9.example.token';
     const proof = await buildDpopProof({
-      htu: 'https://api.kokio.app/v1/esim',
+      htu: 'https://api.kokio.app/v2/esim',
       htm: 'GET',
       accessToken,
     });
@@ -160,7 +160,7 @@ describe('ath claim (access token hash)', () => {
   });
 
   it('omits ath when accessToken is not provided (token endpoint grant)', async () => {
-    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+    const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
     const { payload } = await verifyProof(proof);
     expect(payload.ath).toBeUndefined();
   });
@@ -170,7 +170,7 @@ describe('jti uniqueness', () => {
   it('produces unique jti across 1000 sequential calls', async () => {
     const jtis = new Set<string>();
     for (let i = 0; i < 1000; i++) {
-      const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v1/auth/token', htm: 'POST' });
+      const proof = await buildDpopProof({ htu: 'https://auth.kokio.app/v2/auth/token', htm: 'POST' });
       const { payload } = await verifyProof(proof);
       jtis.add(payload.jti as string);
     }

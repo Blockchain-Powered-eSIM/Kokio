@@ -523,7 +523,7 @@ const Checkout = () => {
 
     try {
       setIsCheckoutLoading(true);
-      setLoadingMessage('Confirm the payment with Face ID...');
+      setLoadingMessage('Confirm the payment...');
 
       // Fires the passkey/biometric prompt. Resolves with the user operation
       // hash, NOT a receipt - the payment is not confirmed on-chain yet. The

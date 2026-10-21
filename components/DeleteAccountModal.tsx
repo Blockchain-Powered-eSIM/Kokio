@@ -1,5 +1,5 @@
 /**
- * DeleteAccountModal — type-to-confirm gate for DELETE /v1/account.
+ * DeleteAccountModal — type-to-confirm gate for DELETE /account.
  *
  * The three consequences:
  *   1. Irreversible. No recovery path exists for anyone, including the operator.

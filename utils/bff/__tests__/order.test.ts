@@ -72,10 +72,10 @@ beforeEach(() => jest.clearAllMocks());
 
 describe('createOrder', () => {
   describe('request shape', () => {
-    it('calls api.post with /v1/order', async () => {
+    it('calls api.post with /order', async () => {
       mockPost.mockResolvedValue(successEnvelope());
       await createOrder(BASE_REQUEST);
-      expect(mockPost).toHaveBeenCalledWith('/v1/order', expect.any(Object));
+      expect(mockPost).toHaveBeenCalledWith('/order', expect.any(Object));
     });
 
     it('forwards all request body fields to the endpoint', async () => {

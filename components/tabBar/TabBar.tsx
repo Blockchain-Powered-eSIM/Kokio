@@ -1,7 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { MaterialTopTabBarProps } from "expo-router/js-top-tabs";
-import type { Route } from "expo-router/react-navigation";
+import type { NavigationState, Route, SceneRendererProps } from "react-native-tab-view";
 
 import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
@@ -38,26 +37,20 @@ const styles = StyleSheet.create({
   },
 });
 
-const TabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
+type TabBarProps = SceneRendererProps & { navigationState: NavigationState<Route> };
+
+const TabBar = ({ navigationState, jumpTo }: TabBarProps) => {
   const colors = useColors();
   return (
     <View style={styles.tabBarContainer}>
       <View style={[styles.tabBarStyle, { backgroundColor: colors.secondaryBackground }]}>
-        {state.routes.map((route: Route<string>, index: number) => {
-          const { options } = descriptors[route.key];
-          const label = options.tabBarLabel || options.title || route.name;
-
-          const isFocused = state.index === index;
+        {navigationState.routes.map((route, index) => {
+          const label = route.title ?? route.key;
+          const isFocused = navigationState.index === index;
 
           const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            if (!isFocused) {
+              jumpTo(route.key);
             }
           };
 
@@ -66,7 +59,7 @@ const TabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
               key={route.key}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
+              accessibilityLabel={route.accessibilityLabel}
               onPress={onPress}
               style={styles.tabStyle}
               activeOpacity={0.7}
@@ -80,7 +73,7 @@ const TabBar = ({ state, descriptors, navigation }: MaterialTopTabBarProps) => {
                   },
                 ]}
               >
-                {label as string}
+                {label}
               </Text>
             </TouchableOpacity>
           );

@@ -58,7 +58,7 @@ function freshModule() {
   jest.resetModules();
 
   jest.mock('@/appKeys', () => ({
-    Config: { AUTH_SERVER_BASE_URL: 'https://auth.example.com' },
+    Config: { AUTH_SERVER_BASE_URL: 'https://auth.example.com/v2' },
   }));
 
   jest.mock('../kokioAuthClient', () => ({
@@ -288,7 +288,7 @@ describe('DPoP proof shape', () => {
     );
   });
 
-  it('passes htu pointing to the /v1/auth/token endpoint', async () => {
+  it('passes htu pointing to the /v2/auth/token endpoint', async () => {
     const { refreshAccessToken } = freshModule();
 
     mockToken.mockImplementation(async (_params, buildProof) => {
@@ -299,7 +299,7 @@ describe('DPoP proof shape', () => {
     await refreshAccessToken();
 
     expect(mockBuildDpopProof).toHaveBeenCalledWith(
-      expect.objectContaining({ htu: 'https://auth.example.com/v1/auth/token' }),
+      expect.objectContaining({ htu: 'https://auth.example.com/v2/auth/token' }),
     );
   });
 

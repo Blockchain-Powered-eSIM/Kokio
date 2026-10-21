@@ -90,7 +90,7 @@ const ESIMsFlatListComponent = ({
       ListEmptyComponent={() => (
         <EmptyListComponent filtersActive={filtersActive} onClearFilters={onClearFilters} />
       )}
-      ListFooterComponent={footer}
+      ListFooterComponent={footer ?? undefined}
       style={{ backgroundColor: "transparent" }}
     />
   );
