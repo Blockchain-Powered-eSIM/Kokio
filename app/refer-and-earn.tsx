@@ -246,7 +246,7 @@ export default function ReferAndEarnModal() {
           <View style={styles.infoCard}>
             <Ionicons name="information-circle-outline" size={18} color={colors.mutedForeground} />
             <ThemedText style={styles.infoText}>
-              Friends get 15% off their first order, up to $25. You earn the greater of 10% or $2.50 as
+              Friends get 15% off their first order, up to $25. You earn 10% of their first order value or $2.50 (whichever is higher) as
               store credit once their order completes.
             </ThemedText>
           </View>
