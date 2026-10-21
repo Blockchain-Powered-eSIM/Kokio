@@ -31,7 +31,7 @@ export default function TestScreen() {
   // ─── Redirect spike state ────────────────────────────────────────────────
   const [redirectLog, setRedirectLog] = useState<string>("");
   const [redirectUrl, setRedirectUrl] = useState<string>(
-    `${Config.AUTH_SERVER_BASE_URL ?? ""}/v1/auth/authorize?response_type=code&redirect_uri=kokio%3A%2F%2Fcallback&code_challenge=SPIKE_CHALLENGE&code_challenge_method=S256&device_wallet_address=0x0000000000000000000000000000000000000000&auth_time=0`
+    `${Config.AUTH_SERVER_BASE_URL ?? ""}/auth/authorize?response_type=code&redirect_uri=kokio%3A%2F%2Fcallback&code_challenge=SPIKE_CHALLENGE&code_challenge_method=S256&device_wallet_address=0x0000000000000000000000000000000000000000&auth_time=0`
   );
 
   const appendLog = (line: string) =>

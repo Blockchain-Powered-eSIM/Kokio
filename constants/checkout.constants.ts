@@ -8,6 +8,18 @@ export const RADIO_KEYS = {
 
 export type RadioKey = (typeof RADIO_KEYS)[keyof typeof RADIO_KEYS];
 
+// Must also be whitelisted by the backend's payment adapter.
+export const DEVICE_WALLET_PAYMENT_ASSETS = ["USDC", "USDT", "DAI"] as const;
+
+// __DEV__-only; useWalletTokens.ts gates this the same way.
+export const DEV_DEVICE_WALLET_PAYMENT_ASSETS = ["USDCt"] as const;
+
+export type DeviceWalletPaymentAsset =
+  | (typeof DEVICE_WALLET_PAYMENT_ASSETS)[number]
+  | (typeof DEV_DEVICE_WALLET_PAYMENT_ASSETS)[number];
+
+export const DEFAULT_DEVICE_WALLET_PAYMENT_ASSET: DeviceWalletPaymentAsset = "USDC";
+
 export const PLAN_TYPES = {
   DATA: "DATA",
   DATA_CALLS_SMS: "DATA_CALLS_SMS",
@@ -102,3 +114,7 @@ export const ESIM_EXTRA_DETAILS: EsimExtraDetail[] = [
     hideWhenNullish: true,
   },
 ];
+
+export const PROMO_CODE_PATTERN = /^[A-Za-z0-9]{4,16}$/;
+
+export const FIAT_MINIMUM_CENTS = 100;

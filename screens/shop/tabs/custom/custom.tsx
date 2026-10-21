@@ -7,14 +7,25 @@ import { useCatalogue } from "@/hooks/useCatalogue";
 import { formatBffError } from "@/utils/bff/errors";
 import { useShopFilters } from "@/contexts/ShopFiltersContext";
 import { applyShopFilters } from "@/utils/shopFilters";
+import { customRegionalName } from "@/helpers/customRegionalName";
 
 export default function Custom() {
   const { data, isLoading, error, refetch } = useCatalogue({ serviceRegionCode: "CUSTOM_REGIONAL" });
   const { filters, isActive, clearFilters } = useShopFilters();
 
+  const namedPlans = useMemo(
+    () =>
+      (data?.plans ?? []).map((plan) => {
+        const codes = (plan.coverageCountries ?? []).flatMap((c) => (c.countryCode ? [c.countryCode] : []));
+        const name = customRegionalName(codes);
+        return name ? { ...plan, serviceRegionName: name } : plan;
+      }),
+    [data?.plans]
+  );
+
   const filteredPlans = useMemo(
-    () => applyShopFilters(data?.plans, filters),
-    [data?.plans, filters]
+    () => applyShopFilters(namedPlans, filters),
+    [namedPlans, filters]
   );
 
   if (isLoading) {

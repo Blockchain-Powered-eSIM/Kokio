@@ -1,17 +1,19 @@
 import React from "react";
 import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, useSegments } from "expo-router";
 
 import { Theme } from "@/constants/Colors";
 import { useNavBarInset } from "@/hooks/useBottomInset"; 
 import { useColors } from "@/hooks/useColors";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ROUTE_NAMES } from "@/constants/route.constants";
-import { getRouteName, getIsTabBarVisible } from "@/helpers/navigator.helper";
+import { getRouteNameFromSegments, getIsTabBarVisible } from "@/helpers/navigator.helper";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import Header from "@/components/Header";
+import { HeaderBackControl } from "@/components/navigation/stackHeader";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   tabBar: {
@@ -25,41 +27,17 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-function InstallationHeader() {
-  return (
-    <SafeAreaView edges={["top"]}>
-      <Header
-        title="Install eSIM"
-        style={{ justifyContent: "center" }}
-        hasBack
-        goBackHandler={() => {
-          router.navigate("/(tabs)/orders");
-        }}
-      />
-    </SafeAreaView>
-  );
-}
-
-// Feature flags for tab availability
-// Set to true to enable the tab, false to disable (but keep visible)
-const TAB_ENABLED = {
-  WALLET: false, // Change to true to enable Wallet tab
-};
-
-// Disabled tab styling
-const DISABLED_TAB_OPACITY = 0.3;
-
 export default function TabLayout() {
   const navBarInset = useNavBarInset();
+  const headerBackground = useThemeColor({}, "background");
+  const headerText = useThemeColor({}, "headerText");
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const segments = useSegments();
+  const tabBarVisible = getIsTabBarVisible(getRouteNameFromSegments(segments));
   return (
     <Tabs
-      screenOptions={({ navigation }) => {
-        const navigationState = navigation.getState();
-        const routeName = getRouteName(navigationState);
-        const tabBarVisible = getIsTabBarVisible(routeName);
-
+      screenOptions={() => {
         return {
           tabBarActiveTintColor: colors.highlight,
           tabBarInactiveTintColor: colors.inactive,
@@ -113,21 +91,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
               name={focused ? "wallet" : "wallet-outline"}
-              color={TAB_ENABLED.WALLET ? color : colors.inactive}
-              style={[
-                styles.tabBarIcon,
-                !TAB_ENABLED.WALLET && { opacity: DISABLED_TAB_OPACITY },
-              ]}
+              color={color}
+              style={styles.tabBarIcon}
             />
           ),
-        }}
-        // NOTE: Remove when tab is enabled
-        listeners={{
-          tabPress: (e) => {
-            if (!TAB_ENABLED.WALLET) {
-              e.preventDefault();
-            }
-          },
         }}
       />
       <Tabs.Screen
@@ -177,9 +144,20 @@ export default function TabLayout() {
       <Tabs.Screen
         name={ROUTE_NAMES.INSTALLATION}
         options={{
-          href: null, // Hide from tab bar
+          // In Expo Router 58, `href: null` marks the tab `hidden`, and a focused hidden tab is redirected to the initial tab (Home)
+          tabBarItemStyle: { display: "none" },
           headerShown: true,
-          header: () => <InstallationHeader />,
+          title: "Install eSIM",
+          headerTitleAlign: "center",
+          headerStyle: { backgroundColor: headerBackground },
+          headerTintColor: headerText,
+          headerTitleStyle: { fontFamily: "Lexend", fontSize: 18, color: headerText },
+          headerLeft: ({ tintColor }) => (
+            <HeaderBackControl
+              tintColor={tintColor}
+              onPress={() => router.navigate("/(tabs)/orders")}
+            />
+          ),
         }}
       />
     </Tabs>

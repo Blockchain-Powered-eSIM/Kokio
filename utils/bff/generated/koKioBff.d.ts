@@ -116,7 +116,7 @@ export interface paths {
          *     billing reference with no client-side use.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["accountGet"];
         put?: never;
@@ -136,7 +136,7 @@ export interface paths {
          *     complete the step-up ceremony on the Auth Server and retry.
          *
          *     **Rate limiting:** Subject to the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          *
          *     ---
          *
@@ -178,6 +178,10 @@ export interface paths {
          *       pseudonymous (a wallet address, no personal data) and persist on the ledger by
          *       design.
          *
+         *     - **Wallet activity history is retained but no longer updated.** The device wallet
+         *       stops being tracked for new on-chain activity. The stored history is not readable
+         *       through this API after deletion.
+         *
          *     ### Auth Server behaviour — important for clients
          *
          *     The Auth Server is **intentionally not informed** of account deletion. The passkey
@@ -210,6 +214,187 @@ export interface paths {
          *     access.
          */
         delete: operations["accountDelete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get device wallet deployment state
+         * @description Returns the device's wallet-deployment state and, while `DEPLOYING`, the active
+         *     deployment request's progress metadata.
+         *
+         *     **Client Integration**
+         *     - This endpoint can be used to track a deployment started with `POST /account/wallet/deploy`
+         *       (poll until `walletState` is `DEPLOYED` or the request reaches a terminal state).
+         *     - If only the raw state is needed, `GET /account` provides `walletState` in its response — this call is not required.
+         *     - **Device-side counterfactual self-deployment is deprecated.**
+         *       `POST /account/wallet/deploy` is the cannonical way to deploy all wallets,
+         *       the client must not self-deploy the wallet and rather request deployment through the BFF and observe state here.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT.
+         *     Provide both `Authorization: DPoP` and `DPoP` headers.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["accountGetWallet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/wallet/deploy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request device wallet deployment
+         * @description Requests deployment of the authenticated device's smart-account wallet. This is
+         *     **accept-and-poll**: the BFF records the request, sets `walletState` to `DEPLOYING`,
+         *     and returns `202`. All on-chain work is performed asynchronously by a background
+         *     job — poll `GET /account/wallet` until `walletState` is `DEPLOYED` (or the request
+         *     reaches a terminal state).
+         *
+         *     **Idempotency.** Keyed on `x-correlation-id`, exactly like the orders pipeline:
+         *     retry a deploy with the **same** `x-correlation-id` to safely get back the same
+         *     request instead of creating a duplicate. A new correlation-id while a deployment is
+         *     already in progress returns the in-flight request (`202`); on an already-deployed
+         *     account it is a `409`.
+         *
+         *     **Deprecation.** Device-side counterfactual self-deployment is deprecated — the
+         *     client must request deployment through this endpoint and observe state via
+         *     `GET /account/wallet`.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`) **and** step-up
+         *     authentication (`requireStepUp`). Provide both `Authorization: DPoP` and `DPoP`
+         *     headers. Recovery always follows a fresh passkey assertion, so step-up adds no
+         *     additional user friction. Step-up recency window is 5 minutes.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
+         */
+        post: operations["accountWalletDeploy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/referral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the account's referral code and referral counts
+         * @description Returns the authenticated account's persistent referral code, with the number of referrals
+         *     pending and rewarded. No referee identity, order or amount is ever returned.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT.
+         *     Provide both `Authorization: DPoP` and `DPoP` headers.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["accountGetReferral"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/credit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the account's store credit and its history
+         * @description Returns the account's store credit balance, the credit available for new orders, and a page
+         *     of the movements that changed the balance (referral rewards, support adjustments, credit spent
+         *     on orders), newest first.
+         *
+         *     Credit held by an order still awaiting payment is not listed as an entry. It shows as the
+         *     difference between `balanceCents` and `availableCents` until the order is paid or ends.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT.
+         *     Provide both `Authorization: DPoP` and `DPoP` headers.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["accountGetCredit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the device wallet's on-chain activity
+         * @description Returns the authenticated device wallet's newest on-chain activity, newest first, at most
+         *     25 entries:
+         *     - **`TRANSFER`:** ETH or any ERC-20 token sent or received by the device wallet.
+         *     - **`PRICE_CAP`:** a price cap change on one of the account's eSIM wallets.
+         *
+         *     **What the history covers:**
+         *     - **Base only:** the configured chain of this environment (Base Sepolia on dev and staging,
+         *       Base mainnet on production).
+         *     - **From deployment on:** tracking starts when the device wallet is deployed. Activity
+         *       before that is not backfilled, and a wallet that is not deployed has an empty history.
+         *     - **No labels:** entries mirror the on-chain record. An eSIM purchase paid from the device
+         *       wallet appears as a transfer to an eSIM wallet; nothing is folded, labelled or hidden.
+         *     - **Every token:** transfers of tokens the BFF does not recognise are included with a
+         *       null `symbol` (display the `token` address). NFT and zero-value transfers are excluded;
+         *       any non-zero amount is kept. Unsolicited tokens can therefore push older entries out of
+         *       the 25.
+         *     - **Possible gaps:** activity delivered while the service was unavailable for longer than
+         *       the notification provider's retry window (about 10 minutes) is missing permanently.
+         *
+         *     **Formats:** addresses and hashes are lowercase. `amount` is in base units as a decimal
+         *     string; scale it by `decimals`. `priceCapUSDCents` is a decimal string.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT.
+         *     Provide both `Authorization: DPoP` and `DPoP` headers.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
+         */
+        get: operations["accountGetActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -329,14 +514,16 @@ export interface paths {
          * Initiate eSIM order
          * @description Initiates a new eSIM purchase or topup order (Phase 1).
          *
-         *     Creates the order, sets up payment sessions with Stripe (and Moonpay for crypto),
-         *     and returns the session data the client needs to complete payment.
+         *     Prices the order, creates it, reserves its code and store credit, sets up payment
+         *     sessions with Stripe, Moonpay (for external wallets), or Kokio-SDK payment adapter
+         *     (for direct device wallet payments) and returns the session data the client needs to
+         *     complete payment, with the order's pricing breakdown.
          *     This endpoint is synchronous from the client's perspective — it returns once the
          *     payment session is ready.
          *
          *     **Fulfilment (Phase 2) is asynchronous.** After the client completes payment
-         *     (via Stripe Payment Elements or Moonpay hosted page), the payment provider
-         *     sends a webhook to the BFF which triggers vendor fulfilment, eSIM provisioning,
+         *     (via Stripe Payment Elements, the Moonpay hosted page or the device wallet), the payment
+         *     provider sends a webhook to the BFF which triggers vendor fulfilment, eSIM provisioning,
          *     and on-chain recording. Poll `GET /order/{idempotencyKey}` for order status.
          *
          *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`) and
@@ -355,18 +542,71 @@ export interface paths {
          *     during fulfilment. eSIM installation details are available via the polling endpoint
          *     once the order reaches a completed state.
          *
-         *     **Topup order** (`isNewESim: false`): An existing eSIM identified by `esimId` is topped up.
-         *     Check compatibility first via `GET /esim/compatibility/{esimId}`.
+         *     **Topup order** (`isNewESim: false`): An existing eSIM identified by `eSimRef` is topped up.
+         *     Check compatibility first via `GET /esim/compatibility/{eSimRef}`.
+         *
+         *     **Pricing:** priced exactly as `POST /order/preview` prices the same request. The
+         *     `coupon` or referral code discount comes off the list price first, then store credit
+         *     when `useStoreCredit` is true. The remainder (`railAmountCents`) is paid on the chosen
+         *     rail. On `FIAT` the rail amount must be 0 or at least 100 cents: credit is reduced to
+         *     leave exactly 100 where it can, otherwise the order is refused with
+         *     `FIAT_MINIMUM_NOT_MET`. The code and credit are reserved with the order and returned if
+         *     it fails before payment.
          *
          *     **Payment method resolution:**
-         *     - `coupon` provided and balance covers full amount → `COUPON` (Stripe $0 invoice, auto-pays)
-         *     - `isCryptoPayment: true` (no coupon) → `CRYPTO` (Stripe invoice + Moonpay charge session)
-         *     - `isCryptoPayment: false` (no coupon) → `FIAT` (Stripe invoice with Payment Elements)
+         *     - Code and credit cover the whole price → `COUPON` (Stripe $0 invoice, auto-pays)
+         *     - Otherwise the requested `paymentMethod`, charged the rail amount:
+         *       - `FIAT` -> Stripe invoice with Payment Elements
+         *       - `CRYPTO` -> Stripe invoice + Moonpay charge session
+         *       - `DEVICE_WALLET` -> Stripe invoice + device-wallet calls. On a split order the calls
+         *         carry the order's `Remainder` payment reference, sign them exactly as returned.
+         *
+         *     **First order:** while the account has no verified order, it may have only one order in
+         *     progress with a first-order code: a referral code or a first-purchase-only coupon. Another
+         *     order with such a code is refused with `FIRST_ORDER_IN_PROGRESS` until the first is paid,
+         *     ends, or is cancelled with `POST /order/{idempotencyKey}/cancel`. Orders without such a
+         *     code are never held back by it.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         post: operations["orderCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/order/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview an order's price
+         * @description Prices an order exactly as `POST /order` would, without creating it. Takes no holds on
+         *     codes or store credit and writes nothing, a later order can still be priced differently
+         *     if a code or credit is used up in between.
+         *
+         *     The request body is the same as `POST /order`. The response is the pricing breakdown,
+         *     or the rejection `POST /order` would return for the same request.
+         *
+         *     **Pricing:** the code discount comes off the list price first, then store credit when
+         *     `useStoreCredit` is true, the remainder is paid on the chosen rail. When the code and
+         *     credit cover the whole price, `paymentMethod` is `COUPON`. On `FIAT` the rail amount
+         *     must be 0 or at least 100 cents: credit is reduced to leave exactly 100 where it can,
+         *     otherwise the request is refused with `FIAT_MINIMUM_NOT_MET`.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`). Step-up is not
+         *     required — a preview commits nothing.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter.
+         */
+        post: operations["orderPreview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -408,6 +648,8 @@ export interface paths {
          *     excluded. `ESIM_PROVISIONED_PENDING_CHAIN` is included because the eSIM is
          *     delivered and usable; on-chain recording is deferred to a background job.
          *
+         *     **Pricing:** each item carries `pricing`, the order's breakdown fixed at creation.
+         *
          *     **Ordering:** Sorted by `createdAt` descending (most recent first).
          *
          *     **Pagination:** `page` is 1-based (default 1). `pageSize` defaults to 10,
@@ -415,7 +657,7 @@ export interface paths {
          *     true `total`. An empty history returns `orders: []` with HTTP 200, not a 404.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["orderList"];
         put?: never;
@@ -454,18 +696,118 @@ export interface paths {
          *     **Response shape varies by state.** See the `OrderStatusResponse` schema
          *     for the conditional field presence rules.
          *
-         *     **No order found:** If no order exists for the given idempotency key and device,
-         *     the endpoint returns HTTP 200 with the standard success envelope but all `data`
-         *     fields set to `null` (`orderId`, `planId`, `orderStatus`, `paymentMethod`).
-         *     The response message will contain `ORDER_NOT_FOUND`. This is not an error —
-         *     the client should interpret it as "no order was created with this correlation ID."
+         *     **Pricing:** every state carries `pricing`, the breakdown fixed at creation: list price,
+         *     code discount, store credit applied and the rail amount, with the code and its kind.
+         *
+         *     **No order found:** If no order exists for the given idempotency key and device, the
+         *     endpoint returns `404` with code `ORDER_NOT_FOUND`. `404` is also returned with
+         *     `ACCOUNT_DELETED` for a deleted account. Branch on `code`, never on the status alone:
+         *     the two need different handling.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["orderGetStatus"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/order/{idempotencyKey}/payment-submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit device-wallet payment hash
+         * @description Records the `userOperationHash` of a signed device-wallet payment user operation so the
+         *     reconcile job can classify the payment when the chain confirmation webhook did not land.
+         *
+         *     **Happy path does NOT need this endpoint** — payment is correlated on `paymentReference`
+         *     from the on-chain event and confirmed via the chain webhook. This is a recovery fallback:
+         *     if the client does not observe the order reaching `PAYMENT_VERIFIED` (or beyond) within a
+         *     reasonable window, it submits the hash here so the reconcile job can fetch the user
+         *     operation receipt and classify success or failure rather than waiting to abandon the order.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`). Step-up is **not**
+         *     required — this submission carries no financial authorization. The payment already settled
+         *     on chain when the client signed, and the reconcile job verifies on-chain truth independently;
+         *     a wrong or forged hash cannot cause incorrect fulfilment.
+         *
+         *     **Behaviour by Order state:**
+         *     - `PAYMENT_PENDING` — the hash is recorded and the response returns `PAYMENT_PENDING`.
+         *     - Already advanced (`PAYMENT_VERIFIED`, `COMPLETED`) — idempotent no-op success. The webhook
+         *       already confirmed the payment. The hash is not overwritten.
+         *     - Terminal failure (`PAYMENT_FAILED`, `ABANDONED`, `VENDOR_FAILED`, `ESIM_PROVISION_FAILED`,
+         *       `ON_CHAIN_FAILED`) — `409 PAYMENT_SUBMISSION_NOT_ALLOWED`. The order is closed, create a new one.
+         *     - Not a `DEVICE_WALLET` order — `409 PAYMENT_SUBMISSION_NOT_ALLOWED`.
+         *     - No order for the idempotency key + device — `404 ORDER_NOT_FOUND`
+         *       (mirrors `GET /order/{idempotencyKey}`). `404` is also returned with `ACCOUNT_DELETED`;
+         *       branch on `code`.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (20 requests per minute per `deviceWalletAddress`).
+         */
+        post: operations["orderSubmitPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/order/{idempotencyKey}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an unpaid order
+         * @description Cancels the authenticated device's unpaid order and moves it to `ABANDONED`, releasing its
+         *     code, store credit and first-order slot immediately instead of waiting for the cleanup job.
+         *
+         *     > **Warning — irreversible, and any payment made for the order afterwards is lost.**
+         *     > Once cancelled, the order is never fulfilled: a payment that completes later is not
+         *     > matched to it, no eSIM is assigned and no refund is made. Call this endpoint only on an
+         *     > explicit user action, never while a payment session is open or a payment is being made,
+         *     > and only after the user has confirmed they understand these consequences. The user
+         *     > holds the responsibility for any funds lost through cancelling an order.
+         *
+         *     **Cancellable:** a `PAYMENT_PENDING` order on `FIAT`, `CRYPTO` or `DEVICE_WALLET` with no
+         *     payment received. Refused with `409 ORDER_NOT_CANCELLABLE`, before anything changes, when:
+         *     - the order is not `PAYMENT_PENDING`, or is a `COUPON` order with nothing to pay
+         *     - the order is flagged for manual review
+         *     - a payment for it was received: a payment confirmation, a device-wallet user operation
+         *       submitted with `POST /order/{idempotencyKey}/payment-submission`, its payment reference
+         *       spent on chain (`DEVICE_WALLET`), or its Stripe invoice already paid
+         *
+         *     **Effect:** the order's Stripe invoice is voided first, so it can no longer be paid. The
+         *     order then moves to `ABANDONED` and its code, store credit and first-order slot are
+         *     released. A `DEVICE_WALLET` order for a new eSIM returns its eSIM wallet to the account.
+         *
+         *     **Repeat calls:** cancelling an order that is already `ABANDONED` returns `200` with its
+         *     current state and changes nothing.
+         *
+         *     **Retrying the purchase:** send a new `x-correlation-id` with the next `POST /order`. The
+         *     cancelled order's correlation ID returns the cancelled order.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`) and step-up
+         *     authentication (`requireStepUp`). Step-up recency window is 5 minutes.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (20 requests per minute per `deviceWalletAddress`).
+         */
+        post: operations["orderCancel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -490,7 +832,7 @@ export interface paths {
          *     value, all eSIMs for the device are returned regardless of activation state.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimList"];
         put?: never;
@@ -501,7 +843,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/esim/{esimId}": {
+    "/esim/{eSimRef}": {
         parameters: {
             query?: never;
             header?: never;
@@ -520,7 +862,7 @@ export interface paths {
          *     `ESIM_NOT_FOUND_FOR_DEVICE` is returned.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
-         *     (10 requests per minute per `deviceWalletAddress`).
+         *     (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimGetDetail"];
         put?: never;
@@ -531,7 +873,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/esim/compatibility/{esimId}": {
+    "/esim/compatibility/{eSimRef}": {
         parameters: {
             query?: never;
             header?: never;
@@ -548,10 +890,10 @@ export interface paths {
          *     **`deviceId` injection:** The authenticated device address is sourced
          *     from the JWT — do not include `deviceId` in query parameters.
          *
-         *     **Single eSIM check:** Include `{esimId}` in the path to restrict the check to one specific eSIM.
+         *     **Single eSIM check:** Include `{eSimRef}` in the path to restrict the check to one specific eSIM.
          *     The eSIM MUST be active and associated with the authenticated device.
          *
-         *     **All eSIMs check:** Omit `{esimId}` from the path (`GET /esim/compatibility?planId=...`)
+         *     **All eSIMs check:** Omit `{eSimRef}` from the path (`GET /esim/compatibility?planId=...`)
          *     to check all active eSIMs for the device.
          *     Results are returned concurrently, a failure on one eSIM does not abort checks on others.
          *
@@ -561,10 +903,10 @@ export interface paths {
          *     The `topupPlanResolved` flag in the response indicates whether a substitution occurred.
          *
          *     **Before ordering:** Call this endpoint before submitting a topup order via `POST /order`
-         *     to confirm compatibility and identify which `esimId` to use.
+         *     to confirm compatibility and identify which `eSimRef` to use.
          *
          *     **Rate limiting:** Subject to both the global IP limiter and the per-device
-         *     limiter (10 requests per minute per `deviceWalletAddress`).
+         *     limiter (20 requests per minute per `deviceWalletAddress`).
          */
         get: operations["esimCheckCompatibility"];
         put?: never;
@@ -575,7 +917,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/esim/usage/{esimId}": {
+    "/esim/usage/{eSimRef}": {
         parameters: {
             query?: never;
             header?: never;
@@ -586,8 +928,8 @@ export interface paths {
          * Get eSIM usage
          * @description Returns remaining usage allowance for the authenticated device's eSIMs.
          *
-         *     - With `esimId` path param → usage for that single eSIM (device ownership enforced).
-         *     - Without `esimId` → usage for all **non-terminal** eSIMs of the device
+         *     - With `eSimRef` path param → usage for that single eSIM (device ownership enforced).
+         *     - Without `eSimRef` → usage for all **non-terminal** eSIMs of the device
          *       (`activationStatus` of `RELEASED` or `INSTALLED`). Terminal eSIMs
          *       (`UNAVAILABLE`, `DEACTIVATED`) are excluded.
          *
@@ -612,7 +954,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/coupon": {
+    "/esim/label/{eSimRef}": {
         parameters: {
             query?: never;
             header?: never;
@@ -621,24 +963,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Issue coupon from vault transaction
-         * @description Issues an alphanumeric coupon from an on-chain vault transfer transaction.
-         *
-         *     The server verifies the `txnHash` on-chain against the configured vault
-         *     address and creates a coupon with a balance equal to the verified transfer amount.
-         *
-         *     **Uniqueness:** One coupon per `txnHash`.
-         *     Attempting to issue a second coupon from the same transaction returns `COUPON_ALREADY_ISSUED_FOR_TX`.
-         *
-         *     **Access control:** Requires scheduler admin bearer token.
-         *     Not accessible to client applications.
-         */
-        post: operations["couponIssue"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Set an eSIM label
+         * @description Assigns a user-facing `label` to one of the authenticated device's eSIMs.
+         *     The eSIM is addressed by its Mongo `eSimRef` (the stable `_id`-derived
+         *     reference returned on every eSIM and order response), so the label can be
+         *     set before an eSIM wallet is deployed on-chain (`esimId` may still be null).
+         *
+         *     A single label overwrites any previous value. The trimmed label is
+         *     persisted and the updated eSIM document is returned.
+         *
+         *     **Authentication:** Requires DPoP-constrained JWT (`requireAuth`).
+         *
+         *     **Device ownership:** The eSIM must belong to the authenticated device.
+         *     If the eSIM exists but is owned by a different device,
+         *     `ESIM_NOT_FOUND_FOR_DEVICE` is returned.
+         *
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter
+         *     (20 requests per minute per `deviceWalletAddress`).
+         */
+        patch: operations["esimSetLabel"];
         trace?: never;
     };
     "/coupon/{code}": {
@@ -649,21 +997,38 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get coupon by code
-         * @description Retrieves a coupon document by its 8-character alphanumeric code.
+         * Look up a coupon or referral code
+         * @description Describes a coupon or referral code and whether the authenticated account may use it.
+         *
+         *     - **Coupon:** its type and terms, expiry and first-purchase flag. A plan voucher also
+         *       reports whether its plan is still active.
+         *     - **Referral code:** the referee discount: a percentage of the list price, capped.
+         *
+         *     The response never includes a code's uses, its campaign, redemptions, or the identity of
+         *     a referral code's owner.
+         *
+         *     **Eligibility:** `eligibility.reason` is the error code order creation would return for
+         *     this code, or null when the account may use it. Checked in this order:
+         *     1. The code: `PROMO_CODE_REVOKED`, `PROMO_CODE_NOT_YET_VALID`, `PROMO_CODE_EXPIRED`,
+         *        `PROMO_CODE_EXHAUSTED`, `PROMO_ACCOUNT_LIMIT_REACHED`, `PROMO_FIRST_PURCHASE_ONLY`, or
+         *        `REFERRAL_NOT_ALLOWED` (not the account's first order, its own code, or a referrer
+         *        that no longer exists).
+         *     2. `FIRST_ORDER_IN_PROGRESS`: a referral code or first-purchase-only coupon while the
+         *        account has no verified order and another order with such a code is in flight.
+         *     3. `PROMO_CODE_NOT_APPLICABLE`: a plan voucher whose plan is no longer active.
+         *
+         *     Rules that depend on the order are checked by price preview and order creation only: a
+         *     plan voucher applies to its own plan as a new eSIM, and a card payment after discounts
+         *     must be zero or at least 100 cents.
+         *
+         *     **Code format:** 4 to 16 characters `[A-Za-z0-9]`, case-insensitive. Codes are returned
+         *     in uppercase.
          *
          *     **Authentication:** Requires DPoP-constrained JWT.
          *     Provide both `Authorization: DPoP` and `DPoP` headers.
          *
-         *     **Use case:** Call this endpoint to display coupon balance and status
-         *     to the authenticated user before applying the coupon to an order.
-         *
-         *     **Code format:** The `code` path parameter is case-insensitive —
-         *     normalised to uppercase before lookup.
-         *     Coupon codes are always returned in uppercase.
-         *
-         *     **Rate limiting:** Subject to both the global IP limiter and the
-         *     per-device limiter (10 requests per minute per `deviceWalletAddress`).
+         *     **Rate limiting:** Subject to both the global IP limiter and the per-device limiter.
+         *     Failed lookups count toward the limit.
          */
         get: operations["couponGetByCode"];
         put?: never;
@@ -767,7 +1132,12 @@ export interface paths {
          *     | `cleanup_abandoned_orders` | 24 hours | Voids Stripe invoices and marks stuck orders as `ABANDONED` |
          *     | `retry_vendor_fulfilment` | 3 minutes | Retries transient vendor failures (`VENDOR_RETRY_PENDING`) |
          *     | `retry_onchain_recording` | 15 minutes | Retries on-chain recording (`ESIM_PROVISIONED_PENDING_CHAIN`) |
-         *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
+         *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions `UNAVAILABLE` eSIMs to `DEACTIVATED` after a 180-day grace window |
+         *     | `process_wallet_deployments` | 2 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
+         *     | `record_lazy_wallet_history` | 15 minutes | Records pending lazy-wallet purchase history for `NOT_DEPLOYED` accounts into the lazy registry |
+         *     | `reconcile_device_wallet_payments` | 30 minutes | Secondary confirmation for expired device-wallet payment sessions. Fulfils the order upon confirmation or marks `PAYMENT_FAILED`/`ABANDONED` |
+         *       | `reconcile_promotion_holds` | 24 hours | Releases promotion holds left on orders that ended `ABANDONED` or `PAYMENT_FAILED` |
+         *       | `release_referral_rewards` | 24 hours | Pays referral rewards for completed referee orders, and forfeits claims on orders that failed after payment |
          */
         post: operations["adminJobsRun"];
         delete?: never;
@@ -875,6 +1245,228 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/promotions/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List coupon campaigns
+         * @description One page of campaigns, newest first, each with its redemption usage. Optionally filtered by
+         *     stored status; expiry is not a status, compare `validUntil`.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        get: operations["adminListCampaigns"];
+        put?: never;
+        /**
+         * Create coupon campaign
+         * @description Creates a `SHARED` or `UNIQUE` coupon campaign and issues its codes in the same request.
+         *
+         *     - `SHARED`: one code, the admin-chosen `code` or a generated 8-character code.
+         *     - `UNIQUE`: `count` generated codes (up to 5000), each usable once. The codes are not
+         *       returned; they are exported with the unique-code export script.
+         *
+         *     **Idempotency:** the request carries an `idempotencyKey`.
+         *     - Same key, same request, campaign finished: returns it with `replayed: true` (200).
+         *     - Same key, same request, campaign unfinished after a failed attempt: resumes issuing only
+         *       the codes still missing, then returns it (201).
+         *     - Same key while another request is still issuing it: `PROMO_CAMPAIGN_ISSUANCE_IN_PROGRESS`.
+         *     - Same key, different request: `PROMO_CAMPAIGN_IDEMPOTENCY_CONFLICT`.
+         *     The `note` is not part of the comparison.
+         *
+         *     A failure part-way through issuing leaves the campaign `ISSUING` with the codes issued so far;
+         *     retry with the same key to issue the rest.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        post: operations["adminCreateCampaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions/campaigns/{campaignId}/expiry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extend campaign expiry
+         * @description Moves a campaign's `validUntil` later and records the change on its audit trail.
+         *
+         *     The expiry can only be extended: the new date must be later than the current one, and a
+         *     campaign without an expiry cannot be given one. Holds already taken are honoured whatever
+         *     the expiry. Any status may be extended.
+         *
+         *     Idempotent: requesting the current expiry returns the campaign unchanged.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        post: operations["adminExtendCampaignExpiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions/campaigns/{campaignId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke campaign
+         * @description Revokes a campaign and every one of its codes. New redemptions of its codes are refused
+         *     (`PROMO_CODE_REVOKED` at order creation); orders that already hold a redemption keep it.
+         *
+         *     Irreversible. Idempotent: revoking a revoked campaign returns it unchanged.
+         *     A campaign still issuing its codes cannot be revoked; retry its creation first.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        post: operations["adminRevokeCampaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions/codes/{code}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke coupon code
+         * @description Revokes one coupon code of a `SHARED` or `UNIQUE` campaign and records it on the campaign's
+         *     audit trail. New redemptions of the code are refused; orders that already hold a redemption
+         *     keep it. Revoking a `SHARED` campaign's code stops the whole campaign while its status
+         *     stays `ACTIVE`.
+         *
+         *     Irreversible. Idempotent: revoking a revoked code returns it unchanged. Referral codes
+         *     cannot be revoked.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        post: operations["adminRevokeCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions/campaigns/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read coupon campaign
+         * @description One campaign with its redemption usage, code counts by status, the `SHARED` campaign's code
+         *     and its full audit trail.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        get: operations["adminGetCampaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions/codes/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read coupon code
+         * @description One coupon code with a page of its redemptions, newest first, in every state. Referral codes
+         *     are not served here.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        get: operations["adminGetCode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/promotions/accounts/{deviceWalletAddress}/credit/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adjust store credit
+         * @description Grants (`amountCents` > 0) or debits (`amountCents` < 0) an account's store credit and
+         *     records it as an `ADJUSTED` ledger entry. Returns the entry and the account's credit read
+         *     after the adjustment.
+         *
+         *     A debit is refused when it exceeds the account's available credit (balance less the credit
+         *     held by orders in flight), so the balance never goes below zero. Deleted accounts cannot be
+         *     adjusted.
+         *
+         *     **Idempotency:** the request carries an `idempotencyKey`.
+         *     - Same key, same account, amount and reason: returns the original entry with
+         *       `replayed: true` (200) and changes nothing. `balance` is the account's current credit.
+         *     - Same key, different account, amount or reason: `STORE_CREDIT_ADJUSTMENT_CONFLICT`.
+         *     The `note` is not part of the comparison.
+         *
+         *     > **Not callable by clients.** Operations use only.
+         *
+         *     **Access control:** Requires the promotion admin bearer token. No IP allowlist.
+         */
+        post: operations["adminAdjustStoreCredit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -955,13 +1547,20 @@ export interface paths {
          *
          *     **Flow:**
          *     1. Verify HMAC-SHA256 signature of the webhook request.
-         *     2. Extract `orderID` from `transactionObject.meta.customerDetails.additionalJSON`
+         *     2. Act only on a completed payment: `event` is `CREATED` and
+         *        `transactionObject.meta.transactionStatus` is `SUCCESS`. Anything else is
+         *        acknowledged with no action.
+         *     3. Extract `orderID` from `transactionObject.meta.customerDetails.additionalJSON`
          *        (the correlation key embedded at charge session creation).
-         *     3. Locate the order by `orderID`.
-         *     4. Hot-path Stripe invoice status check via `stripe.invoices.retrieve`.
-         *     5. If Stripe invoice is paid: set both `moonpayConfirmed` and
+         *     4. Locate the order by `orderID`. When the payload carries `chargeToken`, it must be the
+         *        order's charge, otherwise the event is acknowledged with no action.
+         *     5. Record the settlement reported by Moonpay (`transactionSignature`, token symbol,
+         *        `totalAmount`) on the order's payment transaction. Audit only: the amount is in the
+         *        paid token's units and is never compared with the order's price.
+         *     6. Hot-path Stripe invoice status check via `stripe.invoices.retrieve`.
+         *     7. If Stripe invoice is paid: set both `moonpayConfirmed` and
          *        `stripeInvoiceConfirmed`, run dual-confirmation check, advance and fulfil.
-         *     6. If Stripe invoice is NOT paid: set `moonpayConfirmed` only, flag order
+         *     8. If Stripe invoice is NOT paid: set `moonpayConfirmed` only, flag order
          *        for manual review with `HELIO_STRIPE_DISCREPANCY` reason, proceed to
          *        fulfilment regardless (customer has paid per Moonpay).
          *
@@ -973,6 +1572,183 @@ export interface paths {
          *     requirement. A server-generated UUID prefixed with `exempt-` is used.
          */
         post: operations["webhookMoonpay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Device-Wallet payment webhook
+         * @description Receives Alchemy Notify **Custom Webhook** events confirming direct device-wallet
+         *     on-chain payments (the `DataBundleBoughtWithToken` event emitted by the ESIMWallet).
+         *
+         *     > **Not callable by clients.** Invoked exclusively by Alchemy's webhook delivery
+         *     > infrastructure. Provisioned once per environment from the Alchemy dashboard.
+         *
+         *     **Webhook type:** Custom Webhook (GraphQL), filtered **topic-only** on the
+         *     `DataBundleBoughtWithToken` signature topic. The emitter is per-eSIM-wallet, so no
+         *     contract-address filter is used; correlation and validation are done in the BFF.
+         *
+         *     **Authentication:** No auth middleware. HMAC-SHA256 over the raw body with the
+         *     per-webhook signing key (`ALCHEMY_WEBHOOK_SIGNING_KEY`), compared against the
+         *     `x-alchemy-signature` header in constant time.
+         *
+         *     **Raw body requirement:** The body must be the raw unparsed buffer. Preserved by the
+         *     global `express.json()` verify callback for paths under `/webhooks`.
+         *
+         *     **Flow:**
+         *     1. Verify the `x-alchemy-signature` HMAC.
+         *     2. Parse the GraphQL payload (`event.data.block.logs[]`); keep logs whose `topics[0]`
+         *        matches the event topic.
+         *     3. Decode each log; correlate to a DEVICE_WALLET order in `PAYMENT_PENDING` via
+         *        `paymentReference`.
+         *     4. Return 200 immediately; asynchronously wait for the configured finality step `latest` or further,
+         *        before handing the confirmed payment to the verification pipeline.
+         *
+         *     **Intent check:** the decoded payment must carry the order's stored `onChain.paymentReference`
+         *     (`Remainder`-tagged when the order is split between a promotion and the device wallet), its
+         *     `bundleId`, and a `priceUSDCents` equal to the order's rail amount
+         *     (`onChain.priceUSDCents − (onChain.couponUSDCents ?? 0)`). A mismatch, or a non-positive rail
+         *     amount, flags the order `WEBHOOK_INTENT_MISMATCH` for manual review and leaves it at
+         *     `PAYMENT_PENDING`. The reconcile job's confirmation path applies the same check.
+         *
+         *     **Idempotency:** duplicate deliveries are absorbed at verification: the atomic
+         *     PAYMENT_PENDING -> PAYMENT_VERIFIED transition and the PaymentTransaction unique
+         *     (transactionHash, logIndex) index. The webhook keeps no per-order state.
+         *
+         *     **Confirmation:** Alchemy fires at `latest`. The handler polls the SDK's
+         *     `admin.utils.verifyProtocolPayment` until the settlement transaction reaches `latest`
+         *     finality (transaction batch is posted to Base L2), then verifies intent and fulfils.
+         *     The reconcile job is a secondary fallback for payments not confirmed via the webhook.
+         *
+         *     **Error handling:** All non-signature errors are caught, logged, and return 200 to
+         *     prevent Alchemy retry storms. Only signature verification failures return non-200.
+         *
+         *     **Correlation ID:** Exempt from the `x-correlation-id` requirement; a server-generated
+         *     `exempt-` UUID is used.
+         */
+        post: operations["webhookChain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/activity/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Address activity tracker webhook
+         * @description Receives Alchemy Notify **Address Activity** deliveries for device wallets and stores them
+         *     in each device wallet's activity history, read through `GET /account/activity`.
+         *
+         *     > **Not callable by clients.** Invoked exclusively by Alchemy's webhook delivery
+         *     > infrastructure. Provisioned once per environment; the BFF adds each device wallet to the
+         *     > webhook's address list when the wallet is deployed, and removes it on account deletion.
+         *
+         *     **Authentication:** No auth middleware. HMAC-SHA256 over the raw body with the Address
+         *     Activity webhook's signing key (`ALCHEMY_ACTIVITY_SIGNING_KEY`), compared against the
+         *     `x-alchemy-signature` header in constant time.
+         *
+         *     **Raw body requirement:** The body must be the raw unparsed buffer. Preserved by the
+         *     global `express.json()` verify callback for paths under `/webhooks`.
+         *
+         *     **Flow:**
+         *     1. Verify the `x-alchemy-signature` HMAC.
+         *     2. Ignore the payload unless `type` is `ADDRESS_ACTIVITY` and `event.network` is the
+         *        configured chain's network.
+         *     3. Delete the entries of token transfers reported with `log.removed: true` (reorg).
+         *     4. Keep ETH (`external`, `internal`) and ERC-20 (`token`) transfers; drop NFTs and
+         *        zero-value transfers. A recognised token carries its symbol and decimals from the
+         *        BFF's asset list; any other token has no symbol and the payload's decimals.
+         *     5. Store one entry for each live device wallet the transfer touches, then keep the newest
+         *        25 entries per device wallet.
+         *
+         *     **Idempotency:** every entry is upserted on a unique key, so a redelivery is safe.
+         *
+         *     **Error handling:** processed before answering. A signature failure returns `401`; any
+         *     other failure returns `500`, so Alchemy retries the delivery.
+         *
+         *     **Rate limiting:** Exempt from the global IP rate limiter, as are all `/webhooks/*` paths.
+         *
+         *     **Correlation ID:** Exempt from the `x-correlation-id` requirement; a server-generated
+         *     `exempt-` UUID is used.
+         */
+        post: operations["webhookActivityTransfers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/activity/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Custom event tracker webhook
+         * @description Receives Alchemy Notify **Custom Webhook** (GraphQL) deliveries of the
+         *     `PriceCapUSDCentsUpdated` event emitted by eSIM wallets, and stores each change in the
+         *     owning device wallet's activity history, read through `GET /account/activity`.
+         *
+         *     > **Not callable by clients.** Invoked exclusively by Alchemy's webhook delivery
+         *     > infrastructure. Provisioned once per environment with a block-level GraphQL query for
+         *     > logs filtered by the `PriceCapUSDCentsUpdated` topic.
+         *
+         *     **Webhook type:** Custom Webhook (GraphQL), filtered **topic-only**. The emitter is
+         *     per-eSIM-wallet, so no contract-address filter is used; the BFF matches each emitter to an
+         *     account.
+         *
+         *     **Authentication:** No auth middleware. HMAC-SHA256 over the raw body with the Custom
+         *     webhook's signing key (`ALCHEMY_EVENTS_SIGNING_KEY`), compared against the
+         *     `x-alchemy-signature` header in constant time. The payload carries no network, so the
+         *     per-webhook key is what keeps another environment's webhook out.
+         *
+         *     **Raw body requirement:** The body must be the raw unparsed buffer. Preserved by the
+         *     global `express.json()` verify callback for paths under `/webhooks`.
+         *
+         *     **Flow:**
+         *     1. Verify the `x-alchemy-signature` HMAC.
+         *     2. Ignore the payload unless `type` is `GRAPHQL`.
+         *     3. Keep logs whose `topics[0]` is the `PriceCapUSDCentsUpdated` topic.
+         *     4. Match each emitting eSIM wallet to an account: first through its eSIM, then through an
+         *        account's unassigned eSIM wallets. Logs of unknown wallets or deleted accounts are
+         *        dropped.
+         *     5. Store one entry per log, with the new cap in USD cents as a decimal string (`0` means
+         *        the Kokio default) and the block timestamp as its time, then keep the newest 25 entries
+         *        per device wallet.
+         *
+         *     **Idempotency:** every entry is upserted on a unique key, so a redelivery is safe. A log
+         *     that does not decode is logged and skipped.
+         *
+         *     **Error handling:** processed before answering. A signature failure returns `401`; any
+         *     other failure returns `500`, so Alchemy retries the delivery.
+         *
+         *     **Correlation ID:** Exempt from the `x-correlation-id` requirement; a server-generated
+         *     `exempt-` UUID is used.
+         */
+        post: operations["webhookActivityEvents"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1065,27 +1841,19 @@ export interface components {
              *
              *     | Code | Status | Meaning |
              *     |------|--------|---------|
-             *     | `TXN_HASH_ALREADY_USED` | 409 | Transaction hash has already been used for a prior order |
-             *     | `INVALID_OR_INSUFFICIENT_TX` | 400 | Payment transaction validation failed or amount is below the required threshold |
-             *     | `ORDER_CREATION_FAILED` | 502 | On-chain buyDataBundle transaction failed |
+             *     | `ORDER_NOT_FOUND` | 404 | Presented OrderId was not found on the backend |
+             *     | `ORDER_NOT_CANCELLABLE` | 409 | The order is not an unpaid `PAYMENT_PENDING` order, or a payment for it was received |
+             *     | `STRIPE_INVOICE_VOID_FAILED` | 424 | Stripe could not void the order's invoice on cancellation |
+             *     | `ORDER_CREATION_FAILED` | 500 | On-chain buyDataBundle transaction failed |
              *
              *     **eSIM errors**
              *
              *     | Code | Status | Meaning |
              *     |------|--------|---------|
-             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | 404 | No eSIM found for the provided `esimId` associated with this device |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | 400 | No eSIM found for the provided `esimId` associated with this device |
              *     | `NO_ACTIVE_ESIMS_FOR_DEVICE` | 404 | No active eSIMs found for this device |
              *     | `TOPUP_COMPATIBILITY_CHECK_FAILED` | 502 | Upstream vendor compatibility check call failed |
              *     | `NO_EQUIVALENT_TOPUP_PLAN` | 404 | No active TOPUP equivalent plan found for the provided catalogue entry |
-             *
-             *     **Coupon errors**
-             *
-             *     | Code | Status | Meaning |
-             *     |------|--------|---------|
-             *     | `COUPON_NOT_FOUND` | 404 | Coupon code not found |
-             *     | `COUPON_INSUFFICIENT_BALANCE` | 400 | Coupon balance is zero or below the required amount |
-             *     | `COUPON_ALREADY_ISSUED_FOR_TX` | 409 | A coupon has already been issued for this transaction hash |
-             *     | `COUPON_CODE_GEN_FAILED` | 500 | Coupon code generation failed after retry attempts |
              *
              *     **Vendor errors**
              *
@@ -1329,6 +2097,212 @@ export interface components {
              * @example 0x2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e
              */
             pubKeyY: string;
+            /**
+             * @description Device Wallet deployment state **(as stored by the BFF)**.
+             *     For the deployment request id, current step, terminal errors or other metadata,
+             *     call `GET /account/wallet`.
+             * @example NOT_DEPLOYED
+             * @enum {string}
+             */
+            walletState: "NOT_DEPLOYED" | "DEPLOYING" | "DEPLOYED";
+        };
+        WalletStateResponse: {
+            /** @example 0xabc123def456abc123def456abc123def456abc1 */
+            deviceWalletAddress: string;
+            /**
+             * @description Device-wallet deployment state.
+             *     - `NOT_DEPLOYED`: no wallet on chain, purchases are recorded lazily.
+             *       Call `POST /account/wallet/deploy` to request deployment.
+             *       If a prior deployment failed, `deployment` carries the result of that request.
+             *     - `DEPLOYING`: a deployment request is in progress, poll this endpoint and read
+             *       `deployment` for progress. Do not issue a second deploy request.
+             *     - `DEPLOYED`: wallet is live on chain.
+             * @example DEPLOYING
+             * @enum {string}
+             */
+            walletState: "NOT_DEPLOYED" | "DEPLOYING" | "DEPLOYED";
+            /**
+             * @description Present while `walletState` is `DEPLOYING`, and after a terminal deployment
+             *     failure so the client can render the reason:
+             *
+             *     - `STALLED` (a on-chain transaction was executed and the wallet exists and
+             *     the request is retryable) is surfaced while `DEPLOYING`.
+             *     - `FAILED` (nothing was executed, the account reverted and is retryable
+             *     as a fresh request) is surfaced while `NOT_DEPLOYED`.
+             *     - `null` once `DEPLOYED` or when no deployment has ever been requested.
+             */
+            deployment: {
+                /** @description Identifier of the in-flight deployment request. */
+                requestId: string;
+                /** @enum {string} */
+                status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "STALLED" | "FAILED";
+                /**
+                 * @description Next unresolved step; null once all steps are resolved.
+                 * @enum {string|null}
+                 */
+                currentStep: "FLUSH" | "ROUTE" | "DEPLOY" | "COPY" | "BACKFILL" | "POOL" | null;
+                /** @description Terminal error message when status is STALLED/FAILED. */
+                lastError: string | null;
+            } | null;
+        };
+        WalletDeployResponse: {
+            /** @description DeploymentRequest identifier. Poll `GET /account/wallet` for progress. */
+            requestId: string;
+            /** @enum {string} */
+            walletState: "NOT_DEPLOYED" | "DEPLOYING" | "DEPLOYED";
+            /**
+             * @description Lifecycle status of the deployment request.
+             * @enum {string}
+             */
+            status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "STALLED" | "FAILED";
+        };
+        ReferralResponse: {
+            /**
+             * @description The account's persistent referral code. A referee enters it in the `coupon` field of
+             *     their first order for the referral discount.
+             * @example REFER234
+             */
+            referralCode: string;
+            /**
+             * @description Referees who paid for their first order with this code and whose order has not yet
+             *     completed or failed. Each moves to `rewardedReferrals` once the order completes, or
+             *     leaves both counts if the order fails after payment.
+             * @example 2
+             */
+            pendingReferrals: number;
+            /**
+             * @description Referrals whose reward has been credited to this account's store credit. Rewards are
+             *     released by a daily job after the referee's order completes.
+             * @example 3
+             */
+            rewardedReferrals: number;
+        };
+        CreditHistoryResponse: {
+            /**
+             * @description Store credit balance in USD cents. The sum of every history entry's `amountCents`.
+             * @example 1200
+             */
+            balanceCents: number;
+            /**
+             * @description Credit usable on a new order, in USD cents: the balance less credit held by orders still
+             *     awaiting payment. Held credit returns to available when such an order is abandoned or fails.
+             * @example 800
+             */
+            availableCents: number;
+            /** @description Balance movements, newest first. */
+            entries: {
+                /**
+                 * @description - `EARNED`: a referral reward.
+                 *     - `ADJUSTED`: a credit or debit applied by Kokio support.
+                 *     - `CAPTURED`: credit spent on one of this account's orders.
+                 * @enum {string}
+                 */
+                kind: "EARNED" | "ADJUSTED" | "CAPTURED";
+                /**
+                 * @description Effect on the balance in USD cents, positive for a credit, negative for a debit.
+                 * @example -300
+                 */
+                amountCents: number;
+                /**
+                 * @description The order the credit was spent on, for `CAPTURED`. Null otherwise.
+                 * @example 664f1a2b3c4d5e6f7a8b9c0e
+                 */
+                orderId: string | null;
+                /**
+                 * Format: date-time
+                 * @example 2026-10-01T12:00:00.000Z
+                 */
+                createdAt: string;
+            }[];
+            /** @example 1 */
+            page: number;
+            /** @example 10 */
+            pageSize: number;
+            /**
+             * @description Total number of history entries across all pages.
+             * @example 3
+             */
+            total: number;
+        };
+        ActivityResponse: {
+            /**
+             * @description The device wallet's newest on-chain activity, newest first (block number descending,
+             *     then position in the block). At most 25 entries; older ones are not kept.
+             */
+            items: {
+                /**
+                 * @description `TRANSFER`: ETH or an ERC-20 token moved to or from the device wallet.
+                 *     `PRICE_CAP`: the price cap of one of the account's eSIM wallets changed.
+                 * @example TRANSFER
+                 * @enum {string}
+                 */
+                type: "TRANSFER" | "PRICE_CAP";
+                /**
+                 * @description `TRANSFER` only, relative to the device wallet: `OUT` when it sent the transfer
+                 *     (including to itself), `IN` when it received it. Null for `PRICE_CAP`.
+                 * @example IN
+                 * @enum {string|null}
+                 */
+                direction: "IN" | "OUT" | null;
+                /**
+                 * @description Transaction hash, lowercase.
+                 * @example 0x7a4a39da2a3fa1fc2ef88fd1eaea070286ed2aba21e0419dcfb6d5c5d9f02a72
+                 */
+                txHash: string;
+                /** @example 14627987 */
+                blockNumber: number;
+                /**
+                 * Format: date-time
+                 * @description `TRANSFER`: when Alchemy reported the transfer. `PRICE_CAP`: the block time.
+                 * @example 2026-10-15T07:42:26.411Z
+                 */
+                time: string;
+                /**
+                 * @description Sender, lowercase. Null for `PRICE_CAP`.
+                 * @example 0x503828976d22510aad0201ac7ec88293211d23da
+                 */
+                from: string | null;
+                /**
+                 * @description Recipient, lowercase. Null for `PRICE_CAP`.
+                 * @example 0xbe3f4b43db5eb49d1f48f53443b9abce45da3b79
+                 */
+                to: string | null;
+                /**
+                 * @description Token contract address, lowercase. Null for ETH and for `PRICE_CAP`. Show it when
+                 *     `symbol` is null.
+                 * @example 0x036cbd53842c5426634e7929541ec2318f3dcf7e
+                 */
+                token: string | null;
+                /**
+                 * @description `ETH`, or the token's symbol when the BFF recognises the token. Null for a token it
+                 *     does not recognise (display `token` instead) and for `PRICE_CAP`.
+                 * @example USDC
+                 */
+                symbol: string | null;
+                /**
+                 * @description Decimals to scale `amount` by. For a token the BFF does not recognise, the value
+                 *     Alchemy reported, or null when it reported none. Null for `PRICE_CAP`.
+                 * @example 6
+                 */
+                decimals: number | null;
+                /**
+                 * @description Amount in base units, as a decimal string (scale by `decimals` to display). Never
+                 *     zero. Null for `PRICE_CAP`.
+                 * @example 1500000
+                 */
+                amount: string | null;
+                /**
+                 * @description The eSIM wallet whose cap changed, lowercase. Null for `TRANSFER`.
+                 * @example null
+                 */
+                eSIMWallet: string | null;
+                /**
+                 * @description The new cap in USD cents, as a decimal string (the on-chain value is a uint64).
+                 *     `0` means the Kokio default cap applies. Null for `TRANSFER`.
+                 * @example null
+                 */
+                priceCapUSDCents: string | null;
+            }[];
         };
         CataloguePlan: {
             /**
@@ -1658,53 +2632,95 @@ export interface components {
              * @description MongoDB ObjectId of the catalogue entry for the plan being purchased.
              *     Obtain this from the `catalogueId` field on a `GET /catalogue` result.
              *
-             *     For topup orders, any active plan from the catalogue may be submitted —
-             *     the server resolves the correct TOPUP equivalent plan automatically if
-             *     the submitted plan is a SIM-type plan.
+             *     For topup orders, any active plan may be submitted. The server resolves the
+             *     correct TOPUP equivalent automatically if the submitted plan is a SIM-type plan.
              * @example 664f1a2b3c4d5e6f7a8b9c0d
              */
             catalogueId: string;
             /**
              * @description `true` for a new eSIM purchase (a new eSIM wallet is deployed on-chain).
-             *
-             *     `false` for a topup on an existing eSIM (`esimId` is required).
+             *     `false` for a topup on an existing eSIM (`eSimRef` is required).
              * @example true
              */
             isNewESim: boolean;
             /**
-             * @description `true` to pay via Moonpay hosted crypto payment page.
+             * @description The rail the remainder is paid on — exactly one value:
+             *     - `FIAT` - Stripe Payment Elements.
+             *     - `CRYPTO` - Moonpay hosted payment page.
+             *     - `DEVICE_WALLET` - on-chain from the device wallet. Requires `walletState=DEPLOYED`
+             *       and an `asset`.
              *
-             *     `false` to pay via Stripe Payment Elements (FIAT).
-             *
-             *     Ignored when a `coupon` code is provided that covers the full order amount —
-             *     the payment method is resolved to `COUPON` server-side in that case.
-             * @example false
+             *     `COUPON` is **NOT** selectable here. When the `coupon` and store credit cover the
+             *     whole price, the server resolves the method to `COUPON` ($0 invoice, auto-pays).
+             * @example FIAT
+             * @enum {string}
              */
-            isCryptoPayment: boolean;
+            paymentMethod: "FIAT" | "CRYPTO" | "DEVICE_WALLET";
             /**
-             * @description eSIM wallet address of the existing eSIM to top up.
-             *
-             *     **Required when `isNewESim` is `false`.**
-             *
-             *     MUST be an eSIM wallet address associated with the authenticated device.
-             *     Ownership is verified server-side against the JWT `sub` claim.
-             *
-             *     Ignored when `isNewESim` is `true`.
-             * @example 0xdef456abc123def456abc123def456abc123def4
+             * @description Token symbol to pay in. **Required and only valid when `paymentMethod` is
+             *     `DEVICE_WALLET`.** Must be a whitelisted transferable asset per the BFF /
+             *     Kokio-SDK payment adapter configuration. Rejected for other payment methods.
+             * @example USDC
              */
-            esimId?: string;
+            asset?: string;
             /**
-             * @description Optional 8-character alphanumeric coupon code.
-             *
-             *     When provided and the coupon balance covers the full order amount,
-             *     the payment method is resolved to `COUPON`. The resulting Stripe
-             *     invoice nets to $0 and auto-pays on finalization — no client-side
-             *     payment UI is required.
-             *
-             *     Insufficient balance is a hard rejection (no partial coverage in this version).
-             * @example ABCD1234
+             * @description MongoDB ObjectId of the eSIM document to top up (the `eSimRef` from a `GET /esim`
+             *     result). **Required when `isNewESim` is `false`.** Ownership is verified server-side.
+             * @example 507f1f77bcf86cd799439011
+             */
+            eSimRef?: string;
+            /**
+             * @description Optional coupon or referral code, case-insensitive, on any rail. One code per order.
+             *     Look it up with `GET /coupon/{code}` first; preview the price with `POST /order/preview`.
+             * @example LAUNCH2026
              */
             coupon?: string;
+            /**
+             * @description Apply the account's available store credit after the code discount. Off unless set.
+             * @default false
+             * @example false
+             */
+            useStoreCredit: boolean;
+        };
+        OrderPricing: {
+            /**
+             * @description The plan's price.
+             * @example 1000
+             */
+            listPriceCents: number;
+            /**
+             * @description Taken off the list price by the coupon or referral code; 0 without one.
+             * @example 150
+             */
+            codeDiscountCents: number;
+            /**
+             * @description Store credit applied after the code discount; 0 unless `useStoreCredit` is true.
+             *     On `FIAT`, credit is reduced when needed so the rail amount is 0 or at least 100.
+             * @example 400
+             */
+            creditAppliedCents: number;
+            /**
+             * @description What is paid on the chosen rail.
+             * @example 450
+             */
+            railAmountCents: number;
+            /**
+             * @description The requested rail, or `COUPON` when the code and credit cover the whole price
+             *     (`railAmountCents` is 0).
+             * @example FIAT
+             * @enum {string}
+             */
+            paymentMethod: "FIAT" | "CRYPTO" | "DEVICE_WALLET" | "COUPON";
+            /**
+             * @description The applied code, uppercase; null without one.
+             * @example K7M2QX9P
+             */
+            code: string | null;
+            /**
+             * @example REFERRAL
+             * @enum {string|null}
+             */
+            codeKind: "COUPON" | "REFERRAL" | null;
         };
         InstallationDetails: {
             /**
@@ -1748,7 +2764,7 @@ export interface components {
              *     Present only on **FIAT** orders.
              *
              *     Pass this value to Stripe Payment Elements to render the payment form
-             *     and complete the payment client-side.
+             *     and complete the payment client-side. The invoice total is `pricing.railAmountCents`.
              * @example pi_3PxYz2ABC3def4GHI5jkl6_secret_abc123def456
              */
             clientSecret?: string;
@@ -1763,10 +2779,38 @@ export interface components {
              * @description Moonpay hosted payment page URL. Present only on **CRYPTO** orders.
              *
              *     Open this URL in an in-app browser or WebView to present the
-             *     Moonpay crypto payment interface to the user.
+             *     Moonpay crypto payment interface to the user. The charge is `pricing.railAmountCents`.
              * @example https://pay.moonpay.com/charge/chg_abc123def456
              */
             moonpayPaymentPageUrl?: string;
+            /**
+             * @description Present only on **DEVICE_WALLET** orders. Ordered calls to submit as ONE user
+             *     operation from the device wallet. Do not modify `data`. The calls pay
+             *     `pricing.railAmountCents`; on a split order they carry the order's `Remainder`
+             *     payment reference.
+             */
+            userOperations?: {
+                /**
+                 * @description Wallet Address with which the transaction is to be signed.
+                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 */
+                to?: string;
+                /**
+                 * @description Encoded calldata for the payment transaction.
+                 *     To be passed directly via `sendUserOperation()`.
+                 * @example 0xad2b108bd8428d9f7786c9300b40cc6a5e8c4c84009dc07a48cc91...
+                 */
+                data?: string;
+            };
+            /**
+             * Format: date-time
+             * @description Present only on **DEVICE_WALLET** orders to protect against token value variations
+             *     on the calculated payment amount quote.
+             *     Submit the user operation before this time.
+             * @example 2026-09-25T12:31:37.000+00:00
+             */
+            paymentSessionExpiresAt?: string;
+            pricing?: components["schemas"]["OrderPricing"];
         };
         OrderStatusResponse: {
             /**
@@ -1811,7 +2855,12 @@ export interface components {
              * @example FIAT
              * @enum {string}
              */
-            paymentMethod: "FIAT" | "CRYPTO" | "COUPON";
+            paymentMethod: "FIAT" | "CRYPTO" | "COUPON" | "DEVICE_WALLET";
+            /**
+             * @description The order's pricing breakdown, fixed when the order was created. Present in every state,
+             *     including `PAYMENT_FAILED`, where it shows the price that was attempted.
+             */
+            pricing: components["schemas"]["OrderPricing"];
             /**
              * @description Canonical vendor identifier that fulfilled the order.
              *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`.
@@ -1831,12 +2880,20 @@ export interface components {
              */
             iccid?: string;
             /**
-             * @description eSIM wallet contract address on-chain.
+             * @description MongoDB ObjectId of the eSIM associated with the order.
+             *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`
+             *     and the eSIM record has been persisted.
+             * @example 507f1f77bcf86cd799439011
+             */
+            eSimRef?: string;
+            /**
+             * @description eSIM wallet contract address on-chain. `null` for lazy wallet orders and
+             *     new eSIM orders until the on-chain job acquired a wallet for the provisioned eSIM.
              *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`
              *     and the eSIM record has been persisted.
              * @example 0xdef456abc123def456abc123def456abc123def4
              */
-            esimId?: string;
+            esimId?: string | null;
             /**
              * @description eSIM installation data for device activation.
              *     Present only when `orderStatus` is `COMPLETED` or `ESIM_PROVISIONED_PENDING_CHAIN`,
@@ -1862,19 +2919,29 @@ export interface components {
              */
             flaggedForManualReview?: boolean;
             /**
-             * @description Structured reason code for the manual review flag.
-             *     Present only when `flaggedForManualReview` is `true`.
+             * @description Reason the order was flagged for manual review. Null when not flagged.
+             *     Present only on post-payment terminal failures: `VENDOR_FAILED`,
+             *     `ESIM_PROVISION_FAILED`, `ON_CHAIN_FAILED`.
              *
-             *     Values:
-             *     - `PLAN_DEACTIVATED` — plan was deactivated between payment and fulfilment.
-             *     - `ON_CHAIN_RECORDING_FAILED` — on-chain buyDataBundle recording failed after retry exhaustion.
-             *     - `VENDOR_FULFILMENT_FAILED` — vendor API permanently rejected the order.
-             *     - `ESIM_DELIVERY_FAILED` — eSIM wallet deployment or record persistence failed.
-             *     - `WALLET_REGISTRATION_FAILED` — on-chain device wallet registration failed.
+             *     An open string: new reasons can be added. Map unknown values to a generic "contact support" message.
+             *
+             *     Known values:
+             *     - `STRIPE_AMOUNT_MISMATCH` — the Stripe invoice settled for less than the order's rail amount.
+             *     - `MOONPAY_STRIPE_DISCREPANCY` — MoonPay confirmed payment but the Stripe invoice was not paid.
+             *     - `PLAN_DEACTIVATED` — the plan was deactivated between payment and fulfilment.
+             *     - `ON_CHAIN_RECORDING_FAILED` — on-chain purchase recording failed after retries; the eSIM works.
+             *     - `VENDOR_FULFILMENT_FAILED` — the vendor permanently rejected the order after payment.
+             *     - `ESIM_DELIVERY_FAILED` — eSIM wallet deployment or record persistence failed after the vendor fulfilled.
+             *     - `WALLET_REGISTRATION_FAILED` — on-chain device wallet registration failed after payment.
+             *     - `DEPLOYMENT_STALLED` — the device wallet deployment stalled.
+             *     - `LAZY_HISTORY_DISAGREEMENT` — lazy purchase history was still pending on a deployed account.
+             *     - `WEBHOOK_INTENT_MISMATCH` — a confirmed on-chain payment did not match the order.
+             *     - `PAID_ON_CHAIN_VENDOR_FAILED` — a device-wallet payment settled but the vendor rejected the order.
+             *     - `INVOICE_MARKING_FAILED` — the eSIM was delivered, but marking the device-wallet invoice paid failed.
+             *     - `PROMOTION_CAPTURE_FAILED` — payment verified but its code or credit holds failed to capture; fulfilment continued.
              * @example VENDOR_FULFILMENT_FAILED
-             * @enum {string}
              */
-            manualReviewReason?: "PLAN_DEACTIVATED" | "ON_CHAIN_RECORDING_FAILED" | "VENDOR_FULFILMENT_FAILED" | "ESIM_DELIVERY_FAILED" | "WALLET_REGISTRATION_FAILED";
+            manualReviewReason?: string | null;
         };
         OrderListItem: {
             /**
@@ -1918,7 +2985,9 @@ export interface components {
              * @example FIAT
              * @enum {string}
              */
-            paymentMethod: "FIAT" | "CRYPTO" | "COUPON";
+            paymentMethod: "FIAT" | "CRYPTO" | "COUPON" | "DEVICE_WALLET";
+            /** @description The order's pricing breakdown, fixed when the order was created. */
+            pricing: components["schemas"]["OrderPricing"];
             /**
              * @description Canonical vendor identifier that fulfilled the order.
              *     Null on orders that failed before vendor fulfilment (e.g. `PAYMENT_FAILED`).
@@ -1936,6 +3005,12 @@ export interface components {
              * @example 8944110068000000001
              */
             iccid?: string | null;
+            /**
+             * @description MongoDB ObjectId of the eSIM associated with the order.
+             *     Null on orders that did not reach provisioning.
+             * @example 507f1f77bcf86cd799439011
+             */
+            eSimRef?: string;
             /**
              * @description Wallet address of the eSIM associated with the order.
              *     Null on orders that did not reach provisioning.
@@ -1955,7 +3030,9 @@ export interface components {
              */
             flaggedForManualReview: boolean;
             /**
-             * @description Reason the order was flagged for manual review. Null when not flagged.
+             * @description Reason the order was flagged for manual review. Null when not flagged. Returned on
+             *     every item: a `COMPLETED` order can carry a reason, e.g. `PROMOTION_CAPTURE_FAILED`,
+             *     and must not be shown as a failure.
              * @example null
              */
             manualReviewReason?: string | null;
@@ -1989,10 +3066,69 @@ export interface components {
              */
             total: number;
         };
+        SubmitPaymentRequest: {
+            /**
+             * @description ERC-4337 user operation hash of the payment user operation the device wallet signed and submitted.
+             *     0x-prefixed 32-byte hex.
+             *
+             *     Submitted as a fallback when the chain confirmation webhook did not land.
+             *     The BFF records it on the order so the reconcile job can classify the payment by fetching the
+             *     user operation receipt. It is not trusted as proof of payment — settlement is verified
+             *     independently on chain.
+             * @example 0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+             */
+            userOperationHash: string;
+        };
+        SubmitPaymentResponse: {
+            /**
+             * @description MongoDB ObjectId of the order the hash was recorded against.
+             * @example 664f1a2b3c4d5e6f7a8b9c0e
+             */
+            orderId: string;
+            /**
+             * @description Order status after processing. `PAYMENT_PENDING` when the hash was recorded and the
+             *     reconcile job will pick it up. A more advanced status (e.g. `PAYMENT_VERIFIED`) when the
+             *     chain webhook had already confirmed the payment, in which case the submission is an
+             *     idempotent no-op.
+             * @example PAYMENT_PENDING
+             */
+            orderStatus: string;
+            /**
+             * @example DEVICE_WALLET
+             * @enum {string}
+             */
+            paymentMethod: "DEVICE_WALLET";
+            /**
+             * @description The user operation hash now recorded on the order. Null only if no hash has ever been
+             *     persisted (an already-advanced order that was verified before any submission).
+             * @example 0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+             */
+            userOperationHash?: string | null;
+        };
+        CancelOrderResponse: {
+            /**
+             * @description MongoDB ObjectId of the cancelled order.
+             * @example 664f1a2b3c4d5e6f7a8b9c0e
+             */
+            orderId: string;
+            /**
+             * @description Always `ABANDONED`: the order was cancelled by this request, or had already been
+             *     abandoned (a repeated cancellation, or the cleanup or reconcile job).
+             * @example ABANDONED
+             * @enum {string}
+             */
+            orderStatus: "ABANDONED";
+        };
         CompatibilityResult: {
             /**
+             * @description MongoDB ObjectId of this eSIM record.
+             *
+             *     Use this value as `eSimRef` in `POST /order` and `PATCH /esim/:eSimRef/label` requests.
+             * @example 507f1f77bcf86cd799439011
+             */
+            eSimRef: string;
+            /**
              * @description eSIM wallet address for this result entry.
-             *     Use this value as `eSimId` in `POST /order` for a topup order if `compatible` is `true`.
              * @example 0xdef456abc123def456abc123def456abc123def4
              */
             esimId: string;
@@ -2066,6 +3202,7 @@ export interface components {
              *     When omitted, all active eSIMs for the device are checked and one entry per eSIM is returned.
              * @example [
              *       {
+             *         "eSimRef": "507f1f77bcf86cd799439011",
              *         "esimId": "0xdef456abc123def456abc123def456abc123def4",
              *         "iccid": "8944110068000000001",
              *         "vendor": "VENDOR1",
@@ -2078,6 +3215,13 @@ export interface components {
             results: components["schemas"]["CompatibilityResult"][];
         };
         ESimDocument: {
+            /**
+             * @description MongoDB ObjectId of this eSIM record.
+             *
+             *     Use this value as `eSimRef` in `POST /order` and `PATCH /esim/label/:eSimRef` requests.
+             * @example 507f1f77bcf86cd799439011
+             */
+            eSimRef: string;
             /**
              * @description Integrated Circuit Card Identifier assigned by the vendor.
              *     Canonical identifier for the eSIM at the device/system level.
@@ -2098,16 +3242,30 @@ export interface components {
             smdpAddress?: string;
             /**
              * @description Smart contract wallet address of the deployed eSIM wallet on-chain.
-             *     Primary lookup key for topup orders. Unique per eSIM.
+             *     `null` until the wallet exists — lazy accounts have none until deployment, and
+             *     deployed new-eSIM orders acquire one only at on-chain recording. Use `eSimRef`
+             *     as the stable handle. Pattern applies only when non-null.
              * @example 0xdef456abc123def456abc123def456abc123def4
              */
-            esimId: string;
+            esimId?: string | null;
+            /**
+             * @description Deterministic on-chain eSIM identifier (derived from deviceId + iccid), set at
+             *     creation independent of the wallet address. Stable across the lazy -> deployed transition.
+             * @example c3a1b2d4-e5f6-7890-abcd-ef1234567890
+             */
+            eSIMUniqueIdentifier?: string | null;
             /**
              * @description EVM wallet address of the device that owns this eSIM.
              *     Logical foreign key to the Account collection.
              * @example 0xabc123def456abc123def456abc123def456abc1
              */
             deviceId: string;
+            /**
+             * @description User assigned label to the eSIM. `null` if never assigned.
+             *     Max length allowed is 50 characters.
+             * @example Thailand - July
+             */
+            label?: string | null;
             /**
              * @description Canonical vendor identifier that provisioned this eSIM.
              *     Used for routing topup compatibility checks and vendor API calls.
@@ -2146,14 +3304,6 @@ export interface components {
              *     delivered installation details.
              */
             installationDetails?: components["schemas"]["InstallationDetails"];
-            /**
-             * Format: uuid
-             * @description Deterministic UUID derived from `deviceWalletAddress + iccid` via
-             *     `esimUidGenerator.hashStringsToUUID`. Used as the on-chain eSIM
-             *     identifier for `buyDataBundle` smart contract calls.
-             * @example c3a1b2d4-e5f6-7890-abcd-ef1234567890
-             */
-            eSIMUniqueIdentifier?: string;
             /**
              * Format: date-time
              * @description Mongoose timestamp — document creation time.
@@ -2263,6 +3413,7 @@ export interface components {
         };
         /** @description Remaining usage allowance for a single eSIM. */
         ESimUsage: {
+            eSimRef: string;
             esimId: string;
             iccid: string;
             /** @description Remaining data allowance in GB. Null for unlimited-only active plans. */
@@ -2289,160 +3440,61 @@ export interface components {
              */
             usage: components["schemas"]["ESimUsage"][];
         };
-        IssuedFromTx: {
+        CodeLookupResponse: {
             /**
-             * @description On-chain transaction hash of the vault transfer that triggered coupon issuance.
-             *     Unique — one coupon per transaction hash is enforced at both application and database layers.
-             * @example 0xabc123def456abc123def456abc123def456abc123def456abc123def456abc1
-             */
-            hash: string;
-            /**
-             * @description Blockchain network on which the originating transaction was submitted.
-             *     MUST be a supported network.
-             * @example BASE
-             * @enum {unknown}
-             */
-            network: "MAINNET" | "ARBITRUM" | "OPTIMISIM" | "BASE";
-            /**
-             * @description Token identifier used in the originating vault transfer.
-             *     MUST be a supprted token.
-             * @example USDC
-             * @enum {unknown}
-             */
-            tokenName: "ETH" | "USDC" | "USDT" | "DAI";
-            /**
-             * @description EVM address of the vault that received the originating transfer.
-             *     Sourced from server configuration at issuance time.
-             * @example 0x1234567890abcdef1234567890abcdef12345678
-             */
-            vault: string;
-            /**
-             * @description Transfer amount as a string-serialised decimal value in the token's native denomination.
-             * @example 10.00
-             */
-            amount: string;
-        };
-        CouponDocument: {
-            /**
-             * @description 8-character alphanumeric coupon code.
-             *     Uppercase, excluding visually ambiguous characters (I, O, 0, 1).
-             *
-             *     Pass this value as the `coupon` field in `POST /order` to apply
-             *     the coupon to an order (currently accepted but not yet active).
-             * @example ABCD2345
+             * @description Uppercase.
+             * @example LAUNCH2026
              */
             code: string;
-            /**
-             * @description Token identifier of the balance held by this coupon.
-             * @example USDC
-             */
-            tokenName: string;
-            /**
-             * @description Blockchain network of the originating vault transfer transaction.
-             * @example base
-             */
-            network: string;
-            /**
-             * @description Original total amount at issuance time, serialised as a decimal string.
-             *     Immutable after creation — reflects the amount of the originating transfer.
-             * @example 10.00
-             */
-            totalAmount: string;
-            /**
-             * @description Current remaining balance, serialised as a decimal string.
-             *     Decremented on each successful order redemption.
-             *     When balance reaches zero, `isExhausted` is set to `true`.
-             * @example 10.00
-             */
-            balance: string;
-            /**
-             * @description `true` when the coupon balance has been fully consumed.
-             *     An exhausted coupon cannot be applied to further orders.
-             * @example false
-             */
-            isExhausted: boolean;
-            /** @description Audit record of the on-chain transaction from which this coupon was issued. */
-            issuedFromTx: components["schemas"]["IssuedFromTx"];
-            /**
-             * Format: date-time
-             * @description ISO-8601 UTC timestamp of coupon creation.
-             * @example 2026-04-19T12:00:00.000Z
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description ISO-8601 UTC timestamp of the last modification to this coupon document.
-             * @example 2026-04-19T12:00:00.000Z
-             */
-            updatedAt: string;
-            /**
-             * Format: date-time
-             * @description ISO-8601 UTC timestamp of the most recent successful balance debit.
-             *     `null` if this coupon has not yet been redeemed.
-             * @example null
-             */
-            lastRedeemedAt?: string | null;
-            /**
-             * @description `deviceWalletAddress` of the device that most recently redeemed this coupon.
-             *     `null` if this coupon has not yet been redeemed.
-             * @example null
-             */
-            lastRedeemedBy?: string | null;
-            /**
-             * @description Array of redemption reference records from `redemptionRefs` on the Mongoose document.
-             *     Each entry records a successful balance debit operation against this coupon.
-             *     `null` or empty array if no redemptions have occurred.
-             */
-            redemptions?: {
+            /** @enum {string} */
+            kind: "COUPON" | "REFERRAL";
+            /** @description Set for a coupon, null for a referral code. */
+            coupon: null | {
+                /** @enum {string} */
+                couponType: "FIXED_AMOUNT" | "PERCENTAGE" | "PLAN_VOUCHER";
                 /**
-                 * @description Amount debited from the coupon balance, as a decimal string.
-                 * @example 4.50
+                 * @description The fields of the coupon's type are set, the rest are null.
+                 *     - `FIXED_AMOUNT`: `amountCents`, never more than the list price.
+                 *     - `PERCENTAGE`: `percent` of the list price, rounded down, up to
+                 *       `maxDiscountCents` when set.
+                 *     - `PLAN_VOUCHER`: `planId`, made free as a new eSIM; `planActive` says whether
+                 *       the plan can still be bought.
                  */
-                amount?: string;
+                terms: {
+                    amountCents: number | null;
+                    percent: number | null;
+                    maxDiscountCents: number | null;
+                    planId: string | null;
+                    planActive: boolean | null;
+                };
                 /**
                  * Format: date-time
-                 * @description Timestamp of the redemption.
-                 * @example 2026-04-19T12:00:00.000Z
+                 * @description Null when the coupon never expires.
                  */
-                at?: string;
+                validUntil: string | null;
+                firstPurchaseOnly: boolean;
+            };
+            /** @description Set for a referral code, null for a coupon. */
+            referral: null | {
                 /**
-                 * @description `deviceWalletAddress` of the device that performed the redemption.
-                 * @example 0xabc123def456abc123def456abc123def456abc1
+                 * @description Percentage off the list price of the account's first order, rounded down.
+                 * @example 15
                  */
-                by?: string;
+                refereePercent: number;
                 /**
-                 * @description MongoDB ObjectId of the order that consumed this balance.
-                 * @example 664f1a2b3c4d5e6f7a8b9c0e
+                 * @description The most the referral discount can be.
+                 * @example 2500
                  */
-                reference?: string;
-            }[] | null;
-        };
-        IssueCouponRequest: {
-            /**
-             * @description On-chain transaction hash of the vault transfer from which to issue the coupon.
-             *
-             *     The server verifies this transaction on-chain and creates a coupon
-             *     with a balance equal to the verified transfer amount.
-             *
-             *     Must not have been used to issue a prior coupon — enforced at both
-             *     application and database layers (`COUPON_ALREADY_ISSUED_FOR_TX`).
-             * @example 0xabc123def456abc123def456abc123def456abc123def456abc123def456abc1
-             */
-            txnHash: string;
-            /**
-             * @description Blockchain network on which the transaction was submitted.
-             *     MUST be a supported network.
-             * @example BASE
-             * @enum {unknown}
-             */
-            network: "MAINNET" | "ARBITRUM" | "OPTIMISIM" | "BASE";
-            /**
-             * @description Token identifier used in the vault transfer transaction.
-             *     MUST be a supported token.
-             * @example USDC
-             * @enum {unknown}
-             */
-            tokenName: "ETH" | "USDC" | "USDT" | "DAI";
+                refereeCapCents: number;
+            };
+            eligibility: {
+                eligible: boolean;
+                /**
+                 * @description The error code order creation would return for this code; null when eligible.
+                 * @example null
+                 */
+                reason: string | null;
+            };
         };
         SecretRotateRequest: {
             /**
@@ -2574,14 +3626,19 @@ export interface components {
              *     |----------|--------|-------------|
              *     | `refresh_vendor1_bearer` | 12 hours | Rotates the Vendor1 bearer token via the vendor auth endpoint and persists the new value in the secrets store |
              *     | `refresh_catalogue` | 24 hours | Fetches the latest plan catalogue from all configured vendors, upserts plan documents, and runs the compression pass |
-             *     | `cleanup_abandoned_orders` | 24 hours | Voids/deletes Stripe invoices and marks orders stuck in `CREATED` or `PAYMENT_PENDING` beyond the 24-hour TTL as `ABANDONED`. Deletes `ABANDONED` orders older than 30 days |
+             *     | `cleanup_abandoned_orders` | 24 hours | Voids/deletes Stripe invoices and marks orders stuck in `CREATED` or `PAYMENT_PENDING` beyond the 24-hour TTL as `ABANDONED`. `DEVICE_WALLET` orders at `PAYMENT_PENDING` are excluded. Deletes `ABANDONED` orders older than 30 days |
              *     | `retry_vendor_fulfilment` | 3 minutes | Retries orders at `VENDOR_RETRY_PENDING` (transient vendor failures). Max 2 retries before `VENDOR_FAILED` |
              *     | `retry_onchain_recording` | 15 minutes | Retries `buildBuyDataBundleTxn` for orders at `ESIM_PROVISIONED_PENDING_CHAIN`. Max 2 retries before `COMPLETED` + `flaggedForManualReview` |
-             *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions UNAVAILABLE eSIMs to DEACTIVATED after a 180-day grace window |
+             *     | `sync_esim_status` | 4 hours | Syncs eSIM profile status (activationStatus) and per-bundle status from upstream vendors, transitions `UNAVAILABLE` eSIMs to `DEACTIVATED` after a 180-day grace window |
+             *     | `process_wallet_deployments` | 2 minutes | Executes wallet-deployment requests (factory/lazy route, resumable), backfills eSIM IDs, provisions the eSIM-wallet pool |
+             *     | `record_lazy_wallet_history` | 15 minutes | Records pending lazy-wallet purchases (`isLazyWalletTransaction`, `ESIM_PROVISIONED_PENDING_CHAIN`) into the lazy registry for `NOT_DEPLOYED` accounts, grouped by device |
+             *     | `reconcile_device_wallet_payments` | 30 minutes | Secondary confirmation for expired device-wallet payment sessions: confirms via chain (`usedPaymentReferences` / bundler receipt) and fulfils, or marks `PAYMENT_FAILED`/`ABANDONED` and returns the eSIM wallet to the pool |
+             *     | `reconcile_promotion_holds` | 24 hours | Releases promotion holds and the first-order slot left on orders that ended `ABANDONED` or `PAYMENT_FAILED`, or were since deleted, when the writer's own release did not complete |
+             *     | `release_referral_rewards` | 24 hours | Settles captured referral claims: credits the referrer's reward once the referee's order is `COMPLETED`, and forfeits it when that order ends `VENDOR_FAILED`, `ESIM_PROVISION_FAILED` or `ON_CHAIN_FAILED`, or the referrer is deleted |
              * @example refresh_catalogue
              * @enum {string}
              */
-            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording" | "sync_esim_status";
+            job: "refresh_vendor1_bearer" | "refresh_catalogue" | "cleanup_abandoned_orders" | "retry_vendor_fulfilment" | "retry_onchain_recording" | "sync_esim_status" | "process_wallet_deployments" | "record_lazy_wallet_history" | "reconcile_device_wallet_payments" | "reconcile_promotion_holds" | "release_referral_rewards";
         };
         /**
          * @description Job execution result. Shape varies by job type.
@@ -2724,6 +3781,349 @@ export interface components {
              */
             action: "denied" | "allowed";
         };
+        CreateCampaignRequest: {
+            /**
+             * @description Admin-facing label.
+             * @example Partner launch
+             */
+            name: string;
+            /**
+             * @description `SHARED`: one code, optional `totalCap`, optional admin-chosen `code`.
+             *     `UNIQUE`: `count` generated codes, each usable once.
+             * @example SHARED
+             * @enum {string}
+             */
+            shape: "SHARED" | "UNIQUE";
+            /**
+             * @example FIXED_AMOUNT
+             * @enum {string}
+             */
+            couponType: "FIXED_AMOUNT" | "PERCENTAGE" | "PLAN_VOUCHER";
+            /** @description Only the fields of `couponType` may be sent. */
+            terms: components["schemas"]["CampaignTerms"];
+            /**
+             * @description `SHARED` only. Total redemptions across the code; omit for unlimited.
+             * @example 1000
+             */
+            totalCap?: number | null;
+            /** @description `UNIQUE` only, required. Number of codes to generate. */
+            count?: number;
+            /**
+             * @description `SHARED` only, optional. Admin-chosen code, case-insensitive and stored uppercase.
+             *     Omit to generate an 8-character code.
+             * @example LAUNCH2026
+             */
+            code?: string;
+            /**
+             * @description Redemptions allowed per account across the campaign; omit for unlimited.
+             * @example 1
+             */
+            perAccountLimit?: number | null;
+            /**
+             * Format: date-time
+             * @description Start of the validity window; omit to start immediately.
+             */
+            validFrom?: string | null;
+            /**
+             * Format: date-time
+             * @description End of the validity window. Must be in the future and later than `validFrom`; omit for no expiry.
+             * @example 2026-12-31T23:59:59.000Z
+             */
+            validUntil?: string | null;
+            /**
+             * @description Only accounts with no verified order may redeem.
+             * @default false
+             */
+            firstPurchaseOnly: boolean;
+            /**
+             * @description Reference of the business deal that paid for the campaign. The BFF issues no invoice.
+             * @example INV-2026-001
+             */
+            externalPaymentReference: string;
+            /**
+             * @description Admin-generated key, one per campaign. Retrying with the same key and request returns the
+             *     campaign, or resumes it if an earlier attempt did not finish issuing. The same key with a
+             *     different request is refused.
+             * @example 3f1c2a9e-7d4b-4e8a-9b1f-2c6d8e0a4b7c
+             */
+            idempotencyKey: string;
+            /**
+             * @description Operator note recorded on the campaign's audit trail.
+             * @example Signed with partner on 2026-09-30
+             */
+            note?: string;
+        };
+        CampaignTerms: {
+            /**
+             * @description `FIXED_AMOUNT` only. Discount in USD cents.
+             * @example 500
+             */
+            amountCents?: number | null;
+            /**
+             * @description `PERCENTAGE` only. Whole percent off the list price.
+             * @example null
+             */
+            percent?: number | null;
+            /**
+             * @description `PERCENTAGE` only, optional. Maximum discount in USD cents.
+             * @example null
+             */
+            maxDiscountCents?: number | null;
+            /**
+             * @description `PLAN_VOUCHER` only. Catalogue plan the voucher makes free, for new eSIMs only.
+             *     The plan must exist and be sold as a new eSIM (`purchaseType` `SIM` or `SIM_OR_TOPUP`).
+             * @example null
+             */
+            planId?: string | null;
+        };
+        CampaignSummary: {
+            /** @example 6710c1f2a3b4c5d6e7f80912 */
+            id: string;
+            /** @example Partner launch */
+            name: string;
+            /** @enum {string} */
+            shape: "SHARED" | "UNIQUE";
+            /** @enum {string} */
+            couponType: "FIXED_AMOUNT" | "PERCENTAGE" | "PLAN_VOUCHER";
+            terms: components["schemas"]["CampaignTerms"];
+            totalCap?: number | null;
+            perAccountLimit?: number | null;
+            /** Format: date-time */
+            validFrom?: string | null;
+            /** Format: date-time */
+            validUntil?: string | null;
+            firstPurchaseOnly?: boolean;
+            /**
+             * @description `ACTIVE` once every code is issued. Expiry is not a status; compare `validUntil`.
+             * @enum {string}
+             */
+            status: "ISSUING" | "ACTIVE" | "REVOKED";
+            externalPaymentReference?: string;
+            /** @description 1 for `SHARED`, `count` for `UNIQUE`. */
+            requestedCodeCount: number;
+            issuedCodeCount: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        CampaignCreationResponse: {
+            campaign: components["schemas"]["CampaignSummary"];
+            /**
+             * @description The `SHARED` campaign's code. Null for `UNIQUE` campaigns, whose codes are exported with
+             *     the unique-code export script, never returned by the API.
+             * @example LAUNCH2026
+             */
+            code: string | null;
+            /** @description True when an earlier request with the same idempotency key had already finished the campaign. */
+            replayed: boolean;
+        };
+        ExtendCampaignExpiryRequest: {
+            /**
+             * Format: date-time
+             * @description New end of the validity window. Must be in the future and later than the campaign's current
+             *     `validUntil`; a campaign without an expiry cannot be given one.
+             * @example 2027-03-31T23:59:59.000Z
+             */
+            validUntil: string;
+            /**
+             * @description Operator note recorded on the campaign's audit trail.
+             * @example Partner renewed for Q1
+             */
+            note?: string;
+        };
+        RevocationRequest: {
+            /**
+             * @description Operator note recorded on the campaign's audit trail.
+             * @example Deal cancelled by partner
+             */
+            note?: string;
+        };
+        CodeRevocationResponse: {
+            /** @example LAUNCH2026 */
+            code: string;
+            /** @enum {string} */
+            status: "REVOKED";
+            /** @example 6710c1f2a3b4c5d6e7f80912 */
+            campaignId: string;
+        };
+        StoreCreditAdjustmentRequest: {
+            /**
+             * @description Signed whole cents, never zero. Positive grants credit; negative debits it.
+             * @example 500
+             */
+            amountCents: number;
+            /**
+             * @example GOODWILL
+             * @enum {string}
+             */
+            reason: "GOODWILL" | "SERVICE_ISSUE" | "CORRECTION" | "PROMOTIONAL" | "OTHER";
+            /**
+             * @description Operator note recorded on the entry. Required when `reason` is `OTHER`.
+             * @example Support ticket 4821
+             */
+            note?: string;
+            /**
+             * @description The caller's key for this adjustment; a retry with the same key replays it.
+             * @example 7c1e2a9b-3d4f-4a8b-9c1d-2e6f8a0b4c7d
+             */
+            idempotencyKey: string;
+        };
+        StoreCreditAdjustment: {
+            /** @example 6710c1f2a3b4c5d6e7f80915 */
+            id: string;
+            /**
+             * @description Lowercase.
+             * @example 0x4b7c2a9e7d4b4e8a9b1f2c6d8e0a4b7c3f1c2a9e
+             */
+            deviceWalletAddress: string;
+            /**
+             * @description Signed; positive was a grant, negative a debit.
+             * @example 500
+             */
+            amountCents: number;
+            /** @enum {string} */
+            reason: "GOODWILL" | "SERVICE_ISSUE" | "CORRECTION" | "PROMOTIONAL" | "OTHER";
+            /** @example Support ticket 4821 */
+            operatorNote: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        StoreCreditBalance: {
+            /**
+             * @description Earned and adjusted credit, less credit spent on orders.
+             * @example 1250
+             */
+            balanceCents: number;
+            /**
+             * @description Credit reserved by orders in flight.
+             * @example 300
+             */
+            heldCents: number;
+            /**
+             * @description Balance less held credit; what a new order or a debit can use. 0 on a deleted account.
+             * @example 950
+             */
+            availableCents: number;
+            /** @example false */
+            isDeleted: boolean;
+        };
+        StoreCreditAdjustmentResponse: {
+            entry: components["schemas"]["StoreCreditAdjustment"];
+            /** @description The account's credit read after the adjustment; on a replay, its current credit. */
+            balance: components["schemas"]["StoreCreditBalance"];
+            /**
+             * @description True when an earlier request with this key already made the adjustment.
+             * @example false
+             */
+            replayed: boolean;
+        };
+        CampaignUsageBucket: {
+            /** @example 12 */
+            count: number;
+            /** @example 6000 */
+            discountCents: number;
+        };
+        CampaignUsage: {
+            /** @description Redemptions on orders still in flight. */
+            held: components["schemas"]["CampaignUsageBucket"];
+            /**
+             * @description Redemptions on orders whose payment was verified. `discountCents` is the discount value
+             *     captured.
+             */
+            captured: components["schemas"]["CampaignUsageBucket"];
+            /** @description Redemptions on orders that ended before payment; their uses were returned. */
+            released: components["schemas"]["CampaignUsageBucket"];
+            /**
+             * @description Accounts with a held or captured redemption.
+             * @example 41
+             */
+            distinctAccounts: number;
+        };
+        CampaignListResponse: {
+            /** @description Newest first. */
+            campaigns: (components["schemas"]["CampaignSummary"] & {
+                usage: components["schemas"]["CampaignUsage"];
+            })[];
+            /** @example 1 */
+            page: number;
+            /** @example 25 */
+            pageSize: number;
+            /**
+             * @description Campaigns matching the filter, across all pages.
+             * @example 53
+             */
+            total: number;
+        };
+        CampaignDetailResponse: {
+            campaign: components["schemas"]["CampaignSummary"];
+            usage: components["schemas"]["CampaignUsage"];
+            codeCounts: {
+                /** @example 49 */
+                active: number;
+                /** @example 1 */
+                revoked: number;
+            };
+            /**
+             * @description The `SHARED` campaign's code; null for `UNIQUE`.
+             * @example null
+             */
+            code: string | null;
+            /** @description Every admin action on the campaign, oldest first. */
+            auditTrail: {
+                /** @enum {string} */
+                action: "CREATED" | "ISSUANCE_COMPLETED" | "EXPIRY_EXTENDED" | "REVOKED" | "CODE_REVOKED";
+                /** Format: date-time */
+                at: string;
+                note?: string | null;
+                /**
+                 * @description Action-specific detail: the creation request on `CREATED`, `issuedCodeCount` on
+                 *     `ISSUANCE_COMPLETED`, `from` and `to` on `EXPIRY_EXTENDED`, `codesRevoked` on
+                 *     `REVOKED`, `code` on `CODE_REVOKED`.
+                 */
+                details?: Record<string, never> | null;
+            }[];
+        };
+        CodeDetailResponse: {
+            code: {
+                /** @example LAUNCH2026 */
+                code: string;
+                /** @enum {string} */
+                status: "ACTIVE" | "REVOKED";
+                /**
+                 * @description Live redemptions (held or captured).
+                 * @example 12
+                 */
+                uses: number;
+                /**
+                 * @description 1 for a `UNIQUE` code, the campaign's `totalCap` for a `SHARED` one; null is unlimited.
+                 * @example 1000
+                 */
+                maxUses: number | null;
+                /** @example 6710c1f2a3b4c5d6e7f80912 */
+                campaignId: string;
+            };
+            redemptions: {
+                /** @description Newest first. */
+                items: {
+                    orderId: string;
+                    deviceWalletAddress: string;
+                    /** @enum {string} */
+                    state: "HELD" | "CAPTURED" | "RELEASED";
+                    discountCents: number;
+                    /** Format: date-time */
+                    createdAt: string;
+                    /** Format: date-time */
+                    capturedAt?: string | null;
+                    /** Format: date-time */
+                    releasedAt?: string | null;
+                }[];
+                /** @example 1 */
+                page: number;
+                /** @example 25 */
+                pageSize: number;
+                /** @example 12 */
+                total: number;
+            };
+        };
     };
     responses: {
         /**
@@ -2805,7 +4205,7 @@ export interface components {
          *
          *     **Required client handling:** discard stored tokens, clear session state, prompt the
          *     user to remove their passkey from the device, and return to the unauthenticated entry
-         *     point. See `DELETE /v1/account` for the full rationale.
+         *     point. See `DELETE /account` for the full rationale.
          *
          *     | Code | Meaning |
          *     |------|---------|
@@ -3100,7 +4500,8 @@ export interface operations {
                      *         "deviceUniqueIdentifier": "c3a1b2d4-e5f6-7890-abcd-ef1234567890",
                      *         "salt": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                      *         "pubKeyX": "0x1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
-                     *         "pubKeyY": "0x2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e"
+                     *         "pubKeyY": "0x2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+                     *         "walletState": "NOT_DEPLOYED"
                      *       }
                      *     }
                      */
@@ -3186,7 +4587,7 @@ export interface operations {
              * @description Account deleted. **No response body.**
              *
              *     The account is now flagged deleted. All subsequent authenticated requests from
-             *     this device — including a repeat `DELETE /v1/account` — will return
+             *     this device — including a repeat `DELETE /account` — will return
              *     `404 ACCOUNT_DELETED`.
              */
             204: {
@@ -3248,6 +4649,584 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    accountGetWallet: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Wallet deployment state for the authenticated device. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "deviceWalletAddress": "0xabc123def456abc123def456abc123def456abc1",
+                     *         "walletState": "DEPLOYING",
+                     *         "deployment": {
+                     *           "requestId": "665f2a0f6a702b5aa90c6c1d",
+                     *           "status": "IN_PROGRESS",
+                     *           "currentStep": "DEPLOY",
+                     *           "lastError": null
+                     *         }
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["WalletStateResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Authentication or DPoP validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` outside the freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` already used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match `cnf.jkt` |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            404: components["responses"]["AccountDeletedError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    accountWalletDeploy: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deployment request accepted (or an existing in-flight/idempotent request returned). */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Accepted",
+                     *       "data": {
+                     *         "requestId": "665f2a0f6a702b5aa90c6c1d",
+                     *         "walletState": "DEPLOYING",
+                     *         "status": "PENDING"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["WalletDeployResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Authentication, DPoP validation, or step-up recency check failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or invalid |
+             *     | `TOKEN_EXPIRED` | Access token expired — refresh via Auth Server |
+             *     | `STEP_UP_REQUIRED` | Recent authentication required — complete step-up and retry |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header absent |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` outside the freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` already used |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            404: components["responses"]["AccountDeletedError"];
+            /**
+             * @description The device wallet is already deployed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `WALLET_ALREADY_DEPLOYED` | walletState is DEPLOYED — no deployment is needed |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "WALLET_ALREADY_DEPLOYED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Device wallet 0xabc... is already deployed."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    accountGetReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Referral code and counts for the authenticated device. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "referralCode": "REFER234",
+                     *         "pendingReferrals": 2,
+                     *         "rewardedReferrals": 3
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["ReferralResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Authentication or DPoP validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` outside the freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` already used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match `cnf.jkt` |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            404: components["responses"]["AccountDeletedError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    accountGetCredit: {
+        parameters: {
+            query?: {
+                /**
+                 * @description 1-based page number. Defaults to 1.
+                 * @example 1
+                 */
+                page?: number;
+                /**
+                 * @description Number of entries per page. Defaults to 10, maximum 25.
+                 *     Values above the maximum are rejected with `INVALID_PAGINATION_PARAMS`
+                 *     (the server does not silently clamp).
+                 * @example 10
+                 */
+                pageSize?: number;
+            };
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Store credit and a page of its history for the authenticated device. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "balanceCents": 1200,
+                     *         "availableCents": 800,
+                     *         "entries": [
+                     *           {
+                     *             "kind": "CAPTURED",
+                     *             "amountCents": -300,
+                     *             "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
+                     *             "createdAt": "2026-10-03T09:30:00.000Z"
+                     *           },
+                     *           {
+                     *             "kind": "ADJUSTED",
+                     *             "amountCents": 1250,
+                     *             "orderId": null,
+                     *             "createdAt": "2026-10-02T16:00:00.000Z"
+                     *           },
+                     *           {
+                     *             "kind": "EARNED",
+                     *             "amountCents": 250,
+                     *             "orderId": null,
+                     *             "createdAt": "2026-10-01T12:00:00.000Z"
+                     *           }
+                     *         ],
+                     *         "page": 1,
+                     *         "pageSize": 10,
+                     *         "total": 3
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CreditHistoryResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Query parameter validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_PAGINATION_PARAMS` | `page` or `pageSize` is not a positive integer, or `pageSize` exceeds 25 |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Authentication or DPoP validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` outside the freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` already used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match `cnf.jkt` |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            404: components["responses"]["AccountDeletedError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    accountGetActivity: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The device wallet's newest activity, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "items": [
+                     *           {
+                     *             "type": "TRANSFER",
+                     *             "direction": "IN",
+                     *             "txHash": "0x7a4a39da2a3fa1fc2ef88fd1eaea070286ed2aba21e0419dcfb6d5c5d9f02a72",
+                     *             "blockNumber": 14627987,
+                     *             "time": "2026-10-15T07:42:26.411Z",
+                     *             "from": "0x503828976d22510aad0201ac7ec88293211d23da",
+                     *             "to": "0xbe3f4b43db5eb49d1f48f53443b9abce45da3b79",
+                     *             "token": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+                     *             "symbol": "USDC",
+                     *             "decimals": 6,
+                     *             "amount": "1500000",
+                     *             "eSIMWallet": null,
+                     *             "priceCapUSDCents": null
+                     *           },
+                     *           {
+                     *             "type": "PRICE_CAP",
+                     *             "direction": null,
+                     *             "txHash": "0xc84eeeb72d2b23161fd93b088f304902cbd8b4510f1455a65fdac160e37b3173",
+                     *             "blockNumber": 14627950,
+                     *             "time": "2026-10-15T07:41:12.000Z",
+                     *             "from": null,
+                     *             "to": null,
+                     *             "token": null,
+                     *             "symbol": null,
+                     *             "decimals": null,
+                     *             "amount": null,
+                     *             "eSIMWallet": "0x7853b3736edba9d7ce681f2a90264307694f97f2",
+                     *             "priceCapUSDCents": "2500"
+                     *           }
+                     *         ]
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["ActivityResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Authentication or DPoP validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` outside the freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` already used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match `cnf.jkt` |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            404: components["responses"]["AccountDeletedError"];
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -3623,12 +5602,15 @@ export interface operations {
         };
         responses: {
             /**
-             * @description Order initiated. Payment session data returned.
+             * @description Order initiated. Payment session data and the pricing breakdown returned.
              *
-             *     The response shape varies by resolved payment method:
+             *     The session fields vary by resolved payment method:
              *     - **FIAT:** `orderId`, `stripeInvoiceId`, `clientSecret` — render Stripe Payment Elements.
              *     - **CRYPTO:** `orderId`, `moonpayChargeId`, `moonpayPaymentPageUrl` — open Moonpay hosted page.
+             *     - **DEVICE_WALLET:** `orderId`, `userOperations`, `paymentSessionExpiresAt` - get user signature for the transaction.
              *     - **COUPON:** `orderId` only — $0 invoice auto-pays, webhook fires immediately. Begin polling.
+             *
+             *     `pricing` is present on every new order. An idempotent replay returns `orderId` only.
              *
              *     After payment completion, poll `GET /order/{idempotencyKey}` for fulfilment status.
              */
@@ -3643,18 +5625,19 @@ export interface operations {
                 };
             };
             /**
-             * @description Request validation failed or coupon validation rejected.
+             * @description Request validation failed.
              *
              *     | Code | Meaning |
              *     |------|---------|
              *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
-             *     | `REQUIRED_FIELD` | A required field is missing (e.g. `esimId` for topup) |
-             *     | `INVALID_VALUE` | A field value is invalid (e.g. malformed `catalogueId` or `esimId`) |
-             *     | `INVALID_PAYMENT_METHOD` | Neither `isCryptoPayment` nor `coupon` resolved to a valid payment method |
-             *     | `COUPON_NOT_FOUND` | Coupon code does not exist |
-             *     | `COUPON_INSUFFICIENT_BALANCE` | Coupon balance does not cover the full order amount |
-             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `esimId` is not associated with the authenticated device |
+             *     | `REQUIRED_FIELD` | A required field is missing (e.g. `eSimRef` for topup) |
+             *     | `INVALID_VALUE` | A field value is invalid (e.g. malformed `catalogueId` or `eSimRef`, `asset` off `DEVICE_WALLET`, a non-boolean `useStoreCredit`) |
+             *     | `INVALID_PAYMENT_METHOD` | `paymentMethod` is missing or not one of `FIAT`, `CRYPTO`, `DEVICE_WALLET` |
+             *     | `PROMO_CODE_INVALID_FORMAT` | `coupon` is not 4–16 characters `[A-Za-z0-9]` |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `eSimRef` is not associated with the authenticated device |
              *     | `INVALID_ESIM_TOPUP` | A topup plan cannot be used for a new eSIM purchase |
+             *     | `DEVICE_WALLET_ASSET_NOT_TRANSFERABLE` | Asset presneted for `DEVICE_WALLET` payment is not a valid tranferable asset. |
+             *     | `DEVICE_WALLET_PRICE_ABOVE_CAP` | Order value is greater than spending cap set on the wallet address. |
              */
             400: {
                 headers: {
@@ -3715,6 +5698,49 @@ export interface operations {
                 };
             };
             /**
+             * @description Request conflict with the current state of the target resource.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `WALLET_DEPLOYMENT_IN_PROGRESS` | Device Wallet is being deployed for the account. Orders are blocked till the deployment is complete. |
+             *     | `DEVICE_WALLET_NOT_DEPLOYED` | Device wallet is not deployed and payment method presented for the order is `DEVICE_WALLET`. |
+             *     | `FIRST_ORDER_IN_PROGRESS` | A referral code or first-purchase-only coupon while the account has no verified order and another order with such a code in progress. |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description The code, the store credit or the price cannot be applied to this order.
+             *     Nothing is charged; review the price with `POST /order/preview` and retry.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_NOT_FOUND` | No live coupon or referral code has this code |
+             *     | `PROMO_CODE_NOT_YET_VALID` | The coupon's campaign has not started |
+             *     | `PROMO_CODE_EXPIRED` | The coupon's campaign has ended |
+             *     | `PROMO_CODE_REVOKED` | The coupon or its campaign was revoked |
+             *     | `PROMO_CODE_EXHAUSTED` | The coupon has no uses left |
+             *     | `PROMO_ACCOUNT_LIMIT_REACHED` | The account has used this campaign's coupons as often as allowed |
+             *     | `PROMO_FIRST_PURCHASE_ONLY` | The coupon is for a first purchase and the account already has one |
+             *     | `PROMO_CODE_NOT_APPLICABLE` | A plan voucher on another plan, on a top-up, or whose plan is inactive |
+             *     | `REFERRAL_NOT_ALLOWED` | Not the account's first order, its own code, or a referrer that no longer exists |
+             *     | `FIAT_MINIMUM_NOT_MET` | A `FIAT` rail amount would be between 1 and 99 cents |
+             *     | `STORE_CREDIT_INSUFFICIENT` | The available store credit changed after pricing and no longer covers the credit applied |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
              * @description A downstream payment service dependency failed.
              *
              *     | Code | Meaning |
@@ -3744,7 +5770,7 @@ export interface operations {
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `ORDER_CREATION_FAILED` | A pipeline step failed after order document creation — the order is marked `PAYMENT_FAILED` |
+             *     | `ORDER_CREATION_FAILED` | A pipeline step failed after order document creation — the order is marked `PAYMENT_FAILED` and its code and store credit are released |
              *     | `INTERNAL_SERVER_ERROR` | Unhandled internal server error |
              */
             500: {
@@ -3763,6 +5789,175 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /**
+             * @description Order creation failed due to a transient error.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `DEVICE_WALLET_QUOTE_FAILED` | Quote generation failed for the payment session. |
+             */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "DEVICE_WALLET_QUOTE_FAILED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Failed to obtain a settlement quote for asset ETH: {reason}"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    orderPreview: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description The order's pricing. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["OrderPricing"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_PAYLOAD` | Request body is missing or empty |
+             *     | `REQUIRED_FIELD` | A required field is missing (e.g. `eSimRef` for a top-up) |
+             *     | `INVALID_VALUE` | A field is invalid (e.g. malformed `catalogueId`, `asset` off `DEVICE_WALLET`, a non-boolean `useStoreCredit`) |
+             *     | `INVALID_PAYMENT_METHOD` | `paymentMethod` is missing or not one of `FIAT`, `CRYPTO`, `DEVICE_WALLET` |
+             *     | `PROMO_CODE_INVALID_FORMAT` | `coupon` is not 4–16 characters `[A-Za-z0-9]` |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | `eSimRef` is not an eSIM of the authenticated device |
+             *     | `INVALID_ESIM_TOPUP` | A top-up plan cannot be bought as a new eSIM |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `NOT_FOUND` | `catalogueId` does not match an active catalogue entry |
+             *     | `NO_EQUIVALENT_TOPUP_PLAN` | No active TOPUP plan exists for the submitted SIM plan |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `WALLET_DEPLOYMENT_IN_PROGRESS` | The device wallet is being deployed; orders are blocked until it completes |
+             *     | `DEVICE_WALLET_NOT_DEPLOYED` | `DEVICE_WALLET` was chosen but the device wallet is not deployed |
+             *     | `FIRST_ORDER_IN_PROGRESS` | A referral code or first-purchase-only coupon while another order with such a code is in flight and the account has no verified order |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description The code or the price cannot be applied to this order.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_NOT_FOUND` | No live coupon or referral code has this code |
+             *     | `PROMO_CODE_NOT_YET_VALID` | The coupon's campaign has not started |
+             *     | `PROMO_CODE_EXPIRED` | The coupon's campaign has ended |
+             *     | `PROMO_CODE_REVOKED` | The coupon or its campaign was revoked |
+             *     | `PROMO_CODE_EXHAUSTED` | The coupon has no uses left |
+             *     | `PROMO_ACCOUNT_LIMIT_REACHED` | The account has used this campaign's coupons as often as allowed |
+             *     | `PROMO_FIRST_PURCHASE_ONLY` | The coupon is for a first purchase and the account already has one |
+             *     | `PROMO_CODE_NOT_APPLICABLE` | A plan voucher on another plan, on a top-up, or whose plan is inactive |
+             *     | `REFERRAL_NOT_ALLOWED` | Not the account's first order, its own code, or a referrer that no longer exists |
+             *     | `FIAT_MINIMUM_NOT_MET` | A `FIAT` rail amount would be between 1 and 99 cents |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "FIAT_MINIMUM_NOT_MET",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "A card payment must be zero or at least 100 cents after discounts."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     orderList: {
@@ -3928,7 +6123,353 @@ export interface operations {
                 };
             };
             401: components["responses"]["DPoPAuthError"];
-            404: components["responses"]["AccountDeletedError"];
+            /**
+             * @description Branch on `code`: the two cases need different handling.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_FOUND` | No order exists for the idempotency key and the authenticated device |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account`. Discard tokens and return to the unauthenticated entry point |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    orderSubmitPayment: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description The `x-correlation-id` value used when the order was created via `POST /order`.
+                 *     Identifies the order for the authenticated device.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                idempotencyKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "userOperationHash": "0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+                 *     }
+                 */
+                "application/json": components["schemas"]["SubmitPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Hash recorded, or an idempotent no-op when the order had already advanced. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
+                     *         "orderStatus": "PAYMENT_PENDING",
+                     *         "paymentMethod": "DEVICE_WALLET",
+                     *         "userOperationHash": "0x3fa1c2b4e5d60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["SubmitPaymentResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request body failed validation.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
+             *     | `REQUIRED_FIELD` | `userOperationHash` is missing |
+             *     | `INVALID_VALUE` | `userOperationHash` is not 0x-prefixed 32-byte hex |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "INVALID_VALUE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "userOperationHash 0xzzz is invalid"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            /**
+             * @description Branch on `code`: the two cases need different handling.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_FOUND` | No order exists for the idempotency key and the authenticated device |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account`. Discard tokens and return to the unauthenticated entry point |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description The order cannot accept a payment submission in its current state.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PAYMENT_SUBMISSION_NOT_ALLOWED` | Order is not a device-wallet order, or is in a terminal state |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "PAYMENT_SUBMISSION_NOT_ALLOWED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Payment submission is not applicable for order 664f1a2b3c4d5e6f7a8b9c0e in its current state."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    orderCancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
+            };
+            path: {
+                /**
+                 * @description The `x-correlation-id` value used when the order was created via `POST /order`.
+                 *     Identifies the order for the authenticated device.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                idempotencyKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order is `ABANDONED`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                     *       "message": "Success",
+                     *       "data": {
+                     *         "orderId": "664f1a2b3c4d5e6f7a8b9c0e",
+                     *         "orderStatus": "ABANDONED"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CancelOrderResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Authentication, DPoP validation, or step-up recency check failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `UNAUTHORIZED` | Access token missing, malformed, or signature invalid |
+             *     | `TOKEN_EXPIRED` | Access token has expired — refresh via Auth Server |
+             *     | `STEP_UP_REQUIRED` | Operation requires recent authentication — trigger step-up flow |
+             *     | `ACCOUNT_NOT_FOUND` | No account exists for the authenticated device — registration may not have synced |
+             *     | `DPOP_PROOF_MISSING` | `DPoP` header is absent |
+             *     | `DPOP_PROOF_MALFORMED` | `DPoP` proof structure or header fields are invalid |
+             *     | `DPOP_PROOF_SIGNATURE_INVALID` | `DPoP` proof signature verification failed |
+             *     | `DPOP_PROOF_BINDING_INVALID` | `DPoP` proof `htm`, `htu`, or `ath` binding mismatch |
+             *     | `DPOP_PROOF_STALE` | `DPoP` proof `iat` is outside the ±60-second freshness window |
+             *     | `DPOP_PROOF_REPLAYED` | `DPoP` proof `jti` has already been used |
+             *     | `DPOP_PROOF_KEY_MISMATCH` | `DPoP` proof key does not match the `cnf.jkt` claim |
+             */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "STEP_UP_REQUIRED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "This operation requires recent authentication. Please re-authenticate and retry."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Branch on `code`: the two cases need different handling.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_FOUND` | No order exists for the idempotency key and the authenticated device |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ORDER_NOT_FOUND",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "No order found for the provided reference."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description The order cannot be cancelled. Nothing was changed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `ORDER_NOT_CANCELLABLE` | Not an unpaid `PAYMENT_PENDING` order: past payment, nothing to pay, under manual review, or a payment for it was received. The message gives the reason. |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "ORDER_NOT_CANCELLABLE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Order 664f1a2b3c4d5e6f7a8b9c0e cannot be cancelled: a payment for it has been received."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Stripe could not void the order's invoice. Nothing was changed; retry.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `STRIPE_INVOICE_VOID_FAILED` | Failed to void the order's Stripe invoice |
+             */
+            424: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "STRIPE_INVOICE_VOID_FAILED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Failed to void Stripe invoice."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             500: components["responses"]["InternalServerError"];
         };
     };
@@ -4041,11 +6582,11 @@ export interface operations {
             };
             path: {
                 /**
-                 * @description eSIM wallet contract address on-chain.
-                 *     This is the `esimId` value from the eSIM list or order response.
-                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 * @description eSIM MongoDb ObjectId reference.
+                 *     This is the `eSimRef` value from the eSIM list or order response.
+                 * @example 507f1f77bcf86cd799439011
                  */
-                esimId: string;
+                eSimRef: string;
             };
             cookie?: never;
         };
@@ -4066,6 +6607,7 @@ export interface operations {
                      *         "iccid": "8944110068000000001",
                      *         "matchingId": "QR-G-5C-12345-ABCDE",
                      *         "smdpAddress": "rsp.truphone.com",
+                     *         "eSimRef": "507f1f77bcf86cd799439011",
                      *         "esimId": "0xdef456abc123def456abc123def456abc123def4",
                      *         "deviceId": "0xabc123def456abc123def456abc123def456abc1",
                      *         "vendor": "VENDOR1",
@@ -4115,7 +6657,7 @@ export interface operations {
                 };
             };
             /**
-             * @description The provided `esimId` belongs to a different device.
+             * @description The provided `eSimRef` belongs to a different device.
              *
              *     | Code | Meaning |
              *     |------|---------|
@@ -4131,7 +6673,7 @@ export interface operations {
                      *       "success": false,
                      *       "code": "ESIM_NOT_FOUND_FOR_DEVICE",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "No eSIM found for esimId 0xdef4... associated with device 0xabc1..."
+                     *       "message": "No eSIM found for eSimRef 507f... associated with device 0xabc1..."
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
@@ -4143,7 +6685,7 @@ export interface operations {
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `NOT_FOUND` | No eSIM record found for the given `esimId` |
+             *     | `NOT_FOUND` | No eSIM record found for the given `eSimRef` |
              *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
              */
             404: {
@@ -4156,7 +6698,7 @@ export interface operations {
                      *       "success": false,
                      *       "code": "NOT_FOUND",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "ESim not found for esimId: 0xdef456abc123def456abc123def456abc123def4"
+                     *       "message": "ESim not found for eSimRef: 507f1f77bcf86cd799439011"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
@@ -4215,15 +6757,15 @@ export interface operations {
             };
             path: {
                 /**
-                 * @description Optional eSIM wallet address to restrict the check to a single eSIM.
+                 * @description Optional eSIM MongoDB ObjectId to restrict the check to a single eSIM.
                  *
                  *     When provided, the eSIM MUST be active and associated with the
                  *     authenticated device — a mismatch returns `ESIM_NOT_FOUND_FOR_DEVICE`.
                  *
                  *     When omitted, all active eSIMs for the device are checked.
-                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 * @example 507f1f77bcf86cd799439011
                  */
-                esimId: string;
+                eSimRef: string;
             };
             cookie?: never;
         };
@@ -4250,8 +6792,8 @@ export interface operations {
              *     | Code | Meaning |
              *     |------|---------|
              *     | `REQUIRED_FIELD` | `planId` query parameter is missing |
-             *     | `INVALID_VALUE` | `planId` or `esimId` failed format validation |
-             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `esimId` is not an active eSIM for the authenticated device |
+             *     | `INVALID_VALUE` | `planId` or `eSimRef` failed format validation |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | Provided `eSimRef` is not an active eSIM for the authenticated device |
              */
             400: {
                 headers: {
@@ -4340,11 +6882,11 @@ export interface operations {
             };
             path: {
                 /**
-                 * @description Optional eSIM wallet address. If provided, returns usage for that eSIM only;
+                 * @description Optional eSIM MongoDB ObjectID. If provided, returns usage for that eSIM only;
                  *     if omitted, returns usage for all non-terminal eSIMs of the device.
-                 * @example 0xdef456abc123def456abc123def456abc123def4
+                 * @example 507f1f77bcf86cd799439011
                  */
-                esimId: string;
+                eSimRef: string;
             };
             cookie?: never;
         };
@@ -4364,6 +6906,7 @@ export interface operations {
                      *       "data": {
                      *         "usage": [
                      *           {
+                     *             "eSimRef": "507f1f77bcf86cd799439011",
                      *             "esimId": "0xdef456abc123def456abc123def456abc123def4",
                      *             "iccid": "8944110068000000001",
                      *             "remaining": 2.38,
@@ -4384,7 +6927,7 @@ export interface operations {
                 };
             };
             /**
-             * @description The provided `esimId` belongs to a different device.
+             * @description The provided `eSimRef` belongs to a different device.
              *
              *     | Code | Meaning |
              *     |------|---------|
@@ -4400,7 +6943,7 @@ export interface operations {
                      *       "success": false,
                      *       "code": "ESIM_NOT_FOUND_FOR_DEVICE",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "No eSIM found for esimId 0xdef4... associated with device 0xabc1..."
+                     *       "message": "No eSIM found for eSimRef 507f... associated with device 0xabc1..."
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
@@ -4411,7 +6954,7 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
-    couponIssue: {
+    esimSetLabel: {
         parameters: {
             query?: never;
             header: {
@@ -4425,24 +6968,61 @@ export interface operations {
                  * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
                  */
                 "x-correlation-id": components["parameters"]["CorrelationId"];
+                /**
+                 * @description DPoP proof JWT per RFC 9449.
+                 *
+                 *     A compact serialised JWT with:
+                 *
+                 *     **Header**
+                 *     - `typ`: `dpop+jwt`
+                 *     - `alg`: `ES256`
+                 *     - `jwk`: client's P-256 public key in JWK format (MUST not contain private key material)
+                 *
+                 *     **Payload**
+                 *     - `jti`: unique proof identifier (UUID v4) — single-use, replay prevented
+                 *     - `htm`: HTTP method of this request (e.g. `POST`, `GET`) — case-insensitive match
+                 *     - `htu`: full request URI without query string or fragment
+                 *     - `iat`: Unix timestamp (seconds) — must be within ±60 seconds of server time
+                 *     - `ath`: `BASE64URL(SHA256(<raw access token bytes>))` — binds the proof to the specific token
+                 *
+                 *     **Signed** with the client's ES256/P-256 DPoP private key.
+                 *
+                 *     Generate a fresh proof for every request as the `jti` and `ath` claims
+                 *     make each proof request-specific and non-reusable.
+                 * @example eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiLi4uIiwieSI6Ii4uLiJ9fQ.eyJqdGkiOiJhMWIyYzNkNC1lNWY2LTc4OTAtYWJjZC1lZjEyMzQ1Njc4OTAiLCJodG0iOiJQT1NUIiwiaHR1IjoiaHR0cHM6Ly9hcGkucGxhY2Vob2xkZXIuYXBwL3YxL29yZGVyIiwiaWF0IjoxNzQ1MDY0MDAwLCJhdGgiOiJCQVNFNjRVUkxfT0ZfU0hBMjU2X0hBU0gifQ.signature
+                 */
+                DPoP: components["parameters"]["DPoP"];
             };
-            path?: never;
+            path: {
+                /**
+                 * @description Mongo ObjectId reference for the eSIM (`eSimRef` from the eSIM list,
+                 *     eSIM detail, or order response).
+                 * @example 664f1a2b3c4d5e6f7a8b9c0d
+                 */
+                eSimRef: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
                 /**
                  * @example {
-                 *       "txnHash": "0xabc123def456abc123def456abc123def456abc123def456abc123def456abc1",
-                 *       "network": "BASE",
-                 *       "tokenName": "USDC"
+                 *       "label": "Work — Europe"
                  *     }
                  */
-                "application/json": components["schemas"]["IssueCouponRequest"];
+                "application/json": {
+                    /**
+                     * @description User-assignable display label for the eSIM. Non-empty after
+                     *     trimming; a maximum of 50 characters. Leading and trailing
+                     *     whitespace is stripped before persistence.
+                     * @example Work — Europe
+                     */
+                    label: string;
+                };
             };
         };
         responses: {
-            /** @description Coupon issued successfully. */
+            /** @description Label updated. The full eSIM document is returned. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4454,40 +7034,40 @@ export interface operations {
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                      *       "message": "Success",
                      *       "data": {
-                     *         "code": "ABCD2345",
-                     *         "tokenName": "USDC",
-                     *         "network": "BASE",
-                     *         "totalAmount": "10.00",
-                     *         "balance": "10.00",
-                     *         "isExhausted": false,
-                     *         "issuedFromTx": {
-                     *           "hash": "0xabc123def456abc123def456abc123def456abc123def456abc123def456abc1",
-                     *           "network": "BASE",
-                     *           "tokenName": "USDC",
-                     *           "vault": "0x1234567890abcdef1234567890abcdef12345678",
-                     *           "amount": "10.00"
+                     *         "eSimRef": "664f1a2b3c4d5e6f7a8b9c0d",
+                     *         "label": "Work — Europe",
+                     *         "iccid": "8944110068000000001",
+                     *         "matchingId": "QR-G-5C-12345-ABCDE",
+                     *         "smdpAddress": "rsp.truphone.com",
+                     *         "esimId": "0xdef456abc123def456abc123def456abc123def4",
+                     *         "deviceId": "0xabc123def456abc123def456abc123def456abc1",
+                     *         "vendor": "VENDOR1",
+                     *         "planId": "1GB_EU_30D",
+                     *         "planHistory": [],
+                     *         "activationStatus": "INSTALLED",
+                     *         "installationDetails": {
+                     *           "qrcode": "LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE",
+                     *           "appleInstallationUrl": "https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA:1$rsp.truphone.com$QR-G-5C-12345-ABCDE"
                      *         },
-                     *         "createdAt": "2026-04-19T12:00:00.000Z",
-                     *         "updatedAt": "2026-04-19T12:00:00.000Z",
-                     *         "lastRedeemedAt": null,
-                     *         "lastRedeemedBy": null,
-                     *         "redemptions": null
+                     *         "eSIMUniqueIdentifier": "c3a1b2d4-e5f6-7890-abcd-ef1234567890",
+                     *         "createdAt": "2026-04-15T12:30:00.000Z",
+                     *         "updatedAt": "2026-05-10T09:00:00.000Z"
                      *       }
                      *     }
                      */
                     "application/json": components["schemas"]["SuccessResponse"] & {
-                        data?: components["schemas"]["CouponDocument"];
+                        data?: components["schemas"]["ESimDocument"];
                     };
                 };
             };
             /**
-             * @description Request validation failed or transaction verification rejected.
+             * @description Request validation failed, or the eSIM belongs to a different device.
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `INVALID_PAYLOAD` | Request body is missing or malformed |
-             *     | `REQUIRED_FIELD` | A required field is missing |
-             *     | `INVALID_OR_INSUFFICIENT_TX` | Transaction verification failed or the transfer amount is zero |
+             *     | `INVALID_VALUE` | `eSimRef` is not a valid ObjectId, or `label` is empty, non-string, or longer than 50 characters |
+             *     | `REQUIRED_FIELD` | `eSimRef` was not supplied |
+             *     | `ESIM_NOT_FOUND_FOR_DEVICE` | The eSIM exists but is not associated with the authenticated device |
              */
             400: {
                 headers: {
@@ -4497,23 +7077,24 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "INVALID_OR_INSUFFICIENT_TX",
+                     *       "code": "INVALID_VALUE",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Transaction validation failed or amount is zero."
+                     *       "message": "label  is invalid"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            401: components["responses"]["AdminTokenError"];
+            401: components["responses"]["DPoPAuthError"];
             /**
-             * @description A coupon has already been issued for this transaction hash.
+             * @description No eSIM exists for the provided reference, or the user account has been deleted.
              *
              *     | Code | Meaning |
              *     |------|---------|
-             *     | `COUPON_ALREADY_ISSUED_FOR_TX` | A coupon already exists for the provided `txnHash` |
+             *     | `NOT_FOUND` | No eSIM record found for the given `eSimRef` |
+             *     | `ACCOUNT_DELETED` | The account was deleted via `DELETE /account` |
              */
-            409: {
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4521,38 +7102,15 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "COUPON_ALREADY_ISSUED_FOR_TX",
+                     *       "code": "NOT_FOUND",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "A coupon already exists for transaction hash 0xabc1..."
+                     *       "message": "ESim not found by eSimRef 664f1a2b3c4d5e6f7a8b9c0d"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /**
-             * @description Coupon code generation failed or unhandled internal server error.
-             *
-             *     | Code | Meaning |
-             *     |------|---------|
-             *     | `COUPON_CODE_GEN_FAILED` | Failed to generate a unique coupon code after retry attempts |
-             *     | `INTERNAL_SERVER_ERROR` | Unhandled internal server error |
-             */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "success": false,
-                     *       "code": "COUPON_CODE_GEN_FAILED",
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Failed to generate coupon code. Please try again!"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
+            500: components["responses"]["InternalServerError"];
         };
     };
     couponGetByCode: {
@@ -4596,9 +7154,8 @@ export interface operations {
             };
             path: {
                 /**
-                 * @description 8-character alphanumeric coupon code.
-                 *     Case-insensitive — normalised to uppercase before lookup.
-                 * @example ABCD2345
+                 * @description A coupon or referral code, case-insensitive.
+                 * @example LAUNCH2026
                  */
                 code: string;
             };
@@ -4606,60 +7163,38 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Coupon found and returned successfully. */
+            /** @description The code exists. `eligibility` says whether the account may use it. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "success": true,
-                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Success",
-                     *       "data": {
-                     *         "code": "ABCD2345",
-                     *         "tokenName": "USDC",
-                     *         "network": "BASE",
-                     *         "totalAmount": "10.00",
-                     *         "balance": "5.50",
-                     *         "isExhausted": false,
-                     *         "issuedFromTx": {
-                     *           "hash": "0xabc123def456abc123def456abc123def456abc123def456abc123def456abc1",
-                     *           "network": "BASE",
-                     *           "tokenName": "USDC",
-                     *           "vault": "0x1234567890abcdef1234567890abcdef12345678",
-                     *           "amount": "10.00"
-                     *         },
-                     *         "createdAt": "2026-04-19T10:00:00.000Z",
-                     *         "updatedAt": "2026-04-19T12:00:00.000Z",
-                     *         "lastRedeemedAt": "2026-04-19T12:00:00.000Z",
-                     *         "lastRedeemedBy": "0xabc123def456abc123def456abc123def456abc1",
-                     *         "redemptions": [
-                     *           {
-                     *             "amount": "4.50",
-                     *             "at": "2026-04-19T12:00:00.000Z",
-                     *             "by": "0xabc123def456abc123def456abc123def456abc1",
-                     *             "reference": "664f1a2b3c4d5e6f7a8b9c0e"
-                     *           }
-                     *         ]
-                     *       }
-                     *     }
-                     */
                     "application/json": components["schemas"]["SuccessResponse"] & {
-                        data?: components["schemas"]["CouponDocument"];
+                        data?: components["schemas"]["CodeLookupResponse"];
                     };
                 };
             };
-            401: components["responses"]["DPoPAuthError"];
             /**
-             * @description No coupon found for the provided code.
-             *
-             *     | Code | Meaning |
+             * @description | Code | Meaning |
              *     |------|---------|
-             *     | `COUPON_NOT_FOUND` | No coupon document exists for the provided `code` |
+             *     | `PROMO_CODE_INVALID_FORMAT` | `code` is not 4–16 characters `[A-Za-z0-9]` |
              */
-            404: {
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["DPoPAuthError"];
+            404: components["responses"]["AccountDeletedError"];
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_NOT_FOUND` | No live coupon or referral code has this code |
+             */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4667,9 +7202,9 @@ export interface operations {
                     /**
                      * @example {
                      *       "success": false,
-                     *       "code": "COUPON_NOT_FOUND",
+                     *       "code": "PROMO_CODE_NOT_FOUND",
                      *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                     *       "message": "Coupon Code ABCD2345 not found."
+                     *       "message": "Code LAUNCH2026 was not found."
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
@@ -5205,6 +7740,741 @@ export interface operations {
             500: components["responses"]["InternalServerError"];
         };
     };
+    adminListCampaigns: {
+        parameters: {
+            query?: {
+                status?: "ISSUING" | "ACTIVE" | "REVOKED";
+                page?: number;
+                pageSize?: number;
+            };
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of campaigns. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CampaignListResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_VALUE` | `status` is not a campaign status |
+             *     | `INVALID_PAGINATION_PARAMS` | `page` or `pageSize` is not a positive integer, or `pageSize` is above 100 |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminCreateCampaign: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCampaignRequest"];
+            };
+        };
+        responses: {
+            /** @description Replay of a campaign an earlier request already finished; nothing was changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CampaignCreationResponse"];
+                    };
+                };
+            };
+            /** @description Campaign created, or resumed, and every code issued. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Created Successfully",
+                     *       "data": {
+                     *         "campaign": {
+                     *           "id": "6710c1f2a3b4c5d6e7f80912",
+                     *           "name": "Partner launch",
+                     *           "shape": "SHARED",
+                     *           "couponType": "FIXED_AMOUNT",
+                     *           "terms": {
+                     *             "amountCents": 500,
+                     *             "percent": null,
+                     *             "maxDiscountCents": null,
+                     *             "planId": null
+                     *           },
+                     *           "totalCap": 1000,
+                     *           "perAccountLimit": 1,
+                     *           "validFrom": null,
+                     *           "validUntil": "2026-12-31T23:59:59.000Z",
+                     *           "firstPurchaseOnly": false,
+                     *           "status": "ACTIVE",
+                     *           "externalPaymentReference": "INV-2026-001",
+                     *           "requestedCodeCount": 1,
+                     *           "issuedCodeCount": 1,
+                     *           "createdAt": "2026-10-01T09:30:00.000Z"
+                     *         },
+                     *         "code": "LAUNCH2026",
+                     *         "replayed": false
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CampaignCreationResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_PAYLOAD` | Body is missing, empty or not an object |
+             *     | `REQUIRED_FIELD` | A required field is absent, including the terms of the chosen `couponType` and `count` on `UNIQUE` |
+             *     | `INVALID_VALUE` | A field is malformed, out of range, over its length limit, or does not apply to the shape or coupon type; `validUntil` is not in the future or not after `validFrom` |
+             *     | `PROMO_CODE_INVALID_FORMAT` | The chosen `code` is not 4–16 characters `[A-Z0-9]` |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "REQUIRED_FIELD",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "terms.amountCents is required"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description Conflict.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_UNAVAILABLE` | The chosen `code` is already a coupon or referral code; nothing was created |
+             *     | `PROMO_CAMPAIGN_IDEMPOTENCY_CONFLICT` | The `idempotencyKey` was already used for a different request |
+             *     | `PROMO_CAMPAIGN_ISSUANCE_IN_PROGRESS` | Another request is issuing this campaign; retry shortly |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "PROMO_CODE_UNAVAILABLE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Code LAUNCH2026 is already in use."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Plan voucher rejected.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_PLAN_NOT_ELIGIBLE` | `terms.planId` is not in the catalogue, or is sold only as a top-up |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "PROMO_PLAN_NOT_ELIGIBLE",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Plan plan-1 does not exist or cannot be bought as a new eSIM."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description Server error.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_GENERATION_FAILED` | Generated codes kept colliding; the campaign stays `ISSUING`, retry with the same key |
+             *     | `INTERNAL_SERVER_ERROR` | Unexpected failure |
+             */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": false,
+                     *       "code": "PROMO_CODE_GENERATION_FAILED",
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Failed to generate a unique code. Please try again."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    adminExtendCampaignExpiry: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /**
+                 * @description Campaign `id` returned at creation.
+                 * @example 6710c1f2a3b4c5d6e7f80912
+                 */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtendCampaignExpiryRequest"];
+            };
+        };
+        responses: {
+            /** @description Expiry extended, or already the requested one. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CampaignSummary"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `REQUIRED_FIELD` | `validUntil` is missing |
+             *     | `INVALID_VALUE` | `campaignId` or `validUntil` is malformed, `validUntil` does not extend the current expiry, or `note` is invalid |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CAMPAIGN_NOT_FOUND` | No campaign has this id |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminRevokeCampaign: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /**
+                 * @description Campaign `id` returned at creation.
+                 * @example 6710c1f2a3b4c5d6e7f80912
+                 */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RevocationRequest"];
+            };
+        };
+        responses: {
+            /** @description Campaign revoked, or already revoked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CampaignSummary"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_VALUE` | `campaignId` is malformed, or `note` is invalid |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CAMPAIGN_ISSUANCE_IN_PROGRESS` | The campaign is still issuing its codes |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CAMPAIGN_NOT_FOUND` | No campaign has this id |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminRevokeCode: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /**
+                 * @description The coupon code, case-insensitive.
+                 * @example LAUNCH2026
+                 */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RevocationRequest"];
+            };
+        };
+        responses: {
+            /** @description Code revoked, or already revoked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CodeRevocationResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_INVALID_FORMAT` | `code` is not 4–16 characters `[A-Z0-9]` |
+             *     | `INVALID_VALUE` | `note` is invalid |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_NOT_FOUND` | No coupon has this code |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminGetCampaign: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /**
+                 * @description Campaign `id` returned at creation.
+                 * @example 6710c1f2a3b4c5d6e7f80912
+                 */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The campaign. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CampaignDetailResponse"];
+                    };
+                };
+            };
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_VALUE` | `campaignId` is malformed |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CAMPAIGN_NOT_FOUND` | No campaign has this id |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminGetCode: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /**
+                 * @description The coupon code, case-insensitive.
+                 * @example LAUNCH2026
+                 */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The code and a page of its redemptions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["CodeDetailResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_INVALID_FORMAT` | `code` is not 4–16 characters `[A-Z0-9]` |
+             *     | `INVALID_PAGINATION_PARAMS` | `page` or `pageSize` is not a positive integer, or `pageSize` is above 100 |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `PROMO_CODE_NOT_FOUND` | No coupon has this code |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
+    adminAdjustStoreCredit: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated request correlation identifier.
+                 *
+                 *     Propagated through all log entries produced during the handling of an individual request.
+                 *     Echoed back in the `correlationId` field of the response envelope.
+                 *
+                 *     Use a UUID v4 per request.
+                 * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                 */
+                "x-correlation-id": components["parameters"]["CorrelationId"];
+            };
+            path: {
+                /**
+                 * @description The account's device wallet address, case-insensitive.
+                 * @example 0x4b7c2a9e7d4b4e8a9b1f2c6d8e0a4b7c3f1c2a9e
+                 */
+                deviceWalletAddress: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreCreditAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Replay of an adjustment an earlier request already made; nothing was changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["StoreCreditAdjustmentResponse"];
+                    };
+                };
+            };
+            /** @description Adjustment made. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "success": true,
+                     *       "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *       "message": "Created Successfully",
+                     *       "data": {
+                     *         "entry": {
+                     *           "id": "6710c1f2a3b4c5d6e7f80915",
+                     *           "deviceWalletAddress": "0x4b7c2a9e7d4b4e8a9b1f2c6d8e0a4b7c3f1c2a9e",
+                     *           "amountCents": 500,
+                     *           "reason": "GOODWILL",
+                     *           "operatorNote": "Support ticket 4821",
+                     *           "createdAt": "2026-10-10T09:30:00.000Z"
+                     *         },
+                     *         "balance": {
+                     *           "balanceCents": 1250,
+                     *           "heldCents": 300,
+                     *           "availableCents": 950,
+                     *           "isDeleted": false
+                     *         },
+                     *         "replayed": false
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SuccessResponse"] & {
+                        data?: components["schemas"]["StoreCreditAdjustmentResponse"];
+                    };
+                };
+            };
+            /**
+             * @description Request validation failed.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `INVALID_PAYLOAD` | Body is missing or empty |
+             *     | `REQUIRED_FIELD` | A required field is absent, including `note` when `reason` is `OTHER` |
+             *     | `INVALID_VALUE` | A field is malformed, out of range or over its length limit; `amountCents` is zero or not a whole number |
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            401: components["responses"]["AdminTokenError"];
+            /**
+             * @description Conflict.
+             *
+             *     | Code | Meaning |
+             *     |------|---------|
+             *     | `STORE_CREDIT_ADJUSTMENT_CONFLICT` | The `idempotencyKey` was already used for a different adjustment |
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /**
+             * @description | Code | Meaning |
+             *     |------|---------|
+             *     | `STORE_CREDIT_ACCOUNT_UNAVAILABLE` | No account has this address, or it has been deleted |
+             *     | `STORE_CREDIT_DEBIT_EXCEEDS_AVAILABLE` | The debit exceeds the available credit; nothing was changed |
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            500: components["responses"]["InternalServerError"];
+        };
+    };
     webhookStripe: {
         parameters: {
             query?: never;
@@ -5361,6 +8631,176 @@ export interface operations {
                      */
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
+            };
+        };
+    };
+    webhookChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Alchemy Custom Webhook (GraphQL) payload. Must not be parsed before signature
+         *     verification. Content-Type is `application/json`; the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example wh_octjglnywaupz6th */
+                    webhookId?: string;
+                    /** @example whevt_ogrc5v64myey69ux */
+                    id?: string;
+                    /**
+                     * @example GRAPHQL
+                     * @enum {string}
+                     */
+                    type?: "GRAPHQL";
+                    /** @description GraphQL result carrying `data.block.logs[]`. */
+                    event?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Event received (always returned except on signature failure). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        received?: boolean;
+                    };
+                };
+            };
+            /** @description Signature missing or verification failed (ALCHEMY_WEBHOOK_INVALID). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    webhookActivityTransfers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Alchemy Address Activity payload. Must not be parsed before signature verification.
+         *     Content-Type is `application/json`; the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example wh_k63lg72rxda78gce */
+                    webhookId?: string;
+                    /** @example whevt_vq499kv7elmlbp2v */
+                    id?: string;
+                    /**
+                     * Format: date-time
+                     * @description Delivery time, stored as the time of each entry.
+                     * @example 2026-10-15T07:42:26.411977228Z
+                     */
+                    createdAt?: string;
+                    /**
+                     * @example ADDRESS_ACTIVITY
+                     * @enum {string}
+                     */
+                    type?: "ADDRESS_ACTIVITY";
+                    /** @description The network (e.g. `BASE_SEPOLIA`) and the `activity[]` transfers. */
+                    event?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Delivery processed, or ignored for another type or network. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        received?: boolean;
+                    };
+                };
+            };
+            /** @description Signature missing or verification failed (ALCHEMY_WEBHOOK_INVALID). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Processing failed; Alchemy retries the delivery. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    webhookActivityEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Raw Alchemy Custom Webhook (GraphQL) payload. Must not be parsed before signature
+         *     verification. Content-Type is `application/json`; the body is consumed as a raw buffer.
+         */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example wh_a55wfsvq5h8n8u3z */
+                    webhookId?: string;
+                    /** @example whevt_rsdblc6zxi8a6ntl */
+                    id?: string;
+                    /**
+                     * @example GRAPHQL
+                     * @enum {string}
+                     */
+                    type?: "GRAPHQL";
+                    /** @description GraphQL result carrying `data.block.logs[]`. */
+                    event?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Delivery processed, or ignored for another type. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        received?: boolean;
+                    };
+                };
+            };
+            /** @description Signature missing or verification failed (ALCHEMY_WEBHOOK_INVALID). */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Processing failed; Alchemy retries the delivery. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

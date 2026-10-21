@@ -12,7 +12,7 @@ export type BuildDpopProofParams = {
   nonce?: string;
   /**
    * Current access token, when calling a DPoP-protected resource.
-   * Omit on `/v1/auth/token` — no token exists yet at that point.
+   * Omit on `/auth/token` — no token exists yet at that point.
    * When present, ath = base64url(SHA-256(accessToken)) is added per RFC 9449 §4.2.
    */
   accessToken?: string;

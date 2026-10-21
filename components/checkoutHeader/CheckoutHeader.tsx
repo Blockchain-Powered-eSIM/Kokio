@@ -14,20 +14,19 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
-import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
 import CountryFlag from "@/components/ui/CountryFlag";
+import { HeaderBackControl } from "@/components/navigation/stackHeader";
 
 import DetailItem from "../ui/DetailItem";
 
-const PILL_ROW_HEIGHT = (Platform.OS === "ios" ? 16 : 40);
+const PILL_ROW_HEIGHT = (Platform.OS === "ios" ? 16 : 40) - 44;
 const HEADER_MIN_HEIGHT = 150 + PILL_ROW_HEIGHT;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
-const DIVIDER_WIDTH = Dimensions.get("window").width - 32;
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   header: {
@@ -57,10 +56,16 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   flag: {
     borderRadius: 6,
   },
+  detailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
   detailItemsContainer: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 16,
+    flexShrink: 1,
   },
   expandedItem: {
     flexDirection: "row",
@@ -70,15 +75,12 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   extraContentLabel: {
     marginRight: 8,
   },
-  expandIndicatorRow: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-  },
   pillHandle: {
     backgroundColor: colors.handle,
     borderRadius: 10,
+    width: 32,
     height: 20,
+    marginLeft: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -270,19 +272,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     () => (
       <View style={styles.countryFlagContainer}>
         <View style={styles.mainContent}>
-          <Pressable
-            onPress={handleBack}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons
-              name="chevron-back-outline"
-              size={36}
-              color={colors.background}
-              style={{ marginRight: Theme.spacing.sm }}
-            />
-          </Pressable>
+          <HeaderBackControl onPress={handleBack} tintColor={colors.background} />
           <Text
             style={[styles.countryText, { color: colors.cardForeground }]}
             numberOfLines={2}
@@ -291,14 +281,18 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
             {_get(eSimItem, "serviceRegionName")}
           </Text>
         </View>
-        {eSimItem?.coverageType === "LOCAL" && eSimItem?.serviceRegionCode && (
-          <CountryFlag
-            style={styles.flag}
-            isoCode={eSimItem?.serviceRegionCode}
-            flagUrl={eSimItem?.serviceRegionFlag}
-            size={60}
-          />
-        )}
+        <CountryFlag
+          style={styles.flag}
+          isoCode={eSimItem?.serviceRegionCode}
+          flagUrl={eSimItem?.serviceRegionFlag}
+          size={60}
+          coverageType={eSimItem?.coverageType}
+          serviceRegionCode={eSimItem?.serviceRegionCode}
+          serviceRegionName={eSimItem?.serviceRegionName}
+          countryCodes={eSimItem?.coverageCountries?.flatMap((c: { countryCode?: string }) =>
+            c.countryCode ? [c.countryCode] : []
+          )}
+        />
       </View>
     ),
     // All missing dependencies are of style attributes which are in their on useMemo() call
@@ -340,14 +334,6 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     height: animatedHeight.value,
   }));
 
-  const animatedPillWidth = useAnimatedStyle(() => ({
-    width: interpolate(
-      animatedHeight.value,
-      [computedHeaderHeight, headerMaxHeight.value],
-      [48, DIVIDER_WIDTH]
-    ),
-  }));
-
   const animatedContentStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       animatedHeight.value,
@@ -382,29 +368,21 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
           animatedHeaderStyle,
         ]}
       >
-        <View
-          style={{
-            marginBottom:
-              eSimItem?.coverageType === "LOCAL" && eSimItem?.serviceRegionCode
-                ? 4
-                : 18,
-          }}
-        >
+        <View style={{ marginBottom: 4 }}>
           {countryAndFlagWithGoBack}
-          {detailItems}
-        </View>
-
-        <View style={styles.expandIndicatorRow}>
-          <Animated.View style={[styles.pillHandle, animatedPillWidth]}>
-            <Animated.View style={animatedArrowDownStyle}>
-              <Ionicons name="chevron-down" size={12} color={colors.handleArrow} />
-            </Animated.View>
-            <Animated.View
-              style={[StyleSheet.absoluteFill, styles.arrowCenter, animatedArrowUpStyle]}
-            >
-              <Ionicons name="chevron-up" size={12} color={colors.handleArrow} />
-            </Animated.View>
-          </Animated.View>
+          <View style={styles.detailsRow}>
+            {detailItems}
+            <View style={styles.pillHandle}>
+              <Animated.View style={animatedArrowDownStyle}>
+                <Ionicons name="chevron-down" size={12} color={colors.handleArrow} />
+              </Animated.View>
+              <Animated.View
+                style={[StyleSheet.absoluteFill, styles.arrowCenter, animatedArrowUpStyle]}
+              >
+                <Ionicons name="chevron-up" size={12} color={colors.handleArrow} />
+              </Animated.View>
+            </View>
+          </View>
         </View>
 
         <Animated.View style={animatedContentStyle}>

@@ -1,3 +1,5 @@
+import type { OrderPricing } from '@/utils/bff/order';
+
 const STATUS_LABELS: Record<string, string> = {
   // Order lifecycle
   PENDING:                         'Pending',
@@ -67,6 +69,47 @@ const STATUS_COLORS: Record<string, string> = {
 export function colorForStatus(status?: string | null): string {
   if (!status) return '#6b7280';
   return STATUS_COLORS[status] ?? '#6b7280';
+}
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  FIAT:          'Card',
+  CRYPTO:        'Crypto',
+  DEVICE_WALLET: 'Device Wallet',
+  COUPON:        'Coupon',
+};
+
+export function labelForPaymentMethod(method?: string | null): string {
+  if (!method) return '';
+  return PAYMENT_METHOD_LABELS[method] ?? method.replace(/_/g, ' ');
+}
+
+export function labelForPricing(
+  pricing?: OrderPricing | null,
+  fallbackMethod?: string | null,
+): string {
+  if (!pricing) return labelForPaymentMethod(fallbackMethod);
+  const parts: string[] = [];
+  if (pricing.railAmountCents > 0) parts.push(labelForPaymentMethod(pricing.paymentMethod));
+  if (pricing.codeDiscountCents > 0) {
+    parts.push(pricing.codeKind === 'REFERRAL' ? 'Referral' : 'Coupon');
+  }
+  if (pricing.creditAppliedCents > 0) parts.push('Credit');
+  if (parts.length === 0) return labelForPaymentMethod(pricing.paymentMethod || fallbackMethod);
+  return parts.join(' + ');
+}
+
+export function formatCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+export const PROMOTION_CAPTURE_FAILED = 'PROMOTION_CAPTURE_FAILED';
+
+export function isUserActionableManualReview(
+  flagged?: boolean | null,
+  reason?: string | null,
+): boolean {
+  if (reason === PROMOTION_CAPTURE_FAILED) return false;
+  return !!flagged;
 }
 
 /** Inline polling message shown in checkout loading overlay. */

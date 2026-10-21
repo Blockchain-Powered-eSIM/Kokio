@@ -77,28 +77,28 @@ describe('getCoupon', () => {
       mockGet.mockResolvedValue(couponEnvelope());
       await getCoupon('abcd1234');
       const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/v1/coupon/ABCD1234');
+      expect(url).toBe('/coupon/ABCD1234');
     });
 
     it('trims leading and trailing whitespace before normalizing', async () => {
       mockGet.mockResolvedValue(couponEnvelope());
       await getCoupon('  abcd1234  ');
       const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/v1/coupon/ABCD1234');
+      expect(url).toBe('/coupon/ABCD1234');
     });
 
     it('handles mixed-case input', async () => {
       mockGet.mockResolvedValue(couponEnvelope());
       await getCoupon('AbCd1234');
       const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/v1/coupon/ABCD1234');
+      expect(url).toBe('/coupon/ABCD1234');
     });
 
     it('handles already-uppercase input unchanged', async () => {
       mockGet.mockResolvedValue(couponEnvelope());
       await getCoupon('ABCD1234');
       const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/v1/coupon/ABCD1234');
+      expect(url).toBe('/coupon/ABCD1234');
     });
   });
 
@@ -143,7 +143,7 @@ describe('getCoupon', () => {
     it('calls api.get with the normalized code in the URL path', async () => {
       mockGet.mockResolvedValue(couponEnvelope());
       await getCoupon('ABCD1234');
-      expect(mockGet).toHaveBeenCalledWith('/v1/coupon/ABCD1234');
+      expect(mockGet).toHaveBeenCalledWith('/coupon/ABCD1234');
     });
 
     it('calls api.get exactly once', async () => {
@@ -217,10 +217,10 @@ describe('issueCoupon', () => {
     amount:    '100',
   };
 
-  it('calls api.post with /v1/coupon', async () => {
+  it('calls api.post with /coupon', async () => {
     mockPost.mockResolvedValue(couponEnvelope());
     await issueCoupon(ISSUE_REQUEST as any);
-    expect(mockPost).toHaveBeenCalledWith('/v1/coupon', expect.any(Object));
+    expect(mockPost).toHaveBeenCalledWith('/coupon', expect.any(Object));
   });
 
   it('forwards the request body', async () => {

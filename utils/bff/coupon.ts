@@ -2,35 +2,30 @@ import type { components } from './generated/koKioBff';
 import { unwrapBffResponse, BffError } from './koKioBffClient';
 import api from '@/services/httpService';
 import { logger } from '@/utils/logger';
+import { PROMO_CODE_PATTERN } from '@/constants/checkout.constants';
 
-type IssueCouponRequest = components['schemas']['IssueCouponRequest'];
-type CouponDocument     = components['schemas']['CouponDocument'];
+type CodeLookupResponse = components['schemas']['CodeLookupResponse'];
 
-export type { IssueCouponRequest, CouponDocument };
+export type { CodeLookupResponse };
 
 export class InvalidCouponCodeError extends Error {
-  constructor() { super('Coupon code must be exactly 8 characters'); }
+  constructor() { super('Code must be 4 to 16 letters or digits'); }
 }
 
-export async function getCoupon(code: string): Promise<CouponDocument> {
+export async function getCoupon(code: string): Promise<CodeLookupResponse> {
   const normalized = code.trim().toUpperCase();
-  if (normalized.length !== 8) throw new InvalidCouponCodeError();
+  if (!PROMO_CODE_PATTERN.test(normalized)) throw new InvalidCouponCodeError();
 
-  logger.debug('[COUPON] Lookup Request', { code: normalized, url: `/v1/coupon/${normalized}` });
+  logger.debug('[COUPON] Lookup Request', { code: normalized, url: `/coupon/${normalized}` });
 
   try {
-    const doc = await unwrapBffResponse<CouponDocument>(api.get(`/v1/coupon/${normalized}`));
-    logger.debug('[COUPON] Lookup Success', {
-      code:        normalized,
-      balance:     doc.balance,
-      tokenName:   doc.tokenName,
-      isExhausted: doc.isExhausted,
-    });
-    return doc;
+    const result = await unwrapBffResponse<CodeLookupResponse>(api.get(`/coupon/${normalized}`));
+    logger.debug('[COUPON] Lookup Success', { code: normalized, kind: result.kind });
+    return result;
   } catch (err) {
     logger.error('COUPON_LOOKUP_ERROR', {
       code:        normalized,
-      url:         `/v1/coupon/${normalized}`,
+      url:         `/coupon/${normalized}`,
       errorCode:   err instanceof BffError ? err.code        : 'UNKNOWN',
       httpStatus:  err instanceof BffError ? err.httpStatus  : undefined,
       message:     err instanceof Error    ? err.message     : String(err),
@@ -38,8 +33,4 @@ export async function getCoupon(code: string): Promise<CouponDocument> {
     });
     throw err;
   }
-}
-
-export function issueCoupon(body: IssueCouponRequest): Promise<CouponDocument> {
-  return unwrapBffResponse(api.post('/v1/coupon', body as Record<string, unknown>));
 }

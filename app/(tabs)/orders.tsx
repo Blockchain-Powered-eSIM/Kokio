@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
+  ActivityIndicator,
   FlatList,
   Linking,
-  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -21,15 +21,23 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
-import { labelForStatus, colorForStatus } from "@/utils/orderStatus";
+import { labelForStatus, colorForStatus, labelForPaymentMethod, isUserActionableManualReview } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
 import type { ESimDocument } from "@/utils/bff/esim";
-import type { OrderListItem } from "@/utils/bff/order";
 import ESIMItem from "@/components/ESIMItem";
+import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
+import PurchaseDetailsSheet, { CopyRow, type EnrichedOrder } from "@/components/orders/PurchaseDetailsSheet";
 import type { Esim } from "@/components/ESIMItem";
-import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { openInstallation } from "@/helpers/esimInstall";
 import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
+import { usePendingOrders } from "@/hooks/usePendingOrders";
+import type { PendingOrderRecord } from "@/hooks/usePendingOrders";
+import { CancelOrderConfirmModal } from "@/components/ui/CancelOrderConfirmModal";
+import { cancelOrder } from "@/utils/bff/order";
+import { BffError, formatBffError, resolveBffErrorMessage } from "@/utils/bff/errors";
+import { logger } from "@/utils/logger";
 
 // ─── eSIM activation-status labeling ─────────────────────────────────────────
 
@@ -44,10 +52,7 @@ const ESIM_STATUS_LABEL: Record<ActivationStatus, string> = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// An OrderListItem enriched with its matched ESimDocument, joined by esimId.
-type EnrichedOrder = OrderListItem & {
-  esim?: ESimDocument;
-};
+// An OrderListItem enriched with its matched ESimDocument, joined by eSimRef.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -132,12 +137,26 @@ const createStyles = (colors: Palette) => StyleSheet.create({
       borderRadius: 4,
     },
     actionRow: {
+      alignSelf: "stretch",
       flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
       gap: 8,
       marginTop: 4,
     },
+    walletBtn: {
+      position: "absolute",
+      right: 14,
+      bottom: 14,
+      width: 46,
+      height: 40,
+      borderRadius: 10,
+      borderWidth: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     actionBtn: {
-      flex: 1,
+      width: "48%",
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
@@ -154,249 +173,162 @@ const createStyles = (colors: Palette) => StyleSheet.create({
       fontSize: 14,
       fontWeight: "500",
     },
+    sectionHeader: {
+      fontSize: 12,
+      fontWeight: "600",
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      marginHorizontal: 4,
+      marginTop: 4,
+      marginBottom: 8,
+    },
+    pendingCard: {
+      borderRadius: 12,
+      marginHorizontal: 4,
+      marginBottom: 10,
+      padding: 14,
+    },
+    pendingHeaderRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+    },
+    pendingLabel: {
+      fontSize: 15,
+      fontWeight: "600",
+      marginBottom: 2,
+    },
+    pendingMeta: {
+      fontSize: 12,
+    },
+    pendingBadge: {
+      borderRadius: 8,
+      paddingVertical: 3,
+      paddingHorizontal: 8,
+    },
+    pendingBadgeText: {
+      fontSize: 11,
+      fontWeight: "600",
+      textTransform: "uppercase",
+    },
+    pendingHint: {
+      marginTop: 10,
+      gap: 2,
+    },
+    pendingHintText: {
+      fontSize: 12,
+      lineHeight: 17,
+    },
+    pendingActionsRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginTop: 10,
+    },
+    pendingActionBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+    },
+    pendingActionText: {
+      fontSize: 13,
+      fontWeight: "500",
+    },
   });
 
-// ─── Purchase Details Modal styles ────────────────────────────────────────────
+// ─── PendingOrderCard ─────────────────────────────────────────────────────────
 
-const purchaseStyles = (colors: Palette) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: colors.overlayMedium,
-  },
-  sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    maxHeight: "80%",
-  },
-  sheetHeader: {
-    alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  pillHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.muted,
-  },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingTop: 8,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  copyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.muted,
-  },
-  copyLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-    marginBottom: 3,
-    textTransform: "uppercase",
-  },
-  copyValue: {
-    fontSize: 13,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.muted,
-  },
-  infoLabel: {
-    fontSize: 13,
-  },
-  infoValue: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  planHistoryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.muted,
-  },
-});
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
 
-// ─── CopyRow ──────────────────────────────────────────────────────────────────
-
-const CopyRow = ({
-  label,
-  value,
-  displayValue,
-  valueColor,
+const PendingOrderCard = ({
+  record,
+  onDismiss,
 }: {
-  label: string;
-  value: string;
-  // Text shown in place of `value` (which is still what gets copied) — used
-  // when the raw value (e.g. an LPA string) is unhelpful to show as-is.
-  displayValue?: string;
-  // Overrides the default value text color (colors.cardForeground) — used
-  // when a caller renders this row against a background other than colors.card.
-  valueColor?: string;
+  record: PendingOrderRecord;
+  onDismiss: () => void;
 }) => {
-  const pdStyles = useThemedStyles(purchaseStyles);
+  const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { copied, copy } = useCopyFeedback();
+
+  const handleContactSupport = () => {
+    const subject = encodeURIComponent(`Order ${record.correlationId}`);
+    const body = encodeURIComponent(
+      `My order has been processing for a while.\n\nReference: ${record.correlationId}`,
+    );
+    Linking.openURL(`mailto:contact@kokio.app?subject=${subject}&body=${body}`);
+  };
+
   return (
-    <TouchableOpacity onPress={() => copy(value)} style={pdStyles.copyRow} activeOpacity={0.7}>
-      <View style={{ flex: 1, marginRight: 12 }}>
-        <Text style={[pdStyles.copyLabel, { color: colors.inactive }]}>{label}</Text>
-        <Text
-          style={[pdStyles.copyValue, { color: valueColor ?? colors.cardForeground }]}
-          numberOfLines={2}
-        >
-          {displayValue ?? value}
+    <View style={[styles.pendingCard, { backgroundColor: colors.surface }]}>
+      <View style={styles.pendingHeaderRow}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <Text style={[styles.pendingLabel, { color: colors.text }]} numberOfLines={1}>
+            {record.planLabel ?? "Your eSIM order"}
+          </Text>
+          <Text style={[styles.pendingMeta, { color: colors.inactive }]}>
+            {labelForPaymentMethod(record.paymentMethod)} · {timeAgo(record.createdAt)}
+          </Text>
+        </View>
+        <View style={[styles.pendingBadge, { backgroundColor: colors.warning + "22" }]}>
+          <Text style={[styles.pendingBadgeText, { color: colors.warning }]}>Processing</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => copy(record.correlationId)}
+        style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.pendingMeta, { color: colors.inactive, flex: 1 }]} numberOfLines={1}>
+          Reference: {record.correlationId}
+        </Text>
+        <Ionicons
+          name={copied ? "checkmark-circle" : "copy-outline"}
+          size={16}
+          color={copied ? colors.success : colors.mutedForeground}
+        />
+      </TouchableOpacity>
+
+      <View style={styles.pendingHint}>
+        <Text style={[styles.pendingHintText, { color: colors.inactive }]}>
+          Haven&apos;t received your eSIM after a few minutes?
+        </Text>
+        <Text style={[styles.pendingHintText, { color: colors.inactive }]}>
+          Reach out with this reference ID.
         </Text>
       </View>
-      <Ionicons
-        name={copied ? "checkmark-circle" : "copy-outline"}
-        size={18}
-        color={copied ? colors.success : colors.mutedForeground}
-      />
-    </TouchableOpacity>
-  );
-};
 
-// ─── PurchaseDetailsModal ─────────────────────────────────────────────────────
-
-const PurchaseDetailsModal = ({
-  visible,
-  onClose,
-  order,
-  invoiceUrl,
-  lpa,
-  supportRef,
-  colors,
-  pdStyles,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  order: EnrichedOrder;
-  invoiceUrl: string | null;
-  lpa: string | null;
-  supportRef: string | null;
-  colors: Palette;
-  pdStyles: ReturnType<typeof purchaseStyles>;
-}) => (
-  <Modal
-    visible={visible}
-    transparent
-    animationType="slide"
-    onRequestClose={onClose}
-    statusBarTranslucent
-  >
-    <View style={pdStyles.overlay}>
-      <TouchableOpacity
-        style={StyleSheet.absoluteFill}
-        onPress={onClose}
-        activeOpacity={1}
-      />
-      <View style={[pdStyles.sheet, { backgroundColor: colors.card }]}>
-        <View style={pdStyles.sheetHeader}>
-          <View style={pdStyles.pillHandle} />
-        </View>
-        <View style={pdStyles.titleRow}>
-          <Text style={[pdStyles.title, { color: colors.cardForeground }]}>
-            Purchase Details
-          </Text>
-          <TouchableOpacity onPress={onClose} hitSlop={8}>
-            <Ionicons
-              name="close-circle-outline"
-              size={24}
-              color={colors.mutedForeground}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 8 }}
+      <View style={styles.pendingActionsRow}>
+        <TouchableOpacity
+          onPress={handleContactSupport}
+          style={[styles.pendingActionBtn, { borderColor: colors.muted }]}
         >
-          {order.iccid ? <CopyRow label="ICCID" value={order.iccid} /> : null}
-          {supportRef ? <CopyRow label="Reference" value={supportRef} /> : null}
-          {lpa ? <CopyRow label="LPA String" value={lpa} /> : null}
-
-          {order.paymentMethod ? (
-            <View style={pdStyles.infoRow}>
-              <Text style={[pdStyles.infoLabel, { color: colors.inactive }]}>
-                Payment Method
-              </Text>
-              <Text style={[pdStyles.infoValue, { color: colors.cardForeground }]}>
-                {order.paymentMethod}
-              </Text>
-            </View>
-          ) : null}
-
-          {order.orderStatus ? (
-            <View style={pdStyles.infoRow}>
-              <Text style={[pdStyles.infoLabel, { color: colors.inactive }]}>Status</Text>
-              <Text
-                style={[pdStyles.infoValue, { color: colorForStatus(order.orderStatus) }]}
-              >
-                {labelForStatus(order.orderStatus)}
-              </Text>
-            </View>
-          ) : null}
-
-          {invoiceUrl ? (
-            <TouchableOpacity
-              onPress={() => Linking.openURL(invoiceUrl)}
-              style={pdStyles.infoRow}
-            >
-              <Text style={[pdStyles.infoLabel, { color: colors.inactive }]}>Invoice</Text>
-              <Text style={{ color: colors.link, fontSize: 13, fontWeight: "500" }}>
-                View invoice →
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-
-          {order.esim?.planHistory?.length ? (
-            <View>
-              <Text style={[pdStyles.sectionLabel, { color: colors.inactive }]}>
-                Plan History
-              </Text>
-              {order.esim.planHistory.map((entry, i) => (
-                <View key={i} style={pdStyles.planHistoryRow}>
-                  <Text style={{ color: colors.cardForeground, fontSize: 13 }}>
-                    {entry.planId}
-                  </Text>
-                  <Text style={{ color: colors.inactive, fontSize: 12 }}>
-                    {entry.validity}d · {new Date(entry.purchaseDate).toLocaleDateString()}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </ScrollView>
+          <Ionicons name="mail-outline" size={14} color={colors.text} />
+          <Text style={[styles.pendingActionText, { color: colors.text }]}>Contact Support</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onDismiss}
+          style={[styles.pendingActionBtn, { borderColor: colors.muted }]}
+        >
+          <Text style={[styles.pendingActionText, { color: colors.mutedForeground }]}>Dismiss</Text>
+        </TouchableOpacity>
       </View>
     </View>
-  </Modal>
-);
+  );
+};
 
 // ─── OrderCard ────────────────────────────────────────────────────────────────
 
@@ -411,15 +343,24 @@ const OrderCard = ({
   isExpanded: boolean;
   onToggle: () => void;
 }) => {
-  const pdStyles = useThemedStyles(purchaseStyles);
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { isDark } = useTheme();
+  const router = useRouter();
   const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
 
   const statusColor = colorForStatus(order.orderStatus);
 
   const isInstalled = order.esim?.activationStatus === "INSTALLED";
+  const esimWalletId = order.esim?.esimId ?? null;
+
+  const openEsimWallet = () => {
+    if (!esimWalletId || !order.esim) return;
+    router.push({
+      pathname: "/(tabs)/(wallet)/esim-wallet",
+      params: { esimId: esimWalletId, name: esimDisplayName(order.esim) },
+    });
+  };
 
   const ESIM_STATUS_COLOR: Record<ActivationStatus, string> = {
     RELEASED:    colors.info,
@@ -428,12 +369,15 @@ const OrderCard = ({
     DEACTIVATED: colors.destructive,
   };
 
-  // Remaining data is only meaningful once installed, and fetched only for the
-  // expanded card, not for every card in the list.
+  const canHaveUsage =
+    order.esim?.activationStatus === "RELEASED" || order.esim?.activationStatus === "INSTALLED";
   const { usage, isLoading: usageLoading, isError: usageIsError, usageUnavailable } =
-    useEsimUsage(isExpanded && isInstalled ? order.esimId ?? undefined : undefined);
+    useEsimUsage(isExpanded && canHaveUsage ? order.eSimRef : undefined);
 
-  const remainingDataText = !isInstalled
+  // True once the vendor returns real usage data, not just activationStatus.
+  const hasConfirmedInstall = isInstalled || (!!usage && usage.usageError == null);
+
+  const remainingDataText = !hasConfirmedInstall
     ? "—"
     : usageLoading
       ? "Loading…"
@@ -465,7 +409,7 @@ const OrderCard = ({
       : order.esim?.installationDetails?.qrcode ?? null;
 
   const invoiceUrl = order.stripeInvoiceUrl ?? null;
-  const flagged    = order.flaggedForManualReview ?? false;
+  const flagged    = isUserActionableManualReview(order.flaggedForManualReview, order.manualReviewReason);
   // idempotencyKey is the correlation id equivalent on OrderListItem.
   const supportRef = order.idempotencyKey ?? order.orderId ?? null;
 
@@ -476,8 +420,12 @@ const OrderCard = ({
   return (
     <View style={styles.orderCardWrapper}>
       <TouchableOpacity onPress={onToggle} activeOpacity={0.85}>
-        {displayItem ? (
-          <ESIMItem item={displayItem} showBuyButton={false} />
+        {displayItem && order.esim ? (
+          <ESIMItem
+            item={displayItem}
+            showBuyButton={false}
+            title={<EsimLabelEditor doc={order.esim} color={colors.cardForeground} />}
+          />
         ) : (
           // Fallback header for orders without a linked eSIM document
           <View style={{ padding: 12 }}>
@@ -511,6 +459,14 @@ const OrderCard = ({
                   Under Review
                 </Text>
               </View>
+            ) : null}
+            {order.paymentMethod === "DEVICE_WALLET" ? (
+              <Ionicons
+                name="wallet-outline"
+                size={14}
+                color={colors.mutedForeground}
+                accessibilityLabel="Paid with device wallet"
+              />
             ) : null}
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
@@ -559,26 +515,18 @@ const OrderCard = ({
               </View>
             </>
           ) : null}
-          {order.iccid ? (
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.inactive }]}>ICCID</Text>
-              <Text style={[styles.summaryValue, { color: colors.text }]}>
-                {order.iccid}
-              </Text>
-            </View>
-          ) : null}
-
-          {lpa && !isInstalled && Platform.OS === "android" ? (
+          {lpa && !hasConfirmedInstall && Platform.OS === "android" ? (
             <CopyRow
               label="LPA String"
               value={lpa}
               displayValue="Install using this Code in SIM settings"
               valueColor={isDark ? "white" : undefined}
+              variant="inline"
             />
           ) : null}
 
           <View style={styles.actionRow}>
-            {lpa && onInstall ? (
+            {lpa && onInstall && !hasConfirmedInstall ? (
               <TouchableOpacity
                 onPress={() => onInstall(lpa)}
                 style={[styles.actionBtn, { backgroundColor: colors.primary }]}
@@ -589,26 +537,61 @@ const OrderCard = ({
             ) : null}
             <TouchableOpacity
               onPress={() => setShowPurchaseDetails(true)}
-              style={[styles.actionBtn, { borderWidth: 1, borderColor: colors.muted }]}
+              style={[
+                styles.actionBtn,
+                hasConfirmedInstall
+                  ? { backgroundColor: colors.primary }
+                  : { borderWidth: 1, borderColor: colors.muted },
+              ]}
             >
-              <Ionicons name="receipt-outline" size={15} color={colors.text} />
-              <Text style={[styles.detailsBtnText, { color: colors.text }]}>
+              <Ionicons
+                name="receipt-outline"
+                size={15}
+                color={hasConfirmedInstall ? "white" : colors.text}
+              />
+              <Text
+                style={[
+                  hasConfirmedInstall ? styles.installBtnText : styles.detailsBtnText,
+                  { color: hasConfirmedInstall ? "white" : colors.text },
+                ]}
+              >
                 Purchase Details
               </Text>
             </TouchableOpacity>
           </View>
+
+          {isInstalled && esimWalletId ? (
+            <TouchableOpacity
+              onPress={openEsimWallet}
+              style={[styles.walletBtn, { backgroundColor: colors.primary, borderWidth: 0 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Open eSIM wallet"
+              hitSlop={6}
+            >
+              <Ionicons name="wallet-outline" size={18} color="white" />
+            </TouchableOpacity>
+          ) : isInstalled ? (
+            // esim.esimId (the on-chain wallet address) is backfilled only as
+            // part of device-wallet deployment during fulfilment, so it can
+            // stay null for a while after the eSIM itself is installed - show
+            // that it's in progress rather than silently showing nothing.
+            <View
+              style={[styles.walletBtn, { borderColor: colors.mutedForeground }]}
+              accessibilityLabel="eSIM wallet is being set up"
+            >
+              <ActivityIndicator size="small" color={colors.mutedForeground} />
+            </View>
+          ) : null}
         </View>
       )}
 
-      <PurchaseDetailsModal
+      <PurchaseDetailsSheet
         visible={showPurchaseDetails}
         onClose={() => setShowPurchaseDetails(false)}
         order={order}
         invoiceUrl={invoiceUrl}
         lpa={lpa}
         supportRef={supportRef}
-        colors={colors}
-        pdStyles={pdStyles}
       />
     </View>
   );
@@ -617,7 +600,6 @@ const OrderCard = ({
 // ─── OrdersScreen ─────────────────────────────────────────────────────────────
 
 export default function OrdersScreen() {
-  const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const bg = useThemeColor({}, "background");
@@ -625,6 +607,7 @@ export default function OrdersScreen() {
 
   const { esims, isLoading: esimsLoading, refetch: refetchEsims } = useEsims();
   const { orders, isLoading: ordersLoading, refetch: refetchOrders } = useOrders();
+  const { pendingOrders, refetch: refetchPendingOrders, dismiss: dismissPendingOrder } = usePendingOrders();
 
   const isLoading = esimsLoading || ordersLoading;
 
@@ -632,18 +615,28 @@ export default function OrdersScreen() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchEsims(), refetchOrders()]);
+      await Promise.all([refetchEsims(), refetchOrders(), refetchPendingOrders()]);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchEsims, refetchOrders]);
+  }, [refetchEsims, refetchOrders, refetchPendingOrders]);
 
-  // Join orders with their matching ESimDocument by esimId.
+  // Self-healing: once the server's terminal list catches up with a
+  // client-tracked pending order, the local entry is redundant — drop it.
+  useEffect(() => {
+    if (pendingOrders.length === 0 || orders.length === 0) return;
+    const terminalKeys = new Set(orders.map((o) => o.idempotencyKey).filter(Boolean));
+    pendingOrders
+      .filter((p) => terminalKeys.has(p.correlationId))
+      .forEach((p) => dismissPendingOrder(p.correlationId));
+  }, [pendingOrders, orders, dismissPendingOrder]);
+
+  // Join orders with their matching ESimDocument by eSimRef.
   const enrichedOrders = useMemo<EnrichedOrder[]>(() => {
-    const esimMap = new Map<string, ESimDocument>(esims.map((e) => [e.esimId, e]));
+    const esimMap = new Map<string, ESimDocument>(esims.map((e) => [e.eSimRef, e]));
     return orders.map((order) => ({
       ...order,
-      esim: order.esimId ? esimMap.get(order.esimId) : undefined,
+      esim: order.eSimRef ? esimMap.get(order.eSimRef) : undefined,
     }));
   }, [orders, esims]);
 
@@ -652,7 +645,7 @@ export default function OrdersScreen() {
   // Default: the eSIM targeted via expandOrderId (e.g. tapped from Home) if
   // present, otherwise the top-most order — open until the user selects a
   // different one. Re-derived on every arrival at this tab (and as data
-  // loads), matching on idempotencyKey, orderId, or esimId.
+  // loads), matching on idempotencyKey, orderId, or eSimRef.
   useFocusEffect(
     useCallback(() => {
       if (enrichedOrders.length === 0) return;
@@ -661,32 +654,69 @@ export default function OrdersScreen() {
             (o) =>
               o.idempotencyKey === expandOrderId ||
               o.orderId        === expandOrderId ||
-              o.esimId         === expandOrderId,
+              o.eSimRef        === expandOrderId,
           )
         : undefined;
       setExpandedId(getOrderKey(matched ?? enrichedOrders[0]));
     }, [expandOrderId, enrichedOrders]),
   );
 
-  const handleInstall = useCallback((lpa: string) => {
-    // Parse LPA string: LPA:1$<smdpAddress>$<matchingId>
-    const parts = lpa.split("$");
-    const qrcode = lpa;
-    const appleInstallationUrl = parts[1] && parts[2]
-      ? `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${lpa}`
-      : "";
-    router.push({
-      pathname: "/(tabs)/installation",
-      params: { qrcode, appleInstallationUrl, iccid: "", orderId: "" },
-    });
-  }, [router]);
+  const [cancelTarget, setCancelTarget] = useState<PendingOrderRecord | null>(null);
+  const [cancelMode, setCancelMode] = useState<"confirm" | "notCancellable">("confirm");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const cancelInFlightRef = useRef(false);
+
+  const closeCancelModal = useCallback(() => {
+    setCancelTarget(null);
+    setCancelMode("confirm");
+    setCancelError(null);
+  }, []);
+
+  const openCancelModal = useCallback((record: PendingOrderRecord) => {
+    setCancelMode("confirm");
+    setCancelError(null);
+    setCancelTarget(record);
+  }, []);
+
+  const handleConfirmCancel = useCallback(async () => {
+    if (!cancelTarget) return;
+    if (cancelInFlightRef.current) return;
+    cancelInFlightRef.current = true;
+    const { correlationId } = cancelTarget;
+    setCancelLoading(true);
+    setCancelError(null);
+    try {
+      await cancelOrder(correlationId);
+      dismissPendingOrder(correlationId);
+      closeCancelModal();
+    } catch (err) {
+      if (err instanceof BffError && err.httpStatus === 404 && err.code === "ORDER_NOT_FOUND") {
+        dismissPendingOrder(correlationId);
+        closeCancelModal();
+      } else if (err instanceof BffError && err.httpStatus === 409 && err.code === "ORDER_NOT_CANCELLABLE") {
+        setCancelMode("notCancellable");
+      } else {
+        logger.debug("ORDER_CANCEL_FAILED", { code: err instanceof BffError ? err.code : undefined });
+        setCancelError(formatBffError(err));
+      }
+    } finally {
+      cancelInFlightRef.current = false;
+      setCancelLoading(false);
+    }
+  }, [cancelTarget, dismissPendingOrder, closeCancelModal]);
+
+  const handleHideCancelTarget = useCallback(() => {
+    if (cancelTarget) dismissPendingOrder(cancelTarget.correlationId);
+    closeCancelModal();
+  }, [cancelTarget, dismissPendingOrder, closeCancelModal]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["bottom"]}>
       <ThemedView style={styles.container}>
         {isLoading ? (
           <ThemedText style={styles.emptyText}>Loading orders…</ThemedText>
-        ) : enrichedOrders.length === 0 ? (
+        ) : enrichedOrders.length === 0 && pendingOrders.length === 0 ? (
           <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             refreshControl={
@@ -707,7 +737,7 @@ export default function OrdersScreen() {
             renderItem={({ item }) => (
               <OrderCard
                 order={item}
-                onInstall={handleInstall}
+                onInstall={openInstallation}
                 isExpanded={expandedId === getOrderKey(item)}
                 onToggle={() =>
                   setExpandedId((prev) =>
@@ -718,6 +748,27 @@ export default function OrdersScreen() {
             )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 16 }}
+            ListHeaderComponent={
+              pendingOrders.length > 0 ? (
+                <View>
+                  <Text style={[styles.sectionHeader, { color: colors.inactive }]}>
+                    Processing
+                  </Text>
+                  {pendingOrders.map((record) => (
+                    <PendingOrderCard
+                      key={record.correlationId}
+                      record={record}
+                      onDismiss={() => openCancelModal(record)}
+                    />
+                  ))}
+                  {enrichedOrders.length > 0 ? (
+                    <Text style={[styles.sectionHeader, { color: colors.inactive }]}>
+                      History
+                    </Text>
+                  ) : null}
+                </View>
+              ) : undefined
+            }
             ListFooterComponent={<Text style={styles.refreshHint}>Swipe down to refresh</Text>}
             refreshControl={
               <RefreshControl
@@ -729,6 +780,16 @@ export default function OrdersScreen() {
           />
         )}
       </ThemedView>
+      <CancelOrderConfirmModal
+        visible={cancelTarget !== null}
+        mode={cancelMode}
+        loading={cancelLoading}
+        errorMessage={cancelError}
+        notCancellableMessage={resolveBffErrorMessage("ORDER_NOT_CANCELLABLE", 409)}
+        onKeep={closeCancelModal}
+        onConfirm={handleConfirmCancel}
+        onHide={handleHideCancelTarget}
+      />
     </SafeAreaView>
   );
 }

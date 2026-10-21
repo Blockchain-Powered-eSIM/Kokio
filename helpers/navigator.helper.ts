@@ -17,3 +17,8 @@ export const getRouteName = (navigationState: AnyNavigationState): string | unde
 
 export const getIsTabBarVisible = (routeName: string | undefined): boolean =>
   _includes(TAB_BAR_ENABLED_ROUTES, routeName);
+
+export const getRouteNameFromSegments = (segments: readonly string[]): string | undefined => {
+  if (segments[0] !== "(tabs)") return undefined;
+  return segments.slice(1).join("/") || "index";
+};

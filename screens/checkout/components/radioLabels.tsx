@@ -1,8 +1,13 @@
 import React from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
+import { useKokio } from "@/hooks/useKokio";
+import { useWalletTokens, truncateDecimals } from "@/hooks/useWalletTokens";
+import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
 import type { Palette } from "@/constants/Colors";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
@@ -16,11 +21,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   textContent: {
     color: colors.foreground,
   },
-  smallText: {
-    fontSize: 12,
-    lineHeight: 20,
-    marginRight: 4,
-  },
   creditCards: {
     width: 140,
     height: 24,
@@ -31,16 +31,55 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     height: 24,
     objectFit: "contain",
   },
+  selectedToken: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tokenSymbol: {
+    color: colors.foreground,
+    fontWeight: "600",
+  },
+  tokenBalance: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+  },
 });
 
-const ESimWallet = () => {
+const ESimWallet = ({
+  selectedSymbol,
+  onOpenTokenPicker,
+}: {
+  selectedSymbol: DeviceWalletPaymentAsset;
+  onOpenTokenPicker: () => void;
+}) => {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const { kokio } = useKokio();
+  const { tokens, isLoading } = useWalletTokens(kokio.deviceWalletAddress);
+  const selectedToken = tokens.find((t) => t.symbol === selectedSymbol);
+  const balance = selectedToken?.amount;
+
   return (
     <View style={styles.labelContainer}>
       <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
-      <ThemedText style={[styles.textContent, styles.smallText]}>
-        Coming soon
-      </ThemedText>
+      <TouchableOpacity
+        onPress={onOpenTokenPicker}
+        style={styles.selectedToken}
+        accessibilityRole="button"
+        accessibilityLabel={`Change payment token, currently ${selectedSymbol}`}
+      >
+        {balance === undefined && isLoading ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <ThemedText style={styles.tokenBalance}>
+            {balance === undefined ? "—" : truncateDecimals(balance, 2)}
+          </ThemedText>
+        )}
+        <ThemedText style={styles.tokenSymbol}>{selectedSymbol}</ThemedText>
+        {selectedToken?.icon && <Image source={selectedToken.icon} style={styles.logoImage} />}
+        <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -49,7 +88,7 @@ const CreditCard = () => {
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>Credit Card</ThemedText>
+      <ThemedText style={styles.textContent}>Credit/Debit Cards</ThemedText>
       <Image
         source={require("@/assets/images/credit-cards.png")}
         style={styles.creditCards}

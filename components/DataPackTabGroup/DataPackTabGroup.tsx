@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, type ReactElement } from "react";
 import { StyleSheet, FlatList, Pressable, StyleProp, View, ViewStyle } from "react-native";
 
 import _get from "lodash/get";
 import _groupBy from "lodash/groupBy";
 import _isEmpty from "lodash/isEmpty";
+import _sortBy from "lodash/sortBy";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -55,11 +56,13 @@ const ESIMsFlatListComponent = ({
   isLoading,
   filtersActive,
   onClearFilters,
+  footer,
 }: {
   esims: Esim[];
   isLoading: boolean;
   filtersActive: boolean;
   onClearFilters?: () => void;
+  footer?: ReactElement | null;
 }) => {
   const bottomInset = useBottomInset();
   return isLoading ? (
@@ -87,6 +90,7 @@ const ESIMsFlatListComponent = ({
       ListEmptyComponent={() => (
         <EmptyListComponent filtersActive={filtersActive} onClearFilters={onClearFilters} />
       )}
+      ListFooterComponent={footer ?? undefined}
       style={{ backgroundColor: "transparent" }}
     />
   );
@@ -123,15 +127,22 @@ function DataPackTabGroup({
   isLoading = false,
   filtersActive = false,
   onClearFilters,
+  footer,
 }: {
   plans: Esim[];
   containerStyle?: StyleProp<ViewStyle>;
   isLoading?: boolean;
   filtersActive?: boolean;
   onClearFilters?: () => void;
+  footer?: ReactElement | null;
 }) {
   const { plansByData, plansByDataCallsSMS } = useMemo(() => {
-    const plansGroupedByPlanType = _groupBy(plans, "planType");
+    // BACKUP plans stay after ACTIVE ones; each group is still price-sorted.
+    const sortedPlans = _sortBy(plans, [
+      (p) => (p.planStatus === "BACKUP" ? 1 : 0),
+      "actualSellingPrice",
+    ]);
+    const plansGroupedByPlanType = _groupBy(sortedPlans, "planType");
     const plansByData = _get(plansGroupedByPlanType, TAB_KEYS.DATA);
     const plansByDataCallsSMS = _get(
       plansGroupedByPlanType,
@@ -153,6 +164,7 @@ function DataPackTabGroup({
         isLoading={isLoading}
         filtersActive={filtersActive}
         onClearFilters={onClearFilters}
+        footer={footer}
       />
     </ThemedView>
   );

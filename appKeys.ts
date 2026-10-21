@@ -10,7 +10,6 @@ export interface AppExtraConfig {
   gasManagerPolicyId?: string;
   chainId?: string;
   chainRpcUrl?: string;
-  usdcAddress?: string;
   stripePublishableKey?: string;
   stripeMerchantIdentifier?: string;
   walletConnectProjectId?: string;
@@ -41,7 +40,6 @@ export const Config = {
   GAS_MANAGER_POLICY_ID: extra?.gasManagerPolicyId,
   CHAIN_ID: extra?.chainId ? Number(extra.chainId) : undefined,
   CHAIN_RPC_URL: extra?.chainRpcUrl,
-  USDC_ADDRESS: extra?.usdcAddress,
   STRIPE_PUBLISHABLE_KEY: extra?.stripePublishableKey,
   STRIPE_MERCHANT_IDENTIFIER: extra?.stripeMerchantIdentifier,
   WALLETCONNECT_PROJECT_ID: extra?.walletConnectProjectId,
@@ -53,6 +51,7 @@ export const Config = {
     if (!extra?.apiBaseUrl) logger.error('CONFIG_MISSING_API_BASE_URL');
     if (!extra?.stripePublishableKey) logger.error('CONFIG_MISSING_STRIPE_PUBLISHABLE_KEY');
     if (!extra?.stripeMerchantIdentifier) logger.warn('CONFIG_MISSING_STRIPE_MERCHANT_IDENTIFIER');
+    if (!extra?.chainId) logger.error('CONFIG_MISSING_CHAIN_ID');
     if (!extra?.walletConnectProjectId) logger.warn('CONFIG_MISSING_WALLETCONNECT_PROJECT_ID');
   },
 };
