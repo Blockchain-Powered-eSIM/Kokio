@@ -1,12 +1,11 @@
 import React from "react";
-import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ThemedText } from "@/components/ThemedText";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
-import type { Palette } from "@/constants/Colors";
 import { labelForStatus } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 
@@ -24,92 +23,33 @@ const REASON_LABELS: Record<string, string> = {
   VENDOR_FULFILMENT_FAILED:  'The eSIM vendor rejected the order.',
   ESIM_DELIVERY_FAILED:      'eSIM delivery or wallet deployment failed.',
   WALLET_REGISTRATION_FAILED:'Device wallet registration failed.',
+  STRIPE_AMOUNT_MISMATCH:    'The card payment settled for less than the order amount.',
+  MOONPAY_STRIPE_DISCREPANCY:'MoonPay confirmed your payment, but the matching invoice was not marked as paid.',
+  DEPLOYMENT_STALLED:        'Your device wallet deployment stalled.',
+  LAZY_HISTORY_DISAGREEMENT: 'Your purchase history was still updating when the order completed.',
+  WEBHOOK_INTENT_MISMATCH:   'A confirmed on-chain payment did not match this order.',
+  PAID_ON_CHAIN_VENDOR_FAILED:'Your device wallet payment settled, but the eSIM vendor rejected the order.',
+  INVOICE_MARKING_FAILED:    'Your eSIM was delivered, but marking the device wallet invoice as paid failed.',
+  PROMOTION_CAPTURE_FAILED:  'Your payment was verified, but applying your code or credit failed. Your order is still being fulfilled.',
 };
 
-const createStyles = (colors: Palette) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  container: {
-    backgroundColor: colors.contentBackground,
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconRow: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.destructiveBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  body: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    color: colors.mutedForeground,
-  },
+const UNKNOWN_REASON_LABEL = 'This order needs a manual review.';
+
+const styles = StyleSheet.create({
+  status: { fontSize: 12, textAlign: "center", marginTop: 8 },
   refBox: {
-    backgroundColor: colors.itemBackground,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+    marginHorizontal: 24,
+    marginTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
   },
-  refLabel: {
-    fontSize: 11,
-    color: colors.mutedForeground,
-    marginBottom: 2,
-  },
-  refValue: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    flex: 1,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    width: '100%',
-    opacity: 0.3,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 8,
-    width: '100%',
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    backgroundColor: colors.primary,
-  },
-  secondaryButton: {
-    backgroundColor: colors.muted,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  refLabel: { fontSize: 11, marginBottom: 2 },
+  refValue: { fontSize: 12, fontFamily: "monospace" },
 });
 
 const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
@@ -119,7 +59,6 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
   manualReviewReason,
   onDismiss,
 }) => {
-  const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
   const { copied, copy } = useCopyFeedback();
@@ -132,65 +71,47 @@ const OrderFailureModal: React.FC<OrderFailureModalProps> = ({
     router.navigate('/(tabs)/orders');
   };
 
-  const reasonText = manualReviewReason ? (REASON_LABELS[manualReviewReason] ?? manualReviewReason) : null;
+  const reasonText = manualReviewReason ? (REASON_LABELS[manualReviewReason] ?? UNKNOWN_REASON_LABEL) : null;
 
   return (
-    <Modal
+    <ConfirmModal
       visible={visible}
-      transparent
-      animationType="fade"
+      title="Order Under Review"
+      body={
+        `Your payment was processed but we encountered an issue completing your order.`
+        + (reasonText ? `\n\n${reasonText}` : '')
+        + `\n\nOur team has been notified and will resolve this. Please contact support with your reference ID below.`
+      }
+      secondaryLabel="Dismiss"
+      primaryLabel="Go to Orders"
+      onSecondary={onDismiss}
+      onPrimary={handleGoToOrders}
       onRequestClose={onDismiss}
-      statusBarTranslucent
-      navigationBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.iconRow}>
-            <MaterialCommunityIcons name="alert-circle" size={28} color={colors.destructive} />
+      <Text style={[styles.status, { color: colors.mutedForeground }]}>
+        Status: {labelForStatus(orderStatus)}
+      </Text>
+
+      {referenceId ? (
+        <TouchableOpacity
+          style={[styles.refBox, { backgroundColor: colors.itemBackground }]}
+          onPress={handleCopy}
+          activeOpacity={0.7}
+        >
+          <View style={{ flex: 1 }}>
+            <ThemedText style={[styles.refLabel, { color: colors.mutedForeground }]}>
+              Reference ID (tap to copy)
+            </ThemedText>
+            <ThemedText style={styles.refValue} numberOfLines={1}>{referenceId}</ThemedText>
           </View>
-
-          <ThemedText bold style={styles.title}>Order Under Review</ThemedText>
-
-          <ThemedText style={styles.body}>
-            Your payment was processed but we encountered an issue completing your order.
-            {reasonText ? `\n\n${reasonText}` : ''}
-            {'\n\n'}Our team has been notified and will resolve this. Please contact support with your reference ID below.
-          </ThemedText>
-
-          <ThemedText style={[styles.body, { color: colors.mutedForeground, fontSize: 12 }]}>
-            Status: {labelForStatus(orderStatus)}
-          </ThemedText>
-
-          {referenceId ? (
-            <>
-              <View style={styles.divider} />
-              <TouchableOpacity style={styles.refBox} onPress={handleCopy} activeOpacity={0.7}>
-                <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.refLabel}>Reference ID (tap to copy)</ThemedText>
-                  <ThemedText style={styles.refValue} numberOfLines={1}>{referenceId}</ThemedText>
-                </View>
-                <Ionicons
-                  name={copied ? 'checkmark' : 'copy-outline'}
-                  size={16}
-                  color={copied ? colors.success : colors.mutedForeground}
-                />
-              </TouchableOpacity>
-            </>
-          ) : null}
-
-          <View style={styles.divider} />
-
-          <View style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={onDismiss}>
-              <ThemedText style={styles.buttonText}>Dismiss</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={handleGoToOrders}>
-              <ThemedText style={styles.buttonText}>Go to Orders</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
+          <Ionicons
+            name={copied ? 'checkmark' : 'copy-outline'}
+            size={16}
+            color={copied ? colors.success : colors.mutedForeground}
+          />
+        </TouchableOpacity>
+      ) : null}
+    </ConfirmModal>
   );
 };
 

@@ -106,12 +106,12 @@ const createStyles = (colors: Palette) => StyleSheet.create({
 });
 
 const OPERATION_LABELS: Record<string, string> = {
-  'POST /v1/order':          'Place Order',
-  'POST /v1/topup':          'Top Up Wallet',
-  'POST /v1/wallet':         'Set Up Wallet',
-  'GET /v1/wallet':          'Access Wallet',
-  'POST /v1/esim':           'Activate eSIM',
-  'POST /v1/auth/stepup':    'Confirm Identity',
+  'POST /order':             'Place Order',
+  'POST /topup':             'Top Up Wallet',
+  'POST /wallet':            'Set Up Wallet',
+  'GET /wallet':             'Access Wallet',
+  'POST /esim':              'Activate eSIM',
+  'POST /auth/stepup':       'Confirm Identity',
 };
 
 function friendlyOperation(raw: string | undefined): string {

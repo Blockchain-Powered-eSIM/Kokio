@@ -1,8 +1,6 @@
 // src/context/ToastContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import ToastNotification from '../components/ui/ToastNotification/ToastNotification';
 import { useColors } from "@/hooks/useColors";
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -10,20 +8,10 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 type MessageVariant = 'error' | 'info';
 
 type ToastContextType = {
-  showToast: (amount: string, ethAmount: string, type: string) => void;
-  hideToast: () => void;
-  amount: string;
-  ethAmount: string;
-  type: string;
   showMessage: (message: string, variant?: MessageVariant) => void;
 };
 
 const ToastContext = createContext<ToastContextType>({
-  showToast: () => {},
-  hideToast: () => {},
-  amount: '',
-  ethAmount: '',
-  type: '',
   showMessage: () => {},
 });
 
@@ -73,17 +61,8 @@ const styles = StyleSheet.create({
 type QueuedMessage = { message: string; variant: MessageVariant; key: number };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [visible, setVisible] = useState(false);
-  const [toastData, setToastData] = useState({ amount: '', ethAmount: '', type: '' });
   const [msgQueue, setMsgQueue] = useState<QueuedMessage[]>([]);
   const msgToast = msgQueue[0] ?? null;
-
-  const showToast = (amount: string, ethAmount: string, type: string) => {
-    setToastData({ amount, ethAmount, type });
-    setVisible(true);
-  };
-
-  const hideToast = () => setVisible(false);
 
   const showMessage = (message: string, variant: MessageVariant = 'error') => {
     setMsgQueue((queue) => [...queue, { message, variant, key: Date.now() }]);
@@ -92,20 +71,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const dequeueMessage = () => setMsgQueue((queue) => queue.slice(1));
 
   return (
-    <ToastContext.Provider value={{ showToast, hideToast, amount: toastData.amount, ethAmount: toastData.ethAmount, type: toastData.type, showMessage }}>
+    <ToastContext.Provider value={{ showMessage }}>
       {children}
-      {visible && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999, pointerEvents: 'box-none' }}>
-          <GestureHandlerRootView>
-            <ToastNotification
-              handleToastVisible={hideToast}
-              amount={toastData.amount}
-              ethAmount={toastData.ethAmount}
-              type={toastData.type}
-            />
-          </GestureHandlerRootView>
-        </View>
-      )}
       {msgToast && (
         <View style={{ position: 'absolute', bottom: SCREEN_HEIGHT * 0.07, left: 0, right: 0, zIndex: 10000, pointerEvents: 'none' }}>
           <MessageToast

@@ -1,5 +1,5 @@
 /**
- * DeleteAccountModal — type-to-confirm gate for DELETE /v1/account.
+ * DeleteAccountModal — type-to-confirm gate for DELETE /account.
  *
  * The three consequences:
  *   1. Irreversible. No recovery path exists for anyone, including the operator.
@@ -168,7 +168,7 @@ export const DeleteAccountModal: React.FC<Props> = ({ visible, onCancel, onConfi
           <ThemedText style={styles.title}>Delete account</ThemedText>
 
           <ThemedText style={styles.body}>
-            This permanently deletes your account. It cannot be undone — not by you, and
+            This permanently deletes your account. It cannot be undone, not by you, and
             not by us. There is no recovery.
           </ThemedText>
 

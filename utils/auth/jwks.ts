@@ -30,8 +30,9 @@ type KeyCache = {
 let _cache: KeyCache | null = null;
 
 function jwksUrl(): string {
-  const base = Config.AUTH_SERVER_BASE_URL ?? '';
-  return base.replace(/\/$/, '') + '/.well-known/jwks.json';
+  // JWKS is served at the auth server's host root, outside the /v2 context path that
+  // AUTH_SERVER_BASE_URL carries. An absolute path resolves against the origin only.
+  return new URL('/.well-known/jwks.json', Config.AUTH_SERVER_BASE_URL ?? '').toString();
 }
 
 async function fetchKeys(): Promise<Map<string, CryptoKey>> {

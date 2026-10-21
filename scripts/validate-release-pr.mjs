@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import {
+  NATIVE_VERSION_TARGETS,
+  readVersionValue,
+} from "./sync-native-version.mjs";
 
 const repoRoot = process.cwd();
 const eventPath = process.env.GITHUB_EVENT_PATH;
@@ -113,6 +117,20 @@ for (const [label, value] of versionChecks) {
   if (value !== packageJson.version) {
     console.error(
       `${label} does not match package.json version (${packageJson.version}). Found: ${value}`
+    );
+    process.exit(1);
+  }
+}
+
+// The checks above read the Expo config, which derives every version from
+// package.json and so can never disagree with it. The committed native projects
+// are the part that goes stale, so read those files themselves.
+for (const target of NATIVE_VERSION_TARGETS) {
+  const value = readVersionValue(repoRoot, target);
+
+  if (value !== packageJson.version) {
+    console.error(
+      `${target.file} ${target.key} does not match package.json version (${packageJson.version}). Found: ${value}. Run npm run postinstall and commit the result.`
     );
     process.exit(1);
   }

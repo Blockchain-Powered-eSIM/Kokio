@@ -117,7 +117,7 @@ const OfflineScreen: React.FC = () => {
       </ThemedText>
 
       <ThemedText style={styles.description} variant="sm">
-        A connection is needed to purchase and install an eSIM or make eSIM
+        A connection is needed to purchase and install an eSIM or make
         wallet transactions, but you can still use the app with limited
         functionalities.
       </ThemedText>

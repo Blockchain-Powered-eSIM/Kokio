@@ -12,7 +12,6 @@ module.exports = ({ config }) => {
     gasManagerPolicyId: process.env.GAS_MANAGER_POLICY_ID,
     chainId: process.env.CHAIN_ID,
     chainRpcUrl: process.env.CHAIN_RPC_URL,
-    usdcAddress: process.env.USDC_ADDRESS,
     stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     stripeMerchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER,
     walletConnectProjectId: process.env.WALLETCONNECT_PROJECT_ID,
@@ -21,7 +20,6 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
-    newArchEnabled: true,
     name: "Kokio",
     slug: "kokio",
     owner: "kokio-sg",
@@ -73,13 +71,13 @@ module.exports = ({ config }) => {
         "expo-build-properties",
         {
           android: {
-            compileSdkVersion: 36,
+            compileSdkVersion: 37,
             targetSdkVersion: 36,
             minSdkVersion: 24,
-            kotlinVersion: "2.1.20",
           },
           ios: {
             deploymentTarget: "17.0",
+            useFrameworks: "dynamic",
           },
         },
       ],
@@ -107,6 +105,13 @@ module.exports = ({ config }) => {
       ],
       "expo-asset",
       "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          cameraPermission: "Kokio uses your camera to scan wallet address QR codes.",
+          recordAudioAndroid: false,
+        },
+      ],
       [
         "@stripe/stripe-react-native",
         {

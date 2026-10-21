@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Linking,
   Platform,
@@ -26,6 +26,9 @@ import { useColors } from "@/hooks/useColors";
 import { logger } from "@/utils/logger";
 
 type TabType = "Direct" | "QR" | "Manual";
+
+// Lightning bolt's natural yellow — kept fixed across light/dark theme, not tinted by theme tokens.
+const FLASH_COLOR = "#FFC107";
 
 const warningStyles = StyleSheet.create({
   warningCard: {
@@ -69,12 +72,19 @@ const styles = StyleSheet.create({
   tabBarContainer: {
     borderRadius: Theme.borderRadius.medium,
     flexDirection: "row",
-    overflow: "hidden",
   },
   tabButton: {
     flex: 1,
     paddingVertical: 6,
     minHeight: 30,
+    position: "relative",
+  },
+  tabSpeedIcons: {
+    position: "absolute",
+    top: -4,
+    right: 4,
+    flexDirection: "row",
+    zIndex: 2,
   },
   tabButtonText: {
     textAlign: "center",
@@ -210,7 +220,7 @@ const TextWithCopy = ({ label, text }: {label: string, text: string}) => {
 const EsimInstallation = () => {
   const { isDark } = useTheme();
   const colors = useColors();
-  const { qrcode, appleInstallationUrl: rawAppleUrl } = useLocalSearchParams();
+  const { qrcode, appleInstallationUrl: rawAppleUrl, tab: rawTab } = useLocalSearchParams();
   const appleInstallationUrl = Array.isArray(rawAppleUrl) ? rawAppleUrl[0] : (rawAppleUrl ?? "");
   const router = useRouter();
   const rawQrData = Array.isArray(qrcode) ? _head(qrcode) : qrcode;
@@ -220,7 +230,12 @@ const EsimInstallation = () => {
   const qrDataSplit = _split(qrData, "$");
   const activationAddress = _get(qrDataSplit, [1]);
   const activationCode = _get(qrDataSplit, [2]);
-  const [activeTab, setActiveTab] = useState<TabType>("QR");
+  const requestedTab: TabType | undefined = rawTab === "QR" ? "QR" : undefined;
+  const [activeTab, setActiveTab] = useState<TabType>(requestedTab ?? "Direct");
+
+  useEffect(() => {
+    if (requestedTab) setActiveTab(requestedTab);
+  }, [requestedTab]);
 
   if (!hasQrData) {
     return (
@@ -387,7 +402,7 @@ const EsimInstallation = () => {
         {/* Manual Instructions */}
         <View style={styles.instructionsContainer}>
           <Text style={[styles.instructionText, { color: colors.inactive }]}>
-            {"Steps: Go to Settings > Network & internet and select the plus sign (&quot;+&quot;) next to your SIM — if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
+            {"Steps: Go to Settings > Network & internet and select the plus sign (&quot;+&quot;) next to your SIM and if this is not available, select SIMs/Mobile network.\n\nSelect Download a SIM instead? > Next.\n\nSelect Use a different network if you need to confirm your network.\n\nSelect Need help? > Enter it manually.\n\nEnter the SM-DP+ address and activation code for your new eSIM.\n\nSelect Continue > Download/Activate.\n\nSelect Settings/Done when you see the Download Finished screen."}
           </Text>
         </View>
       </View>
@@ -415,8 +430,8 @@ const EsimInstallation = () => {
   
           <Text style={[styles.instructionText, { color: colors.inactive }]}>
             {isEnabled
-              ? "Tap Install eSIM to begin. Do not close the app — installation may take a few minutes. Select Allow/OK when prompted."
-              : "Select Install eSIM and wait — do not close the app, installation may take a few minutes. Select Allow/OK, when prompted."}
+              ? "Tap Install eSIM to begin. Do not close the app, installation may take a few minutes. Select Allow/OK when prompted."
+              : "Select Install eSIM and wait, do not close the app, installation may take a few minutes. Select Allow/OK, when prompted."}
           </Text>
   
           <TouchableOpacity
@@ -447,6 +462,11 @@ const EsimInstallation = () => {
     );
   };
 
+  const tabSpeedIconCount: Partial<Record<TabType, number>> = {
+    Direct: 2,
+    QR: 1,
+  };
+
   const renderTabBar = () => {
     const tabs: TabType[] = ["Direct", "QR", "Manual"];
 
@@ -465,6 +485,18 @@ const EsimInstallation = () => {
               {activeTab === tab && <View style={[styles.tabIndicator, {
                 backgroundColor: isDark ? colors.secondaryBackground : colors.card,
               }]} />}
+              {!!tabSpeedIconCount[tab] && (
+                <View style={styles.tabSpeedIcons}>
+                  {Array.from({ length: tabSpeedIconCount[tab] as number }).map((_, index) => (
+                    <Ionicons
+                      key={index}
+                      name="flash"
+                      size={12}
+                      color={FLASH_COLOR}
+                    />
+                  ))}
+                </View>
+              )}
               <Text
                 style={[
                   styles.tabButtonText,

@@ -1,6 +1,11 @@
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import type { Esim } from "@/components/ESIMItem";
 
+/** The user's label when set, otherwise the plan's region name. Used everywhere an eSIM is named. */
+export function esimDisplayName(doc: ESimDocument): string {
+  return doc.label?.trim() || esimDocToDisplayItem(doc).serviceRegionName || "eSIM";
+}
+
 /**
  * Maps the server eSIM document to the minimal shape ESIMItem renders.
  * serviceRegionCode is not on ESimDocument, the flag renders via serviceRegionFlag when available.

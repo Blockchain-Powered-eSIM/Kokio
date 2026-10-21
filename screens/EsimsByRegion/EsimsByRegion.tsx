@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -6,11 +7,19 @@ import { useCatalogueByRegion } from "@/hooks/useCatalogue";
 import { formatBffError } from "@/utils/bff/errors";
 import { ThemedText } from "@/components/ThemedText";
 import DataPackTabGroup from "@/components/DataPackTabGroup";
+import { useShopFilters } from "@/contexts/ShopFiltersContext";
+import { applyShopFilters } from "@/utils/shopFilters";
 
 export default function EsimsByRegion() {
   const params = useLocalSearchParams();
   const region = params?.id as string;
   const { data, isLoading, error, refetch } = useCatalogueByRegion(region);
+  const { filters, isActive, clearFilters } = useShopFilters();
+
+  const filteredPlans = useMemo(
+    () => applyShopFilters(data?.plans, filters),
+    [data?.plans, filters]
+  );
 
   if (isLoading) {
     return <DataPackTabGroup plans={[]} isLoading containerStyle={styles.container} />;
@@ -37,8 +46,10 @@ export default function EsimsByRegion() {
 
   return (
     <DataPackTabGroup
-      plans={data.plans}
+      plans={filteredPlans}
       containerStyle={styles.container}
+      filtersActive={isActive}
+      onClearFilters={clearFilters}
     />
   );
 }

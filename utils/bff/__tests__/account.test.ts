@@ -45,10 +45,10 @@ beforeEach(() => jest.clearAllMocks());
 
 describe('getAccount', () => {
   describe('request shape', () => {
-    it('calls api.get with /v1/account', async () => {
+    it('calls api.get with /account', async () => {
       mockGet.mockResolvedValue(accountEnvelope());
       await getAccount();
-      expect(mockGet).toHaveBeenCalledWith('/v1/account');
+      expect(mockGet).toHaveBeenCalledWith('/account');
     });
 
     it('calls api.get exactly once', async () => {

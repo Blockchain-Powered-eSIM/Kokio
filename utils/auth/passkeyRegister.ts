@@ -24,9 +24,9 @@ export type RegisterResult = RegisterCompleteData & {
 /**
  * Full Kokio passkey registration ceremony.
  *
- * 1. POST /v1/auth/register/begin  → server returns WebAuthn creation options
+ * 1. POST /auth/register/begin  → server returns WebAuthn creation options
  * 2. react-native-passkey Passkey.create() → native biometric prompt
- * 3. POST /v1/auth/register/complete → server verifies and returns
+ * 3. POST /auth/register/complete → server verifies and returns
  *    { deviceWalletAddress, deviceUniqueIdentifier, registered }
  *
  * Returns the server data plus the WebAuthn credentialId so callers can

@@ -179,7 +179,7 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
     },
   });
 
-  return await captureAuthorizationCode(request, `${base}/v1/auth/authorize`, correlationId);
+  return await captureAuthorizationCode(request, `${base}/auth/authorize`, correlationId);
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -292,7 +292,7 @@ export async function discoverAndLoginWithPasskey(): Promise<DiscoverLoginResult
     },
   });
 
-  const { code, codeVerifier } = await captureAuthorizationCode(request, `${base}/v1/auth/authorize`, correlationId);
+  const { code, codeVerifier } = await captureAuthorizationCode(request, `${base}/auth/authorize`, correlationId);
 
   const tokenData = assertData<{
     access_token:  string;

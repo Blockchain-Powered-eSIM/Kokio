@@ -8,7 +8,8 @@ buildscript {
   dependencies {
     classpath('com.android.tools.build:gradle')
     classpath('com.facebook.react:react-native-gradle-plugin')
-    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+    def kotlinVersion = findProperty('android.kotlinVersion')
+    classpath(kotlinVersion ? "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion" : 'org.jetbrains.kotlin:kotlin-gradle-plugin')
   }
 }
 
@@ -17,6 +18,13 @@ allprojects {
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
+  }
+  // @stripe/stripe-react-native pulls in stripe-android-issuing-push-provisioning (compileOnly),
+  // which depends at runtime on play-services-tapandpay. That artifact is a private Google SDK
+  // that is not on any public repository, and the release lint check (AGP 9) tries to resolve it.
+  // Kokio does not use Issuing push provisioning.
+  configurations.configureEach {
+    exclude group: 'com.google.android.gms', module: 'play-services-tapandpay'
   }
 }
 

@@ -177,17 +177,17 @@ export const kokioAuthClient = {
 
   registerBegin(body: RegisterBeginRequest) {
     type R = paths['/auth/register/begin']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/register/begin', 'POST', body as unknown as Record<string, unknown>);
+    return authFetch<R>('/auth/register/begin', 'POST', body as unknown as Record<string, unknown>);
   },
 
   registerComplete(body: RegisterCompleteRequest) {
     type R = paths['/auth/register/complete']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/register/complete', 'POST', body as unknown as Record<string, unknown>);
+    return authFetch<R>('/auth/register/complete', 'POST', body as unknown as Record<string, unknown>);
   },
 
   loginBegin(body: LoginBeginRequest) {
     type R = paths['/auth/login/begin']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/login/begin', 'POST', body as unknown as Record<string, unknown>);
+    return authFetch<R>('/auth/login/begin', 'POST', body as unknown as Record<string, unknown>);
   },
 
   // Discoverable-credential flow: no deviceWalletAddress required.
@@ -195,12 +195,12 @@ export const kokioAuthClient = {
   // credential manager can present all synced Kokio passkeys to the user.
   loginDiscoverBegin() {
     type R = paths['/auth/login/begin']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/login/begin', 'POST');
+    return authFetch<R>('/auth/login/begin', 'POST');
   },
 
   loginComplete(body: LoginCompleteRequest) {
     type R = paths['/auth/login/complete']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/login/complete', 'POST', body as unknown as Record<string, unknown>);
+    return authFetch<R>('/auth/login/complete', 'POST', body as unknown as Record<string, unknown>);
   },
 
   /**
@@ -214,7 +214,7 @@ export const kokioAuthClient = {
     type R = paths['/auth/token']['post']['responses']['200']['content']['application/json'];
     const body = new URLSearchParams(params as unknown as Record<string, string>).toString();
     return authFetch<R>(
-      '/v1/auth/token',
+      '/auth/token',
       'POST',
       body as unknown as Record<string, unknown>,
       {},
@@ -227,7 +227,7 @@ export const kokioAuthClient = {
     type R = paths['/auth/token/revoke']['post']['responses']['200']['content']['application/json'];
     const encoded = new URLSearchParams(body as unknown as Record<string, string>).toString();
     return authFetch<R>(
-      '/v1/auth/token/revoke',
+      '/auth/token/revoke',
       'POST',
       encoded as unknown as Record<string, unknown>,
       {},
@@ -237,7 +237,7 @@ export const kokioAuthClient = {
 
   stepUpBegin() {
     type R = paths['/auth/stepup/begin']['post']['responses']['200']['content']['application/json'];
-    return authFetch<R>('/v1/auth/stepup/begin', 'POST');
+    return authFetch<R>('/auth/stepup/begin', 'POST');
   },
 
   /**
@@ -247,7 +247,7 @@ export const kokioAuthClient = {
   stepUpComplete(body: StepUpCompleteRequest, buildProof: DpopProofBuilder) {
     type R = paths['/auth/stepup/complete']['post']['responses']['200']['content']['application/json'];
     return authFetch<R>(
-      '/v1/auth/stepup/complete',
+      '/auth/stepup/complete',
       'POST',
       body as unknown as Record<string, unknown>,
       {},

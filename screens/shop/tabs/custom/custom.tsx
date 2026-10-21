@@ -1,12 +1,32 @@
+import { useMemo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import DataPackTabGroup from "@/components/DataPackTabGroup";
 import { ThemedText } from "@/components/ThemedText";
 import { useCatalogue } from "@/hooks/useCatalogue";
 import { formatBffError } from "@/utils/bff/errors";
+import { useShopFilters } from "@/contexts/ShopFiltersContext";
+import { applyShopFilters } from "@/utils/shopFilters";
+import { customRegionalName } from "@/helpers/customRegionalName";
 
 export default function Custom() {
   const { data, isLoading, error, refetch } = useCatalogue({ serviceRegionCode: "CUSTOM_REGIONAL" });
+  const { filters, isActive, clearFilters } = useShopFilters();
+
+  const namedPlans = useMemo(
+    () =>
+      (data?.plans ?? []).map((plan) => {
+        const codes = (plan.coverageCountries ?? []).flatMap((c) => (c.countryCode ? [c.countryCode] : []));
+        const name = customRegionalName(codes);
+        return name ? { ...plan, serviceRegionName: name } : plan;
+      }),
+    [data?.plans]
+  );
+
+  const filteredPlans = useMemo(
+    () => applyShopFilters(namedPlans, filters),
+    [namedPlans, filters]
+  );
 
   if (isLoading) {
     return <DataPackTabGroup plans={[]} isLoading />
@@ -31,7 +51,13 @@ export default function Custom() {
     );
   }
 
-  return <DataPackTabGroup plans={data.plans} />;
+  return (
+    <DataPackTabGroup
+      plans={filteredPlans}
+      filtersActive={isActive}
+      onClearFilters={clearFilters}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

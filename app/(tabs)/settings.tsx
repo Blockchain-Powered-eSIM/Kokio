@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -10,6 +10,7 @@ import {
   Linking,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
+import { useRouter, useNavigation } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
@@ -23,6 +24,13 @@ import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { logger } from "@/utils/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
+import Header from '@/components/Header';
+import { HeaderBackControl } from '@/components/navigation/stackHeader';
+import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
+import * as SecureStore from 'expo-secure-store';
+import { VERSION_KEY } from '@/utils/auth/mainnetCutoverReset';
+import { clearWelcomeBackSeen } from '@/utils/auth/returningUserProbe';
+import { useToast } from '@/contexts/ToastContext';
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
@@ -65,21 +73,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     padding: 20,
     paddingBottom: 8,
   },
-  aboutHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.muted,
-  },
-  aboutTitle: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: "600",
-    paddingTop: 20,
-  },
   closeButton: {
     color: colors.icon,
     paddingTop: 16,
@@ -112,6 +105,19 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
   },
+  socialsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  socialIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.itemBackground,
+  },
   themeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -129,55 +135,39 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-const MENU_ITEM_ENABLED = {
-  CONTACT: false, // moved from the bottom Phone tab — enable once contacts feature is ready
-};
-
-// Disabled menu item styling
-const DISABLED_OPACITY = 0.4;
-
 const MenuItem = ({
   title,
   iconLeft,
   iconRight,
   action,
-  disabled = false,
 }: {
   title: string;
   iconLeft: string;
   iconRight: string;
   action: (() => void) | undefined;
-  disabled?: boolean;
 }) => {
   const styles = useThemedStyles(createStyles);
-  const colors = useColors();
   return (
   <TouchableOpacity
-    style={[styles.menuItem, disabled && { opacity: DISABLED_OPACITY }]}
-    onPress={() => !disabled && action && action()}
-    disabled={disabled}
+    style={styles.menuItem}
+    onPress={() => action?.()}
   >
     <View style={styles.menuItemContent}>
       <Ionicons
         /* @ts-ignore */
         name={iconLeft}
         size={24}
-        color={disabled ? colors.inactive : "white"}
+        color="white"
         style={styles.iconLeft}
       />
-      <ThemedText
-        style={{
-          ...styles.menuItemText,
-          ...(disabled && { color: colors.inactive }),
-        }}
-      >
+      <ThemedText style={styles.menuItemText}>
         {title}
       </ThemedText>
       <Ionicons
         /* @ts-ignore */
         name={iconRight}
         size={24}
-        color={disabled ? colors.inactive : "white"}
+        color="white"
         style={styles.iconRight}
       />
     </View>
@@ -185,7 +175,7 @@ const MenuItem = ({
   );
 };
 
-const AboutContent = ({ onClose }: { onClose: () => void }) => {
+const AboutContent = () => {
   const styles = useThemedStyles(createStyles);
   const handleLinkPress = useCallback(async (url: string) => {
     try {
@@ -197,18 +187,12 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <View style={styles.aboutContainer}>
-      <View style={styles.aboutHeader}>
-        <ThemedText style={styles.aboutTitle}>About</ThemedText>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
-        </TouchableOpacity>
-      </View>
       <ScrollView
         style={styles.aboutContent}
         showsVerticalScrollIndicator={false}
       >
         <ThemedText style={styles.aboutText}>
-          You are using KOKI&#39;O Beta v1
+          You are using official Kokio mobile app.
         </ThemedText>
         <ThemedText style={styles.aboutText}>
           A mobile app to purchase eSIM data plans and subscriptions using
@@ -225,33 +209,42 @@ const AboutContent = ({ onClose }: { onClose: () => void }) => {
           well-being and connectivity freedom of mobile users worldwide.
         </ThemedText>
         <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Website: </Text>
+          <Text style={styles.linkText}>Our website </Text>
           <TouchableOpacity onPress={() => handleLinkPress("https://kokio.app")}>
-            <Text style={styles.aboutLink}>kokio</Text>
+            <Text style={styles.aboutLink}>kokio.app</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Follow us: </Text>
-          <TouchableOpacity onPress={() => handleLinkPress("https://x.com/kokiodotapp")}>
-            <Text style={styles.aboutLink}>@kokiodotapp</Text>
-          </TouchableOpacity>
+          <Text style={styles.linkText}>Follow us on socials </Text>
+          <View style={styles.socialsRow}>
+            <TouchableOpacity
+              style={styles.socialIconButton}
+              onPress={() => handleLinkPress("https://x.com/kokiodotapp")}
+              accessibilityRole="link"
+              accessibilityLabel="Follow @kokiodotapp on X"
+            >
+              <Ionicons name="logo-x" size={16} color={styles.aboutLink.color} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.socialIconButton}
+              onPress={() => handleLinkPress("https://instagram.com/kokiodotapp")}
+              accessibilityRole="link"
+              accessibilityLabel="Follow @kokiodotapp on Instagram"
+            >
+              <Ionicons name="logo-instagram" size={16} color={styles.aboutLink.color} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
   );
 };
 
-const ContactContent = ({ onClose }: { onClose: () => void }) => {
+const ContactContent = () => {
   const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.aboutContainer}>
-      <View style={styles.aboutHeader}>
-        <ThemedText style={styles.aboutTitle}>Contact Support</ThemedText>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close-outline" size={28} color={styles.closeButton.color} />
-        </TouchableOpacity>
-      </View>
       <View style={styles.aboutContent}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -281,7 +274,10 @@ const ContactContent = ({ onClose }: { onClose: () => void }) => {
 export default function MenuScreen() {
   const { logout, deleteAccount } = useAuthRelay();
   const { clearKokioUser } = useKokio();
+  const { showMessage } = useToast();
   const { isDark, toggleTheme } = useTheme();
+  const router = useRouter();
+  const navigation = useNavigation();
 
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
@@ -290,20 +286,35 @@ export default function MenuScreen() {
   const bg = useThemeColor({}, "background");
   const colors = useColors();
 
+  // Resets to the main menu whenever the Settings tab icon is pressed —
+  // including re-tapping while already here — instead of leaving whatever
+  // sub-view (About/Contact/Delete Account) was last opened on screen.
+  useEffect(() => {
+    // "tabPress" isn't in expo-router's generic NavigationProp event map,
+    // but it still fires correctly at runtime for a screen mounted directly
+    // under the bottom Tabs navigator.
+    const unsubscribe = (navigation as any).addListener("tabPress", () => {
+      setShowAbout(false);
+      setShowContact(false);
+      setShowDeleteAccount(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const menuItems = [
     {
-      id: "1",
-      title: "Contact",
-      iconLeft: "call-outline",
+      id: "2",
+      title: "Refer & Earn",
+      iconLeft: "gift-outline",
       iconRight: "chevron-forward-outline",
-      disabled: !MENU_ITEM_ENABLED.CONTACT,
+      action: () => router.push("/refer-and-earn"),
     },
     {
       id: "3",
       title: "Privacy Policy",
       iconLeft: "lock-closed-outline",
       iconRight: "chevron-forward-outline",
-      action: () => openBrowserAsync("https://kokio.app/privacy-policy"),
+      action: () => router.push("/privacy-policy"),
     },
     {
       id: "5",
@@ -341,18 +352,43 @@ export default function MenuScreen() {
       iconRight: "chevron-forward-outline",
       action: async () => {
         await clearKokioUser();
+        await purgeAccountLocalState();
         await logout();
+      },
+    }] : []),
+    ...(__DEV__ ? [{
+      id: "10",
+      title: "Reset Cutover Test State",
+      iconLeft: "refresh-outline",
+      iconRight: "chevron-forward-outline",
+      action: async () => {
+        // await SecureStore.deleteItemAsync(VERSION_KEY);
+        // Simulates a device coming from an old build
+        await SecureStore.setItemAsync(VERSION_KEY, '2');
+        await clearWelcomeBackSeen();
+        showMessage('Cutover test state cleared. Relaunch the app to see it again.', 'info');
       },
     }] : []),
   ];
 
+  const isSubView = showAbout || showContact;
+  const headerTitle = showAbout ? "About" : showContact ? "Contact Support" : "Settings";
+  const closeSubView = () => {
+    setShowAbout(false);
+    setShowContact(false);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
+      <Header
+        title={headerTitle}
+        leftElement={isSubView ? <HeaderBackControl onPress={closeSubView} tintColor={colors.text} /> : undefined}
+      />
       <ThemedView style={styles.container}>
         {showAbout ? (
-          <AboutContent onClose={() => setShowAbout(false)} />
+          <AboutContent />
         ) : showContact ? (
-          <ContactContent onClose={() => setShowContact(false)} />
+          <ContactContent />
         ) : (
           <>
             <FlatList
@@ -363,7 +399,6 @@ export default function MenuScreen() {
                   iconLeft={item.iconLeft}
                   iconRight={item.iconRight}
                   action={item.action}
-                  disabled={item.disabled}
                 />
               )}
               keyExtractor={(item) => item.id}

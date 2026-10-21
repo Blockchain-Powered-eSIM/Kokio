@@ -142,7 +142,12 @@ export const COUNTRY_TO_REGIONS: Record<string, string[]> = {
   TT: ["CARIBBEAN_ISLANDS"], VC: ["CARIBBEAN_ISLANDS"],
 };
 
-export const OP_SEPOLIA_TESTNET =
-  "https://sepolia-optimism.etherscan.io/address";
-
 export const BASE_SEPOLIA_TESTNET = "https://sepolia.basescan.org/address";
+export const BASE_SEPOLIA_TESTNET_TX = "https://sepolia.basescan.org/tx";
+export const BASE_MAINNET_EXPLORER = "https://basescan.org/address";
+export const BASE_MAINNET_EXPLORER_TX = "https://basescan.org/tx";
+
+// Inert until the mainnet cutover actually ships — flip to true then. Bump
+// MAINNET_CUTOVER_VERSION in mainnetCutoverReset.ts instead if a second
+// cutover is ever needed after this one.
+export const MAINNET_CUTOVER_ENABLED = true;

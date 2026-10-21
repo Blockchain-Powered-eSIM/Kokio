@@ -28,7 +28,7 @@ declare module 'axios' {
 
 /** Metadata forwarded to the step-up UI so it can show context-aware copy. */
 export type StepUpHint = {
-  /** e.g. "POST /v1/order" — for UX telemetry / copy. */
+  /** e.g. "POST /order" — for UX telemetry / copy. */
   operationName: string;
 };
 
@@ -134,7 +134,7 @@ instance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => 
 
   // htu = full URL without query / fragment (RFC 9449 §4.2).
   // dpopHtu overrides the computed value for routes where path params must
-  // be stripped (e.g. /v1/coupon/:code → htu is /v1/coupon).
+  // be stripped (e.g. /coupon/:code → htu is /coupon).
   const base   = (config.baseURL ?? '').replace(/\/$/, '');
   const path   = config.url ?? '';
   const htu    = config.dpopHtu ?? buildHtu(base, path);
@@ -293,6 +293,10 @@ const api = {
    
   put(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
     return instance.put(url, data, config);
+  },
+
+  patch(url: string, data: Record<string, unknown> = EMPTY, config: AxiosRequestConfig = api.getConfig()): Promise<any> {
+    return instance.patch(url, data, config);
   },
    
   delete(url: string, config: AxiosRequestConfig = api.getConfig()): Promise<any> {

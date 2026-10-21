@@ -2,6 +2,8 @@
   "expo.jsEngine": "hermes",
   "EX_DEV_CLIENT_NETWORK_INSPECTOR": "true",
   "ios.deploymentTarget": "17.0",
+  "ios.useFrameworks": "dynamic",
   "ios.forceStaticLinking": "[]",
+  "ios.buildReactNativeFromSource": "true",
   "apple.privacyManifestAggregationEnabled": "true"
 }

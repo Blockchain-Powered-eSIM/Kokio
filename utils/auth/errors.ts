@@ -11,7 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Login
   AUTH_TIME_RECENCY_VIOLATION: 'Biometric confirmation timed out. Please try again.',
   INVALID_ASSERTION:           'Passkey verification failed. Please try again.',
-  CREDENTIAL_NOT_FOUND:        'No passkey found for this device. Try signing in with email.',
+  CREDENTIAL_NOT_FOUND:        'No passkey / account found for this device. Please contact support if the problem persists.',
   NO_DEVICE_WALLET:            'No wallet found on this device. Please sign up first.',
   AUTHORIZE_FAILED:            'Sign-in could not be completed. Please try again.',
   LOGIN_FAILED:                'Sign-in failed. Please try again.',

@@ -15,11 +15,26 @@ export type { GetCatalogueParams, GetPlansParams, CatalogueResponse, ServiceRegi
 
 /* FOR DEVELOPMENT ONLY USE CATALOGUE WITH VENDOR1 filter*/
 // export function getCatalogue(params: GetCatalogueParams): Promise<CatalogueResponse> {
-//   return unwrapBffResponse(api.get('/v1/catalogue', { ...params, vendor: 'VENDOR1' } as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
+//   return unwrapBffResponse(api.get('/catalogue', { ...params, vendor: 'VENDOR1' } as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
 // }
 
 export function getCatalogue(params: GetCatalogueParams): Promise<CatalogueResponse> {
-  return unwrapBffResponse(api.get('/v1/catalogue', params as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
+  return unwrapBffResponse(api.get('/catalogue', params as Record<string, unknown>, { ...api.getConfig(), skipAuth: true }));
+}
+
+const CATALOGUE_PAGE_SIZE = 250;
+
+// Fetches every page of a catalogue query. The server default page size is 50,
+// so a single call silently truncates larger regions.
+export async function getAllCatalogue(params: GetCatalogueParams): Promise<CatalogueResponse> {
+  const first = await getCatalogue({ ...params, page: 1, pageSize: CATALOGUE_PAGE_SIZE });
+  const plans = [...first.plans];
+  for (let page = 2; plans.length < first.total; page++) {
+    const next = await getCatalogue({ ...params, page, pageSize: CATALOGUE_PAGE_SIZE });
+    if (next.plans.length === 0) break;
+    plans.push(...next.plans);
+  }
+  return { ...first, plans };
 }
 
 /** @deprecated Use getCatalogue */
@@ -46,7 +61,7 @@ export async function getServiceRegions(): Promise<ServiceRegionsResponse> {
   }
 
   const data = await unwrapBffResponse<ServiceRegionsResponse>(
-    api.get('/v1/catalogue/service-regions', {}, { ...api.getConfig(), skipAuth: true }),
+    api.get('/catalogue/service-regions', {}, { ...api.getConfig(), skipAuth: true }),
   );
 
   _regionsCache = { data, expiresAt: Date.now() + REGIONS_TTL_MS };
