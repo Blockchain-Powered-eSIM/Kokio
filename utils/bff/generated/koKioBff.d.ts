@@ -4205,7 +4205,7 @@ export interface components {
          *
          *     **Required client handling:** discard stored tokens, clear session state, prompt the
          *     user to remove their passkey from the device, and return to the unauthenticated entry
-         *     point. See `DELETE /v1/account` for the full rationale.
+         *     point. See `DELETE /account` for the full rationale.
          *
          *     | Code | Meaning |
          *     |------|---------|
@@ -4587,7 +4587,7 @@ export interface operations {
              * @description Account deleted. **No response body.**
              *
              *     The account is now flagged deleted. All subsequent authenticated requests from
-             *     this device — including a repeat `DELETE /v1/account` — will return
+             *     this device — including a repeat `DELETE /account` — will return
              *     `404 ACCOUNT_DELETED`.
              */
             204: {

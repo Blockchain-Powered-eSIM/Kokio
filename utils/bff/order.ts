@@ -25,7 +25,7 @@ export function submitOrder(
 ): Promise<{ data: CreateOrderResponse; correlationId: string }> {
   const idempotencyKey = uuidv4();
   return unwrapBffResponseWithCorrelation<CreateOrderResponse>(
-    api.post('/v1/order', request as Record<string, unknown>, {
+    api.post('/order', request as Record<string, unknown>, {
       headers: { 'x-correlation-id': idempotencyKey },
     }),
   ).then((r) => ({ ...r, correlationId: idempotencyKey }));
@@ -33,12 +33,12 @@ export function submitOrder(
  
 
 export function previewOrder(request: CreateOrderRequest): Promise<OrderPricing> {
-  return unwrapBffResponse<OrderPricing>(api.post('/v1/order/preview', request as Record<string, unknown>));
+  return unwrapBffResponse<OrderPricing>(api.post('/order/preview', request as Record<string, unknown>));
 }
 
 export async function getOrderStatus(idempotencyKey: string): Promise<OrderStatusResponse> {
   try {
-    return await unwrapBffResponse<OrderStatusResponse>(api.get(`/v1/order/${idempotencyKey}`));
+    return await unwrapBffResponse<OrderStatusResponse>(api.get(`/order/${idempotencyKey}`));
   } catch (err) {
     if (err instanceof BffError && err.httpStatus === 404 && err.code !== 'ACCOUNT_DELETED') {
       throw new OrderNotFoundError();
@@ -55,7 +55,7 @@ export function submitPaymentHash(
   userOperationHash: string,
 ): Promise<SubmitPaymentResponse> {
   return unwrapBffResponse<SubmitPaymentResponse>(
-    api.post(`/v1/order/${idempotencyKey}/payment-submission`, { userOperationHash }),
+    api.post(`/order/${idempotencyKey}/payment-submission`, { userOperationHash }),
   );
 }
 
@@ -63,13 +63,13 @@ export function submitPaymentHash(
 // refunded. Call only after the user has confirmed they understand that.
 export function cancelOrder(idempotencyKey: string): Promise<CancelOrderResponse> {
   return unwrapBffResponse<CancelOrderResponse>(
-    api.post(`/v1/order/${idempotencyKey}/cancel`),
+    api.post(`/order/${idempotencyKey}/cancel`),
   );
 }
 
 export function getOrderList(page = 1, pageSize = 25): Promise<OrderListResponse> {
   return unwrapBffResponse<OrderListResponse>(
-    api.get('/v1/order/list', { params: { page, pageSize } }),
+    api.get('/order/list', { params: { page, pageSize } }),
   );
 }
 

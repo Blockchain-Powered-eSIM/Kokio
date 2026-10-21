@@ -16,16 +16,16 @@ export async function getCoupon(code: string): Promise<CodeLookupResponse> {
   const normalized = code.trim().toUpperCase();
   if (!PROMO_CODE_PATTERN.test(normalized)) throw new InvalidCouponCodeError();
 
-  logger.debug('[COUPON] Lookup Request', { code: normalized, url: `/v1/coupon/${normalized}` });
+  logger.debug('[COUPON] Lookup Request', { code: normalized, url: `/coupon/${normalized}` });
 
   try {
-    const result = await unwrapBffResponse<CodeLookupResponse>(api.get(`/v1/coupon/${normalized}`));
+    const result = await unwrapBffResponse<CodeLookupResponse>(api.get(`/coupon/${normalized}`));
     logger.debug('[COUPON] Lookup Success', { code: normalized, kind: result.kind });
     return result;
   } catch (err) {
     logger.error('COUPON_LOOKUP_ERROR', {
       code:        normalized,
-      url:         `/v1/coupon/${normalized}`,
+      url:         `/coupon/${normalized}`,
       errorCode:   err instanceof BffError ? err.code        : 'UNKNOWN',
       httpStatus:  err instanceof BffError ? err.httpStatus  : undefined,
       message:     err instanceof Error    ? err.message     : String(err),

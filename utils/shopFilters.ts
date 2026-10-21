@@ -1,6 +1,6 @@
 // Client-side plan filters for the Shop screen.
 //
-// The BFF's `/v1/catalogue` endpoint only supports server-side filtering by
+// The BFF's `/catalogue` endpoint only supports server-side filtering by
 // planType / vendor / coverageType / includeTopup / includeBackup — price,
 // data amount, and validity have no server-side filter, so these presets
 // filter the already-fetched `plans` array on the device.

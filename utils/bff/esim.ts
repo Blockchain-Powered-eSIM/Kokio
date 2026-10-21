@@ -22,27 +22,27 @@ export type {
 };
 
 export function checkEsimCompatibility(params: CheckCompatibilityParams, eSimRef?: string): Promise<CompatibilityResponse> {
-  const path = eSimRef ? `/v1/esim/compatibility/${eSimRef}` : '/v1/esim/compatibility';
+  const path = eSimRef ? `/esim/compatibility/${eSimRef}` : '/esim/compatibility';
   return unwrapBffResponse(api.get(path, params as Record<string, unknown>));
 }
 
 export function getEsim(eSimRef: string): Promise<ESimDocument> {
-  return unwrapBffResponse<ESimDocument>(api.get(`/v1/esim/${eSimRef}`));
+  return unwrapBffResponse<ESimDocument>(api.get(`/esim/${eSimRef}`));
 }
 
 export function getAllEsims(): Promise<ESimDocument[]> {
-  return unwrapBffResponse<ESimListResponse>(api.get('/v1/esim')).then(r => r.eSims);
+  return unwrapBffResponse<ESimListResponse>(api.get('/esim')).then(r => r.eSims);
 }
 
 export function getEsimUsage(eSimRef: string): Promise<ESimUsage> {
   return unwrapBffResponse<ESimUsageResponse>(
-    api.get(`/v1/esim/usage/${eSimRef}`),
+    api.get(`/esim/usage/${eSimRef}`),
   ).then(r => r.usage[0]);
 }
 
 // Usage for every non-terminal eSIM (RELEASED or INSTALLED) in one call, instead of one GET per eSIM.
 export function getAllEsimUsage(): Promise<ESimUsage[]> {
-  return unwrapBffResponse<ESimUsageResponse>(api.get('/v1/esim/usage')).then(r => r.usage);
+  return unwrapBffResponse<ESimUsageResponse>(api.get('/esim/usage')).then(r => r.usage);
 }
 
 export function setEsimLabel(eSimRef: string, label: string): Promise<ESimDocument> {
@@ -50,7 +50,7 @@ export function setEsimLabel(eSimRef: string, label: string): Promise<ESimDocume
   if (!trimmed || trimmed.length > 50) {
     return Promise.reject(new Error('Label must be 1-50 characters.'));
   }
-  return unwrapBffResponse<ESimDocument>(api.patch(`/v1/esim/label/${eSimRef}`, { label: trimmed }));
+  return unwrapBffResponse<ESimDocument>(api.patch(`/esim/label/${eSimRef}`, { label: trimmed }));
 }
 
 /** @deprecated Use checkEsimCompatibility */

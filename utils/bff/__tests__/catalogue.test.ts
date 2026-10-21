@@ -65,10 +65,10 @@ beforeEach(() => {
 // ─── getCatalogue ─────────────────────────────────────────────────────────────
 
 describe('getCatalogue', () => {
-  it('calls api.get with /v1/catalogue', async () => {
+  it('calls api.get with /catalogue', async () => {
     mockGet.mockResolvedValue(catalogueEnvelope());
     await getCatalogue({ serviceRegionCode: 'US' });
-    expect(mockGet).toHaveBeenCalledWith('/v1/catalogue', { serviceRegionCode: 'US' });
+    expect(mockGet).toHaveBeenCalledWith('/catalogue', { serviceRegionCode: 'US' });
   });
 
   it('returns the catalogue response with plans array', async () => {
@@ -120,11 +120,11 @@ describe('getPlans (deprecated alias)', () => {
 // ─── getServiceRegions ────────────────────────────────────────────────────────
 
 describe('getServiceRegions', () => {
-  it('calls api.get with /v1/catalogue/service-regions', async () => {
+  it('calls api.get with /catalogue/service-regions', async () => {
     mockGet.mockResolvedValue(regionsEnvelope());
     await getServiceRegions();
     expect(mockGet).toHaveBeenCalledWith(
-      '/v1/catalogue/service-regions',
+      '/catalogue/service-regions',
       {},
       expect.any(Object),
     );
