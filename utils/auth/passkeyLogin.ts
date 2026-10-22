@@ -134,7 +134,17 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
       ? [{ id: resolvedId, type: 'public-key' as const, transports: ['internal'] as const }]
       : (beginData.allowCredentials as { id: string; type: string }[]).map(c => ({ ...c, transports: ['internal'] as const }));
 
-    assertion = await Passkey.get({
+    /**
+     * iOS, stored-credential login only (no credentialIdHint) 
+     * use immediate mediation so a passkey deleted from the Passwords app fails silently with `NoCredentials`.
+     * authProvider.loginWithPasskey maps `NoCredentials` to 'no-credential', which AuthenticationModal already handles.
+     * Post-registration login (credentialIdHint set) keeps Passkey.get.
+     */
+    const getAssertion = Platform.OS === 'ios' && !credentialIdHint
+      ? Passkey.getImmediate.bind(Passkey)
+      : Passkey.get.bind(Passkey);
+
+    assertion = await getAssertion({
       challenge:        beginData.challenge,
       rpId:             beginData.rpId,
       timeout:          beginData.timeout,
