@@ -464,14 +464,14 @@ const OrderCard = ({
               <Ionicons
                 name="wallet-outline"
                 size={14}
-                color={colors.mutedForeground}
-                accessibilityLabel="Paid with device wallet"
+                color={isDark ? colors.mutedForeground : colors.text}
+                accessibilityLabel="Paid with Kokio wallet"
               />
             ) : null}
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
               size={14}
-              color={colors.mutedForeground}
+              color={isDark ? colors.mutedForeground : colors.text}
               style={{ marginLeft: "auto" }}
             />
           </View>
@@ -602,6 +602,7 @@ const OrderCard = ({
 export default function OrdersScreen() {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const { isDark } = useTheme();
   const bg = useThemeColor({}, "background");
   const { expandOrderId } = useLocalSearchParams<{ expandOrderId?: string }>();
 
@@ -728,7 +729,7 @@ export default function OrdersScreen() {
             }
           >
             <ThemedText style={styles.emptyText}>No orders yet.</ThemedText>
-            <Text style={styles.refreshHint}>Swipe down to refresh</Text>
+            <Text style={[styles.refreshHint, !isDark && { color: colors.text }]}>Swipe down to refresh</Text>
           </ScrollView>
         ) : (
           <FlatList
@@ -751,7 +752,7 @@ export default function OrdersScreen() {
             ListHeaderComponent={
               pendingOrders.length > 0 ? (
                 <View>
-                  <Text style={[styles.sectionHeader, { color: colors.inactive }]}>
+                  <Text style={[styles.sectionHeader, { color: isDark ? colors.inactive : colors.text }]}>
                     Processing
                   </Text>
                   {pendingOrders.map((record) => (
@@ -762,14 +763,14 @@ export default function OrdersScreen() {
                     />
                   ))}
                   {enrichedOrders.length > 0 ? (
-                    <Text style={[styles.sectionHeader, { color: colors.inactive }]}>
+                    <Text style={[styles.sectionHeader, { color: isDark ? colors.inactive : colors.text }]}>
                       History
                     </Text>
                   ) : null}
                 </View>
               ) : undefined
             }
-            ListFooterComponent={<Text style={styles.refreshHint}>Swipe down to refresh</Text>}
+            ListFooterComponent={<Text style={[styles.refreshHint, !isDark && { color: colors.text }]}>Swipe down to refresh</Text>}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

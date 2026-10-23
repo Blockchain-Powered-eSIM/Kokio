@@ -74,7 +74,7 @@ export function colorForStatus(status?: string | null): string {
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   FIAT:          'Card',
   CRYPTO:        'Crypto',
-  DEVICE_WALLET: 'Device Wallet',
+  DEVICE_WALLET: 'Kokio Wallet',
   COUPON:        'Coupon',
 };
 

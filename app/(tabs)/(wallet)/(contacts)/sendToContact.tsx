@@ -445,7 +445,7 @@ const SendToContact = () => {
       <ThemedView className='flex-1'>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps='handled'>
           <View className='mt-4 px-4'>
-            <ThemedText bold className='mb-2 ml-1' style={{ color: colors.mutedForeground }}>Recipient</ThemedText>
+            <ThemedText bold className='mb-2 ml-1' style={{ color: isDark ? colors.mutedForeground : colors.text }}>Recipient</ThemedText>
             <Pressable
               onPress={() => setShowContactPicker((v) => !v)}
               disabled={isLoading}
@@ -508,7 +508,7 @@ const SendToContact = () => {
               <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
             </Pressable>
 
-            <ThemedText bold className='mb-2 ml-1' style={{ color: colors.mutedForeground }}>Address</ThemedText>
+            <ThemedText bold className='mb-2 ml-1' style={{ color: isDark ? colors.mutedForeground : colors.text }}>Address</ThemedText>
             <View className='flex-row items-center py-3 px-3 rounded-2xl' style={{ backgroundColor: colors.surface }}>
               <TextInput
                 value={addressFieldValue}
@@ -550,7 +550,7 @@ const SendToContact = () => {
           </View>
 
           <View className='mt-8 items-center'>
-            <ThemedText bold className='mb-2 self-start ml-6' style={{ color: colors.mutedForeground }}>Amount</ThemedText>
+            <ThemedText bold className='mb-2 self-start ml-6' style={{ color: isDark ? colors.mutedForeground : colors.text }}>Amount</ThemedText>
             <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[95%] flex-row py-3 rounded-3xl '>
               <View className='w-[67%]'>
                 <ThemedText lightColor="#000000" light className='ml-6 mt-2'>Amount</ThemedText>
@@ -598,7 +598,7 @@ const SendToContact = () => {
         </ScrollView>
 
         <BottomActionBar>
-          <ThemedText bold className='mb-2 ml-1' style={{ color: colors.mutedForeground }}>Review</ThemedText>
+          <ThemedText bold className='mb-2 ml-1' style={{ color: isDark ? colors.mutedForeground : colors.text }}>Review</ThemedText>
           <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-full mb-3 px-5 py-4 rounded-3xl'>
             <View className='flex-row justify-between'>
               <ThemedText lightColor="#000000">To:</ThemedText>

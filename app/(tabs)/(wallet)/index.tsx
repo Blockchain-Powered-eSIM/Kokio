@@ -25,6 +25,8 @@ import type { ESimDocument } from '@/utils/bff/esim';
 import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
 import { shortenAddress } from '@/utils/address';
 import { logger } from '@/utils/logger';
+import { setPreferredCheckoutPaymentMethod } from '@/utils/checkoutIntent';
+import { RADIO_KEYS } from '@/constants/checkout.constants';
 
 const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
 
@@ -37,7 +39,7 @@ const TRANSACTIONS_PREVIEW_COUNT = 3;
 const WALLET_BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [
   { icon: 'wallet-outline', title: 'Pay in stablecoins (USDC and more)', description: 'No card fees, no foriegn markup, no surprise declines' },
   { icon: 'wifi-outline', title: 'Top up without the card', description: 'No card details to type again' },
-  { icon: 'shield-checkmark-outline', title: 'Own it', description: 'Funds stay on this phone, not with us' },
+  { icon: 'shield-checkmark-outline', title: 'Own it', description: 'Funds stay on this phone' },
   { icon: 'arrow-up-circle-outline', title: 'Move leftover balance', description: 'Send unused balance to anyone' },
 ];
 
@@ -116,7 +118,7 @@ const WalletPage = () => {
   const { entries: walletActivityEntries } = useWalletActivityFeed();
   const transactions = walletActivityEntries.slice(0, TRANSACTIONS_PREVIEW_COUNT);
   const { tokens: customTokens, addToken } = useCustomTokens();
-  const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
+  const { tokens, totalUsd: deviceBalance, isLoading: isDeviceBalanceLoading, refetch: refetchDeviceBalance } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
   const customTokenAddresses = new Set(customTokens.map((t) => t.address.toLowerCase()));
   // The grid always shows all four built-ins, zero balance or not. A custom
   // token only earns a spot by bumping out whichever built-in currently has
@@ -272,7 +274,12 @@ const WalletPage = () => {
     <ThemedView className='flex-1 h-full w-full bg-black'>
       <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 100 }}>
         <View className='flex-1  mb-2'>
-          <WalletHeroCard address={kokio.deviceWalletAddress} balance={deviceBalance} isBalanceLoading={isDeviceBalanceLoading} />
+          <WalletHeroCard
+            address={kokio.deviceWalletAddress}
+            balance={deviceBalance}
+            isBalanceLoading={isDeviceBalanceLoading}
+            onRefreshBalance={() => refetchDeviceBalance()}
+          />
         </View>
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
           <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/sendToContact' as any)} className='flex-1'>
@@ -303,15 +310,24 @@ const WalletPage = () => {
 
         <Pressable
           className='flex-1 mx-2 mt-5'
-          onPress={() => router.navigate('/(tabs)/(shop)' as any)}
+          onPress={() => {
+            setPreferredCheckoutPaymentMethod(RADIO_KEYS.E_SIM_WALLET);
+            router.navigate('/(tabs)/(shop)' as any);
+          }}
         >
           <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 flex-row items-center py-4 px-4 rounded-3xl'>
             <View className='w-[38] h-[38] rounded-2xl items-center justify-center' style={{ backgroundColor: accentOnCardColor }}>
               <Ionicons name='flash' size={19} color='#fff' />
             </View>
             <View className='ml-3 flex-1'>
-              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>Buy eSIMs with USDC</ThemedText>
-              <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 2 }}>No card, no personal details</ThemedText>
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>Buy eSIMs with stable</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginRight: 14 }}>
+                <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>No fees</ThemedText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name='flash' size={11} color={colors.cardForeground} />
+                  <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>Fastest</ThemedText>
+                </View>
+              </View>
             </View>
             <Ionicons name='chevron-forward' size={19} color={colors.cardForeground} />
           </ThemedView>
@@ -409,7 +425,7 @@ const WalletPage = () => {
                 </ThemedText>
               </View>
               <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5, marginTop: 4, marginBottom: 12 }}>
-                Each eSIM has its own wallet, owned by this device wallet.
+                Each eSIM has its own wallet, owned by this Kokio wallet.
               </ThemedText>
               <View style={{ gap: 10 }}>
                 {deployedEsims.map((doc) => {

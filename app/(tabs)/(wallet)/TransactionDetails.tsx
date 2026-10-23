@@ -10,6 +10,7 @@ import { CopyRow } from "@/components/orders/PurchaseDetailsSheet";
 import { PillButton } from "@/components/ui/PillButton";
 import { getExplorerTxBase } from "@/utils/explorerLinks";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { logger } from "@/utils/logger";
 
@@ -155,12 +156,14 @@ function parseTransaction(raw: string | undefined): TransactionParams | null {
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const { isDark } = useTheme();
   const rows = Children.toArray(children);
   if (rows.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, !isDark && { color: colors.text }]}>{title}</Text>
       <View style={styles.card}>
         {rows.map((row, index) => (
           <Fragment key={index}>
@@ -185,6 +188,7 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => {
 
 const TransactionDetails = () => {
   const colors = useColors();
+  const { isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
   const { transaction } = useLocalSearchParams<{ transaction?: string | string[] }>();
 
@@ -194,8 +198,8 @@ const TransactionDetails = () => {
   if (!tx) {
     return (
       <View style={styles.empty}>
-        <Ionicons name="receipt-outline" size={40} color={colors.mutedForeground} />
-        <Text style={styles.emptyText}>Transaction details unavailable</Text>
+        <Ionicons name="receipt-outline" size={40} color={isDark ? colors.mutedForeground : colors.text} />
+        <Text style={[styles.emptyText, !isDark && { color: colors.text }]}>Transaction details unavailable</Text>
       </View>
     );
   }
@@ -241,8 +245,8 @@ const TransactionDetails = () => {
             {tx.amount}
           </Text>
         ) : null}
-        {tx.ethAmount ? <Text style={styles.heroSub}>{tx.ethAmount}</Text> : null}
-        {directionLabel ? <Text style={styles.heroLabel}>{directionLabel}</Text> : null}
+        {tx.ethAmount ? <Text style={[styles.heroSub, !isDark && { color: colors.text }]}>{tx.ethAmount}</Text> : null}
+        {directionLabel ? <Text style={[styles.heroLabel, !isDark && { color: colors.text }]}>{directionLabel}</Text> : null}
         {tx.status ? (
           <View style={[styles.pill, { backgroundColor: pill.background }]}>
             <Text style={[styles.pillText, { color: pill.text }]}>{tx.status}</Text>

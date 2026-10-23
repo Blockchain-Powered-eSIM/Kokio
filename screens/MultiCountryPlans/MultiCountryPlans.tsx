@@ -10,6 +10,7 @@ import DataPackTabGroup from "@/components/DataPackTabGroup";
 import SearchInput from "@/components/SearchInput";
 import { Theme } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useMultiCountryPlans } from "@/hooks/useMultiCountryPlans";
 import { useShopFilters } from "@/contexts/ShopFiltersContext";
 import { applyShopFilters } from "@/utils/shopFilters";
@@ -19,6 +20,7 @@ const MAX_SUGGESTIONS = 8;
 
 export default function MultiCountryPlans() {
   const colors = useColors();
+  const { isDark } = useTheme();
   const [query, setQuery] = useState("");
   const [inputKey, setInputKey] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
@@ -108,7 +110,7 @@ export default function MultiCountryPlans() {
         </ScrollView>
       )}
 
-      <ThemedText style={[styles.summary, { color: colors.mutedForeground }]}>{summary}</ThemedText>
+      <ThemedText style={[styles.summary, { color: isDark ? colors.mutedForeground : colors.text }]}>{summary}</ThemedText>
 
       {selected.length > 0 && isError ? (
         <Pressable onPress={refetch} accessibilityRole="button" style={styles.retry}>

@@ -233,7 +233,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       await SecureStore.getItemAsync('deviceWalletAddress');
 
     if (!resolvedAddress) {
-      dispatch({ type: "ERROR", payload: "Device wallet address not found" });
+      dispatch({ type: "ERROR", payload: "Kokio wallet address not found" });
       return;
     }
 
