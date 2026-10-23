@@ -65,6 +65,7 @@ import {
 import type { PaymentCallback } from "@heliofi/checkout-react-native";
 import { logger } from "@/utils/logger";
 import { formatOnChainError, isUserCancelledPasskeyError } from "@/utils/formatOnChainError";
+import { consumePreferredCheckoutPaymentMethod } from "@/utils/checkoutIntent";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const RADIO_WIDTH = SCREEN_WIDTH - 24;
@@ -175,6 +176,11 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   topupOptionText:         { fontSize: 14, fontWeight: "600", flex: 1 },
   discountErrorContainer:  { marginTop: 8, padding: 12, backgroundColor: colors.destructiveBackground, borderRadius: 8 },
   discountErrorText:       { color: colors.destructive, fontSize: 14 },
+  externalWalletNoticeContainer: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    marginTop: 8, paddingHorizontal: 2,
+  },
+  externalWalletNoticeText: { fontSize: 12, flexShrink: 1 },
   breakdownContainer:      { marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: colors.inputBackground, gap: 6 },
   breakdownRow:            { flexDirection: "row", justifyContent: "space-between" },
   breakdownTotalRow:       { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
@@ -262,8 +268,16 @@ const Checkout = () => {
     return eSimDetails;
   }, [eSimDetails]);
 
+  const { kokio }                                         = useKokio();
   const [isESimEnabled, setIsESimEnabled]                 = useState<boolean>(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>();
+  // The "Buy eSIMs with stable" entry point on the Wallet tab sets this before
+  // navigating here; only honor it when the Kokio wallet is already deployed,
+  // matching handlePaymentMethodChange's own gating for this radio option.
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>(() => {
+    const preferred = consumePreferredCheckoutPaymentMethod();
+    if (preferred === RADIO_KEYS.E_SIM_WALLET && !kokio.userWallet) return undefined;
+    return preferred ?? undefined;
+  });
   const [isPaymentMethodExpanded, setIsPaymentMethodExpanded] = useState(false);
   const [deviceWalletAsset, setDeviceWalletAsset]       = useState<DeviceWalletPaymentAsset>(DEFAULT_DEVICE_WALLET_PAYMENT_ASSET);
   const [showSuccessModal, setShowSuccessModal]           = useState(false);
@@ -274,7 +288,6 @@ const Checkout = () => {
   const [helioChargeToken, setHelioChargeToken]           = useState<string | null>(null);
   const [helioCorrelationId, setHelioCorrelationId]       = useState<string | null>(null);
   const [pendingHelioOrder, setPendingHelioOrder]         = useState<CreateOrderResponse | null>(null);
-  const { kokio }                                         = useKokio();
   const [discountCode, setDiscountCode]                   = useState<string>("");
   const [isDiscountApplied, setIsDiscountApplied]         = useState<boolean>(false);
   const [isCouponLoading, setIsCouponLoading]             = useState<boolean>(false);
@@ -879,10 +892,23 @@ const Checkout = () => {
           )}
         </View>
 
+        {selectedPaymentMethod === RADIO_KEYS.EXTERNAL_WALLET_BROWSER && (
+          <View style={styles.externalWalletNoticeContainer}>
+            <Ionicons name="information-circle-outline" size={14} color={isDark ? colors.mutedForeground : colors.text} />
+            <ThemedText
+              lightColor={colors.text}
+              darkColor={colors.mutedForeground}
+              style={styles.externalWalletNoticeText}
+            >
+              Select a network, pay by any wallet and keep a little extra for network fees, payable in the same token
+            </ThemedText>
+          </View>
+        )}
+
         {isDeviceWalletShort && (
           <View style={styles.discountErrorContainer}>
             <ThemedText style={styles.discountErrorText}>
-              {`Not enough ${deviceWalletAsset} in your Device Wallet to cover this order.`}
+              {`Not enough ${deviceWalletAsset} in Kokio Wallet to cover this order.`}
             </ThemedText>
           </View>
         )}
@@ -1031,8 +1057,8 @@ const Checkout = () => {
 
         {isCheckingTopup && (
           <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center" }}>
-            <ActivityIndicator size="small" color={colors.foreground} />
-            <ThemedText style={{ marginLeft: 8, color: colors.mutedForeground }}>
+            <ActivityIndicator size="small" color={isDark ? colors.foreground : colors.text} />
+            <ThemedText style={{ marginLeft: 8, color: isDark ? colors.mutedForeground : colors.text }}>
               Checking top-up compatibility…
             </ThemedText>
           </View>
@@ -1071,7 +1097,7 @@ const Checkout = () => {
         )}
         {!isCheckingTopup && isTopupCompatible && (
           <View style={{ marginTop: 16 }}>
-            <Text style={{ color: colors.foreground, fontSize: 13 }} numberOfLines={1}>
+            <Text style={{ color: isDark ? colors.foreground : colors.text, fontSize: 13 }} numberOfLines={1}>
               <ThemedText style={{ fontSize: 13 }} bold>Top Up: </ThemedText>
               Apply this plan as top up, else disable to buy a new one
             </Text>
@@ -1126,11 +1152,28 @@ const Checkout = () => {
           heldCents={heldCreditCentsValue}
           loading={isCreditLoading}
         />
-        <View style={{ flexDirection: "row", marginBottom: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
           <Checkbox onChange={setIsESimEnabled} checked={isESimEnabled} />
-          <Text style={{ color: colors.foreground, marginLeft: 8 }}>
+          <Text style={{ color: isDark ? colors.foreground : colors.text, marginLeft: 8, flex: 1 }}>
             I confirm my device is eSIM compatible and network-enabled.
           </Text>
+          <TouchableOpacity
+            onPress={async () => {
+              try {
+                await WebBrowser.openBrowserAsync(
+                  "https://kokio.app/blogs/esim-guide-for-travellers-2026#does-your-phone-support-esim",
+                );
+              } catch (error) {
+                logger.error('BROWSER_OPEN_FAILED', { error });
+              }
+            }}
+            hitSlop={8}
+            style={{ marginLeft: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Learn more about eSIM compatibility"
+          >
+            <Ionicons name="bulb-outline" size={19} color={colors.primary} />
+          </TouchableOpacity>
         </View>
         <TouchableOpacity
           key={`total-checkout-${canCheckout}`}

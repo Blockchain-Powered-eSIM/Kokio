@@ -11,7 +11,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import SearchBar from "@/components/SearchInput";
@@ -123,9 +125,11 @@ const createStyles = (colors: Palette) =>
 const CoverageRow = ({
   entry,
   styles,
+  bareTextColor,
 }: {
   entry:  CountryNetworkEntry;
   styles: ReturnType<typeof createStyles>;
+  bareTextColor: string;
 }) => {
   const networks = entry.networks ?? [];
   return (
@@ -142,7 +146,7 @@ const CoverageRow = ({
       </View>
       <View style={styles.rightCol}>
         {networks.length === 0 ? (
-          <Text style={styles.networkName}>—</Text>
+          <Text style={[styles.networkName, { color: bareTextColor }]}>—</Text>
         ) : (
           networks.map((net, i) => (
             <View key={i} style={styles.networkTag}>
@@ -162,8 +166,11 @@ const CoverageRow = ({
 
 export default function CoverageModal() {
   const styles     = useThemedStyles(createStyles);
+  const colors     = useColors();
+  const { isDark } = useTheme();
   const bg         = useThemeColor({}, "background");
   const router     = useRouter();
+  const mutedOnBg  = isDark ? colors.mutedForeground : colors.text;
 
   const { data: rawData } = useLocalSearchParams<{ data: string }>();
   const [query, setQuery] = useState("");
@@ -209,7 +216,7 @@ export default function CoverageModal() {
           <Ionicons
             name="close-circle"
             size={26}
-            color={styles.networkName.color}
+            color={mutedOnBg}
           />
         </TouchableOpacity>
       </View>
@@ -228,13 +235,13 @@ export default function CoverageModal() {
         data={filtered}
         keyExtractor={(_, i) => i.toString()}
         renderItem={({ item }) => (
-          <CoverageRow entry={item} styles={styles} />
+          <CoverageRow entry={item} styles={styles} bareTextColor={mutedOnBg} />
         )}
         style={styles.list}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { color: mutedOnBg }]}>
             {query ? `No results for "${query}"` : "No coverage data available"}
           </Text>
         }

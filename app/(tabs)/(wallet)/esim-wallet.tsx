@@ -43,7 +43,7 @@ export default function EsimWalletScreen() {
     : "-";
 
   const meta: [string, string][] = [
-    ["Owned by", "Device wallet"],
+    ["Owned by", "Kokio wallet"],
     ["Network", "Base"],
     ["Deployed", deployedDate],
     ["Attached eSIM", `${esimLabel} · ${display.serviceRegionName ?? ""}`],
@@ -78,7 +78,7 @@ export default function EsimWalletScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12 }}>
               <Ionicons name="link-outline" size={12} color={colors.foreground} />
               <ThemedText lightColor={colors.foreground} darkColor={colors.foreground} style={{ fontSize: 11.5 }}>
-                Linked to your device wallet, which you own
+                Linked to this Kokio wallet
               </ThemedText>
             </View>
           }

@@ -152,7 +152,7 @@ export default function ReferAndEarnModal() {
       ) : referral.isError || !referral.data ? (
         <View style={styles.centerFill}>
           <Ionicons name="alert-circle-outline" size={32} color={colors.destructive} />
-          <ThemedText style={styles.creditSubtitle}>Could not load your referral details.</ThemedText>
+          <ThemedText style={[styles.creditSubtitle, !isDark && { color: colors.text }]}>Could not load your referral details.</ThemedText>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => referral.refetch()}

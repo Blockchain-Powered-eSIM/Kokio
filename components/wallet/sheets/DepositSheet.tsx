@@ -80,7 +80,7 @@ export const DepositSheet = forwardRef<BottomSheet, DepositSheetProps>(({ addres
               </View>
               <View style={{ flex: 1 }}>
                 <ThemedText lightColor="#000000" bold>From another wallet</ThemedText>
-                <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} style={{ fontSize: 12.5, marginTop: 1 }}>Send to your address</ThemedText>
+                <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} style={{ fontSize: 12.5, marginTop: 1 }}>Send to this address</ThemedText>
               </View>
             </Pressable>
             <View
