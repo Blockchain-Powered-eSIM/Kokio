@@ -22,14 +22,14 @@ const REASON_LABELS: Record<string, string> = {
   ON_CHAIN_RECORDING_FAILED: 'On-chain recording failed after multiple retries.',
   VENDOR_FULFILMENT_FAILED:  'The eSIM vendor rejected the order.',
   ESIM_DELIVERY_FAILED:      'eSIM delivery or wallet deployment failed.',
-  WALLET_REGISTRATION_FAILED:'Device wallet registration failed.',
+  WALLET_REGISTRATION_FAILED:'Kokio wallet registration failed.',
   STRIPE_AMOUNT_MISMATCH:    'The card payment settled for less than the order amount.',
   MOONPAY_STRIPE_DISCREPANCY:'MoonPay confirmed your payment, but the matching invoice was not marked as paid.',
-  DEPLOYMENT_STALLED:        'Your device wallet deployment stalled.',
+  DEPLOYMENT_STALLED:        'Your Kokio wallet deployment stalled.',
   LAZY_HISTORY_DISAGREEMENT: 'Your purchase history was still updating when the order completed.',
   WEBHOOK_INTENT_MISMATCH:   'A confirmed on-chain payment did not match this order.',
-  PAID_ON_CHAIN_VENDOR_FAILED:'Your device wallet payment settled, but the eSIM vendor rejected the order.',
-  INVOICE_MARKING_FAILED:    'Your eSIM was delivered, but marking the device wallet invoice as paid failed.',
+  PAID_ON_CHAIN_VENDOR_FAILED:'Your Kokio wallet payment settled, but the eSIM vendor rejected the order.',
+  INVOICE_MARKING_FAILED:    'Your eSIM was delivered, but marking the Kokio wallet invoice as paid failed.',
   PROMOTION_CAPTURE_FAILED:  'Your payment was verified, but applying your code or credit failed. Your order is still being fulfilled.',
 };
 

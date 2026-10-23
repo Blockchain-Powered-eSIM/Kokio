@@ -2,6 +2,7 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, View, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface FullScreenLoaderProps {
   color?: string;
@@ -62,6 +63,7 @@ const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
   onContinue,
 }) => {
   const colors = useColors();
+  const { isDark } = useTheme();
   return (
     <View
       style={[
@@ -75,7 +77,7 @@ const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
           <ThemedText bold style={styles.errorTitle}>
             Couldn&apos;t start the app
           </ThemedText>
-          <ThemedText style={[styles.errorDescription, { color: colors.foreground }]}>
+          <ThemedText style={[styles.errorDescription, { color: isDark ? colors.foreground : colors.text }]}>
             Check your connection and try again.
           </ThemedText>
           {onRetry && (

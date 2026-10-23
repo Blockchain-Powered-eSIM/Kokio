@@ -11,6 +11,7 @@ import {
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
 import type { Palette } from "@/constants/Colors";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
@@ -43,13 +44,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     fontFamily: "Lexend-Light",
     textAlign: "center",
     lineHeight: 20,
-  },
-  operation: {
-    fontSize: 13,
-    color: colors.highlight,
-    fontFamily: "Lexend",
-    textAlign: "center",
-    marginTop: 4,
     marginBottom: 20,
   },
   error: {
@@ -111,23 +105,24 @@ const OPERATION_LABELS: Record<string, string> = {
   'POST /wallet':            'Set Up Wallet',
   'GET /wallet':             'Access Wallet',
   'POST /esim':              'Activate eSIM',
-  'POST /auth/stepup':       'Confirm Identity',
+  'POST /auth/stepup':       'Authentication Required',
 };
 
 function friendlyOperation(raw: string | undefined): string {
-  if (!raw) return 'this action';
+  if (!raw) return 'Authentication Required';
   if (OPERATION_LABELS[raw]) return OPERATION_LABELS[raw];
   const path = raw.split(' ')[1] ?? '';
   if (path.includes('/order'))  return 'Place Order';
   if (path.includes('/topup'))  return 'Top Up Wallet';
   if (path.includes('/wallet')) return 'Wallet Access';
   if (path.includes('/esim'))   return 'Activate eSIM';
-  return 'this action';
+  return 'Authentication Required';
 }
 
 export function StepUpPromptModal() {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const { isDark } = useTheme();
   const { stepUpVisible, stepUpHint, stepUpError, stepUp, dismissStepUp } =
     useAuthRelay();
   const [loading, setLoading] = useState(false);
@@ -161,13 +156,10 @@ export function StepUpPromptModal() {
     >
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Text style={styles.title}>Confirm Identity</Text>
+          <Text style={styles.title} numberOfLines={1}>{operationLabel}</Text>
 
-          <Text style={styles.body}>
-            Confirm with {biometricLabel} to continue with:
-          </Text>
-          <Text style={styles.operation} numberOfLines={1}>
-            {operationLabel}
+          <Text style={[styles.body, !isDark && { color: colors.text }]}>
+            Confirm with {biometricLabel} to continue
           </Text>
 
           {!!stepUpError && !loading && (
@@ -177,7 +169,7 @@ export function StepUpPromptModal() {
           {loading ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator color={colors.highlight} />
-              <Text style={styles.loadingText}>Confirming…</Text>
+              <Text style={[styles.loadingText, !isDark && { color: colors.text }]}>Confirming…</Text>
             </View>
           ) : (
             <View style={styles.buttonRow}>
@@ -187,7 +179,7 @@ export function StepUpPromptModal() {
                 accessibilityLabel="Cancel identity confirmation"
                 accessibilityRole="button"
               >
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={[styles.cancelText, !isDark && { color: colors.text }]}>Cancel</Text>
               </Pressable>
 
               <Pressable

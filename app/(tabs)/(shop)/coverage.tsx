@@ -7,7 +7,9 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/constants/Colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import SearchBar from "@/components/SearchInput";
@@ -94,6 +96,9 @@ const CoverageRow = ({
   entry: CountryNetworkEntry;
 }) => {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const { isDark } = useTheme();
+  const bareTextColor = isDark ? colors.mutedForeground : colors.text;
   const networks = entry.networks ?? [];
   return (
     <View style={styles.row}>
@@ -112,7 +117,7 @@ const CoverageRow = ({
       {/* Right: network tags */}
       <View style={styles.rightCol}>
         {networks.length === 0 ? (
-          <Text style={styles.networkName}>—</Text>
+          <Text style={[styles.networkName, { color: bareTextColor }]}>—</Text>
         ) : (
           networks.map((net, i) => (
             <View key={i} style={styles.networkTag}>
@@ -130,6 +135,8 @@ const CoverageRow = ({
 
 export default function CoverageScreen() {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const { isDark } = useTheme();
   const bg = useThemeColor({}, "background");
   const { data: rawData } = useLocalSearchParams<{ data: string }>();
   const [query, setQuery] = useState("");
@@ -178,7 +185,7 @@ export default function CoverageScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No results for &quot;{query}&quot;</Text>
+          <Text style={[styles.emptyText, { color: isDark ? colors.mutedForeground : colors.text }]}>No results for &quot;{query}&quot;</Text>
         }
         contentContainerStyle={{ paddingBottom: 32 }}
       />

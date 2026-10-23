@@ -60,6 +60,12 @@ const createStyles = (colors: Palette) =>
     itemWrapper: {
       width: ITEM_WIDTH,
     },
+    // Matches the Hero/Wallet home cards' own marginHorizontal convention
+    // (Theme.spacing.sm = 8), so a single eSIM spans the same full width
+    // instead of the narrower 90%-of-screen card used for the scroll.
+    singleItemWrapper: {
+      marginHorizontal: SPACING,
+    },
     emptyCard: {
       marginHorizontal: SPACING,
       marginTop: 8,
@@ -289,6 +295,24 @@ const ActiveESIMsScroll = () => {
           <Text style={[styles.emptySubtitle, { color: colors.cardForeground }]}>
             Purchased eSIMs will appear here
           </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (activeEsims.length === 1) {
+    const doc = activeEsims[0];
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>eSIMs</Text>
+        <View style={styles.singleItemWrapper}>
+          <HomeEsimCard
+            doc={doc}
+            onPress={handleESIMPress(doc)}
+            usage={usageByEsimRef[doc.eSimRef]}
+            usageLoading={usageLoading}
+            usageIsError={usageIsError}
+          />
         </View>
       </View>
     );
