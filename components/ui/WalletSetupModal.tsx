@@ -190,11 +190,11 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     () => (
       <>
         <ThemedText bold style={[styles.title, { color: textColor }]}>
-          Device Wallet
+          Kokio Wallet
         </ThemedText>
 
         <Text style={[styles.description, { color: foregroundColor }]}>
-          Press &quot;Continue&quot; to setup your device wallet.
+          Press &quot;Continue&quot; to set up your Kokio wallet.
         </Text>
 
         <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>

@@ -24,7 +24,7 @@ import { HeaderBackControl } from "@/components/navigation/stackHeader";
 import DetailItem from "../ui/DetailItem";
 
 const PILL_ROW_HEIGHT = (Platform.OS === "ios" ? 16 : 40) - 44;
-const HEADER_MIN_HEIGHT = 150 + PILL_ROW_HEIGHT;
+const HEADER_MIN_HEIGHT = 170 + PILL_ROW_HEIGHT;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_ALLOWED_HEIGHT = SCREEN_HEIGHT * 0.6;
 
@@ -33,7 +33,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 16,
     overflow: "hidden",
   },
   countryFlagContainer: {
@@ -60,7 +60,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginTop: 20,
   },
   detailItemsContainer: {
     flexDirection: "row",
@@ -368,7 +368,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
           animatedHeaderStyle,
         ]}
       >
-        <View style={{ marginBottom: 4 }}>
+        <View style={{ marginBottom: 8 }}>
           {countryAndFlagWithGoBack}
           <View style={styles.detailsRow}>
             {detailItems}

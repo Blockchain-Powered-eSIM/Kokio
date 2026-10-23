@@ -44,6 +44,26 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
   },
+  walletIconsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  walletIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    objectFit: "contain",
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+  },
+  walletIconOverlap: {
+    marginLeft: -8,
+  },
+  walletIconsMore: {
+    marginLeft: 5,
+    fontSize: 15,
+    fontWeight: "700",
+  },
 });
 
 const ESimWallet = ({
@@ -62,7 +82,7 @@ const ESimWallet = ({
 
   return (
     <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>Device Wallet</ThemedText>
+      <ThemedText style={styles.textContent}>Kokio Wallet</ThemedText>
       <TouchableOpacity
         onPress={onOpenTokenPicker}
         style={styles.selectedToken}
@@ -88,7 +108,7 @@ const CreditCard = () => {
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>Credit/Debit Cards</ThemedText>
+      <ThemedText style={styles.textContent}>Credit/Debit Card</ThemedText>
       <Image
         source={require("@/assets/images/credit-cards.png")}
         style={styles.creditCards}
@@ -123,15 +143,32 @@ const ExternalWallet = () => {
   );
 };
 
+const OTHER_WALLET_ICONS = [
+  require("@/assets/images/wallets/bitcoin.png"),
+  require("@/assets/images/wallets/ethereum.png"),
+  require("@/assets/images/wallets/solana.png"),
+];
+
 const ExternalWalletBrowser = () => {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   return (
     <View style={styles.labelContainer}>
-      <ThemedText style={styles.textContent}>External Wallet (via Moonpay)</ThemedText>
-      <Image
-        source={require("@/assets/images/usdc.png")}
-        style={[styles.logoImage, { marginLeft: 8 }]}
-      />
+      <ThemedText style={styles.textContent}>Other crypto wallet</ThemedText>
+      <View style={styles.walletIconsRow}>
+        {OTHER_WALLET_ICONS.map((src, index) => (
+          <Image
+            key={index}
+            source={src}
+            style={[
+              styles.walletIcon,
+              { borderColor: colors.card },
+              index > 0 && styles.walletIconOverlap,
+            ]}
+          />
+        ))}
+        <ThemedText style={[styles.walletIconsMore, { color: colors.mutedForeground }]}>...</ThemedText>
+      </View>
     </View>
   );
 };

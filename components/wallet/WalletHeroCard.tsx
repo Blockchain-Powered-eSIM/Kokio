@@ -27,10 +27,11 @@ interface WalletHeroCardProps {
   address: string;
   balance?: string;
   isBalanceLoading?: boolean;
+  onRefreshBalance?: () => void;
   /** Shrinks padding/typography for use as a sub-wallet card (e.g. an eSIM wallet), instead of the full-size device wallet hero. */
   compact?: boolean;
   balanceLabel?: string;
-  /** Replaces the default TESTNET badge + logo row, e.g. with an eSIM's flag/name identity. */
+  /** Replaces the default BASE badge + logo row, e.g. with an eSIM's flag/name identity. */
   headerContent?: React.ReactNode;
   /** Rendered below the address row, e.g. a "linked to your device wallet" caption. */
   footerContent?: React.ReactNode;
@@ -73,7 +74,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
   headerWithLogo: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     alignItems: "center",
     marginTop: 4,
     marginBottom: 16,
@@ -120,28 +121,29 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
 });
 
-// export function TestnetBadge() {
-//   const colors = useColors();
-//   return (
-//     <View
-//       style={{
-//         paddingHorizontal: 10,
-//         paddingVertical: 4,
-//         borderRadius: 999,
-//         backgroundColor: colors.itemBackground,
-//       }}
-//     >
-//       <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.foreground }}>
-//         TESTNET
-//       </ThemedText>
-//     </View>
-//   );
-// }
+export function NetworkBadge() {
+  const colors = useColors();
+  return (
+    <View
+      style={{
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: colors.itemBackground,
+      }}
+    >
+      <ThemedText style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: colors.foreground }}>
+        BASE
+      </ThemedText>
+    </View>
+  );
+}
 
 export function WalletHeroCard({
   address,
   balance,
   isBalanceLoading,
+  onRefreshBalance,
   compact,
   balanceLabel,
   headerContent,
@@ -179,6 +181,7 @@ export function WalletHeroCard({
           />
           {headerContent ?? (
             <ThemedView style={styles.headerWithLogo}>
+              <NetworkBadge />
               <Image
                 source={require("@/assets/images/logo.png")}
                 style={styles.logo}
@@ -216,6 +219,18 @@ export function WalletHeroCard({
                 >
                   USD
                 </ThemedText>
+                {onRefreshBalance && (
+                  <TouchableOpacity
+                    onPress={onRefreshBalance}
+                    disabled={isBalanceLoading}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{ marginBottom: compact ? 6 : 8, marginLeft: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Refresh wallet balance"
+                  >
+                    <Ionicons name="refresh-outline" size={16} color={colors.text} />
+                  </TouchableOpacity>
+                )}
               </View>
             </ThemedView>
           )}

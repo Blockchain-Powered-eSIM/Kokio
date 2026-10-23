@@ -243,7 +243,7 @@ const EsimInstallation = () => {
         <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
           Installation details unavailable
         </ThemedText>
-        <Text style={[styles.sectionDescription, { color: colors.inactive, textAlign: "center", marginBottom: 0 }]}>
+        <Text style={[styles.sectionDescription, { color: isDark ? colors.inactive : colors.text, textAlign: "center", marginBottom: 0 }]}>
           We couldn&apos;t find the installation QR code for this eSIM. Please go back and try again from Orders.
         </Text>
         <TouchableOpacity

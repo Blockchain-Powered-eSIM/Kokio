@@ -16,6 +16,7 @@ import type { Palette } from "@/constants/Colors";
 import { useColors } from "@/hooks/useColors";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useTheme } from "@/contexts/ThemeContext";
 import { esimDisplayName } from "@/helpers/esimDisplay";
 import { openInstallation } from "@/helpers/esimInstall";
 import { colorForStatus, labelForStatus, labelForPricing, formatCents } from "@/utils/orderStatus";
@@ -163,12 +164,14 @@ function openUrl(url: string) {
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const { isDark } = useTheme();
   const rows = Children.toArray(children);
   if (rows.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, !isDark && { color: colors.text }]}>{title}</Text>
       <View style={styles.card}>
         {rows.map((row, index) => (
           <Fragment key={index}>
@@ -309,6 +312,7 @@ export default function PurchaseDetailsSheet({
 }: PurchaseDetailsSheetProps) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
   const subtitle = order.esim ? esimDisplayName(order.esim) : (order.planId ?? null);
@@ -326,7 +330,7 @@ export default function PurchaseDetailsSheet({
             <View style={styles.headerText}>
               <Text style={styles.title}>Purchase details</Text>
               {subtitle ? (
-                <Text style={styles.subtitle} numberOfLines={1}>
+                <Text style={[styles.subtitle, !isDark && { color: colors.text }]} numberOfLines={1}>
                   {subtitle}
                 </Text>
               ) : null}

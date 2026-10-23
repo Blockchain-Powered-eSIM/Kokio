@@ -1,10 +1,11 @@
 /**
  * DeleteAccountModal — type-to-confirm gate for DELETE /account.
  *
- * The three consequences:
+ * The consequences:
  *   1. Irreversible. No recovery path exists for anyone, including the operator.
  *   2. Paid eSIMs KEEP WORKING until expiry.
- *   3. On-chain records are immutable and cannot be deleted by anyone.
+ *   3. Kokio wallet funds and store credit are forfeited, not recoverable.
+ *   4. On-chain records are immutable and cannot be deleted by anyone.
  */
 import React, { useState, useCallback } from 'react';
 import {
@@ -176,6 +177,10 @@ export const DeleteAccountModal: React.FC<Props> = ({ visible, onCancel, onConfi
             <ThemedText style={styles.bullet}>
               • Your eSIMs keep working. Any plan you have already paid for stays active on
               your device until it expires. Deleting your account does not cancel or refund it.
+            </ThemedText>
+            <ThemedText style={styles.bullet}>
+              • You lose any funds in your Kokio wallet and any store credit on your account.
+              Move or spend them first. They cannot be recovered after deletion.
             </ThemedText>
             <ThemedText style={styles.bullet}>
               • You lose access to your order history, eSIM details, and wallet in this app.

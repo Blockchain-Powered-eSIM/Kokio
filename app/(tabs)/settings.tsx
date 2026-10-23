@@ -6,12 +6,11 @@ import {
   View,
   ScrollView,
   Text,
-  Switch,
   Linking,
 } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
 import { useRouter, useNavigation } from "expo-router";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme, type ThemeMode } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
@@ -31,6 +30,12 @@ import * as SecureStore from 'expo-secure-store';
 import { VERSION_KEY } from '@/utils/auth/mainnetCutoverReset';
 import { clearWelcomeBackSeen } from '@/utils/auth/returningUserProbe';
 import { useToast } from '@/contexts/ToastContext';
+
+const THEME_MODE_OPTIONS: { value: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: "system", label: "System", icon: "contrast-outline" },
+  { value: "light", label: "Day", icon: "sunny-outline" },
+  { value: "dark", label: "Night", icon: "moon-outline" },
+];
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
@@ -118,9 +123,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.itemBackground,
   },
-  themeRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  themeSection: {
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginTop: 8,
@@ -128,10 +131,25 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     marginHorizontal: 4,
   },
   themeLabel: {
-    flex: 1,
     fontSize: 16,
     fontWeight: "500",
     color: colors.text,
+    marginBottom: 12,
+  },
+  themeModeRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  themeModeOption: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  themeModeOptionLabel: {
+    fontSize: 12.5,
+    fontWeight: "500",
   },
 });
 
@@ -275,7 +293,7 @@ export default function MenuScreen() {
   const { logout, deleteAccount } = useAuthRelay();
   const { clearKokioUser } = useKokio();
   const { showMessage } = useToast();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, themeMode, setThemeMode } = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
 
@@ -412,23 +430,41 @@ export default function MenuScreen() {
                 setShowDeleteAccount(false);
               }}
             />
-            { <View style={styles.themeRow}>
-              <Ionicons
-                name={isDark ? "moon-outline" : "sunny-outline"}
-                size={24}
-                color={colors.text}
-                style={styles.iconLeft}
-              />
-              <ThemedText style={styles.themeLabel}>
-                {isDark ? "Dark Mode" : "Light Mode"}
-              </ThemedText>
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                trackColor={{ false: colors.muted, true: colors.primary }}
-                thumbColor={colors.text}
-              />
-            </View> }
+            <View style={styles.themeSection}>
+              <ThemedText style={styles.themeLabel}>Display</ThemedText>
+              <View style={styles.themeModeRow}>
+                {THEME_MODE_OPTIONS.map((option) => {
+                  const selected = themeMode === option.value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.themeModeOption,
+                        { backgroundColor: selected ? colors.itemBackground : "transparent" },
+                      ]}
+                      onPress={() => setThemeMode(option.value)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use ${option.label} theme`}
+                      accessibilityState={{ selected }}
+                    >
+                      <Ionicons
+                        name={option.icon}
+                        size={22}
+                        color={selected ? colors.primary : (isDark ? colors.mutedForeground : colors.text)}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.themeModeOptionLabel,
+                          { color: selected ? colors.primary : (isDark ? colors.mutedForeground : colors.text) },
+                        ]}
+                      >
+                        {option.label}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </>
         )}
       </ThemedView>
