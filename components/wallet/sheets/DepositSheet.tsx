@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
-import { ReceiveAddressCard } from "@/components/wallet/ReceiveAddressCard";
+import { ReceivePanel } from "@/components/wallet/ReceivePanel";
 
 interface DepositSheetProps {
   address: string;
@@ -52,16 +52,13 @@ export const DepositSheet = forwardRef<BottomSheet, DepositSheetProps>(({ addres
               </Pressable>
               <ThemedText lightColor="#000000" bold variant="xl">From another wallet</ThemedText>
             </View>
-            <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} style={{ marginBottom: 18 }}>
-              Only send Base assets to this address.
-            </ThemedText>
-            <ReceiveAddressCard address={address} />
+            <ReceivePanel address={address} />
           </>
         ) : (
           <>
             <ThemedText lightColor="#000000" bold variant="xl" style={{ marginBottom: 4 }}>Add funds</ThemedText>
             <ThemedText lightColor="#000000" darkColor={colors.mutedForeground} style={{ marginBottom: 16 }}>
-              Money arrives as USDC on Base.
+              Add any tokens from Base chain.
             </ThemedText>
             <Pressable
               onPress={handleSelectFromWallet}

@@ -6,6 +6,7 @@ import { Theme } from "@/constants/Colors";
 import { useCatalogueByCountry } from "@/hooks/useCatalogue";
 import { formatBffError } from "@/utils/bff/errors";
 import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import DataPackTabGroup from "@/components/DataPackTabGroup";
 import { useShopFilters } from "@/contexts/ShopFiltersContext";
 import { applyShopFilters } from "@/utils/shopFilters";
@@ -104,7 +105,7 @@ function EsimsByCountryContent({ countryCode }: { countryCode: string }) {
   }
 
   return (
-    <View style={styles.content}>
+    <ThemedView style={styles.content}>
       <NetworkFilterChips
         options={networkOptions}
         selected={effectiveNetwork}
@@ -126,7 +127,7 @@ function EsimsByCountryContent({ countryCode }: { countryCode: string }) {
           )
         }
       />
-    </View>
+    </ThemedView>
   );
 }
 
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
   },
   chips: {
     flexGrow: 0,
-    marginTop: Theme.spacing.sm,
+    marginTop: Theme.spacing.lg,
   },
   container: {
     paddingHorizontal: Theme.spacing.sm,
