@@ -13,7 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { useToast } from "@/contexts/ToastContext";
-import { setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
+import { leaveOfflineScreen, setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {
@@ -84,7 +84,7 @@ const OfflineScreen: React.FC = () => {
   const { showMessage } = useToast();
 
   const handleRetry = useCallback(async () => {
-    const state = await NetInfo.fetch();
+    const state = await NetInfo.refresh();
 
     // Handle null state (network status still being determined)
     if (_isNull(state.isInternetReachable)) {
@@ -94,7 +94,7 @@ const OfflineScreen: React.FC = () => {
     const isOnline = !!state.isConnected && !!state.isInternetReachable;
 
     if (isOnline) {
-      router.replace("/");
+      leaveOfflineScreen(router);
     } else {
       showMessage("Still offline. Please check your internet connection.", "error");
     }
@@ -102,7 +102,7 @@ const OfflineScreen: React.FC = () => {
 
   const handleContinue = useCallback(() => {
     setSkipNextOfflineRedirect(true);
-    router.replace("/");
+    leaveOfflineScreen(router);
   }, [router]);
 
   return (

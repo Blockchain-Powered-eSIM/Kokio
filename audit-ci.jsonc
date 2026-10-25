@@ -19,6 +19,12 @@
     // exists (3.0.3, the latest, is affected). Reached through micromatch, chokidar and fast-glob in
     // Metro's file map and the Tailwind and Jest tooling. Build-time only, never in the shipped bundle.
     // Remove when braces publishes a fixed release.
-    "GHSA-vfj7-8cjw-p6xm"
+    "GHSA-vfj7-8cjw-p6xm",
+    // GHSA-mrhx-c7xc-m3w5 — zod: can exhaust memory validating oversized constrained collections.
+    // Reached only through expo -> @expo/cli -> zod, which is CLI/build tooling; zod is not a
+    // dependency of the app itself and is never in the shipped bundle. No fix short of a major
+    // Expo SDK jump (54.0.38, older than the installed line) is currently available.
+    // Remove once @expo/cli bumps past the vulnerable zod range.
+    "GHSA-mrhx-c7xc-m3w5"
   ]
 }
