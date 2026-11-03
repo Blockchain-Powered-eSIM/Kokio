@@ -21,6 +21,8 @@ import { useReferral } from "@/hooks/useReferral";
 import { heldCreditCents, useCreditBalance } from "@/hooks/useCreditHistory";
 import { formatCents } from "@/utils/orderStatus";
 
+import { OFFICIAL_URLS } from "@/constants/general.constants";
+
 // colors.success is a single bright green shared across themes; against a
 // light, pale-tinted card it reads as nearly invisible, so light mode gets a
 // darker shade of the same hue for contrast (same fix as the checkout promo card).
@@ -122,7 +124,14 @@ export default function ReferAndEarnModal() {
     if (!code) return;
     try {
       await Share.share({
-        message: `Get 15% off your first Kokio eSIM order with my code ${code}.`,
+        message: [
+          `Get 15% off your first Kokio eSIM order with my code ${code}.`,
+          "",
+          `iPhone: ${OFFICIAL_URLS.IOS}`,
+          `Android: ${OFFICIAL_URLS.ANDROID}`,
+          "",
+          `Official Website: ${OFFICIAL_URLS.WEBSITE}`
+        ].join("\n"),
       });
     } catch {
       return;
