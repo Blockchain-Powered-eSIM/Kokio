@@ -4,27 +4,12 @@
   "high": true,
   "critical": true,
   "allowlist": [
-    // GHSA-86w9-cpqp-85rv — node-forge: RSA PKCS#1 v1.5 signature verification accepts extra nested
-    // DigestAlgorithm elements. No fixed release exists (1.4.0, the latest, is affected).
-    // Reached via expo-updates -> @expo/code-signing-certificates, which only verifies signatures when
-    // code signing is configured; app.config.js does not configure it. Also build-time via @expo/cli.
-    // Remove when node-forge publishes a fixed release or expo-updates stops depending on it.
-    "GHSA-86w9-cpqp-85rv",
-    // GHSA-hp3w-g68c-fv3c — sprintf-js: denial of service via unbounded precision specifiers.
-    // No fixed release exists (1.1.3, the latest, is affected). Reached only through jest -> argparse
-    // -> js-yaml, so it is test-only and never in the shipped app bundle.
-    // Remove when sprintf-js publishes a fixed release or the Jest chain drops it.
-    "GHSA-hp3w-g68c-fv3c",
-    // GHSA-vfj7-8cjw-p6xm — braces: denial of service through pattern expansion. No fixed release
-    // exists (3.0.3, the latest, is affected). Reached through micromatch, chokidar and fast-glob in
-    // Metro's file map and the Tailwind and Jest tooling. Build-time only, never in the shipped bundle.
-    // Remove when braces publishes a fixed release.
-    "GHSA-vfj7-8cjw-p6xm",
-    // GHSA-mrhx-c7xc-m3w5 — zod: can exhaust memory validating oversized constrained collections.
-    // Reached only through expo -> @expo/cli -> zod, which is CLI/build tooling; zod is not a
-    // dependency of the app itself and is never in the shipped bundle. No fix short of a major
-    // Expo SDK jump (54.0.38, older than the installed line) is currently available.
-    // Remove once @expo/cli bumps past the vulnerable zod range.
-    "GHSA-mrhx-c7xc-m3w5"
+    // deepmerge, transitive dependency of jest (dev only)
+    "GHSA-3g3m-2fjr-6pw4",
+    // minimatch, transitive dependency of eslint and typescript-eslint (dev only)
+    "GHSA-g3hv-75wg-m249",
+    // glob, transitive dependency of expo-pinned packages
+    // (shold be updated when expo migrates to non-vulnerable versions)
+    "GHSA-gcqx-w48m-w2h4"
   ]
 }
