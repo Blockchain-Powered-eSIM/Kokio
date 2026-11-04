@@ -18,9 +18,9 @@ const Tokens = () => {
   const { tokens } = useWalletTokens(kokio.deviceWalletAddress, customTokens);
   const addTokenSheetRef = useRef<BottomSheet>(null);
   return (
-    <ThemedView lightColor="#FFFFFF" darkColor="#000000" className='flex-1'>
+    <ThemedView lightColor={colors.background} darkColor="#000000" className='flex-1'>
       <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 140 }}>
-        <ThemedView darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
+        <ThemedView lightColor={colors.itemBackground} darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5 w-auto'>
           <View className="px-4">
             <View className='flex-row justify-between'>
               <ThemedText darkColor={colors.foreground} className='ml-2'>Tokens</ThemedText>
