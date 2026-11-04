@@ -320,10 +320,10 @@ const WalletPage = () => {
               <Ionicons name='flash' size={19} color='#fff' />
             </View>
             <View className='ml-3 flex-1'>
-              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>Buy eSIMs with stable</ThemedText>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginRight: 14 }}>
+              <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} bold>Buy eSIMs with stablecoins</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                 <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>No fees</ThemedText>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 18 }}>
                   <Ionicons name='flash' size={11} color={colors.cardForeground} />
                   <ThemedText style={{ color: colors.cardForeground, fontSize: 12.5 }}>Fastest</ThemedText>
                 </View>

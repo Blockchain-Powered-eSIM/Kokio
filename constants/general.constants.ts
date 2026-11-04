@@ -151,3 +151,10 @@ export const BASE_MAINNET_EXPLORER_TX = "https://basescan.org/tx";
 // MAINNET_CUTOVER_VERSION in mainnetCutoverReset.ts instead if a second
 // cutover is ever needed after this one.
 export const MAINNET_CUTOVER_ENABLED = true;
+
+// Store listings shared in referral invites. 
+export const OFFICIAL_URLS = {
+  IOS: "https://apps.apple.com/app/kokio/id6799362847",
+  ANDROID: "https://play.google.com/store/apps/details?id=app.kokio.mobile",
+  WEBSITE: "https://kokio.app",
+} as const;
