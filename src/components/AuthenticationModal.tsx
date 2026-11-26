@@ -23,7 +23,7 @@ import { Easing } from "react-native-reanimated";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { logger } from '@/lib/logger';
 
 type AuthMode = "choice" | "authenticating" | "error";

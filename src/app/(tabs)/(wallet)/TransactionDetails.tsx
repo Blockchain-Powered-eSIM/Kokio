@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { ContactAvatar } from "@/components/wallet/ContactAvatar";
 import { CopyRow } from "@/components/orders/PurchaseDetailsSheet";
 import { PillButton } from "@/components/ui/PillButton";

@@ -4,7 +4,7 @@ import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } fr
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 
 interface ConfirmModalProps {
   visible: boolean;

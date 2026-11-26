@@ -1,5 +1,5 @@
 import type { CataloguePlan } from "@/lib/api/bff/catalogue";
-import { COUNTRY_TO_REGIONS } from "@/constants/general.constants";
+import { COUNTRY_TO_REGIONS } from "@/lib/constants/shop";
 
 export interface SourcedPlan {
   plan: CataloguePlan;

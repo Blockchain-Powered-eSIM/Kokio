@@ -11,7 +11,7 @@ import _isNull from "lodash/isNull";
 import NetInfo from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { useToast } from "@/contexts/ToastContext";
 import { leaveOfflineScreen, setSkipNextOfflineRedirect } from "@/utils/offlineRedirectFlag";
 

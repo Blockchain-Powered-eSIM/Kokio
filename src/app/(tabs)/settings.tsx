@@ -14,7 +14,7 @@ import { useTheme, type ThemeMode } from "@/contexts/ThemeContext";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";

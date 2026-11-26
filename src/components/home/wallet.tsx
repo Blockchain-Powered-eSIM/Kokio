@@ -6,8 +6,8 @@ import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useTheme } from "@/contexts/ThemeContext";
-import { DARK_TOKENS, LIGHT_TOKENS } from "@/constants/Colors";
-import { PASSKEY_LABEL } from "@/constants/passkey.constants";
+import { DARK_TOKENS, LIGHT_TOKENS } from "@/theme/colors";
+import { PASSKEY_LABEL } from "@/lib/constants/app";
 import { ThemedView } from "../ThemedView";
 import { ThemedText } from "../ThemedText";
 

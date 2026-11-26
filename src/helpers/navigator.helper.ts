@@ -1,7 +1,7 @@
 import _includes from "lodash/includes";
 import type { NavigationState, PartialState } from "expo-router/react-navigation";
 
-import { TAB_BAR_ENABLED_ROUTES } from "@/constants/route.constants";
+import { TAB_BAR_ENABLED_ROUTES } from "@/lib/constants/routes";
 
 type AnyNavigationState = NavigationState | PartialState<NavigationState> | undefined;
 

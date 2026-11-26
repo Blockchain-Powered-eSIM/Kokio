@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { formatCents } from "@/utils/orderStatus";
 
 const createStyles = (colors: Palette) =>

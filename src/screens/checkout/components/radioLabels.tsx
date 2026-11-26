@@ -7,8 +7,8 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import { useKokio } from "@/hooks/useKokio";
 import { useWalletTokens, truncateDecimals } from "@/hooks/useWalletTokens";
-import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
-import type { Palette } from "@/constants/Colors";
+import type { DeviceWalletPaymentAsset } from "@/lib/constants/app";
+import type { Palette } from "@/theme/colors";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   labelContainer: {

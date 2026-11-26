@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { PillButton } from "@/components/ui/PillButton";
 
 type BackupPlansFooterProps = {

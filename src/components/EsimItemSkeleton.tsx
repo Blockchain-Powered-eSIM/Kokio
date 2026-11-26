@@ -7,9 +7,9 @@ import Animated, {
   withTiming,
   withSequence,
 } from "react-native-reanimated";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   esimItemContainer: {

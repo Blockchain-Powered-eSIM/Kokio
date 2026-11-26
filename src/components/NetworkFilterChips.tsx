@@ -1,8 +1,8 @@
 import { Pressable, ScrollView, StyleProp, StyleSheet, ViewStyle } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
-import type { Palette } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
+import type { Palette } from "@/theme/colors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 
 const SELECTED_LABEL_COLOR = "#000000";

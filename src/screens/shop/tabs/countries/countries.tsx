@@ -12,7 +12,7 @@ import _map from "lodash/map";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import CountryFlag from "@/components/ui/CountryFlag";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import { navigateToESIMsByCountry } from "@/utils/general";
 

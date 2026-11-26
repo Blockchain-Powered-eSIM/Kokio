@@ -4,7 +4,7 @@ import { View, ViewStyle, TextStyle } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 
 interface HeaderProps {
   title: string;

@@ -9,10 +9,10 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 
 import { Card, CardFooter } from "../ui/Card";
 

@@ -20,7 +20,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import _get from "lodash/get";
 import _split from "lodash/split";
 import { ThemedText } from "@/components/ThemedText";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { logger } from "@/lib/logger";

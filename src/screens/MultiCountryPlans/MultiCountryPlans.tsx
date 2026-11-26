@@ -8,7 +8,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import DataPackTabGroup from "@/components/DataPackTabGroup";
 import SearchInput from "@/components/SearchInput";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMultiCountryPlans } from "@/hooks/useMultiCountryPlans";

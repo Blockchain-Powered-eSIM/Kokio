@@ -6,7 +6,7 @@ import { useNavigation } from "expo-router";
 import _debounce from "lodash/debounce";
 
 import { ThemedView } from "@/components/ThemedView";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import SearchInput from "@/components/SearchInput";

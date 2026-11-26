@@ -8,7 +8,7 @@ import {
 
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 
 interface PillButtonProps {
   variant: "solid" | "outline";

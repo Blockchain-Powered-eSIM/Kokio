@@ -3,13 +3,13 @@ import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs, router, useSegments } from "expo-router";
 
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useNavBarInset } from "@/hooks/useBottomInset"; 
 import { useColors } from "@/hooks/useColors";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
-import { ROUTE_NAMES } from "@/constants/route.constants";
+import type { Palette } from "@/theme/colors";
+import { ROUTE_NAMES } from "@/lib/constants/routes";
 import { getRouteNameFromSegments, getIsTabBarVisible } from "@/helpers/navigator.helper";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import Header from "@/components/Header";

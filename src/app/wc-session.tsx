@@ -9,7 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { useKokio } from "@/hooks/useKokio";
 import { Config } from "@/lib/config";
 import {

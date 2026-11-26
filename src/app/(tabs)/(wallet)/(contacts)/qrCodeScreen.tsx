@@ -7,7 +7,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, w
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { logger } from '@/lib/logger';
 
 const createStyles = (colors: Palette) => StyleSheet.create({

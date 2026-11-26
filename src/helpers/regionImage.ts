@@ -1,5 +1,5 @@
 import appBootstrap from "@/utils/appBootstrap";
-import { REGION_CONFIG } from "@/constants/general.constants";
+import { REGION_CONFIG } from "@/lib/constants/shop";
 
 export function regionImageForCode(code: string | null | undefined) {
   if (!code) return null;

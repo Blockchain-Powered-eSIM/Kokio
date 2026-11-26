@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { logger } from "@/lib/logger";
 
 const PRIVACY_POLICY_URL = "https://kokio.app/privacy-policy";

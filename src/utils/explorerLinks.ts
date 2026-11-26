@@ -5,7 +5,7 @@ import {
   BASE_SEPOLIA_TESTNET_TX,
   BASE_MAINNET_EXPLORER,
   BASE_MAINNET_EXPLORER_TX,
-} from '@/constants/general.constants';
+} from '@/lib/constants/wallet';
 
 // Same chain pick as providers/kokioProvider.tsx's RPC client.
 export function getExplorerAddressBase(): string {

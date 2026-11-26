@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Theme } from "@/constants/Colors";
-import type { Palette } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
+import type { Palette } from "@/theme/colors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useThemeColor } from "@/hooks/useThemeColor";
 

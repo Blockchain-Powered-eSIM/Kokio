@@ -141,20 +141,3 @@ export const COUNTRY_TO_REGIONS: Record<string, string[]> = {
   JM: ["CARIBBEAN_ISLANDS"], KN: ["CARIBBEAN_ISLANDS"], LC: ["CARIBBEAN_ISLANDS"],
   TT: ["CARIBBEAN_ISLANDS"], VC: ["CARIBBEAN_ISLANDS"],
 };
-
-export const BASE_SEPOLIA_TESTNET = "https://sepolia.basescan.org/address";
-export const BASE_SEPOLIA_TESTNET_TX = "https://sepolia.basescan.org/tx";
-export const BASE_MAINNET_EXPLORER = "https://basescan.org/address";
-export const BASE_MAINNET_EXPLORER_TX = "https://basescan.org/tx";
-
-// Inert until the mainnet cutover actually ships — flip to true then. Bump
-// MAINNET_CUTOVER_VERSION in mainnetCutoverReset.ts instead if a second
-// cutover is ever needed after this one.
-export const MAINNET_CUTOVER_ENABLED = true;
-
-// Store listings shared in referral invites. 
-export const OFFICIAL_URLS = {
-  IOS: "https://apps.apple.com/app/kokio/id6799362847",
-  ANDROID: "https://play.google.com/store/apps/details?id=app.kokio.mobile",
-  WEBSITE: "https://kokio.app",
-} as const;

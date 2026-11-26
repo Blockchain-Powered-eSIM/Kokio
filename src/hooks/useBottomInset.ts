@@ -1,5 +1,5 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 
 const BUTTON_NAV_INSET_THRESHOLD = 32;
 

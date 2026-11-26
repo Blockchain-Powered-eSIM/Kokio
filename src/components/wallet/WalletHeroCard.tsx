@@ -14,14 +14,14 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { getExplorerAddressBase } from "@/utils/explorerLinks";
 import { shortenAddress, withBasePrefix } from "@/utils/address";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { logger } from "@/lib/logger";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
-import { DARK_TOKENS, LIGHT_TOKENS } from "@/constants/Colors";
+import { DARK_TOKENS, LIGHT_TOKENS } from "@/theme/colors";
 
 interface WalletHeroCardProps {
   address: string;

@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { HeaderBackControl, useStackHeaderOptions } from "@/components/navigation/stackHeader";
-import { ROUTE_NAMES } from "@/constants/route.constants";
+import { ROUTE_NAMES } from "@/lib/constants/routes";
 
 // Contacts screens can be entered directly from the Wallet tab, so the back control must render even with no previous screen.
 export default function ContactsStack() {

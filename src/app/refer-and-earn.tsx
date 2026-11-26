@@ -16,12 +16,12 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { useReferral } from "@/hooks/useReferral";
 import { heldCreditCents, useCreditBalance } from "@/hooks/useCreditHistory";
 import { formatCents } from "@/utils/orderStatus";
 
-import { OFFICIAL_URLS } from "@/constants/general.constants";
+import { OFFICIAL_URLS } from "@/lib/constants/app";
 
 // colors.success is a single bright green shared across themes; against a
 // light, pale-tinted card it reads as nearly invisible, so light mode gets a

@@ -2,9 +2,9 @@ import type { JSX } from "react";
 import { Platform } from "react-native";
 import { RadioButtonProps } from "react-native-radio-buttons-group";
 
-import { RADIO_KEYS } from "@/constants/checkout.constants";
-import type { DeviceWalletPaymentAsset } from "@/constants/checkout.constants";
-import type { Palette } from "@/constants/Colors";
+import { RADIO_KEYS } from "@/lib/constants/app";
+import type { DeviceWalletPaymentAsset } from "@/lib/constants/app";
+import type { Palette } from "@/theme/colors";
 
 import { ApplePay, CreditCard, ESimWallet, ExternalWallet, ExternalWalletBrowser } from "./components/radioLabels";
 

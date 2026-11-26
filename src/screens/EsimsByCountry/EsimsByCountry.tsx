@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useCatalogueByCountry } from "@/hooks/useCatalogue";
 import { formatBffError } from "@/lib/api/bff/errors";
 import { ThemedText } from "@/components/ThemedText";

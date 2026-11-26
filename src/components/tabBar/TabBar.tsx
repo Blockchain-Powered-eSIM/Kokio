@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import type { NavigationState, Route, SceneRendererProps } from "react-native-tab-view";
 
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 
 const styles = StyleSheet.create({

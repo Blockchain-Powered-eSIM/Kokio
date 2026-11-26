@@ -14,10 +14,10 @@ import _trim from "lodash/trim";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import RegionalSearchRow from "@/components/shop/RegionalSearchRow";
 import GlobalSearchRow from "@/components/shop/GlobalSearchRow";
@@ -26,7 +26,7 @@ import {
   navigateToESIMsByCountry,
   navigateToESIMsByRegion,
 } from "@/utils/general";
-import { COUNTRY_TO_REGIONS } from "@/constants/general.constants";
+import { COUNTRY_TO_REGIONS } from "@/lib/constants/shop";
 
 const GLOBAL_ITEM = { code: "GLOBAL", name: "Global" };
 

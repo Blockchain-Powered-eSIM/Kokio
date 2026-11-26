@@ -11,9 +11,9 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 
 const ICON_SIZE = 28;
 

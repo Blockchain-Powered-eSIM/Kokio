@@ -16,8 +16,8 @@ import Animated, {
 
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
-import { ESIM_EXTRA_DETAILS } from "@/constants/checkout.constants";
+import type { Palette } from "@/theme/colors";
+import { ESIM_EXTRA_DETAILS } from "@/lib/constants/checkout";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { HeaderBackControl } from "@/components/navigation/stackHeader";
 

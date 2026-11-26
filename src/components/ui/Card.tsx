@@ -8,7 +8,7 @@ import type { ThemedTextProps } from "@/components/ThemedText";
 import type { ThemedViewProps } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 
 const staticStyles = StyleSheet.create({
   cardHeader: {

@@ -1,4 +1,4 @@
-import { ROUTE_NAMES } from "@/constants/route.constants";
+import { ROUTE_NAMES } from "@/lib/constants/routes";
 
 let skipNextOfflineRedirect = false;
 

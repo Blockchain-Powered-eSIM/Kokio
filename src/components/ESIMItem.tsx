@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Theme } from "@/constants/Colors";
+import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import DetailItem from "./ui/DetailItem";

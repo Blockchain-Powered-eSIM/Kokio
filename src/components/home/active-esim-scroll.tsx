@@ -7,7 +7,7 @@ import _isEmpty from "lodash/isEmpty";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { useEsims } from "@/hooks/useDeviceEsims";
 import { useAllEsimUsage } from "@/hooks/useEsimUsage";
 import ESIMItem from "@/components/ESIMItem";

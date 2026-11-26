@@ -4,7 +4,7 @@ import type { WalletActivityEntry } from '@/utils/walletActivity';
 import type { ActivityEntry } from '@/lib/api/bff/account';
 import { truncateDecimals } from '@/hooks/useWalletTokens';
 import { shortenAddress } from '@/utils/address';
-import { DEVICE_WALLET_PAYMENT_ASSETS } from '@/constants/checkout.constants';
+import { DEVICE_WALLET_PAYMENT_ASSETS } from '@/lib/constants/app';
 
 const STABLECOIN_SYMBOLS: ReadonlySet<string> = new Set(DEVICE_WALLET_PAYMENT_ASSETS);
 

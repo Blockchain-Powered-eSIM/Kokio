@@ -4,7 +4,7 @@
  */
 import { useTheme } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 
 export function useThemeColor(
   props: { light?: string; dark?: string },

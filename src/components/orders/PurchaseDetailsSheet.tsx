@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useThemedStyles } from "@/hooks/useThemedStyles";

@@ -1,7 +1,7 @@
 import React, { ReactNode, createContext, useCallback, useEffect, useReducer, useRef } from "react";
 import { router } from "expo-router";
 import { Kokio } from "kokio-sdk";
-import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
+import { PASSKEY_CONFIG } from "@/lib/constants/auth";
 import { createWalletClient, http, type Address, type Hex } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";

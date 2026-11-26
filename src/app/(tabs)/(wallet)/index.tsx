@@ -26,7 +26,7 @@ import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
 import { shortenAddress } from '@/utils/address';
 import { logger } from '@/lib/logger';
 import { setPreferredCheckoutPaymentMethod } from '@/utils/checkoutIntent';
-import { RADIO_KEYS } from '@/constants/checkout.constants';
+import { RADIO_KEYS } from '@/lib/constants/app';
 
 const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';
 

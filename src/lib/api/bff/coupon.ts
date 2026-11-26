@@ -2,7 +2,7 @@ import type { components } from './generated/kokio-bff';
 import { unwrapBffResponse, BffError } from './client';
 import api from '@/lib/api/http-client';
 import { logger } from '@/lib/logger';
-import { PROMO_CODE_PATTERN } from '@/constants/checkout.constants';
+import { PROMO_CODE_PATTERN } from '@/lib/constants/app';
 
 type CodeLookupResponse = components['schemas']['CodeLookupResponse'];
 

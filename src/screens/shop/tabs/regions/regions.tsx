@@ -12,8 +12,8 @@ import _map from "lodash/map";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Theme } from "@/constants/Colors";
-import { REGION_CONFIG } from "@/constants/general.constants";
+import { Theme } from "@/theme/colors";
+import { REGION_CONFIG } from "@/lib/constants/shop";
 import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import { navigateToESIMsByRegion } from "@/utils/general";
 

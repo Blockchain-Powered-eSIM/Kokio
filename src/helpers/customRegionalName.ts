@@ -1,4 +1,4 @@
-//import { COUNTRY_TO_REGIONS } from "@/constants/general.constants";
+//import { COUNTRY_TO_REGIONS } from "@/lib/constants/shop";
 //
 //const REGION_LABEL: Record<string, string> = {
 //  ASIA: "Asia",
@@ -42,7 +42,7 @@
 //  const hidden = ranked.length - MAX_NAMED_REGIONS;
 //  return hidden > 0 ? `${named} + ${hidden} more` : named;
 //}
-import { COUNTRY_TO_REGIONS } from "@/constants/general.constants";
+import { COUNTRY_TO_REGIONS } from "@/lib/constants/shop";
 
 export const MAX_NAMED_REGIONS = 2;
 

@@ -13,7 +13,7 @@ import NetInfo, { type NetInfoState } from "@react-native-community/netinfo";
 import "../../global.css";
 
 import useBootstrap from "@/hooks/useBootstrap";
-import { ROUTE_NAMES } from "@/constants/route.constants";
+import { ROUTE_NAMES } from "@/lib/constants/routes";
 import { Providers } from "@/providers";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
 import { AuthenticationModal } from "@/components/AuthenticationModal";

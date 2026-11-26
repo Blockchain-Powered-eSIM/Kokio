@@ -20,7 +20,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import type { Palette } from "@/constants/Colors";
+import type { Palette } from "@/theme/colors";
 import { labelForStatus, colorForStatus, labelForPaymentMethod, isUserActionableManualReview } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useEsimUsage } from "@/hooks/useEsimUsage";

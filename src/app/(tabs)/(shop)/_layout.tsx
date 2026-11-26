@@ -3,7 +3,7 @@ import { Stack, router } from "expo-router";
 import _get from "lodash/get";
 
 import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stackHeader";
-import { ROUTE_NAMES } from "@/constants/route.constants";
+import { ROUTE_NAMES } from "@/lib/constants/routes";
 import CheckoutHeader from "@/components/checkoutHeader";
 import appBootstrap from "@/utils/appBootstrap";
 import { ShopFiltersProvider, useShopFilters } from "@/contexts/ShopFiltersContext";
