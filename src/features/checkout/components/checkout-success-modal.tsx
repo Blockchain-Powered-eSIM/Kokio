@@ -122,7 +122,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
 }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
-  const isDark = useTheme();
+  const { isDark } = useTheme();
   const textColor = useThemeColor({}, "text");
 
   const scale = useSharedValue(0);

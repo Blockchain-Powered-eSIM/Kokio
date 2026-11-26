@@ -123,7 +123,7 @@ const createStyles = (colors: Palette) =>
 
 export const DeleteAccountModal: React.FC<Props> = ({ visible, onCancel, onConfirm }) => {
   const styles = useThemedStyles(createStyles);
-  const isDark = useTheme();
+  const { isDark } = useTheme();
   const colors = useColors();
 
   const [input, setInput] = useState('');

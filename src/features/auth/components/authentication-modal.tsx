@@ -30,7 +30,7 @@ import { logger } from '@/lib/logger';
 type AuthMode = "choice" | "authenticating" | "error";
 
 export function AuthenticationModal() {
-  const isDark = useTheme();
+  const { isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const bottomInset = useBottomInset(20);

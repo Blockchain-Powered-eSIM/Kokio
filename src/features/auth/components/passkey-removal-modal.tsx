@@ -113,7 +113,7 @@ const createStyles = (colors: Palette) =>
 
 export const PasskeyRemovalModal: React.FC<Props> = ({ visible, onDismiss }) => {
   const styles = useThemedStyles(createStyles);
-  const isDark = useTheme();
+  const { isDark } = useTheme();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
