@@ -24,6 +24,37 @@ const restrictImports = (...patterns) => ({
   "no-restricted-imports": ["error", { patterns }],
 });
 
+// Every folder and file under src/ is kebab-case. Expo Router's own names are
+// allowed: (group) and [param] folders, _layout, +not-found and +html.
+const KEBAB = "[a-z0-9]+(?:-[a-z0-9]+)*";
+const FOLDER_NAME = new RegExp(`^(?:${KEBAB}|\\(${KEBAB}\\)|\\[(?:\\.\\.\\.)?${KEBAB}\\]|__tests__)$`);
+const FILE_NAME = new RegExp(
+  `^(?:${KEBAB}|_layout|\\+not-found|\\+html|\\[(?:\\.\\.\\.)?${KEBAB}\\])` +
+    `(?:\\.(?:native|ios|android|web|d|test))?\\.(?:ts|tsx|js)$`,
+);
+const fileNamesPlugin = {
+  rules: {
+    "kebab-case": {
+      meta: { type: "suggestion", schema: [] },
+      create(context) {
+        const parts = context.filename.split(/[\\/]/);
+        const src = parts.lastIndexOf("src");
+        if (src === -1) return {};
+        const folders = parts.slice(src + 1, -1);
+        const file = parts[parts.length - 1];
+        const bad = [...folders.filter((f) => !FOLDER_NAME.test(f)), ...(FILE_NAME.test(file) ? [] : [file])];
+        return {
+          Program(node) {
+            for (const name of bad) {
+              context.report({ node, message: `"${name}" is not kebab-case.` });
+            }
+          },
+        };
+      },
+    },
+  },
+};
+
 module.exports = defineConfig([
   expoConfig,
   {
@@ -38,6 +69,11 @@ module.exports = defineConfig([
     rules: {
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     },
+  },
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js"],
+    plugins: { "file-names": fileNamesPlugin },
+    rules: { "file-names/kebab-case": "error" },
   },
   // Later entries replace the rule's options for their files, so each one
   // lists every pattern that applies to it.
