@@ -2,13 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   AppState,
-  StyleSheet,
   View,
   Platform,
   Text,
-  Dimensions,
   TouchableOpacity,
-  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
@@ -22,7 +19,6 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useTheme } from "@/contexts/ThemeContext";
-import type { Palette } from "@/theme/colors";
 import { ThemedText } from "@/components/ThemedText";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import UseCreditBalanceToggle from "./components/credit-balance-toggle";
@@ -32,10 +28,9 @@ import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload, formatPlanLabel } from "./esim-order";
 import { useEsims } from '@/hooks/useDeviceEsims';
 import { CREDIT_BALANCE_KEY, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/lib/query-keys';
-import { isOrderSuccess, pollOrderStatus, submitPaymentHash } from "@/lib/api/bff/order";
+import { isOrderSuccess, pollOrderStatus } from "@/lib/api/bff/order";
 import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/lib/api/bff/order";
 import { pollingLabel, isUserActionableManualReview } from "@/features/orders/order-status";
-import { formatCents } from "@/lib/format";
 import OrderFailureModal from "./components/order-failure-modal";
 import { formatBffError } from "@/lib/api/bff/client";
 import { resolveBffErrorMessage } from "@/lib/api/bff/errors";
@@ -59,59 +54,18 @@ import { EsimTopupPickerSheet } from "./components/esim-topup-picker-sheet";
 import { ApplyTopupConfirmModal } from "./components/apply-topup-confirm-modal";
 import { useKokio } from "@/hooks/useKokio";
 import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
-import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import * as WebBrowser from "expo-web-browser";
-import {
-  MoonpayCommerceProvider,
-  usePayWithCrypto,
-} from "@heliofi/checkout-react-native";
-import type { PaymentCallback } from "@heliofi/checkout-react-native";
+import { MoonpayCommerceProvider } from "@heliofi/checkout-react-native";
 import { logger } from "@/lib/logger";
 import { formatOnChainError, isUserCancelledPasskeyError } from "@/utils/formatOnChainError";
 import { consumePreferredCheckoutPaymentMethod } from "./checkout-intent";
-
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const RADIO_WIDTH = SCREEN_WIDTH - 24;
-
-// How long to wait for the chain webhook to confirm a device-wallet payment
-// before submitting the signed hash ourselves as a recovery fallback.
-const DEVICE_WALLET_PAYMENT_SUBMISSION_DELAY_MS = 25000;
-
-// Longer than the default poll budget (30s, tuned for Stripe/MoonPay's
-// near-instant webhooks): a device-wallet payment's confirmation depends on
-// the chain webhook's own wait for `safe` L1 finality, which real-device
-// testing showed can run past 30s even when the payment actually succeeded.
-const DEVICE_WALLET_PAYMENT_POLL_MAX_DURATION_MS = 120000;
-
-// GET /order/{idempotencyKey} shares a 20 requests per minute per-device
-// limit (per deviceWalletAddress) with /esim, /order/list, /coupon/{code},
-// and /order/preview. A device-wallet payment's confirmation depends on the
-// chain webhook's `safe` L1 finality, which takes 30s+. Polling faster
-// wouldn't surface the status sooner; 8s (7.5 req/min) leaves headroom for
-// concurrent traffic.
-const DEVICE_WALLET_PAYMENT_POLL_INTERVAL_MS = 8000;
-
-const CODE_ERROR_CODES: ReadonlySet<string> = new Set([
-  'PROMO_CODE_INVALID_FORMAT',
-  'PROMO_CODE_NOT_FOUND',
-  'PROMO_CODE_NOT_YET_VALID',
-  'PROMO_CODE_EXPIRED',
-  'PROMO_CODE_REVOKED',
-  'PROMO_CODE_EXHAUSTED',
-  'PROMO_ACCOUNT_LIMIT_REACHED',
-  'PROMO_FIRST_PURCHASE_ONLY',
-  'PROMO_CODE_NOT_APPLICABLE',
-  'REFERRAL_NOT_ALLOWED',
-]);
-
-const MAPPED_ORDER_ERROR_CODES: ReadonlySet<string> = new Set([
-  ...CODE_ERROR_CODES,
-  'FIAT_MINIMUM_NOT_MET',
-  'STORE_CREDIT_INSUFFICIENT',
-  'FIRST_ORDER_IN_PROGRESS',
-]);
-
-const LIGHT_SUCCESS_TEXT = "#1B8A42";
+import { createStyles } from "./checkout-styles";
+import { CODE_ERROR_CODES, MAPPED_ORDER_ERROR_CODES } from "./checkout-errors";
+import { sendDeviceWalletPayment, waitForDeviceWalletOrder } from "./device-wallet-payment";
+import { ExternalWalletCheckout } from "./components/external-wallet-checkout";
+import { PromoCodeSection } from "./components/promo-code-section";
+import { PriceBreakdown } from "./components/price-breakdown";
+import { TopupSection } from "./components/topup-section";
 
 const toApiPaymentMethod = (selected: string | undefined): CreateOrderRequest['paymentMethod'] =>
   selected === RADIO_KEYS.E_SIM_WALLET
@@ -119,144 +73,6 @@ const toApiPaymentMethod = (selected: string | undefined): CreateOrderRequest['p
     : (selected === RADIO_KEYS.CREDIT_CARD || selected === RADIO_KEYS.APPLE_PAY)
       ? 'FIAT'
       : 'CRYPTO';
-
-const describeCodeTerms = (lookup: CodeLookupResponse): string => {
-  if (lookup.kind === 'REFERRAL' && lookup.referral) {
-    return `${lookup.referral.refereePercent}% off, up to ${formatCents(lookup.referral.refereeCapCents)}`;
-  }
-  const terms = lookup.coupon?.terms;
-  if (!terms) return 'Discount applied at checkout';
-  if (terms.amountCents != null) return `${formatCents(terms.amountCents)} off`;
-  if (terms.percent != null) {
-    return terms.maxDiscountCents != null
-      ? `${terms.percent}% off, up to ${formatCents(terms.maxDiscountCents)}`
-      : `${terms.percent}% off`;
-  }
-  if (terms.planId != null) return terms.planActive ? 'Free plan voucher' : 'Plan voucher (plan no longer available)';
-  return 'Discount applied at checkout';
-};
-
-const createStyles = (colors: Palette) => StyleSheet.create({
-  container:              { flex: 1 },
-  scrollContent:          { flex: 1, paddingHorizontal: 12 },
-  scrollContentContainer: { paddingBottom: 20 },
-  checkoutButton: {
-    borderRadius: 32, paddingVertical: 12, flexDirection: "row",
-    alignItems: "center", justifyContent: "center",
-  },
-  checkoutButtonText: { fontSize: 16, fontWeight: "600" },
-  logoImage:          { width: 24, height: 24, objectFit: "contain" },
-  containerStyle:     { flex: 1, alignItems: "flex-start" },
-  buttonStyle: {
-    flexDirection: "row", justifyContent: "space-between", width: RADIO_WIDTH,
-    backgroundColor: colors.inputBackground, paddingVertical: 16, paddingHorizontal: 24,
-    marginHorizontal: 0, marginVertical: 2, borderRadius: 12, borderWidth: 1,
-  },
-  selectedPaymentRow:      { marginTop: 12, alignItems: "center", paddingRight: 16 },
-  changePaymentMethodButton: {
-    marginLeft: 8, width: 32, height: 32, borderRadius: 16,
-    alignItems: "center", justifyContent: "center",
-  },
-  promoInputRow: {
-    flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12,
-    backgroundColor: colors.inputBackground, borderRadius: 12, paddingHorizontal: 12,
-  },
-  promoInput: { flex: 1, color: colors.foreground, fontSize: 16, paddingVertical: 10 },
-  promoInputTyped: { fontFamily: "monospace", fontWeight: "700" },
-  promoStatusRow:          { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
-  promoStatusText:         { flex: 1, fontSize: 13 },
-  promoAppliedCard: {
-    flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12,
-    padding: 12, borderRadius: 12,
-  },
-  promoAppliedCodeRow:     { flex: 1, flexDirection: "row", alignItems: "baseline", gap: 8 },
-  promoAppliedCode:        { fontSize: 14, fontWeight: "700", fontFamily: "monospace" },
-  promoAppliedAmount:      { fontSize: 13, fontWeight: "600" },
-  topupOptionRow: {
-    flexDirection: "row", alignItems: "center", gap: 10, width: "100%",
-    marginTop: 8, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14,
-  },
-  topupOptionText:         { fontSize: 14, fontWeight: "600", flex: 1 },
-  discountErrorContainer:  { marginTop: 8, padding: 12, backgroundColor: colors.destructiveBackground, borderRadius: 8 },
-  discountErrorText:       { color: colors.destructive, fontSize: 14 },
-  externalWalletNoticeContainer: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    marginTop: 8, paddingHorizontal: 2,
-  },
-  externalWalletNoticeText: { fontSize: 12, flexShrink: 1 },
-  breakdownContainer:      { marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: colors.inputBackground, gap: 6 },
-  breakdownRow:            { flexDirection: "row", justifyContent: "space-between" },
-  breakdownTotalRow:       { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFill, backgroundColor: colors.overlay,
-    justifyContent: 'center', alignItems: 'center', gap: 16, zIndex: 10,
-  },
-  loadingText: { color: '#FFFFFF', fontSize: 15, fontWeight: '500' },
-});
-
-// ── ExternalWalletCheckout ────────────────────────────────────────────────────
-// SDK "as is" pattern per Helio docs. Must render inside MoonpayCommerceProvider.
-// Triggers the SDK's built-in wallet selector on mount and owns nothing except
-// the BFF confirmation step after the SDK fires onSuccess.
-const ExternalWalletCheckout = ({
-  correlationId,
-  pendingOrder,
-  eSimItem,
-  kokioDeviceUID,
-  setIsCheckoutLoading,
-  setLoadingMessage,
-  onComplete,
-  onSdkDismiss,
-}: {
-  correlationId: string | null;
-  pendingOrder: CreateOrderResponse | null;
-  eSimItem: Esim;
-  kokioDeviceUID: string | undefined;
-  setIsCheckoutLoading: (v: boolean) => void;
-  setLoadingMessage: (msg: string) => void;
-  onComplete: (order: OrderStatusResponse | null) => void;
-  onSdkDismiss: () => void;
-}) => {
-  const successFiredRef = useRef(false);
-
-  const onSuccess = useCallback<PaymentCallback>(
-    async (result) => {
-      successFiredRef.current = true;
-      logger.debug('HELIO_ONSUCCESS', { transactionSignature: result.transactionSignature });
-      setIsCheckoutLoading(true);
-      setLoadingMessage('Processing your order...');
-      const finalOrder = correlationId
-        ? await pollOrderStatus(correlationId, {
-            onUpdate: (update) =>
-              setLoadingMessage(
-                update.kind === 'status' ? pollingLabel(update.orderStatus) : 'Retrying...',
-              ),
-          }).catch(() => null)
-        : null;
-      onComplete(finalOrder);
-    },
-    //TODO: 'eSimItem', 'kokioDeviceUID', 'pendingOrder' are likely not needed in the dep array
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-    [correlationId, eSimItem, kokioDeviceUID, onComplete, pendingOrder, setIsCheckoutLoading, setLoadingMessage],
-  );
-
-  const { payWithCrypto, drawerVisible } = usePayWithCrypto({ onSuccess });
-
-  useEffect(() => {
-    payWithCrypto();
-  }, [payWithCrypto]);
-
-  // SDK drawer closed without a confirmed payment → surface browser fallback
-  const prevVisibleRef = useRef<boolean | null>(null);
-  useEffect(() => {
-    if (prevVisibleRef.current === true && !drawerVisible && !successFiredRef.current) {
-      onSdkDismiss();
-    }
-    prevVisibleRef.current = drawerVisible;
-  }, [drawerVisible, onSdkDismiss]);
-
-  return null;
-};
 
 const Checkout = () => {
   const styles = useThemedStyles(createStyles);
@@ -541,41 +357,11 @@ const Checkout = () => {
       setIsCheckoutLoading(true);
       setLoadingMessage('Confirm the payment...');
 
-      // Fires the passkey/biometric prompt. Resolves with the user operation
-      // hash, NOT a receipt - the payment is not confirmed on-chain yet. The
-      // calls are bundled as one user operation, in order (e.g. an approval
-      // followed by the actual payment call).
-      const hash = await deviceWallet.sendUserOperation(
-        userOperations.map((op) => ({ to: op.to as `0x${string}`, data: op.data as `0x${string}` })),
-      );
-
-      const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
-
-      // A user operation whose calls REVERT still gets mined and still
-      // returns a receipt - a resolved promise here is not proof the
-      // payment went through.
-      if (!receipt.success) {
-        throw new Error('Payment reverted on-chain');
-      }
+      const hash = await sendDeviceWalletPayment(deviceWallet, smartAccountClient, userOperations);
 
       setLoadingMessage('Checking payment status...');
 
-      // The chain webhook confirms this order independently of anything the
-      // client does; submitting the hash early would only add a wasted call
-      // on the common case where the webhook lands first. Submit it once,
-      // only if the webhook still hasn't confirmed after a reasonable wait.
-      const fallbackTimer = setTimeout(() => {
-        submitPaymentHash(correlationId, hash).catch((err) => {
-          logger.error('DEVICE_WALLET_PAYMENT_SUBMISSION_FAILED', { err });
-        });
-      }, DEVICE_WALLET_PAYMENT_SUBMISSION_DELAY_MS);
-
-      const finalOrder = await pollOrderStatus(correlationId, {
-        onUpdate: handlePollUpdate,
-        maxDurationMs: DEVICE_WALLET_PAYMENT_POLL_MAX_DURATION_MS,
-        intervalMs: DEVICE_WALLET_PAYMENT_POLL_INTERVAL_MS,
-      }).catch(() => null);
-      clearTimeout(fallbackTimer);
+      const finalOrder = await waitForDeviceWalletOrder(correlationId, hash, handlePollUpdate);
       setIsCheckoutLoading(false);
       setLoadingMessage('');
       await handleOrderResult(finalOrder, correlationId);
@@ -916,235 +702,45 @@ const Checkout = () => {
           </View>
         )}
 
-        <View style={{ marginTop: 16 }}>
-          <ThemedText>Promo code</ThemedText>
-          {!isDiscountApplied && (
-            <View style={styles.promoInputRow}>
-              <Ionicons name="pricetag-outline" size={18} color={colors.mutedForeground} />
-              <TextInput
-                style={[styles.promoInput, !!discountCode && styles.promoInputTyped]}
-                value={discountCode}
-                onChangeText={handleDiscountCodeChange}
-                placeholder="Coupon or referral code"
-                placeholderTextColor={colors.mutedForeground}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={16}
-                onSubmitEditing={handleApplyDiscount}
-                returnKeyType="done"
-              />
-              {isCouponLoading && <ActivityIndicator size="small" color={colors.mutedForeground} />}
-              {!isCouponLoading && !discountCode && (
-                <TouchableOpacity
-                  onPress={handlePasteDiscountCode}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Paste code from clipboard"
-                >
-                  <ThemedText bold style={{ color: colors.primary, fontSize: 14 }}>Paste</ThemedText>
-                </TouchableOpacity>
-              )}
-              {!isCouponLoading && !!discountCode && !couponError && (
-                <TouchableOpacity
-                  onPress={handleApplyDiscount}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Apply code"
-                >
-                  <ThemedText bold style={{ color: colors.primary, fontSize: 14 }}>Apply</ThemedText>
-                </TouchableOpacity>
-              )}
-              {!isCouponLoading && !!discountCode && !!couponError && (
-                <TouchableOpacity
-                  onPress={handleRemoveDiscount}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Clear code"
-                >
-                  <ThemedText bold style={{ color: colors.destructive, fontSize: 14 }}>Clear</ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-          {isDiscountApplied && (
-            <View style={[styles.promoAppliedCard, { backgroundColor: colors.successBackground }]}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-              <View style={styles.promoAppliedCodeRow}>
-                <ThemedText style={styles.promoAppliedCode} numberOfLines={1}>{discountCode}</ThemedText>
-                <ThemedText
-                  style={[styles.promoAppliedAmount, { color: isDark ? colors.success : LIGHT_SUCCESS_TEXT }]}
-                  numberOfLines={1}
-                >
-                  {quoteInPlay && quoteInPlay.codeDiscountCents > 0
-                    ? `-${formatCents(quoteInPlay.codeDiscountCents)} off`
-                    : coupon ? describeCodeTerms(coupon) : 'Applied'}
-                </ThemedText>
-              </View>
-              <TouchableOpacity
-                onPress={handleRemoveDiscount}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityRole="button"
-                accessibilityLabel="Remove discount"
-              >
-                <Ionicons name="close-circle" size={20} color={colors.mutedForeground} />
-              </TouchableOpacity>
-            </View>
-          )}
-          {!isDiscountApplied && couponError ? (
-            <View style={styles.promoStatusRow}>
-              <Ionicons name="alert-circle" size={18} color={colors.destructive} />
-              <ThemedText style={[styles.promoStatusText, { color: colors.destructive }]} numberOfLines={2}>
-                {couponError}
-              </ThemedText>
-            </View>
-          ) : null}
-          {discountError ? (
-            <View style={styles.promoStatusRow}>
-              <Ionicons name="alert-circle" size={18} color={colors.destructive} />
-              <ThemedText style={[styles.promoStatusText, { color: colors.destructive }]} numberOfLines={2}>
-                {discountError}
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
+        <PromoCodeSection
+          discountCode={discountCode}
+          isDiscountApplied={isDiscountApplied}
+          isCouponLoading={isCouponLoading}
+          coupon={coupon}
+          couponError={couponError}
+          discountError={discountError}
+          quoteInPlay={quoteInPlay}
+          onChangeCode={handleDiscountCodeChange}
+          onPaste={handlePasteDiscountCode}
+          onApply={handleApplyDiscount}
+          onRemove={handleRemoveDiscount}
+        />
 
         {isPreviewInPlay && (
-          <View style={styles.breakdownContainer}>
-            {isPreviewLoading && (
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <ActivityIndicator size="small" color={colors.foreground} />
-                <ThemedText style={{ marginLeft: 8, color: colors.mutedForeground, fontSize: 14 }}>
-                  Calculating your total…
-                </ThemedText>
-              </View>
-            )}
-            {!isPreviewLoading && !!previewErrorMessage && (
-              <ThemedText style={styles.discountErrorText}>{previewErrorMessage}</ThemedText>
-            )}
-            {!isPreviewLoading && quoteInPlay && (
-              <>
-                <View style={styles.breakdownRow}>
-                  <ThemedText>Plan price</ThemedText>
-                  <ThemedText>{formatCents(quoteInPlay.listPriceCents)}</ThemedText>
-                </View>
-                {quoteInPlay.codeDiscountCents > 0 && (
-                  <View style={styles.breakdownRow}>
-                    <ThemedText>{quoteInPlay.codeKind === 'REFERRAL' ? 'Referral discount' : 'Coupon discount'}</ThemedText>
-                    <ThemedText>{`-${formatCents(quoteInPlay.codeDiscountCents)}`}</ThemedText>
-                  </View>
-                )}
-                {quoteInPlay.creditAppliedCents > 0 && (
-                  <View style={styles.breakdownRow}>
-                    <ThemedText>Kokio credits</ThemedText>
-                    <ThemedText>{`-${formatCents(quoteInPlay.creditAppliedCents)}`}</ThemedText>
-                  </View>
-                )}
-                <View style={[styles.breakdownRow, styles.breakdownTotalRow]}>
-                  <ThemedText bold>Amount to pay</ThemedText>
-                  <ThemedText bold>{formatCents(quoteInPlay.railAmountCents)}</ThemedText>
-                </View>
-                {wasCreditTrimmed && (
-                  <ThemedText style={{ color: colors.mutedForeground, fontSize: 12 }}>
-                    Credits were reduced so the card payment stays at {formatCents(FIAT_MINIMUM_CENTS)}.
-                  </ThemedText>
-                )}
-                {isFiatFloorViolated && (
-                  <ThemedText style={styles.discountErrorText}>
-                    The amount to pay by card must be {formatCents(FIAT_MINIMUM_CENTS)} or more.
-                  </ThemedText>
-                )}
-              </>
-            )}
-          </View>
+          <PriceBreakdown
+            isLoading={isPreviewLoading}
+            errorMessage={previewErrorMessage}
+            quote={quoteInPlay}
+            wasCreditTrimmed={wasCreditTrimmed}
+            isFiatFloorViolated={isFiatFloorViolated}
+          />
         )}
 
-        {isCheckingTopup && (
-          <View style={{ marginTop: 16, flexDirection: "row", alignItems: "center" }}>
-            <ActivityIndicator size="small" color={isDark ? colors.foreground : colors.text} />
-            <ThemedText style={{ marginLeft: 8, color: isDark ? colors.mutedForeground : colors.text }}>
-              Checking top-up compatibility…
-            </ThemedText>
-          </View>
-        )}
-        {!isCheckingTopup && isTopupCheckError && (
-          <View style={styles.discountErrorContainer}>
-            <ThemedText style={styles.discountErrorText}>{formatBffError(topupCheckError)}</ThemedText>
-            <TouchableOpacity onPress={() => refetchTopupCompatibility()} accessibilityRole="button">
-              <ThemedText style={[styles.discountErrorText, { textDecorationLine: 'underline' }]}>Retry</ThemedText>
-            </TouchableOpacity>
-          </View>
-        )}
-        {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && checkErrors.length > 0 && (
-          <View style={styles.discountErrorContainer}>
-            <ThemedText style={styles.discountErrorText}>
-              Couldn&apos;t verify top-up compatibility for your existing eSIM. Please try again.
-            </ThemedText>
-            <TouchableOpacity onPress={() => refetchTopupCompatibility()} accessibilityRole="button">
-              <ThemedText style={[styles.discountErrorText, { textDecorationLine: 'underline' }]}>Retry</ThemedText>
-            </TouchableOpacity>
-          </View>
-        )}
-        {!isCheckingTopup && !isTopupCheckError && !isTopupCompatible && checkErrors.length === 0 && vendorMismatches.length > 0 && (
-          <View style={styles.discountErrorContainer}>
-            <ThemedText style={styles.discountErrorText}>
-              {(() => {
-                const names = vendorMismatches.map((r) => {
-                  const doc = esims.find((e) => e.eSimRef === r.eSimRef);
-                  return doc ? esimDisplayName(doc) : buildTopupEsimLabel(r.eSimRef, r.iccid);
-                });
-                const isPlural = names.length > 1;
-                return `Your existing ${isPlural ? "eSIMs" : "eSIM"} ${names.join(", ")} ${isPlural ? "aren't" : "isn't"} compatible with this plan for top-up. The purchase will be a new eSIM.`;
-              })()}
-            </ThemedText>
-          </View>
-        )}
-        {!isCheckingTopup && isTopupCompatible && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={{ color: isDark ? colors.foreground : colors.text, fontSize: 13 }} numberOfLines={1}>
-              <ThemedText style={{ fontSize: 13 }} bold>Top Up: </ThemedText>
-              Apply this plan as top up, else disable to buy a new one
-            </Text>
-            <TouchableOpacity
-              onPress={() => topupPickerSheetRef.current?.snapToIndex(0)}
-              style={[
-                styles.topupOptionRow,
-                { backgroundColor: applyAsTopup ? colors.primary : colors.inputBackground },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={
-                applyAsTopup && compatibleTopUpEsimRef
-                  ? `Change top-up eSIM, currently ${buildTopupEsimLabel(compatibleTopUpEsimRef)}`
-                  : "Choose an eSIM to top up"
-              }
-            >
-              {applyAsTopup && selectedTopupDoc && (() => {
-                const display = esimDocToDisplayItem(selectedTopupDoc);
-                return (
-                  <CountryFlag
-                    size={24}
-                    flagUrl={display.serviceRegionFlag ?? ""}
-                    coverageType={display.coverageType as CoverageType}
-                    serviceRegionName={display.serviceRegionName}
-                  />
-                );
-              })()}
-              <ThemedText
-                style={[
-                  styles.topupOptionText,
-                  { color: applyAsTopup ? colors.primaryForeground : colors.foreground },
-                ]}
-                numberOfLines={1}
-              >
-                {applyAsTopup && compatibleTopUpEsimRef ? buildTopupEsimLabel(compatibleTopUpEsimRef) : "Buy a new eSIM"}
-              </ThemedText>
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color={applyAsTopup ? colors.primaryForeground : colors.mutedForeground}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
+        <TopupSection
+          isChecking={isCheckingTopup}
+          isError={isTopupCheckError}
+          error={topupCheckError}
+          onRetry={() => refetchTopupCompatibility()}
+          isCompatible={isTopupCompatible}
+          hasCheckErrors={checkErrors.length > 0}
+          vendorMismatches={vendorMismatches}
+          esims={esims}
+          buildTopupEsimLabel={buildTopupEsimLabel}
+          applyAsTopup={applyAsTopup}
+          compatibleTopUpEsimRef={compatibleTopUpEsimRef}
+          selectedTopupDoc={selectedTopupDoc}
+          onOpenPicker={() => topupPickerSheetRef.current?.snapToIndex(0)}
+        />
       </KeyboardAwareScrollView>
 
       <BottomActionBar>
