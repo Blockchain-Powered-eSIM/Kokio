@@ -4,11 +4,11 @@ import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
 import { CREDENTIAL_ID_KEY, DEVICE_WALLET_ADDRESS_KEY } from '@/lib/storage/keys';
 import { v4 as uuidv4 } from 'uuid';
-import { kokioAuthClient } from './kokioAuthClient';
-import { buildDpopProof } from './dpopProof';
-import { parseIdToken } from './tokenStore';
+import { kokioAuthClient } from './kokio-auth-client';
+import { buildDpopProof } from './dpop-proof';
+import { parseIdToken } from './token-store';
 import { AuthError } from './errors';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from './auth-store';
 import { Config } from '@/lib/config';
 import { logger } from '@/lib/logger';
 

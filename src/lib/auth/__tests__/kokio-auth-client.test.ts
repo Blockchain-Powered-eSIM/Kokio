@@ -51,7 +51,7 @@ function freshClient() {
   jest.mock('@/lib/config', () => ({
     Config: { AUTH_SERVER_BASE_URL: 'https://auth.example.com' },
   }));
-  return require('../kokioAuthClient') as typeof import('../kokioAuthClient');
+  return require('../kokio-auth-client') as typeof import('../kokio-auth-client');
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────

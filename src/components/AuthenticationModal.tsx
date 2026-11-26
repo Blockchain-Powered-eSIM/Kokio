@@ -15,7 +15,7 @@ import BottomSheet, {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useBottomInset } from "@/hooks/useBottomInset";
-import { isAccountDeletedCached, subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
+import { isAccountDeletedCached, subscribeAccountDeleted } from '@/lib/auth/account-deleted';
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { ThemedText } from "./ThemedText";
 import { useKokio } from "@/hooks/useKokio";

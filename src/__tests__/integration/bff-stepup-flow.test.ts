@@ -20,9 +20,9 @@ import api from '@/lib/api/http-client';
 import { submitOrder, type CreateOrderRequest } from '@/lib/api/bff/order';
 import { checkEsimCompatibility } from '@/lib/api/bff/esim';
 import { getCatalogue }           from '@/lib/api/bff/catalogue';
-import { StepUpCancelledError }   from '@/utils/auth/errors';
+import { StepUpCancelledError }   from '@/lib/auth/errors';
 import { BffError }               from '@/lib/api/bff/errors';
-import { useAuthStore }           from '@/stores/authStore';
+import { useAuthStore }           from '@/lib/auth/auth-store';
 
 const mockClearTokens  = jest.fn<Promise<void>, []>();
 const mockSetTokens    = jest.fn<Promise<void>, [unknown]>();
@@ -36,7 +36,7 @@ const mockLiveTokens = {
   auth_time:     1_700_000_000,
 };
 
-jest.mock('@/stores/authStore', () => ({
+jest.mock('@/lib/auth/auth-store', () => ({
   useAuthStore: {
     getState: jest.fn(() => ({
       tokens:      mockLiveTokens,

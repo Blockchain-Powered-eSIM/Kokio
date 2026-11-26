@@ -6,7 +6,7 @@ import {
   parseIdToken,
   type TokenBundle,
   type IdTokenClaims,
-} from '@/utils/auth/tokenStore';
+} from './token-store';
 
 // ─── Store shape ──────────────────────────────────────────────────────────────
 

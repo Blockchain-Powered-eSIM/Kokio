@@ -1,6 +1,6 @@
 import { SignJWT, base64url } from 'jose';
 import { v4 as uuidv4 } from 'uuid';
-import { getDpopKeyPair } from './dpopKeystore';
+import { getDpopKeyPair } from './dpop-keystore';
 import { logger } from '@/lib/logger';
 
 export type BuildDpopProofParams = {

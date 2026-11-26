@@ -7,9 +7,9 @@
  * Inert while MAINNET_CUTOVER_ENABLED (lib/constants/app.ts) is false.
  */
 import * as SecureStore from 'expo-secure-store';
-import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
-import { markWelcomeBackPending } from '@/utils/auth/returningUserProbe';
-import { useAuthStore } from '@/stores/authStore';
+import { purgeAccountLocalState } from './purge-account-local-state';
+import { markWelcomeBackPending } from './returning-user-probe';
+import { useAuthStore } from './auth-store';
 import { logger } from '@/lib/logger';
 import { MAINNET_CUTOVER_ENABLED } from '@/lib/constants/app';
 import { CREDENTIAL_ID_KEY, LOCAL_DATA_VERSION_KEY } from '@/lib/storage/keys';

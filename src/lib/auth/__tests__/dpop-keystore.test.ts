@@ -67,7 +67,7 @@ jest.mock('jose', () => ({
 
 /** Require a fresh module instance (simulates a new app process). */
 function freshModule() {
-  return require('../dpopKeystore') as typeof import('../dpopKeystore');
+  return require('../dpop-keystore') as typeof import('../dpop-keystore');
 }
 
 // ─── Setup / teardown ────────────────────────────────────────────────────────

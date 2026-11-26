@@ -17,7 +17,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/theme/colors";
 import { useToast } from "@/contexts/ToastContext";
-import { AuthError } from "@/utils/auth/errors";
+import { AuthError } from "@/lib/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/features/wallet/hooks/use-wallet-deployment";
 import { logger } from '@/lib/logger';
 import SignupRequiredModal from "@/components/ui/SignupRequiredModal";

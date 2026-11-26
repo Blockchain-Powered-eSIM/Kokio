@@ -1,4 +1,4 @@
-import type { paths, components } from './generated/kokioAuth';
+import type { paths, components } from './generated/kokio-auth';
 import { Config } from '@/lib/config';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthError } from './errors';
@@ -32,7 +32,7 @@ export type ErrorResponse = components['schemas']['ErrorResponse'];
 // A function that produces a fresh compact DPoP proof JWS for one request.
 // Receives the current cached nonce for the origin (undefined on first call to
 // a fresh origin) and the normalized htu derived from the actual request URL.
-// See utils/auth/dpopProof.ts for the concrete implementation.
+// See dpop-proof.ts for the concrete implementation.
 
 export type DpopProofBuilder = (nonce?: string, htu?: string) => Promise<string>;
 

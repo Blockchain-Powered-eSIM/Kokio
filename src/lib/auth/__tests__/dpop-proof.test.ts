@@ -17,13 +17,13 @@ import {
   base64url,
   type JWK,
 } from 'jose';
-import { buildDpopProof } from '../dpopProof';
-import type { DpopKeyPair } from '../dpopKeystore';
+import { buildDpopProof } from '../dpop-proof';
+import type { DpopKeyPair } from '../dpop-keystore';
 
 // ─── Mock getDpopKeyPair ──────────────────────────────────────────────────────
 // We own the keypair so the reference verifier can use the matching public key.
 
-jest.mock('../dpopKeystore');
+jest.mock('../dpop-keystore');
 
 let mockPair: DpopKeyPair;
 
@@ -35,7 +35,7 @@ beforeAll(async () => {
     publicJwk,
     jkt: 'test-jkt',
   };
-  const { getDpopKeyPair } = require('../dpopKeystore');
+  const { getDpopKeyPair } = require('../dpop-keystore');
   getDpopKeyPair.mockResolvedValue(mockPair);
 });
 

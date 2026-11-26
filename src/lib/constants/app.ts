@@ -30,7 +30,7 @@ export const PROMO_CODE_PATTERN = /^[A-Za-z0-9]{4,16}$/;
 export const PASSKEY_LABEL = Platform.OS === "ios" ? "Face ID" : "Fingerprint";
 
 // Inert until the mainnet cutover actually ships — flip to true then. Bump
-// MAINNET_CUTOVER_VERSION in mainnetCutoverReset.ts instead if a second
+// MAINNET_CUTOVER_VERSION in lib/auth/mainnet-cutover-reset.ts instead if a second
 // cutover is ever needed after this one.
 export const MAINNET_CUTOVER_ENABLED = true;
 

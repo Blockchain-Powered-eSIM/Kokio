@@ -11,9 +11,9 @@ import {
   setUnauthenticatedHandler,
   clearBffNonceCache,
 } from '@/lib/api/http-client';
-import { useAuthStore }     from '@/stores/authStore';
-import { refreshAccessToken } from '@/utils/auth/refresh';
-import { StepUpCancelledError } from '@/utils/auth/errors';
+import { useAuthStore }     from '@/lib/auth/auth-store';
+import { refreshAccessToken } from '@/lib/auth/refresh';
+import { StepUpCancelledError } from '@/lib/auth/errors';
 import { router }           from 'expo-router';
 
 jest.mock('axios', () => {
@@ -49,11 +49,11 @@ jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('uuid',        () => ({ v4: jest.fn(() => 'test-uuid') }));
 jest.mock('@/lib/config',   () => ({ Config: { API_BASE_URL: 'https://api.test.kokio.io' } }));
 
-jest.mock('@/utils/auth/dpopProof', () => ({
+jest.mock('@/lib/auth/dpop-proof', () => ({
   buildDpopProof: jest.fn().mockResolvedValue('mock-dpop-proof'),
 }));
 
-jest.mock('@/utils/auth/refresh', () => {
+jest.mock('@/lib/auth/refresh', () => {
   class TokenFamilyRevokedError extends Error {
     readonly code = 'TOKEN_FAMILY_REVOKED' as const;
     constructor() {
@@ -64,7 +64,7 @@ jest.mock('@/utils/auth/refresh', () => {
   return { TokenFamilyRevokedError, refreshAccessToken: jest.fn() };
 });
 
-jest.mock('@/stores/authStore', () => ({
+jest.mock('@/lib/auth/auth-store', () => ({
   useAuthStore: { getState: jest.fn() },
 }));
 

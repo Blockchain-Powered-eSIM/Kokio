@@ -13,7 +13,7 @@ import { DARK_TOKENS, LIGHT_TOKENS, type Palette } from "@/theme/colors";
 import { PASSKEY_LABEL } from "@/lib/constants/app";
 import { useWalletDeployment, MissingSignupDataError } from "./hooks/use-wallet-deployment";
 import { useToast } from "@/contexts/ToastContext";
-import { AuthError } from "@/utils/auth/errors";
+import { AuthError } from "@/lib/auth/errors";
 import { logger } from "@/lib/logger";
 
 const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [

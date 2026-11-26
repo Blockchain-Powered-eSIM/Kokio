@@ -19,9 +19,9 @@ import { AuthenticationModal } from "@/components/AuthenticationModal";
 import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/lib/api/http-client";
-import { useAuthStore } from "@/stores/authStore";
-import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";
-import { shouldShowWelcomeBack } from "@/utils/auth/returningUserProbe";
+import { useAuthStore } from "@/lib/auth/auth-store";
+import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/lib/auth/mainnet-cutover-reset";
+import { shouldShowWelcomeBack } from "@/lib/auth/returning-user-probe";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useConnectivity, useOfflineRedirect } from "@/features/offline/hooks/use-offline-redirect";
 

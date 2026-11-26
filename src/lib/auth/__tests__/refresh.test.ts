@@ -13,7 +13,7 @@
 // Defined outside freshModule() so the mock factories can close over them and
 // tests can mutate the initial token bundle between calls.
 
-import type { TokenBundle } from '../tokenStore';
+import type { TokenBundle } from '../token-store';
 
 const MOCK_ID_TOKEN =
   'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9' +
@@ -61,16 +61,16 @@ function freshModule() {
     Config: { AUTH_SERVER_BASE_URL: 'https://auth.example.com/v2' },
   }));
 
-  jest.mock('../kokioAuthClient', () => ({
+  jest.mock('../kokio-auth-client', () => ({
     kokioAuthClient: { token: mockToken },
     DpopNonceError: class DpopNonceError extends Error { code = 'DPOP_NONCE_ERROR'; },
   }));
 
-  jest.mock('../dpopProof', () => ({
+  jest.mock('../dpop-proof', () => ({
     buildDpopProof: mockBuildDpopProof,
   }));
 
-  jest.mock('@/stores/authStore', () => ({
+  jest.mock('../auth-store', () => ({
     useAuthStore: {
       getState: () => ({
         get tokens() { return mockStore.tokens; },

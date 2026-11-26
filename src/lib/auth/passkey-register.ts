@@ -1,7 +1,7 @@
 import { Passkey } from 'react-native-passkey';
 import { type Hex, bytesToHex } from 'viem';
 import { decodeAttestationObject, parseAuthenticatorData, decodeCredentialPublicKey, isoBase64URL, cose } from '@simplewebauthn/server/helpers';
-import { kokioAuthClient, RegisterCompleteData } from './kokioAuthClient';
+import { kokioAuthClient, RegisterCompleteData } from './kokio-auth-client';
 import { AuthError } from './errors';
 
 /** @deprecated Use AuthError with code CREDENTIAL_EXISTS instead */

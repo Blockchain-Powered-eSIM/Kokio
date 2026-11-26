@@ -13,7 +13,7 @@ import {
 } from "@/features/walletconnect/walletconnect-client";
 import { logger } from "@/lib/logger";
 import { getWalletState, awaitWalletDeploymentConfirmation } from "@/lib/api/bff/wallet";
-import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
+import { subscribeAccountDeleted } from '@/lib/auth/account-deleted';
 import { isAccountDeletedError, BffError } from "@/lib/api/bff/errors";
 import { appendWalletActivityEntry } from "@/features/wallet/wallet-activity";
 import { WALLET_ACTIVITY_KEY } from "@/lib/query-keys";

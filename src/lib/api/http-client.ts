@@ -6,12 +6,12 @@ import { router } from 'expo-router';
 import { logger } from '@/lib/logger';
 
 import { Config } from '@/lib/config';
-import { useAuthStore } from '@/stores/authStore';
-import { buildDpopProof } from '@/utils/auth/dpopProof';
-import { refreshAccessToken, TokenFamilyRevokedError } from '@/utils/auth/refresh';
-import { StepUpCancelledError } from '@/utils/auth/errors';
-import { markAccountDeleted } from '@/utils/auth/accountDeleted';
-import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
+import { useAuthStore } from '@/lib/auth/auth-store';
+import { buildDpopProof } from '@/lib/auth/dpop-proof';
+import { refreshAccessToken, TokenFamilyRevokedError } from '@/lib/auth/refresh';
+import { StepUpCancelledError } from '@/lib/auth/errors';
+import { markAccountDeleted } from '@/lib/auth/account-deleted';
+import { purgeAccountLocalState } from '@/lib/auth/purge-account-local-state';
 
 // Allow callers to opt out of auth header injection for public endpoints,
 // or to override the htu claim for routes with path parameters.

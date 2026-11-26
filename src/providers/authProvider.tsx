@@ -11,18 +11,18 @@ import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { LoginMethod } from "@/utils/types";
-import { kokioAuthClient } from "@/utils/auth/kokioAuthClient";
-import { registerPasskey } from "@/utils/auth/passkeyRegister";
-import type { RegisterResult } from "@/utils/auth/passkeyRegister";
-import { loginWithKokioPasskey, discoverAndLoginWithPasskey, type DiscoverLoginResult } from "@/utils/auth/passkeyLogin";
-import { performStepUp } from "@/utils/auth/stepUp";
-import { AuthError, StepUpCancelledError } from "@/utils/auth/errors";
+import { kokioAuthClient } from "@/lib/auth/kokio-auth-client";
+import { registerPasskey } from "@/lib/auth/passkey-register";
+import type { RegisterResult } from "@/lib/auth/passkey-register";
+import { loginWithKokioPasskey, discoverAndLoginWithPasskey, type DiscoverLoginResult } from "@/lib/auth/passkey-login";
+import { performStepUp } from "@/lib/auth/step-up";
+import { AuthError, StepUpCancelledError } from "@/lib/auth/errors";
 import { deleteAccount as bffDeleteAccount } from '@/lib/api/bff/account';
 import {
   markAccountDeleted,
   clearAccountDeleted,
   hydrateAccountDeleted,
-} from '@/utils/auth/accountDeleted';
+} from '@/lib/auth/account-deleted';
 import {
   setStepUpHandler,
   resolveStepUp,
@@ -31,9 +31,9 @@ import {
   setAccountDeletedHandler,
   type StepUpHint,
 } from "@/lib/api/http-client";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuthStore } from "@/lib/auth/auth-store";
 import { clearUsedHashes } from "@/utils/orderTracking";
-import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
+import { purgeAccountLocalState } from '@/lib/auth/purge-account-local-state';
 import { PasskeyRemovalModal } from '@/components/PasskeyRemovalModal';
 import { logger } from '@/lib/logger';
 

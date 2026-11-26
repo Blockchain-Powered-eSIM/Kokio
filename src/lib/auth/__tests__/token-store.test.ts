@@ -40,7 +40,7 @@ function freshModule() {
     getItemAsync: jest.fn(async (key: string) => mockStore[key] ?? null),
     deleteItemAsync: jest.fn(async (key: string) => { delete mockStore[key]; }),
   }));
-  return require('../tokenStore') as typeof import('../tokenStore');
+  return require('../token-store') as typeof import('../token-store');
 }
 
 beforeEach(() => {

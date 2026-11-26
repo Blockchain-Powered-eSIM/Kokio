@@ -1,7 +1,7 @@
-import { useAuthStore } from '@/stores/authStore';
-import { buildDpopProof } from '@/utils/auth/dpopProof';
-import { kokioAuthClient, type DpopProofBuilder } from '@/utils/auth/kokioAuthClient';
-import { type TokenBundle, parseIdToken } from '@/utils/auth/tokenStore';
+import { useAuthStore } from './auth-store';
+import { buildDpopProof } from './dpop-proof';
+import { kokioAuthClient, type DpopProofBuilder } from './kokio-auth-client';
+import { type TokenBundle, parseIdToken } from './token-store';
 
 // ─── Token family revocation error ───────────────────────────────────────────
 // Thrown when the server returns invalid_grant — the entire token family derived

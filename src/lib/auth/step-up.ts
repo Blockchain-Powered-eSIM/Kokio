@@ -1,9 +1,9 @@
 import { Passkey } from 'react-native-passkey';
-import { kokioAuthClient, type DpopProofBuilder } from './kokioAuthClient';
-import { buildDpopProof } from './dpopProof';
-import { parseIdToken } from './tokenStore';
+import { kokioAuthClient, type DpopProofBuilder } from './kokio-auth-client';
+import { buildDpopProof } from './dpop-proof';
+import { parseIdToken } from './token-store';
 import { AuthError } from './errors';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from './auth-store';
 import { logger } from '@/lib/logger';
 
 // ─── Response envelope helper (mirrors passkeyLogin.ts) ──────────────────────
