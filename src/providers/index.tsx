@@ -14,7 +14,7 @@ import { KokioStripeProvider } from './StripeProvider';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
-import { queryClient, asyncStoragePersister } from '@/services/queryClient';
+import { queryClient, asyncStoragePersister } from '@/lib/api/query-client';
 
 export { queryClient, asyncStoragePersister };
 

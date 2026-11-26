@@ -1,6 +1,6 @@
 import { BffError } from './errors';
 
-export type { paths, components, operations } from './generated/koKioBff';
+export type { paths, components, operations } from './generated/kokio-bff';
 export { BffError, formatBffError } from './errors';
 
 // ─── BFF response envelope types ─────────────────────────────────────────────

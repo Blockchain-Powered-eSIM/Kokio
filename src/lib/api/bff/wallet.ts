@@ -7,8 +7,8 @@
  */
 
 import type { Kokio } from 'kokio-sdk';
-import { unwrapBffResponse, unwrapBffResponseWithCorrelation } from './koKioBffClient';
-import api from '@/services/httpService';
+import { unwrapBffResponse, unwrapBffResponseWithCorrelation } from './client';
+import api from '@/lib/api/http-client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
 

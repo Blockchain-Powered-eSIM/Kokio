@@ -31,14 +31,14 @@ import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ESIMItem";
 import { getEsimOrderPayload, formatPlanLabel } from "@/helpers/esimOrder";
 import { useEsims, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
-import { isOrderSuccess, pollOrderStatus, submitPaymentHash } from "@/utils/bff/order";
-import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/utils/bff/order";
+import { isOrderSuccess, pollOrderStatus, submitPaymentHash } from "@/lib/api/bff/order";
+import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from "@/lib/api/bff/order";
 import { pollingLabel, formatCents, isUserActionableManualReview } from "@/utils/orderStatus";
 import OrderFailureModal from "@/components/ui/OrderFailureModal";
-import { formatBffError } from "@/utils/bff/koKioBffClient";
-import { resolveBffErrorMessage } from "@/utils/bff/errors";
-import { getCoupon } from "@/utils/bff/coupon";
-import type { CodeLookupResponse } from "@/utils/bff/coupon";
+import { formatBffError } from "@/lib/api/bff/client";
+import { resolveBffErrorMessage } from "@/lib/api/bff/errors";
+import { getCoupon } from "@/lib/api/bff/coupon";
+import type { CodeLookupResponse } from "@/lib/api/bff/coupon";
 import { useOrderPreview } from "@/hooks/useOrderPreview";
 import { useCreditBalance, heldCreditCents, CREDIT_BALANCE_KEY } from "@/hooks/useCreditHistory";
 import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
@@ -331,7 +331,7 @@ const Checkout = () => {
   const { showMessage }       = useToast();
   const orderCorrelationRef   = useRef<string | null>(null);
   const handlePollUpdate      = useCallback(
-    (update: import("@/utils/bff/order").PollUpdate) => {
+    (update: import("@/lib/api/bff/order").PollUpdate) => {
       setLoadingMessage(update.kind === 'status' ? pollingLabel(update.orderStatus) : 'Retrying...');
     },
     [],

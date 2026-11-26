@@ -7,11 +7,11 @@
  * esimId is now a path parameter: GET /esim/compatibility/{esimId}
  */
 
-import api from '@/services/httpService';
+import api from '@/lib/api/http-client';
 import { checkEsimCompatibility } from '../esim';
 import { BffError } from '../errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

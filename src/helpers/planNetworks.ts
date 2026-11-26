@@ -1,4 +1,4 @@
-import type { CataloguePlan } from "@/utils/bff/catalogue";
+import type { CataloguePlan } from "@/lib/api/bff/catalogue";
 
 type NetworkPlan = Pick<CataloguePlan, "coverageType" | "countryWiseNetworkCoverages">;
 

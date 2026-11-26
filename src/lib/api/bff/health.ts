@@ -1,4 +1,4 @@
-import api from '@/services/httpService';
+import api from '@/lib/api/http-client';
 
 export async function checkBffHealth(): Promise<boolean> {
   try {

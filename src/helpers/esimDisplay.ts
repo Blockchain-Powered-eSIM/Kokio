@@ -1,4 +1,4 @@
-import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
+import type { ESimDocument, PlanHistoryEntry } from "@/lib/api/bff/esim";
 import type { Esim } from "@/components/ESIMItem";
 
 /** The user's label when set, otherwise the plan's region name. Used everywhere an eSIM is named. */

@@ -5,11 +5,11 @@
  * response shape, and BffError propagation.
  */
 
-import api from '@/services/httpService';
+import api from '@/lib/api/http-client';
 import { getAccount } from '../account';
 import { BffError } from '../errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

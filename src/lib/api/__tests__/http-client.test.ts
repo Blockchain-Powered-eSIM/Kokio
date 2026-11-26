@@ -10,7 +10,7 @@ import {
   setStepUpHandler,
   setUnauthenticatedHandler,
   clearBffNonceCache,
-} from '@/services/httpService';
+} from '@/lib/api/http-client';
 import { useAuthStore }     from '@/stores/authStore';
 import { refreshAccessToken } from '@/utils/auth/refresh';
 import { StepUpCancelledError } from '@/utils/auth/errors';

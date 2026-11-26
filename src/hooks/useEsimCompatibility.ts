@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
-import { checkEsimCompatibility } from '@/utils/bff/esim';
-import type { CompatibilityResponse, CompatibilityResult, CheckCompatibilityParams } from '@/utils/bff/esim';
+import { checkEsimCompatibility } from '@/lib/api/bff/esim';
+import type { CompatibilityResponse, CompatibilityResult, CheckCompatibilityParams } from '@/lib/api/bff/esim';
 
 export type UseEsimCompatibilityParams = {
   planId?: string;

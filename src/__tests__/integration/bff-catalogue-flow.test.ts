@@ -9,16 +9,16 @@
  * BFF response without a real network.
  */
 
-import api from '@/services/httpService';
+import api from '@/lib/api/http-client';
 import {
   getCatalogue,
   getPlans,
   getServiceRegions,
   clearServiceRegionsCache,
-} from '@/utils/bff/catalogue';
-import { BffError } from '@/utils/bff/errors';
+} from '@/lib/api/bff/catalogue';
+import { BffError } from '@/lib/api/bff/errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

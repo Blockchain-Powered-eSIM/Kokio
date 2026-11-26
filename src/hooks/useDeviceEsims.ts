@@ -31,8 +31,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { getAllEsims, type ESimDocument } from '@/utils/bff/esim';
-import { getOrderList, type OrderListItem } from '@/utils/bff/order';
+import { getAllEsims, type ESimDocument } from '@/lib/api/bff/esim';
+import { getOrderList, type OrderListItem } from '@/lib/api/bff/order';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
 import { useKokio } from '@/hooks/useKokio';

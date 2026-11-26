@@ -1,6 +1,6 @@
-import type { components, operations } from './generated/koKioBff';
-import { unwrapBffResponse } from './koKioBffClient';
-import api from '@/services/httpService';
+import type { components, operations } from './generated/kokio-bff';
+import { unwrapBffResponse } from './client';
+import api from '@/lib/api/http-client';
 
 type GetCatalogueParams      = operations['catalogueGetPlans']['parameters']['query'];
 type GetPlansParams          = GetCatalogueParams; // backward compat

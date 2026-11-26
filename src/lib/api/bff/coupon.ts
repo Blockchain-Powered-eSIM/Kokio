@@ -1,6 +1,6 @@
-import type { components } from './generated/koKioBff';
-import { unwrapBffResponse, BffError } from './koKioBffClient';
-import api from '@/services/httpService';
+import type { components } from './generated/kokio-bff';
+import { unwrapBffResponse, BffError } from './client';
+import api from '@/lib/api/http-client';
 import { logger } from '@/lib/logger';
 import { PROMO_CODE_PATTERN } from '@/constants/checkout.constants';
 

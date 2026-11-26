@@ -1,7 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 import { formatUnits } from 'viem';
 import type { WalletActivityEntry } from '@/utils/walletActivity';
-import type { ActivityEntry } from '@/utils/bff/account';
+import type { ActivityEntry } from '@/lib/api/bff/account';
 import { truncateDecimals } from '@/hooks/useWalletTokens';
 import { shortenAddress } from '@/utils/address';
 import { DEVICE_WALLET_PAYMENT_ASSETS } from '@/constants/checkout.constants';

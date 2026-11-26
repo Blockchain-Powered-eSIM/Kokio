@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 
-import { getAllCatalogue } from "@/utils/bff/catalogue";
+import { getAllCatalogue } from "@/lib/api/bff/catalogue";
 import { rankPlansForCountries, regionsForCountries, type PlanMatch, type SourcedPlan } from "@/helpers/planCoverage";
 
 const STALE_TIME = 5 * 60 * 1000;

@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useSetEsimLabel } from "@/hooks/useEsimLabel";
 import { esimDisplayName } from "@/helpers/esimDisplay";
-import type { ESimDocument } from "@/utils/bff/esim";
+import type { ESimDocument } from "@/lib/api/bff/esim";
 
 interface EsimLabelEditorProps {
   doc: ESimDocument;

@@ -12,7 +12,7 @@ import { useEsims } from "@/hooks/useDeviceEsims";
 import { useAllEsimUsage } from "@/hooks/useEsimUsage";
 import ESIMItem from "@/components/ESIMItem";
 import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
-import type { ESimDocument, ESimUsage } from "@/utils/bff/esim";
+import type { ESimDocument, ESimUsage } from "@/lib/api/bff/esim";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { openInstallation } from "@/helpers/esimInstall";
 import { logger } from "@/lib/logger";

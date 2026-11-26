@@ -1,5 +1,5 @@
 import _keyBy from "lodash/keyBy";
-import type { components } from "@/utils/bff/generated/koKioBff";
+import type { components } from "@/lib/api/bff/generated/kokio-bff";
 
 export type ServiceRegion = components["schemas"]["ServiceRegion"];
 

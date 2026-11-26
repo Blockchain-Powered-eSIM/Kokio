@@ -8,7 +8,7 @@ import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import { useColors } from "@/hooks/useColors";
 import { useBottomInset } from "@/hooks/useBottomInset";
 import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
-import type { ESimDocument } from "@/utils/bff/esim";
+import type { ESimDocument } from "@/lib/api/bff/esim";
 
 export interface EsimTopupPickerItem {
   eSimRef: string;

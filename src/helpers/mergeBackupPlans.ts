@@ -1,4 +1,4 @@
-import type { CataloguePlan } from "@/utils/bff/catalogue";
+import type { CataloguePlan } from "@/lib/api/bff/catalogue";
 
 /** Appends BACKUP plans from an includeBackup response after the ACTIVE list, skipping duplicate catalogue ids. */
 export function mergeBackupPlans(

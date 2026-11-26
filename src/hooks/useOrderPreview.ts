@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { previewOrder } from '@/utils/bff/order';
-import type { CreateOrderRequest, OrderPricing } from '@/utils/bff/order';
+import { previewOrder } from '@/lib/api/bff/order';
+import type { CreateOrderRequest, OrderPricing } from '@/lib/api/bff/order';
 
 const PREVIEW_DEBOUNCE_MS = 500;
 

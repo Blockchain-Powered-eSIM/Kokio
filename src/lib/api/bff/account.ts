@@ -1,6 +1,6 @@
-import type { components } from './generated/koKioBff';
-import { unwrapBffResponse } from './koKioBffClient';
-import api from '@/services/httpService';
+import type { components } from './generated/kokio-bff';
+import { unwrapBffResponse } from './client';
+import api from '@/lib/api/http-client';
 
 type AccountResponse       = components['schemas']['AccountResponse'];
 type ReferralResponse      = components['schemas']['ReferralResponse'];

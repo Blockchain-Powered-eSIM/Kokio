@@ -1,13 +1,13 @@
 // New-eSIM purchase across the BFF clients: pick a plan from the catalogue,
 // optionally look up a code, place the order, then read its status.
 
-import api from '@/services/httpService';
-import { getCatalogue } from '@/utils/bff/catalogue';
-import { getCoupon } from '@/utils/bff/coupon';
-import { getOrderStatus, submitOrder, type CreateOrderRequest } from '@/utils/bff/order';
-import { BffError } from '@/utils/bff/errors';
+import api from '@/lib/api/http-client';
+import { getCatalogue } from '@/lib/api/bff/catalogue';
+import { getCoupon } from '@/lib/api/bff/coupon';
+import { getOrderStatus, submitOrder, type CreateOrderRequest } from '@/lib/api/bff/order';
+import { BffError } from '@/lib/api/bff/errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

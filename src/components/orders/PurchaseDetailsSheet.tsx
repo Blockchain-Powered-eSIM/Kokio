@@ -20,8 +20,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { esimDisplayName } from "@/helpers/esimDisplay";
 import { openInstallation } from "@/helpers/esimInstall";
 import { colorForStatus, labelForStatus, labelForPricing, formatCents } from "@/utils/orderStatus";
-import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
-import type { OrderListItem } from "@/utils/bff/order";
+import type { ESimDocument, PlanHistoryEntry } from "@/lib/api/bff/esim";
+import type { OrderListItem } from "@/lib/api/bff/order";
 import { logger } from "@/lib/logger";
 
 export type EnrichedOrder = OrderListItem & { esim?: ESimDocument };

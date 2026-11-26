@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { getServiceRegions } from "@/utils/bff/catalogue";
-import { checkBffHealth } from "@/utils/bff/health";
+import { getServiceRegions } from "@/lib/api/bff/catalogue";
+import { checkBffHealth } from "@/lib/api/bff/health";
 import AppBootstrap from "@/utils/appBootstrap";
 import { logger } from '@/lib/logger';
 

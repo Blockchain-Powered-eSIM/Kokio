@@ -21,7 +21,7 @@ import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useContacts } from '@/hooks/useContacts';
 import { useWalletActivityFeed } from '@/hooks/useWalletActivityFeed';
 import { esimDisplayName, esimDocToDisplayItem } from '@/helpers/esimDisplay';
-import type { ESimDocument } from '@/utils/bff/esim';
+import type { ESimDocument } from '@/lib/api/bff/esim';
 import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
 import { shortenAddress } from '@/utils/address';
 import { logger } from '@/lib/logger';

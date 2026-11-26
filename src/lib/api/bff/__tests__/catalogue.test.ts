@@ -5,7 +5,7 @@
  * envelope (what the httpService interceptor returns after stripping Axios).
  */
 
-import api from '@/services/httpService';
+import api from '@/lib/api/http-client';
 import {
   getCatalogue,
   getPlans,
@@ -14,7 +14,7 @@ import {
 } from '../catalogue';
 import { BffError } from '../errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

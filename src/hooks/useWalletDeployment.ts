@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { type Hex } from "viem";
 import { useKokio } from "@/hooks/useKokio";
-import { requestWalletDeployment } from "@/utils/bff/wallet";
-import { BffError } from "@/utils/bff/koKioBffClient";
+import { requestWalletDeployment } from "@/lib/api/bff/wallet";
+import { BffError } from "@/lib/api/bff/client";
 import { logger } from "@/lib/logger";
 
 // Thrown when required signup data (deviceWalletAddress/userPasskey/rawSalt/sdk)

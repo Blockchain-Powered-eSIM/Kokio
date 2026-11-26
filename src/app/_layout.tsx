@@ -19,7 +19,7 @@ import FullScreenLoader from "@/components/ui/FullScreenLoader";
 import { AuthenticationModal } from "@/components/AuthenticationModal";
 import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
-import { setUnauthenticatedHandler } from "@/services/httpService";
+import { setUnauthenticatedHandler } from "@/lib/api/http-client";
 import { useAuthStore } from "@/stores/authStore";
 import { runSdkV3MigrationIfNeeded } from "@/utils/auth/sdkV3Reset";
 import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";

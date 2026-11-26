@@ -1,11 +1,11 @@
 // Tests for the coupon and referral code lookup: input normalisation, format
 // checks before any request, and error mapping.
 
-import api from '@/services/httpService';
+import api from '@/lib/api/http-client';
 import { getCoupon, InvalidCouponCodeError } from '../coupon';
 import { BffError } from '../errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SPEC="kokio-bff-openapi-source.json"
-OUT="src/utils/bff/generated/koKioBff.d.ts"
+OUT="src/lib/api/bff/generated/kokio-bff.d.ts"
 
 if [ ! -f "$SPEC" ]; then
   echo "Error: $SPEC not found at project root" >&2

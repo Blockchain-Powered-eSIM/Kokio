@@ -1,7 +1,7 @@
 // Tests for the order client: request shape, idempotency key, status lookups
 // and the polling loop that waits for an order to finish.
 
-import api from '@/services/httpService';
+import api from '@/lib/api/http-client';
 import {
   cancelOrder,
   getOrderStatus,
@@ -14,7 +14,7 @@ import {
 } from '../order';
 import { BffError } from '../errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

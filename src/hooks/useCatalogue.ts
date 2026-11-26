@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAllCatalogue } from '@/utils/bff/catalogue';
-import type { GetCatalogueParams, CatalogueResponse } from '@/utils/bff/catalogue';
+import { getAllCatalogue } from '@/lib/api/bff/catalogue';
+import type { GetCatalogueParams, CatalogueResponse } from '@/lib/api/bff/catalogue';
 
 const STALE_TIME = 5  * 60 * 1000;
 const GC_TIME    = 10 * 60 * 1000;

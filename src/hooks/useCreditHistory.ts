@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { getCredit, type CreditHistoryResponse } from '@/utils/bff/account';
+import { getCredit, type CreditHistoryResponse } from '@/lib/api/bff/account';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
 

@@ -9,7 +9,7 @@ import type { RegisterResult } from "@/utils/auth/passkeyRegister";
 import { loginWithKokioPasskey, discoverAndLoginWithPasskey, type DiscoverLoginResult } from "@/utils/auth/passkeyLogin";
 import { performStepUp } from "@/utils/auth/stepUp";
 import { AuthError, StepUpCancelledError } from "@/utils/auth/errors";
-import { deleteAccount as bffDeleteAccount } from '@/utils/bff/account';
+import { deleteAccount as bffDeleteAccount } from '@/lib/api/bff/account';
 import {
   markAccountDeleted,
   clearAccountDeleted,
@@ -22,7 +22,7 @@ import {
   clearBffNonceCache,
   setAccountDeletedHandler,
   type StepUpHint,
-} from "@/services/httpService";
+} from "@/lib/api/http-client";
 import { useAuthStore } from "@/stores/authStore";
 import { clearUsedHashes } from "@/utils/orderTracking";
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';

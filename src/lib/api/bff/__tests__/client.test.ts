@@ -7,7 +7,7 @@
  * mocking required.
  */
 
-import { unwrapBffResponse, BffError, formatBffError } from '../koKioBffClient';
+import { unwrapBffResponse, BffError, formatBffError } from '../client';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -2,9 +2,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import * as Linking from 'expo-linking';
 
-import { submitOrder, pollOrderStatus, getOrderStatus, OrderNotFoundError } from '@/utils/bff/order';
-import type { CreateOrderRequest, OrderPricing, OrderStatusResponse, PollUpdate } from '@/utils/bff/order';
-import { BffError } from '@/utils/bff/koKioBffClient';
+import { submitOrder, pollOrderStatus, getOrderStatus, OrderNotFoundError } from '@/lib/api/bff/order';
+import type { CreateOrderRequest, OrderPricing, OrderStatusResponse, PollUpdate } from '@/lib/api/bff/order';
+import { BffError } from '@/lib/api/bff/client';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import { formatPlanLabel } from '@/helpers/esimOrder';
 import { addPendingOrder, removePendingOrder, PENDING_ORDERS_KEY } from '@/hooks/usePendingOrders';

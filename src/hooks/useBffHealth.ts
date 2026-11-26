@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { checkBffHealth } from '@/utils/bff/health';
+import { checkBffHealth } from '@/lib/api/bff/health';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 
 export function useBffHealth() {

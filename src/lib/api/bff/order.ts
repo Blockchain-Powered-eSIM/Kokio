@@ -1,6 +1,6 @@
-import { BffError , unwrapBffResponse, unwrapBffResponseWithCorrelation } from './koKioBffClient'; 
-import type { components } from './generated/koKioBff';
-import api from '@/services/httpService';
+import { BffError , unwrapBffResponse, unwrapBffResponseWithCorrelation } from './client'; 
+import type { components } from './generated/kokio-bff';
+import api from '@/lib/api/http-client';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
 

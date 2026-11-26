@@ -10,7 +10,7 @@
  */
 
 import { partitionCompatibilityResults } from '../useEsimCompatibility';
-import type { CompatibilityResult } from '@/utils/bff/esim';
+import type { CompatibilityResult } from '@/lib/api/bff/esim';
 
 function result(overrides: Partial<CompatibilityResult> = {}): CompatibilityResult {
   return {

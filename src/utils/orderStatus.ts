@@ -1,4 +1,4 @@
-import type { OrderPricing } from '@/utils/bff/order';
+import type { OrderPricing } from '@/lib/api/bff/order';
 
 const STATUS_LABELS: Record<string, string> = {
   // Order lifecycle

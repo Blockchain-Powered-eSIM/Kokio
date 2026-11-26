@@ -1,12 +1,12 @@
 // Top-up flow across the BFF clients: check which eSIMs a plan can top up,
 // pick one, then place the top-up order against its eSimRef.
 
-import api from '@/services/httpService';
-import { checkEsimCompatibility } from '@/utils/bff/esim';
-import { submitOrder, type CreateOrderRequest } from '@/utils/bff/order';
-import { BffError } from '@/utils/bff/errors';
+import api from '@/lib/api/http-client';
+import { checkEsimCompatibility } from '@/lib/api/bff/esim';
+import { submitOrder, type CreateOrderRequest } from '@/lib/api/bff/order';
+import { BffError } from '@/lib/api/bff/errors';
 
-jest.mock('@/services/httpService', () => ({
+jest.mock('@/lib/api/http-client', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),

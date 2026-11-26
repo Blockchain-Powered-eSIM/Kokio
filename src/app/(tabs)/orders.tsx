@@ -24,7 +24,7 @@ import type { Palette } from "@/constants/Colors";
 import { labelForStatus, colorForStatus, labelForPaymentMethod, isUserActionableManualReview } from "@/utils/orderStatus";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useEsimUsage } from "@/hooks/useEsimUsage";
-import type { ESimDocument } from "@/utils/bff/esim";
+import type { ESimDocument } from "@/lib/api/bff/esim";
 import ESIMItem from "@/components/ESIMItem";
 import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
 import PurchaseDetailsSheet, { CopyRow, type EnrichedOrder } from "@/components/orders/PurchaseDetailsSheet";
@@ -35,8 +35,8 @@ import { useEsims, useOrders } from "@/hooks/useDeviceEsims";
 import { usePendingOrders } from "@/hooks/usePendingOrders";
 import type { PendingOrderRecord } from "@/hooks/usePendingOrders";
 import { CancelOrderConfirmModal } from "@/components/ui/CancelOrderConfirmModal";
-import { cancelOrder } from "@/utils/bff/order";
-import { BffError, formatBffError, resolveBffErrorMessage } from "@/utils/bff/errors";
+import { cancelOrder } from "@/lib/api/bff/order";
+import { BffError, formatBffError, resolveBffErrorMessage } from "@/lib/api/bff/errors";
 import { logger } from "@/lib/logger";
 
 // ─── eSIM activation-status labeling ─────────────────────────────────────────

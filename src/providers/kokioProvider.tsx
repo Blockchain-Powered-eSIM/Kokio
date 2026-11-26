@@ -9,17 +9,17 @@ import { AppExtraConfig, Config } from "@/lib/config";
 import type { KokioSmartAccount } from "kokio-sdk/types";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getAccount } from "@/utils/bff/account";
+import { getAccount } from "@/lib/api/bff/account";
 import {
   getWcSignClient,
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
 import { logger } from "@/lib/logger";
-import { getWalletState, awaitWalletDeploymentConfirmation } from "@/utils/bff/wallet";
+import { getWalletState, awaitWalletDeploymentConfirmation } from "@/lib/api/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
-import { isAccountDeletedError, BffError } from "@/utils/bff/errors";
+import { isAccountDeletedError, BffError } from "@/lib/api/bff/errors";
 import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from "@/utils/walletActivity";
-import { queryClient } from "@/services/queryClient";
+import { queryClient } from "@/lib/api/query-client";
 
 const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
