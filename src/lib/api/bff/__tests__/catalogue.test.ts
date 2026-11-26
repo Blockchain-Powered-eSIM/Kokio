@@ -8,7 +8,6 @@
 import api from '@/lib/api/http-client';
 import {
   getCatalogue,
-  getPlans,
   getServiceRegions,
   clearServiceRegionsCache,
 } from '../catalogue';
@@ -110,14 +109,6 @@ describe('getCatalogue', () => {
     const err = new Error('Network Error');
     mockGet.mockRejectedValue(err);
     await expect(getCatalogue({ serviceRegionCode: 'US' })).rejects.toBe(err);
-  });
-});
-
-// ─── getPlans (deprecated alias) ──────────────────────────────────────────────
-
-describe('getPlans (deprecated alias)', () => {
-  it('is the same function reference as getCatalogue', () => {
-    expect(getPlans).toBe(getCatalogue);
   });
 });
 

@@ -3,13 +3,12 @@ import { unwrapBffResponse } from './client';
 import api from '@/lib/api/http-client';
 
 type GetCatalogueParams      = operations['catalogueGetPlans']['parameters']['query'];
-type GetPlansParams          = GetCatalogueParams; // backward compat
-type CatalogueResponse       = components['schemas']['CatalogueResponse'];
+type CatalogueResponse      = components['schemas']['CatalogueResponse'];
 type ServiceRegionsResponse  = components['schemas']['ServiceRegionsResponse'];
 
 export type CataloguePlan = components['schemas']['CataloguePlan'];
 
-export type { GetCatalogueParams, GetPlansParams, CatalogueResponse, ServiceRegionsResponse };
+export type { GetCatalogueParams, CatalogueResponse, ServiceRegionsResponse };
 
 // ─── Catalogue plans ──────────────────────────────────────────────────────────
 
@@ -36,9 +35,6 @@ export async function getAllCatalogue(params: GetCatalogueParams): Promise<Catal
   }
   return { ...first, plans };
 }
-
-/** @deprecated Use getCatalogue */
-export const getPlans = getCatalogue;
 
 // ─── Service regions (public, cached) ────────────────────────────────────────
 

@@ -12,7 +12,6 @@
 import api from '@/lib/api/http-client';
 import {
   getCatalogue,
-  getPlans,
   getServiceRegions,
   clearServiceRegionsCache,
 } from '@/lib/api/bff/catalogue';
@@ -245,13 +244,5 @@ describe('error recovery during catalogue browsing', () => {
     await expect(getCatalogue({ serviceRegionCode: 'EU' })).rejects.toBe(networkErr);
     const result = await getCatalogue({ serviceRegionCode: 'EU' });
     expect(result.plans).toHaveLength(1);
-  });
-});
-
-// ─── Deprecated alias ─────────────────────────────────────────────────────────
-
-describe('getPlans deprecated alias', () => {
-  it('is the same function reference as getCatalogue', () => {
-    expect(getPlans).toBe(getCatalogue);
   });
 });
