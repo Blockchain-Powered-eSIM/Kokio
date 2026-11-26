@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -17,6 +16,8 @@ import BottomSheet, {
 import { useBottomInset } from "@/hooks/useBottomInset";
 import { isAccountDeletedCached, subscribeAccountDeleted } from '@/lib/auth/account-deleted';
 import { useAuthRelay } from "../hooks/use-auth-relayer";
+import { useIsReturningUser } from "../hooks/use-is-returning-user";
+import { createStyles } from "../authentication-modal-styles";
 import { ThemedText } from "@/components/ThemedText";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
@@ -24,122 +25,9 @@ import { Easing } from "react-native-reanimated";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
-import type { Palette } from "@/theme/colors";
 import { logger } from '@/lib/logger';
 
 type AuthMode = "choice" | "authenticating" | "error";
-
-const createStyles = (colors: Palette) =>
-  StyleSheet.create({
-    kokioImage: {
-      height: 60,
-      marginTop: 10,
-      resizeMode: "contain",
-    },
-    authRequiredText: {
-      fontSize: 24,
-      fontWeight: "300",
-      fontFamily: "Lexend-Light",
-      marginTop: 32,
-      paddingTop: 12,
-    },
-    authSubtext: {
-      fontSize: 13,
-      marginTop: 12,
-      fontWeight: "300",
-      fontFamily: "Lexend-Light",
-      textAlign: "center",
-    },
-    deletedBody: {
-      fontSize: 13,
-      marginTop: 12,
-      fontWeight: "300",
-      fontFamily: "Lexend-Light",
-      textAlign: "center",
-      paddingHorizontal: 12,
-      lineHeight: 19,
-    },
-    loadingContainer: {
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    loadingImage: {
-      height: 80,
-      marginTop: 24,
-      marginBottom: 5,
-      resizeMode: "contain",
-    },
-    loadingText: {
-      fontSize: 13,
-      fontWeight: "300",
-      fontFamily: "Lexend-Light",
-    },
-    cancelText: {
-      fontSize: 16,
-      fontWeight: "300",
-      fontFamily: "Lexend-Light",
-    },
-    errorText: {
-      fontSize: 13,
-      color: colors.destructive,
-      fontFamily: "Lexend-Light",
-      textAlign: "center",
-      marginTop: 12,
-      paddingHorizontal: 24,
-    },
-    buttonRow: {
-      width: "100%",
-      marginTop: 32,
-      flexDirection: "row",
-      justifyContent: "center",
-      gap: 12,
-    },
-    loginButtonRow: {
-      width: "100%",
-      marginTop: 32,
-      alignItems: "center",
-    },
-    loginButton: {
-      width: "55%",
-      minWidth: 180,
-      height: 52,
-      borderRadius: 14,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.highlight,
-    },
-    primaryButton: {
-      flex: 1,
-      maxWidth: 160,
-      height: 52,
-      borderRadius: 14,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.highlight,
-    },
-    primaryButtonText: {
-      fontSize: 16,
-      fontWeight: "600",
-      fontFamily: "Lexend-Light",
-      color: "#000000",
-    },
-    secondaryButton: {
-      flex: 1,
-      maxWidth: 160,
-      height: 52,
-      borderRadius: 14,
-      alignItems: "center",
-      justifyContent: "center",
-      borderWidth: 1,
-      borderColor: colors.foreground,
-    },
-    secondaryButtonText: {
-      fontSize: 16,
-      fontWeight: "300",
-      fontFamily: "Lexend-Light",
-      color: colors.foreground,
-    },
-  });
 
 export function AuthenticationModal() {
   const isDark = useTheme();
@@ -162,45 +50,9 @@ export function AuthenticationModal() {
     setLocalError("");
   }, [clearError]);
 
-  // Distinguishes a fresh install / never-registered device (show New vs.
-  // Existing choice) from a device that already completed passkey setup
-  // (show a single Log In button — no need to ask again on every cold launch).
-  // null = not yet determined (only true before the one-off SecureStore check
-  // below resolves on cold launch).
-  const [isReturningUser, setIsReturningUser] = useState<boolean | null>(
-    kokio.deviceWalletAddress ? true : null
-  );
-  // Once we've established the truth once (cold-launch SecureStore check, or
-  // kokio context already had an address), kokio.deviceWalletAddress becoming
-  // falsy is a deliberate "Logout and Clear Data" — trust it immediately
-  // instead of re-checking SecureStore, which would briefly show the stale
-  // "Log In" button before flipping to the New/Existing choice.
-  const hasResolvedOnce = useRef(!!kokio.deviceWalletAddress);
+  const isReturningUser = useIsReturningUser(kokio.deviceWalletAddress);
 
   useEffect(() => subscribeAccountDeleted(setAccountDeleted), []);
-
-  useEffect(() => {
-    if (kokio.deviceWalletAddress) {
-      hasResolvedOnce.current = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsReturningUser(true);
-      return;
-    }
-    if (hasResolvedOnce.current) {
-      setIsReturningUser(false);
-      return;
-    }
-    let cancelled = false;
-    SecureStore.getItemAsync(DEVICE_WALLET_ADDRESS_KEY).then((stored) => {
-      if (!cancelled) {
-        hasResolvedOnce.current = true;
-        setIsReturningUser(!!stored);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [kokio.deviceWalletAddress]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
