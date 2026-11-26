@@ -21,7 +21,7 @@ import { ESIM_EXTRA_DETAILS } from "@/lib/constants/checkout";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { HeaderBackControl } from "@/components/navigation/stackHeader";
 
-import DetailItem from "../ui/DetailItem";
+import DetailItem from "@/components/ui/DetailItem";
 
 const PILL_ROW_HEIGHT = (Platform.OS === "ios" ? 16 : 40) - 44;
 const HEADER_MIN_HEIGHT = 170 + PILL_ROW_HEIGHT;

@@ -1,6 +1,6 @@
 // Tests for the order body checkout builds from the selected plan.
 
-import { formatPlanLabel, getEsimOrderPayload } from '../esimOrder';
+import { formatPlanLabel, getEsimOrderPayload } from '../esim-order';
 import type { Esim } from '@/components/ESIMItem';
 
 const PLAN = {

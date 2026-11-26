@@ -6,7 +6,7 @@ import { RADIO_KEYS } from "@/lib/constants/app";
 import type { DeviceWalletPaymentAsset } from "@/lib/constants/app";
 import type { Palette } from "@/theme/colors";
 
-import { ApplePay, CreditCard, ESimWallet, ExternalWallet, ExternalWalletBrowser } from "./components/radioLabels";
+import { ApplePay, CreditCard, ESimWallet, ExternalWallet, ExternalWalletBrowser } from "./components/payment-option-labels";
 
 export const createRadioButtons = (
   selectedId: string | undefined,

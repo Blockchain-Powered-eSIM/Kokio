@@ -4,7 +4,7 @@ import _get from "lodash/get";
 
 import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stackHeader";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
-import CheckoutHeader from "@/components/checkoutHeader";
+import CheckoutHeader from "@/features/checkout/components/checkout-header";
 import appBootstrap from "@/utils/appBootstrap";
 import { ShopFiltersProvider, useShopFilters } from "@/contexts/ShopFiltersContext";
 import { ShopFilterButton, ShopFilterSheet } from "@/components/ShopFilterControl";

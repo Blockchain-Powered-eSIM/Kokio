@@ -25,7 +25,7 @@ import type { ESimDocument } from '@/lib/api/bff/esim';
 import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
 import { shortenAddress } from '@/utils/address';
 import { logger } from '@/lib/logger';
-import { setPreferredCheckoutPaymentMethod } from '@/utils/checkoutIntent';
+import { setPreferredCheckoutPaymentMethod } from '@/features/checkout/checkout-intent';
 import { RADIO_KEYS } from '@/lib/constants/app';
 
 const HIDDEN_COST_BLOG_URL = 'https://kokio.app/blogs/where-your-sim-data-goes';

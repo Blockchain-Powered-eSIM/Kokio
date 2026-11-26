@@ -1,1 +1,1 @@
-export { default } from "@/screens/checkout";
+export { default } from "@/features/checkout/checkout-screen";
