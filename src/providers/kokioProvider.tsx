@@ -1,11 +1,8 @@
 import React, { ReactNode, createContext, useCallback, useEffect, useReducer, useRef } from "react";
 import { router } from "expo-router";
-import { Kokio } from "kokio-sdk";
-import { PASSKEY_CONFIG } from "@/lib/constants/auth";
-import { createWalletClient, http, type Address, type Hex } from "viem";
-import { baseSepolia, base } from "viem/chains";
-import Constants from "expo-constants";
-import { AppExtraConfig, Config } from "@/lib/config";
+import type { Kokio } from "kokio-sdk";
+import type { Address, Hex } from "viem";
+import { createKokioClient, resolveChain, withSmartAccount } from "@/lib/chain/kokio-client";
 import type { KokioSmartAccount } from "kokio-sdk/types";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -20,8 +17,6 @@ import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { isAccountDeletedError, BffError } from "@/lib/api/bff/errors";
 import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from "@/utils/walletActivity";
 import { queryClient } from "@/lib/api/query-client";
-
-const extra = Constants.expoConfig?.extra as AppExtraConfig;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -237,33 +232,13 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       return;
     }
 
-    const signerAddress    = resolvedAddress as `0x${string}`;
-    const chainId          = Config.CHAIN_ID;
-    // Release builds must not silently fall back to testnet on bad config.
-    if (chainId !== base.id && chainId !== baseSepolia.id) {
+    const chain = resolveChain();
+    if (!chain) {
       dispatch({ type: "ERROR", payload: "Chain configuration missing or invalid" });
       return;
     }
-    const chain            = chainId === base.id ? base : baseSepolia;
-    const alchemySubdomain = chainId === base.id ? 'base-mainnet' : 'base-sepolia';
 
-    const rpcUrl = extra.alchemyApiKey
-      ? `https://${alchemySubdomain}.g.alchemy.com/v2/${extra.alchemyApiKey}`
-      : (Config.CHAIN_RPC_URL ?? chain.rpcUrls.default.http[0]);
-
-    const viemClient = createWalletClient({
-      chain,
-      transport: http(rpcUrl),
-      account: signerAddress,
-    });
-
-    const kokioSDK = new Kokio(
-      viemClient,
-      credentialId,
-      PASSKEY_CONFIG.RP_ID,
-      extra.pimlicoApiKey ?? '',
-      extra.gasManagerPolicyId ?? '',
-    );
+    const kokioSDK = createKokioClient(chain, credentialId, resolvedAddress as Address);
 
     dispatch({ type: "SET_KOKIO", payload: kokioSDK });
   }, [kokio.userPasskey, kokio.deviceWalletAddress]);
@@ -367,15 +342,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
         const account = await sdk.smartAccount.getSmartWallet(deviceUID, ownerKey, salt);
         const smartAccountClient = await sdk.smartAccount.getSmartWalletClient(account);
-        const registryProbe = new Kokio(
-          sdk.viemWalletClient,
-          sdk.credentialId,
-          sdk.rpId,
-          sdk.pimlicoAPIKey,
-          sdk.gasPolicyId,
-          smartAccountClient,
-          deviceWalletAddress,
-        ).registry;
+        const registryProbe = withSmartAccount(sdk, smartAccountClient, deviceWalletAddress).registry;
 
         const deployed = await awaitWalletDeploymentConfirmation(registryProbe, deviceWalletAddress);
 
@@ -600,7 +567,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   /**
    * ── Smart account upgrade for returning users ─────────────────────────────
    *
-   * setupKokio's `new Kokio(...)` above only passes 5 args, so the constructor
+   * setupKokio's `createKokioClient(...)` above binds no smart account, so the constructor
    * never receives `smartAccountClient` / `deviceWalletAddress` and leaves
    * `registry` / `deviceWallet` / `eSIMWallet` / `paymentAdapter` all
    * `undefined` (see kokio-sdk's Kokio constructor). A returning user whose
@@ -666,15 +633,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       );
       const smartAccountClient = await kokio.sdk.smartAccount.getSmartWalletClient(account);
 
-      const upgraded = new Kokio(
-        kokio.sdk.viemWalletClient,
-        kokio.sdk.credentialId,
-        kokio.sdk.rpId,
-        kokio.sdk.pimlicoAPIKey,
-        kokio.sdk.gasPolicyId,
-        smartAccountClient,
-        kokio.deviceWalletAddress as Address,
-      );
+      const upgraded = withSmartAccount(kokio.sdk, smartAccountClient, kokio.deviceWalletAddress as Address);
 
       dispatch({ type: "SET_KOKIO", payload: upgraded });
       logger.debug('SMART_ACCOUNT_UPGRADED', { deviceUID: kokio.deviceUID });
