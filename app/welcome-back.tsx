@@ -107,7 +107,7 @@ const WelcomeBackScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../assets/images/kokio.png")}
+        source={require("@/assets/images/kokio.png")}
         style={styles.logo}
       />
 
@@ -120,7 +120,7 @@ const WelcomeBackScreen: React.FC = () => {
       </ThemedText>
 
       <Image
-        source={require("../assets/images/nonetwork.png")}
+        source={require("@/assets/images/nonetwork.png")}
         style={styles.illustration}
         resizeMode="contain"
       />

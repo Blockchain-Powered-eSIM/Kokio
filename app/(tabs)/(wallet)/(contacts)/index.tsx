@@ -18,7 +18,7 @@ const ContactsScreen = () => {
                 {/* add contact btn  */}
                 <Pressable onPress={() => router.push("/(tabs)/(wallet)/(contacts)/addContactScreen")} className='ml-[-10] justify-center mt-[-19] mr-4 '>
                     <View className='ml-8 h-16 items-center justify-center w-16 rounded-full' style={{ backgroundColor: colors.warning }}>
-                        <Image source={require("../../../../assets/images/wallet/add_contact.png")} className='h-[32] w-[38]' />
+                        <Image source={require("@/assets/images/wallet/add_contact.png")} className='h-[32] w-[38]' />
                     </View>
                     <ThemedText lightColor="#000000" className='ml-8 mt-2'>Add new</ThemedText>
                 </Pressable>

@@ -46,7 +46,7 @@ const ContactTransactions = () => {
                     className="flex-row items-center justify-between mx-5"
                 >
                     <View className='flex-row items-center'>
-                        <Image source={tr.type === 'sent'?require('../../../../assets/images/contacts/sent.png'):require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
+                        <Image source={tr.type === 'sent'?require('@/assets/images/contacts/sent.png'):require('@/assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                         <View className='flex-col items-start ml-3'>
                             {tr.name ? (
                                 <ThemedText lightColor="#000000" variant='xl'>{tr?.name}</ThemedText>
@@ -102,7 +102,7 @@ const ContactTransactions = () => {
                                     params: { transaction: JSON.stringify(completedTransactions[index]) }
                                 })} key={index} className='flex-row items-center justify-between  mx-5 '>
                                     <View className='flex-row items-center'>
-                                        <Image source={tr.type === 'sent' ? require('../../../../assets/images/contacts/sent.png') : require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
+                                        <Image source={tr.type === 'sent' ? require('@/assets/images/contacts/sent.png') : require('@/assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                                         <View className='flex-col items-start ml-3 '>
                                             <ThemedText lightColor="#000000" variant='xl'>{tr.name}</ThemedText>
                                             {tr.type === "received" ? <ThemedText lightColor="#000000" darkColor={colors.foreground} variant='sm'>{tr.type}</ThemedText> :

@@ -71,7 +71,7 @@ const ContactDetails = () => {
         <Pressable onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/sendToContact', params: { alias: alias, avatarColorKey: avatarColorKey, id: id } })} className='flex-1  items-center'>
           <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[70%] ml-[-30] rounded-3xl py-5  justify-center items-center'>
 
-            <Image source={require("../../../../assets/images/wallet/sendImg.png")} className='h-[32] w-[32]' />
+            <Image source={require("@/assets/images/wallet/sendImg.png")} className='h-[32] w-[32]' />
             <ThemedText lightColor="#000000" variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
         </Pressable>
@@ -103,7 +103,7 @@ const ContactDetails = () => {
                   <View key={index} className='flex-row items-center justify-between  mx-5 '>
                     <View className='flex-row items-center'>
 
-                      <Image source={tr.type === 'sent' ? require('../../../../assets/images/contacts/sent.png') : require('../../../../assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
+                      <Image source={tr.type === 'sent' ? require('@/assets/images/contacts/sent.png') : require('@/assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
                       <View className='flex-col items-start ml-3 '>
                         <ThemedText lightColor="#000000" variant='xl'>{tr.name}</ThemedText>
                         {tr.type === "received" ? <ThemedText lightColor="#000000" darkColor={colors.foreground} variant='sm'>{tr.type}</ThemedText> :

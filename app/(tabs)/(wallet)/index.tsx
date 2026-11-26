@@ -392,7 +392,7 @@ const WalletPage = () => {
             <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/addContactScreen' as any)} className='items-center justify-between mx-5'>
               <View className='flex-col items-center'>
                 <View className='h-[53px] w-[53px] rounded-full items-center justify-center' style={{ backgroundColor: colors.warning }}>
-                  <Image source={require("../../../assets/images/wallet/add_contact.png")} className='h-[26] w-[30]' />
+                  <Image source={require("@/assets/images/wallet/add_contact.png")} className='h-[26] w-[30]' />
                 </View>
                 <View className='flex-col items-start mt-3 '>
                   <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground}>Add new</ThemedText>

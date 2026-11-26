@@ -73,7 +73,7 @@ const ContactsScreen = () => {
         >
           <View className="ml-8 h-16 items-center justify-center w-16 rounded-full" style={{ backgroundColor: colors.warning }}>
             <Image
-              source={require("../../assets/images/wallet/add_contact.png")}
+              source={require("@/assets/images/wallet/add_contact.png")}
               className="h-[32] w-[38]"
             />
           </View>
@@ -104,7 +104,7 @@ const ContactsScreen = () => {
                   source={
                     contact.monogramUrl
                       ? { uri: contact.monogramUrl }
-                      : require("../../assets/images/wallet/sampleProfileImg.png")
+                      : require("@/assets/images/wallet/sampleProfileImg.png")
                   }
                   className="h-[53px] w-[53px]  "
                 />

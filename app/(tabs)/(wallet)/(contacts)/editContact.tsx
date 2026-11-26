@@ -169,7 +169,7 @@ const EditContact = () => {
                             </Pressable>
                         </ThemedView>
                         <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-auto mx-2 flex-row  py-5 rounded-3xl '>
-                            <Image source={require('../../../../assets/images/wallet/trashIcon.png')} className='h-[24] w-[24] ml-6'/>
+                            <Image source={require('@/assets/images/wallet/trashIcon.png')} className='h-[24] w-[24] ml-6'/>
                             <ThemedText lightColor="#000000" className='ml-4'  darkColor={colors.pink}>Delete Contact</ThemedText>
                         </ThemedView>
 

@@ -57,12 +57,12 @@ export default function RootLayout() {
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const welcomeBackRedirectedRef = useRef(false);
   const [loaded] = useFonts({
-    "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
-    Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
-    "Lexend-Medium": require("../assets/fonts/Lexend-Medium.ttf"),
-    "Lexend-SemiBold": require("../assets/fonts/Lexend-SemiBold.ttf"),
-    "Lexend-Bold": require("../assets/fonts/Lexend-Bold.ttf"),
-    "Lexend-Black": require("../assets/fonts/Lexend-Black.ttf"),
+    "Lexend-Light": require("@/assets/fonts/Lexend-Light.ttf"),
+    Lexend: require("@/assets/fonts/Lexend-Regular.ttf"),
+    "Lexend-Medium": require("@/assets/fonts/Lexend-Medium.ttf"),
+    "Lexend-SemiBold": require("@/assets/fonts/Lexend-SemiBold.ttf"),
+    "Lexend-Bold": require("@/assets/fonts/Lexend-Bold.ttf"),
+    "Lexend-Black": require("@/assets/fonts/Lexend-Black.ttf"),
   });
 
   const { isLoading, error: bootstrapError, refresh: refreshBootstrap } = useBootstrap();
