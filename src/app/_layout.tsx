@@ -6,10 +6,9 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { View } from "react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
-import NetInfo, { type NetInfoState } from "@react-native-community/netinfo";
 import "../../global.css";
 
 import useBootstrap from "@/lib/bootstrap/use-bootstrap";
@@ -24,33 +23,15 @@ import { useAuthStore } from "@/stores/authStore";
 import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";
 import { shouldShowWelcomeBack } from "@/utils/auth/returningUserProbe";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import {
-  getSkipNextOfflineRedirect,
-  isOfflinePath,
-  leaveOfflineScreen,
-  setSkipNextOfflineRedirect,
-} from "@/features/offline/offline-redirect";
+import { useConnectivity, useOfflineRedirect } from "@/features/offline/hooks/use-offline-redirect";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
-
-// A genuine disconnect (isConnected false) is offline whatever the reachability
-// probe says; otherwise null means the probe has not resolved and is unknown.
-const toOnline = (state: NetInfoState): boolean | null => {
-  if (state.isConnected === false) return false;
-  if (_isNull(state.isInternetReachable) || state.isInternetReachable === undefined) return null;
-  return !!state.isConnected && state.isInternetReachable;
-};
-
-// Reachability blips (probe timeouts, network handoffs, returning from the
-// background) clear on their own within seconds; only redirect if still offline.
-const OFFLINE_CONFIRM_DELAY_MS = 3000;
 
 export default function RootLayout() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [bootstrapDismissed, setBootstrapDismissed] = useState(false);
   const [resetReady, setResetReady] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
@@ -66,72 +47,7 @@ export default function RootLayout() {
 
   const { isLoading, error: bootstrapError, refresh: refreshBootstrap } = useBootstrap();
 
-  // Use refs to avoid recreating the NetInfo listener on every pathname change
-  const pathnameRef = useRef(pathname);
-  const [confirmedOffline, setConfirmedOffline] = useState(false);
-  const confirmedOfflineRef = useRef(false);
-  const offlineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasReadingRef = useRef(false);
-  const offlinePushedRef = useRef(false);
-
-  const updateConfirmedOffline = useCallback((value: boolean) => {
-    confirmedOfflineRef.current = value;
-    setConfirmedOffline(value);
-  }, []);
-
-  const markOnline = useCallback(() => {
-    if (offlineTimerRef.current) {
-      clearTimeout(offlineTimerRef.current);
-      offlineTimerRef.current = null;
-    }
-    setIsConnected(true);
-    setSkipNextOfflineRedirect(false);
-    updateConfirmedOffline(false);
-  }, [updateConfirmedOffline]);
-
-  const applyReading = useCallback(
-    (online: boolean) => {
-      const isFirstReading = !hasReadingRef.current;
-      hasReadingRef.current = true;
-      setIsConnected(online);
-
-      if (online) {
-        markOnline();
-        return;
-      }
-
-      if (confirmedOfflineRef.current || offlineTimerRef.current) return;
-
-      // Nothing to lose on a cold start, so skip the debounce there.
-      if (isFirstReading) {
-        updateConfirmedOffline(true);
-        return;
-      }
-
-      offlineTimerRef.current = setTimeout(() => {
-        offlineTimerRef.current = null;
-        NetInfo.refresh()
-          .then((fresh) => {
-            const stillOnline = toOnline(fresh);
-            if (stillOnline === false) updateConfirmedOffline(true);
-            else if (stillOnline) markOnline();
-          })
-          .catch(() => {});
-      }, OFFLINE_CONFIRM_DELAY_MS);
-    },
-    [updateConfirmedOffline, markOnline],
-  );
-
-  useEffect(() => {
-    pathnameRef.current = pathname;
-    // Covers a reconnect landing in the gap between the push dispatch and the
-    // pathname update, which would otherwise leave Offline on screen while online.
-    if (isOfflinePath(pathname) && !confirmedOfflineRef.current) {
-      leaveOfflineScreen(router);
-    }
-    // router is a stable singleton reference from expo-router
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  const { isConnected, confirmedOffline, pathnameRef } = useConnectivity();
 
   // Runs once before anything else touches SecureStore: on a device upgrading from
   // a testnet build, wipes the now-meaningless local identity/wallet state.
@@ -153,36 +69,6 @@ export default function RootLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetReady]);
 
-  useEffect(() => {
-    // isInternetReachable can stay null indefinitely on some devices; give up
-    // after 6s and assume online so the loader cannot hang. A later definite
-    // reading still corrects it.
-    const timeoutId = setTimeout(() => setIsConnected((prev) => prev ?? true), 6000);
-
-    NetInfo.fetch().then((state) => {
-      const online = toOnline(state);
-      if (online === null) return;
-      clearTimeout(timeoutId);
-      applyReading(online);
-    });
-
-    return () => clearTimeout(timeoutId);
-  }, [applyReading]);
-
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const online = toOnline(state);
-      // Never write an unknown reading back into isConnected: it feeds
-      // showLoader, so null would unmount the whole Stack and reset navigation.
-      if (online === null) return;
-      applyReading(online);
-    });
-    return () => {
-      unsubscribe();
-      if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current);
-    };
-  }, [applyReading]);
-
   // Hide splash screen after fonts and bootstrap complete
   useEffect(() => {
     if (loaded && !isLoading) {
@@ -201,27 +87,7 @@ export default function RootLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showLoader, showWelcomeBack]);
 
-  useEffect(() => {
-    if (showLoader) return;
-
-    if (!confirmedOffline) {
-      offlinePushedRef.current = false;
-      if (isOfflinePath(pathnameRef.current)) leaveOfflineScreen(router);
-      return;
-    }
-
-    if (
-      getSkipNextOfflineRedirect() ||
-      offlinePushedRef.current ||
-      isOfflinePath(pathnameRef.current)
-    ) {
-      return;
-    }
-    offlinePushedRef.current = true;
-    router.push(ROUTE_NAMES.OFFLINE as any);
-    // router is a stable singleton reference from expo-router
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirmedOffline, showLoader]);
+  useOfflineRedirect(confirmedOffline, showLoader, pathnameRef);
 
   const inner =
     showLoader ? (
