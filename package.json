@@ -106,6 +106,7 @@
   "devDependencies": {
     "@babel/core": "7.29.7",
     "@babel/plugin-syntax-import-assertions": "7.29.7",
+    "@react-native/jest-preset": "0.88.1",
     "@types/jest": "30.0.0",
     "@types/lodash": "4.17.26",
     "@types/qs": "6.15.1",
