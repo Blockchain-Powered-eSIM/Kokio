@@ -12,7 +12,7 @@ import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useKokio } from "@/hooks/useKokio";
-import { useCreditBalance, heldCreditCents } from "@/hooks/useCreditHistory";
+import { useCreditBalance, heldCreditCents } from "@/features/referral/hooks/use-credit-history";
 import { ThemedText } from "@/components/ThemedText";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import DetailItem from "@/components/ui/DetailItem";
