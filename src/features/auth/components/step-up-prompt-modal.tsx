@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/providers/theme-context";
 import type { Palette } from "@/theme/colors";
+import { PASSKEY_LABEL } from "@/lib/constants/app";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   overlay: {
@@ -127,9 +127,6 @@ export function StepUpPromptModal() {
     useAuthRelay();
   const [loading, setLoading] = useState(false);
 
-  const biometricLabel =
-    Platform.OS === "ios" ? "Face ID" : "Fingerprint";
-
   const operationLabel = friendlyOperation(stepUpHint?.operationName);
 
   const handleConfirm = useCallback(async () => {
@@ -159,7 +156,7 @@ export function StepUpPromptModal() {
           <Text style={styles.title} numberOfLines={1}>{operationLabel}</Text>
 
           <Text style={[styles.body, !isDark && { color: colors.text }]}>
-            Confirm with {biometricLabel} to continue
+            Confirm with {PASSKEY_LABEL} to continue
           </Text>
 
           {!!stepUpError && !loading && (
@@ -185,7 +182,7 @@ export function StepUpPromptModal() {
               <Pressable
                 style={styles.confirmBtn}
                 onPress={handleConfirm}
-                accessibilityLabel={`Confirm with ${biometricLabel}`}
+                accessibilityLabel={`Confirm with ${PASSKEY_LABEL}`}
                 accessibilityRole="button"
               >
                 <Text style={styles.confirmText}>
