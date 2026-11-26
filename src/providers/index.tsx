@@ -8,7 +8,7 @@ import {
 } from 'expo-router';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
-import { AuthRelayProvider } from './authProvider';
+import { AuthRelayProvider } from '@/features/auth/auth-provider';
 import { KokioProvider } from './kokioProvider';
 import { KokioStripeProvider } from './StripeProvider';
 import { ToastProvider } from '@/contexts/ToastContext';

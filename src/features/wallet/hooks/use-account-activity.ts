@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAccountActivity, type ActivityEntry } from '@/lib/api/bff/account';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
-import { useAuthRelay } from '@/hooks/useAuthRelayer';
+import { useAuthRelay } from '@/features/auth/hooks/use-auth-relayer';
 import { useKokio } from '@/hooks/useKokio';
 import { ACCOUNT_ACTIVITY_KEY } from '@/lib/query-keys';
 

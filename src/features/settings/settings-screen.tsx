@@ -6,7 +6,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { ThemedView } from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useKokio } from "@/hooks/useKokio";
-import { useAuthRelay } from "@/hooks/useAuthRelayer";
+import { useAuthRelay } from "@/features/auth/hooks/use-auth-relayer";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from '@/components/Header';
 import { HeaderBackControl } from '@/components/navigation/stackHeader';

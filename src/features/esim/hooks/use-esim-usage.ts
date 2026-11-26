@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getEsimUsage, getAllEsimUsage, type ESimUsage } from '@/lib/api/bff/esim';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
-import { useAuthRelay } from '@/hooks/useAuthRelayer';
+import { useAuthRelay } from '@/features/auth/hooks/use-auth-relayer';
 import { ESIM_USAGE_ALL_KEY, ESIM_USAGE_KEY } from '@/lib/query-keys';
 
 // staleTime matches the server-side vendor cache duration (15 min per the spec).

@@ -16,8 +16,8 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { useBottomInset } from "@/hooks/useBottomInset";
 import { isAccountDeletedCached, subscribeAccountDeleted } from '@/lib/auth/account-deleted';
-import { useAuthRelay } from "@/hooks/useAuthRelayer";
-import { ThemedText } from "./ThemedText";
+import { useAuthRelay } from "../hooks/use-auth-relayer";
+import { ThemedText } from "@/components/ThemedText";
 import { useKokio } from "@/hooks/useKokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
