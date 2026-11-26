@@ -13,7 +13,7 @@
  */
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { queryClient, asyncStoragePersister } from '@/providers';
+import { queryClient, asyncStoragePersister } from '@/services/queryClient';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 import { PENDING_ORDERS_STORAGE_KEY } from '@/hooks/usePendingOrders';
 import { walletActivityStorageKey } from '@/utils/walletActivity';
