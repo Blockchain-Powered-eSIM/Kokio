@@ -10,7 +10,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
-import { getRouteNameFromSegments, getIsTabBarVisible } from "@/helpers/navigator.helper";
+import { getRouteNameFromSegments, getIsTabBarVisible } from "@/lib/navigation";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import Header from "@/components/Header";
 import { HeaderBackControl } from "@/components/navigation/stackHeader";

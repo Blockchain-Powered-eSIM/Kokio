@@ -10,7 +10,7 @@ import {
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { LoginMethod } from "@/utils/types";
+import { LoginMethod } from "@/lib/auth/types";
 import { kokioAuthClient } from "@/lib/auth/kokio-auth-client";
 import { registerPasskey } from "@/lib/auth/passkey-register";
 import type { RegisterResult } from "@/lib/auth/passkey-register";
@@ -32,7 +32,7 @@ import {
   type StepUpHint,
 } from "@/lib/api/http-client";
 import { useAuthStore } from "@/lib/auth/auth-store";
-import { clearUsedHashes } from "@/utils/orderTracking";
+import { clearUsedHashes } from "@/lib/storage/order-tracking";
 import { purgeAccountLocalState } from '@/lib/auth/purge-account-local-state';
 import { PasskeyRemovalModal } from '@/features/auth/components/passkey-removal-modal';
 import { logger } from '@/lib/logger';

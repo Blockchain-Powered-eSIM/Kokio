@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
-import { openAppSettings } from '@/utils/openAppSettings';
+import { openAppSettings } from '../open-app-settings';
 
 interface Props {
   visible: boolean;

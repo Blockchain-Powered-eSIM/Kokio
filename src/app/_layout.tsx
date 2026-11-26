@@ -1,6 +1,6 @@
 // Add global shims
 import "react-native-get-random-values";
-import "@/utils/nativeRuntimeSetup";
+import "@/lib/native-runtime-setup";
 
 import { useFonts } from "expo-font";
 import { Stack, useRouter, usePathname } from "expo-router";

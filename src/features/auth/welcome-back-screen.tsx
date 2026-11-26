@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
-import { openAppSettings } from "@/utils/openAppSettings";
+import { openAppSettings } from "./open-app-settings";
 import { markWelcomeBackSeen } from "@/lib/auth/returning-user-probe";
 import { logger } from "@/lib/logger";
 

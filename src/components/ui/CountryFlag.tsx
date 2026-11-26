@@ -5,8 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import _get from "lodash/get";
 
 import { useColors } from "@/hooks/useColors";
-import { rankRegionsForCountries, MAX_NAMED_REGIONS } from "@/helpers/customRegionalName";
-import { regionCodeFromName, regionImageForCode } from "@/helpers/regionImage";
+import { rankRegionsForCountries, MAX_NAMED_REGIONS } from "@/lib/regions/rank-regions";
+import { regionCodeFromName, regionImageForCode } from "@/lib/regions/region-image";
 
 const CODE_VS_RESIZE_MODE = {
   NP: "center",
