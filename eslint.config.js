@@ -8,6 +8,10 @@ module.exports = defineConfig([
     ignores: ["dist/*", "**/__tests__/**/*.ts", ".expo/*"],
   },
   {
+    files: ["jest.setup.js"],
+    languageOptions: { globals: { jest: "readonly" } },
+  },
+  {
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
