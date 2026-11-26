@@ -18,8 +18,7 @@ import type { Address } from 'viem';
 import { useKokio } from '@/hooks/useKokio';
 import type { TransferCall } from '@/helpers/walletTransferCall';
 import { logger } from '@/lib/logger';
-
-export const GAS_ESTIMATE_KEY = 'gas-estimate' as const;
+import { GAS_ESTIMATE_KEY } from '@/lib/query-keys';
 
 export interface GasEstimate {
   isSponsored: boolean;

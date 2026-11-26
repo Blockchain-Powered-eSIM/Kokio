@@ -16,9 +16,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/lib/logger';
+import { PENDING_ORDERS_KEY } from '@/lib/query-keys';
 
 export const PENDING_ORDERS_STORAGE_KEY = '@kokio_pending_orders';
-export const PENDING_ORDERS_KEY = 'pending-orders' as const;
 
 export interface PendingOrderRecord {
   correlationId: string;

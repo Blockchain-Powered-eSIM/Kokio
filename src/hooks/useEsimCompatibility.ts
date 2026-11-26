@@ -1,6 +1,7 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { checkEsimCompatibility } from '@/lib/api/bff/esim';
 import type { CompatibilityResponse, CompatibilityResult, CheckCompatibilityParams } from '@/lib/api/bff/esim';
+import { ESIM_COMPATIBILITY_KEY } from '@/lib/query-keys';
 
 export type UseEsimCompatibilityParams = {
   planId?: string;
@@ -27,7 +28,7 @@ export function useEsimCompatibility(
   options?: ExtraOptions,
 ) {
   const query = useQuery<CompatibilityResponse>({
-    queryKey: ['esim-compatibility', params.planId, params.eSimRef],
+    queryKey: [ESIM_COMPATIBILITY_KEY, params.planId, params.eSimRef],
     queryFn:  () => checkEsimCompatibility({ planId: params.planId } as CheckCompatibilityParams, params.eSimRef),
     enabled:  (options?.enabled ?? true) && !!params.planId,
     ...options,

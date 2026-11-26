@@ -25,7 +25,8 @@ import { normalizeAddressInput } from '@/utils/address';
 import { useKokio } from '@/hooks/useKokio';
 import { logger } from '@/lib/logger';
 import { isUserCancelledPasskeyError } from '@/utils/formatOnChainError';
-import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from '@/utils/walletActivity';
+import { appendWalletActivityEntry } from '@/utils/walletActivity';
+import { WALLET_ACTIVITY_KEY } from '@/lib/query-keys';
 
 interface Transaction {
   id: string;

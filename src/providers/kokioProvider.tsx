@@ -15,7 +15,8 @@ import { logger } from "@/lib/logger";
 import { getWalletState, awaitWalletDeploymentConfirmation } from "@/lib/api/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { isAccountDeletedError, BffError } from "@/lib/api/bff/errors";
-import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from "@/utils/walletActivity";
+import { appendWalletActivityEntry } from "@/utils/walletActivity";
+import { WALLET_ACTIVITY_KEY } from "@/lib/query-keys";
 import { queryClient } from "@/lib/api/query-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

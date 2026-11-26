@@ -23,8 +23,7 @@ import { useKokio } from '@/hooks/useKokio';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import type { CustomToken } from '@/hooks/useCustomTokens';
 import { logger } from '@/lib/logger';
-
-export const WALLET_TOKENS_KEY = 'wallet-tokens' as const;
+import { WALLET_TOKENS_KEY } from '@/lib/query-keys';
 
 export type WalletTokenSymbol = 'USDC' | 'USDT' | 'DAI' | 'ETH' | 'USDCt';
 

@@ -3,8 +3,7 @@ import { getAccountActivity, type ActivityEntry } from '@/lib/api/bff/account';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
 import { useKokio } from '@/hooks/useKokio';
-
-export const ACCOUNT_ACTIVITY_KEY = 'account-activity' as const;
+import { ACCOUNT_ACTIVITY_KEY } from '@/lib/query-keys';
 
 const STALE_TIME = 60_000;
 const GC_TIME    = 5 * 60_000;

@@ -39,8 +39,6 @@ export interface WalletActivityEntry {
   counterparty?: string;
 }
 
-export const WALLET_ACTIVITY_KEY = 'wallet-activity' as const;
-
 const MAX_ENTRIES = 50;
 
 export function walletActivityStorageKey(deviceUID: string): string {

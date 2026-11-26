@@ -7,7 +7,8 @@ import type { CreateOrderRequest, OrderPricing, OrderStatusResponse, PollUpdate 
 import { BffError } from '@/lib/api/bff/client';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import { formatPlanLabel } from '@/helpers/esimOrder';
-import { addPendingOrder, removePendingOrder, PENDING_ORDERS_KEY } from '@/hooks/usePendingOrders';
+import { addPendingOrder, removePendingOrder } from '@/hooks/usePendingOrders';
+import { PENDING_ORDERS_KEY } from '@/lib/query-keys';
 import type { Esim } from '@/components/ESIMItem';
 import { logger } from '@/lib/logger';
 

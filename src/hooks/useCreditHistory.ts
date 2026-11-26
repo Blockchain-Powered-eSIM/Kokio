@@ -2,9 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { getCredit, type CreditHistoryResponse } from '@/lib/api/bff/account';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
-
-export const CREDIT_BALANCE_KEY = 'account-credit-balance' as const;
-export const CREDIT_HISTORY_KEY = 'account-credit-history' as const;
+import { CREDIT_BALANCE_KEY, CREDIT_HISTORY_KEY } from '@/lib/query-keys';
 
 const BALANCE_PAGE_SIZE = 1;
 const HISTORY_PAGE_SIZE = 25;

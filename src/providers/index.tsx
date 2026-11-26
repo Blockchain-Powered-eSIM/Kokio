@@ -13,7 +13,7 @@ import { KokioProvider } from './kokioProvider';
 import { KokioStripeProvider } from './StripeProvider';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
+import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/lib/query-keys';
 import { queryClient, asyncStoragePersister } from '@/lib/api/query-client';
 
 export { queryClient, asyncStoragePersister };

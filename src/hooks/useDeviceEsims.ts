@@ -36,11 +36,7 @@ import { getOrderList, type OrderListItem } from '@/lib/api/bff/order';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
 import { useKokio } from '@/hooks/useKokio';
-
-// ─── Query key constants ───────────────────────────────────────────────────────
-
-export const DEVICE_ESIMS_KEY  = 'device-esims'  as const;
-export const DEVICE_ORDERS_KEY = 'device-orders' as const;
+import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/lib/query-keys';
 
 // ─── Shared cache settings ────────────────────────────────────────────────────
 

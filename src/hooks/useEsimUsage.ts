@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getEsimUsage, getAllEsimUsage, type ESimUsage } from '@/lib/api/bff/esim';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
+import { ESIM_USAGE_ALL_KEY, ESIM_USAGE_KEY } from '@/lib/query-keys';
 
 // staleTime matches the server-side vendor cache duration (15 min per the spec).
 const STALE_TIME = 15 * 60_000;
@@ -28,7 +29,7 @@ export function useEsimUsage(eSimRef: string | undefined): UseEsimUsageResult {
   const { state: authState } = useAuthRelay();
 
   const query = useQuery<ESimUsage>({
-    queryKey:        ['esim-usage', eSimRef],
+    queryKey:        [ESIM_USAGE_KEY, eSimRef],
     queryFn:         () => getEsimUsage(eSimRef!),
     staleTime:       STALE_TIME,
     enabled:         !!eSimRef && isActive && authState.authenticated,
@@ -57,7 +58,7 @@ export function useAllEsimUsage(enabled: boolean): UseAllEsimUsageResult {
   const { state: authState } = useAuthRelay();
 
   const query = useQuery<ESimUsage[]>({
-    queryKey:        ['esim-usage-all'],
+    queryKey:        [ESIM_USAGE_ALL_KEY],
     queryFn:         getAllEsimUsage,
     staleTime:       STALE_TIME,
     enabled:         enabled && isActive && authState.authenticated,

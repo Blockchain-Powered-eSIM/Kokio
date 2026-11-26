@@ -1,6 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
 
 import { getAllCatalogue } from "@/lib/api/bff/catalogue";
+import { CATALOGUE_KEY } from "@/lib/query-keys";
 import { rankPlansForCountries, regionsForCountries, type PlanMatch, type SourcedPlan } from "@/helpers/planCoverage";
 
 const STALE_TIME = 5 * 60 * 1000;
@@ -16,7 +17,7 @@ export function useMultiCountryPlans(selected: string[]) {
 
   const queries = useQueries({
     queries: serviceRegionCodes.map((serviceRegionCode) => ({
-      queryKey: ["catalogue", "region", serviceRegionCode, {}],
+      queryKey: [CATALOGUE_KEY, "region", serviceRegionCode, {}],
       queryFn: () => getAllCatalogue({ serviceRegionCode }),
       staleTime: STALE_TIME,
       gcTime: GC_TIME,
