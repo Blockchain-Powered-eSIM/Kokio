@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { type Hex } from "viem";
-import { useKokio } from "@/hooks/useKokio";
+import { useKokio } from "./use-kokio";
 import { requestWalletDeployment } from "@/lib/api/bff/wallet";
 import { BffError } from "@/lib/api/bff/client";
 import { logger } from "@/lib/logger";
@@ -18,7 +18,7 @@ export class MissingSignupDataError extends Error {
 
 // Deployment is processed by a backend cron (every 5 minutes, up to 6-7
 // minutes worst case), so this only submits the request and returns
-// immediately — it never blocks waiting for completion. kokioProvider's
+// immediately — it never blocks waiting for completion. kokio-provider.tsx's
 // beginWalletDeploymentWatch takes over confirming it in the background,
 // which keeps working even if the caller navigates away right after this
 // resolves.

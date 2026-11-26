@@ -6,7 +6,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { useColors } from "@/hooks/useColors";
 import { sortTokensByBalance, useWalletTokens } from './hooks/use-wallet-tokens';
 import { useCustomTokens } from './hooks/use-custom-tokens';
-import { useKokio } from '@/hooks/useKokio';
+import { useKokio } from './hooks/use-kokio';
 import { AddTokenSheet } from './components/add-token-sheet';
 import { AddTokenButton } from './components/token-grid';
 import { TokenIcon } from './components/token-icon';

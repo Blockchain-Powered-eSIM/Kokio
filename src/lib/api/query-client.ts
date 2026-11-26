@@ -3,8 +3,8 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Extracted from providers/index.tsx so non-provider modules (e.g.
-// kokioProvider.tsx) can invalidate queries without importing providers/index.tsx
-// and creating an import cycle (index.tsx -> kokioProvider.tsx -> index.tsx).
+// kokio-provider.tsx) can invalidate queries without importing providers/index.tsx
+// and creating an import cycle (index.tsx -> kokio-provider.tsx -> index.tsx).
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

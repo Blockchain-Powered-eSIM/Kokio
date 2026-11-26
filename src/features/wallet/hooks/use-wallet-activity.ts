@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useKokio } from '@/hooks/useKokio';
+import { useKokio } from './use-kokio';
 import { getWalletActivityEntries, type WalletActivityEntry } from '../wallet-activity';
 import { WALLET_ACTIVITY_KEY } from '@/lib/query-keys';
 

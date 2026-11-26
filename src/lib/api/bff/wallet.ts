@@ -36,7 +36,7 @@ export interface WalletDeployResponse {
 }
 
 // GET /account/wallet needs only DPoP auth, no step-up — safe to call from an
-// automatic effect (kokioProvider's auto-derive) without ever prompting for
+// automatic effect (kokio-provider's auto-derive) without ever prompting for
 // biometrics. GET /account, by contrast, requires step-up and must not be
 // used for this.
 export function getWalletState(): Promise<WalletStateResponse> {

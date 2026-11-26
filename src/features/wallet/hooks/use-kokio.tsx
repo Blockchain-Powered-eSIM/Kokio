@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { KokioContext } from "@/providers/kokioProvider";
+import { KokioContext } from "../kokio-provider";
 
 export const useKokio = () => {
   const context = useContext(KokioContext);

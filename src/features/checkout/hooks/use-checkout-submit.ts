@@ -5,7 +5,7 @@ import * as WebBrowser from "expo-web-browser";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Esim } from "@/components/ui/esim-item";
 import { useToast } from "@/contexts/ToastContext";
-import { useKokio } from "@/hooks/useKokio";
+import { useKokio } from "@/features/wallet/hooks/use-kokio";
 import { isOrderSuccess, pollOrderStatus } from "@/lib/api/bff/order";
 import type { CreateOrderRequest, CreateOrderResponse, OrderStatusResponse, PollUpdate } from "@/lib/api/bff/order";
 import { formatBffError } from "@/lib/api/bff/client";

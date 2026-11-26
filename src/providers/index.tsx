@@ -9,7 +9,7 @@ import {
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
 import { AuthRelayProvider } from '@/features/auth/auth-provider';
-import { KokioProvider } from './kokioProvider';
+import { KokioProvider } from '@/features/wallet/kokio-provider';
 import { KokioStripeProvider } from './StripeProvider';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { useColorScheme } from '@/hooks/useColorScheme';

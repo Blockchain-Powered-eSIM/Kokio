@@ -13,7 +13,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { erc20Abi, isAddress, type Address } from 'viem';
-import { useKokio } from '@/hooks/useKokio';
+import { useKokio } from './use-kokio';
 import { logger } from '@/lib/logger';
 import { CUSTOM_TOKENS_KEY } from '@/lib/storage/keys';
 

@@ -14,7 +14,7 @@ import { ReceiveSheet } from './components/receive-sheet';
 import { AddTokenSheet } from './components/add-token-sheet';
 import { TokenGrid } from './components/token-grid';
 import { DepositSheet } from './components/deposit-sheet';
-import { useKokio } from '@/hooks/useKokio';
+import { useKokio } from './hooks/use-kokio';
 import { useEsims } from '@/features/esim/hooks/use-esims';
 import { parsedAmount, sortTokensByBalance, useWalletTokens } from './hooks/use-wallet-tokens';
 import { useCustomTokens } from './hooks/use-custom-tokens';

@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import ActiveESIMsScroll from "./components/active-esim-scroll";
 import Wallet from "./components/wallet-card";
 import Hero from "./components/hero";
-import { useKokio } from "@/hooks/useKokio";
+import { useKokio } from "@/features/wallet/hooks/use-kokio";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useWalletTokens } from "@/features/wallet/hooks/use-wallet-tokens";
 

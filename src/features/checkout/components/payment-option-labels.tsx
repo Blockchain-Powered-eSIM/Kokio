@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
-import { useKokio } from "@/hooks/useKokio";
+import { useKokio } from "@/features/wallet/hooks/use-kokio";
 import { useWalletTokens, truncateDecimals } from "@/features/wallet/hooks/use-wallet-tokens";
 import type { DeviceWalletPaymentAsset } from "@/lib/constants/app";
 import type { Palette } from "@/theme/colors";

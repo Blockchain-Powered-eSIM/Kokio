@@ -48,7 +48,7 @@ export async function purgeAccountLocalState(): Promise<void> {
   let deviceUID: string | null = null;
   try {
     const raw = await SecureStore.getItemAsync(DEVICE_UID_KEY);
-    // Stored via JSON.stringify (kokioProvider.saveValueForDeviceUID, authProvider.signUpWithPasskey)
+    // Stored via JSON.stringify (kokio-provider saveValueForDeviceUID, auth-provider signUpWithPasskey)
     if (raw) {
       try { deviceUID = JSON.parse(raw) as string; } catch { deviceUID = raw; }
     }
