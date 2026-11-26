@@ -1,6 +1,6 @@
 /**
  * Server-truth eSIM state.
- * Authoritative React Query hook for device eSIM documents. Order history is in features/orders/use-orders.ts.
+ * Authoritative React Query hook for device eSIM documents. Order history is in features/orders/hooks/use-orders.ts.
  *
  * Cache policy:
  *   - staleTime  60 s  — short enough to surface fresh activation-status on tab

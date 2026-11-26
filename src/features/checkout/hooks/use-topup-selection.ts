@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type BottomSheet from "@gorhom/bottom-sheet";
-import { useEsims } from "@/features/esim/use-esims";
-import { useEsimCompatibility } from "@/features/esim/use-esim-compatibility";
+import { useEsims } from "@/features/esim/hooks/use-esims";
+import { useEsimCompatibility } from "@/features/esim/hooks/use-esim-compatibility";
 import { esimDisplayName, esimDocToDisplayItem } from "@/features/esim/esim-display";
-import { formatPlanLabel } from "./esim-order";
+import { formatPlanLabel } from "../esim-order";
 
 /** Whether an order tops up an existing eSIM, and which one. */
 export type TopupSelection = { applyAsTopup: boolean; compatibleTopUpEsimRef?: string };

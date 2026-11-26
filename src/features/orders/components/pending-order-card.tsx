@@ -6,7 +6,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { labelForPaymentMethod } from "../order-status";
 import { createStyles } from "../orders-styles";
-import type { PendingOrderRecord } from "../use-pending-orders";
+import type { PendingOrderRecord } from "../hooks/use-pending-orders";
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();

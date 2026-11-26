@@ -9,7 +9,7 @@ import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import EsimLabelEditor from "@/features/esim/components/esim-label-editor";
 import { WalletHeroCard } from "@/components/wallet/WalletHeroCard";
 import { useColors } from "@/hooks/useColors";
-import { useEsims } from "@/features/esim/use-esims";
+import { useEsims } from "@/features/esim/hooks/use-esims";
 import { esimDocToDisplayItem } from "@/features/esim/esim-display";
 
 export default function EsimWalletScreen() {

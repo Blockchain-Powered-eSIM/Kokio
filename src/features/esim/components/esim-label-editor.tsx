@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { useColors } from "@/hooks/useColors";
-import { useSetEsimLabel } from "../use-esim-label";
+import { useSetEsimLabel } from "../hooks/use-esim-label";
 import { esimDisplayName } from "../esim-display";
 import type { ESimDocument } from "@/lib/api/bff/esim";
 

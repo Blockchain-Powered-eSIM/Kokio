@@ -15,7 +15,7 @@ import { AddTokenSheet } from '@/components/wallet/sheets/AddTokenSheet';
 import { TokenGrid } from '@/components/wallet/TokenGrid';
 import { DepositSheet } from '@/components/wallet/sheets/DepositSheet';
 import { useKokio } from '@/hooks/useKokio';
-import { useEsims } from '@/features/esim/use-esims';
+import { useEsims } from '@/features/esim/hooks/use-esims';
 import { parsedAmount, sortTokensByBalance, useWalletTokens } from '@/hooks/useWalletTokens';
 import { useCustomTokens } from '@/hooks/useCustomTokens';
 import { useContacts } from '@/hooks/useContacts';

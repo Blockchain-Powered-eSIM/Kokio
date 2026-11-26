@@ -15,9 +15,9 @@ import { RADIO_KEYS } from "@/lib/constants/app";
 import { logger } from "@/lib/logger";
 import { pollingLabel, isUserActionableManualReview } from "@/features/orders/order-status";
 import { formatOnChainError, isUserCancelledPasskeyError } from "@/utils/formatOnChainError";
-import { CODE_ERROR_CODES, MAPPED_ORDER_ERROR_CODES } from "./checkout-errors";
-import { sendDeviceWalletPayment, waitForDeviceWalletOrder } from "./device-wallet-payment";
-import { formatPlanLabel } from "./esim-order";
+import { CODE_ERROR_CODES, MAPPED_ORDER_ERROR_CODES } from "../checkout-errors";
+import { sendDeviceWalletPayment, waitForDeviceWalletOrder } from "../device-wallet-payment";
+import { formatPlanLabel } from "../esim-order";
 import { useCreateOrder, StripeCancelledError, StripeSheetError, OrderCreationError } from "./use-create-order";
 import type { TopupSelection } from "./use-topup-selection";
 

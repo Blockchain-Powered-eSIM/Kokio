@@ -6,8 +6,8 @@ import { submitOrder, pollOrderStatus, getOrderStatus, OrderNotFoundError } from
 import type { CreateOrderRequest, OrderPricing, OrderStatusResponse, PollUpdate } from '@/lib/api/bff/order';
 import { BffError } from '@/lib/api/bff/client';
 import { useStripePaymentSheet } from './use-stripe-payment-sheet';
-import { formatPlanLabel } from './esim-order';
-import { addPendingOrder, removePendingOrder } from '@/features/orders/use-pending-orders';
+import { formatPlanLabel } from '../esim-order';
+import { addPendingOrder, removePendingOrder } from '@/features/orders/hooks/use-pending-orders';
 import { DEVICE_ORDERS_KEY, PENDING_ORDERS_KEY } from '@/lib/query-keys';
 import { ESIM_ID_KEY } from '@/lib/storage/keys';
 import type { Esim } from '@/components/ESIMItem';

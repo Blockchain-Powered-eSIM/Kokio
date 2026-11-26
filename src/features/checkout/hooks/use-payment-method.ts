@@ -9,7 +9,7 @@ import {
   DEV_DEVICE_WALLET_PAYMENT_ASSETS,
 } from "@/lib/constants/app";
 import type { DeviceWalletPaymentAsset } from "@/lib/constants/app";
-import { consumePreferredCheckoutPaymentMethod } from "./checkout-intent";
+import { consumePreferredCheckoutPaymentMethod } from "../checkout-intent";
 
 /** Payment method choice, the wallet setup it may need, and the device wallet token to pay with. */
 export function usePaymentMethod() {

@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useEsimUsage } from "@/features/esim/use-esim-usage";
+import { useEsimUsage } from "@/features/esim/hooks/use-esim-usage";
 import type { ESimDocument } from "@/lib/api/bff/esim";
 import ESIMItem from "@/components/ESIMItem";
 import type { Esim } from "@/components/ESIMItem";
