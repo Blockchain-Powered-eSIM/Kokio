@@ -17,7 +17,7 @@ export async function markWelcomeBackSeen(): Promise<void> {
   }
 }
 
-// Dev-only: used by settings.tsx's "Reset Cutover Test State" row.
+// Dev-only: used by settings-screen.tsx's "Reset Cutover Test State" row.
 export async function clearWelcomeBackSeen(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(WELCOME_BACK_SEEN_KEY);
