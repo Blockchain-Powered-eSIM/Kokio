@@ -8,19 +8,19 @@ import * as SecureStore from 'expo-secure-store';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 import { useAuthStore } from '@/stores/authStore';
 import { logger } from '@/lib/logger';
+import { LOCAL_DATA_VERSION_KEY } from '@/lib/storage/keys';
 
-const VERSION_KEY = 'kokioLocalDataVersion';
 const CURRENT_VERSION = '2';
 
 export async function runSdkV3MigrationIfNeeded(): Promise<void> {
   try {
     // Numeric: a device already past this version must not be re-purged.
-    const stored = await SecureStore.getItemAsync(VERSION_KEY);
+    const stored = await SecureStore.getItemAsync(LOCAL_DATA_VERSION_KEY);
     if (Number(stored) >= Number(CURRENT_VERSION)) return;
 
     await purgeAccountLocalState();
     await useAuthStore.getState().clearTokens();
-    await SecureStore.setItemAsync(VERSION_KEY, CURRENT_VERSION);
+    await SecureStore.setItemAsync(LOCAL_DATA_VERSION_KEY, CURRENT_VERSION);
     logger.debug('SDK_V3_LOCAL_DATA_RESET');
   } catch (err) {
     logger.error('SDK_V3_MIGRATION_FAILED', { err });

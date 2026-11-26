@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { logger } from "@/lib/logger";
+import { CONTACT_IDS_KEY, contactKey } from "@/lib/storage/keys";
 
 export interface Contact {
   id: string;
@@ -44,12 +45,12 @@ export function useContacts() {
 
   const refetch = useCallback(async () => {
     try {
-      const contactIdsJson = await AsyncStorage.getItem('contactIds');
+      const contactIdsJson = await AsyncStorage.getItem(CONTACT_IDS_KEY);
       const contactIds: string[] = contactIdsJson ? JSON.parse(contactIdsJson) : [];
 
       const contactsArray = await Promise.all(
         contactIds.map(async (contactId) => {
-          const contactJson = await AsyncStorage.getItem(`contact_${contactId}`);
+          const contactJson = await AsyncStorage.getItem(contactKey(contactId));
           return contactJson ? (JSON.parse(contactJson) as Contact) : null;
         })
       );

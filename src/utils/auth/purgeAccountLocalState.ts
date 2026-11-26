@@ -15,25 +15,39 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { queryClient, asyncStoragePersister } from '@/lib/api/query-client';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/lib/query-keys';
-import { PENDING_ORDERS_STORAGE_KEY } from '@/hooks/usePendingOrders';
-import { walletActivityStorageKey } from '@/utils/walletActivity';
-import { CUSTOM_TOKENS_KEY } from '@/hooks/useCustomTokens';
+import {
+  CONTACT_IDS_KEY,
+  CONTACT_KEY_PREFIX,
+  CREDENTIAL_ID_KEY,
+  CUSTOM_TOKENS_KEY,
+  DEVICE_UID_KEY,
+  DEVICE_WALLET_ADDRESS_KEY,
+  ESIM_ID_KEY,
+  PENDING_ORDERS_STORAGE_KEY,
+  PUBLIC_KEY_X_KEY,
+  PUBLIC_KEY_Y_KEY,
+  RAW_SALT_KEY,
+  purchasedEsimsKey,
+  userDataKey,
+  userWalletKey,
+  walletActivityStorageKey,
+} from '@/lib/storage/keys';
 import { logger } from '@/lib/logger';
 
 const SECURE_KEYS = [
-  'deviceWalletAddress',
-  'credentialId',
-  'publicKeyX',
-  'publicKeyY',
-  'rawSalt',
-  'deviceUID',
-  'esimId',
+  DEVICE_WALLET_ADDRESS_KEY,
+  CREDENTIAL_ID_KEY,
+  PUBLIC_KEY_X_KEY,
+  PUBLIC_KEY_Y_KEY,
+  RAW_SALT_KEY,
+  DEVICE_UID_KEY,
+  ESIM_ID_KEY,
 ] as const;
 
 export async function purgeAccountLocalState(): Promise<void> {
   let deviceUID: string | null = null;
   try {
-    const raw = await SecureStore.getItemAsync('deviceUID');
+    const raw = await SecureStore.getItemAsync(DEVICE_UID_KEY);
     // Stored via JSON.stringify (kokioProvider.saveValueForDeviceUID, authProvider.signUpWithPasskey)
     if (raw) {
       try { deviceUID = JSON.parse(raw) as string; } catch { deviceUID = raw; }
@@ -47,10 +61,10 @@ export async function purgeAccountLocalState(): Promise<void> {
 
   if (deviceUID) {
     await Promise.all([
-      AsyncStorage.removeItem(`purchasedESIMs-${deviceUID}`).catch(() => {}),
+      AsyncStorage.removeItem(purchasedEsimsKey(deviceUID)).catch(() => {}),
       AsyncStorage.removeItem(walletActivityStorageKey(deviceUID)).catch(() => {}),
-      SecureStore.deleteItemAsync(`userWallet-${deviceUID}`).catch(() => {}),
-      SecureStore.deleteItemAsync(`userData-${deviceUID}`).catch(() => {}),
+      SecureStore.deleteItemAsync(userWalletKey(deviceUID)).catch(() => {}),
+      SecureStore.deleteItemAsync(userDataKey(deviceUID)).catch(() => {}),
     ]);
   }
 
@@ -58,7 +72,7 @@ export async function purgeAccountLocalState(): Promise<void> {
   // Global key, not deviceUID-scoped.
   await AsyncStorage.removeItem(CUSTOM_TOKENS_KEY).catch(() => {});
   await AsyncStorage.getAllKeys()
-    .then((keys) => keys.filter((k) => k === 'contactIds' || k.startsWith('contact_')))
+    .then((keys) => keys.filter((k) => k === CONTACT_IDS_KEY || k.startsWith(CONTACT_KEY_PREFIX)))
     .then((keys) => AsyncStorage.multiRemove(keys))
     .catch(() => {});
   try {

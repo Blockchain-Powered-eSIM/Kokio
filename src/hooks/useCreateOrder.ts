@@ -9,6 +9,7 @@ import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import { formatPlanLabel } from '@/helpers/esimOrder';
 import { addPendingOrder, removePendingOrder } from '@/hooks/usePendingOrders';
 import { DEVICE_ORDERS_KEY, PENDING_ORDERS_KEY } from '@/lib/query-keys';
+import { ESIM_ID_KEY } from '@/lib/storage/keys';
 import type { Esim } from '@/components/ESIMItem';
 import { logger } from '@/lib/logger';
 
@@ -44,10 +45,6 @@ export type CreateOrderResult =
       userOperations: { to: string; data: string }[];
       paymentSessionExpiresAt: string | null;
     };
-
-// SecureStore key for the most recently purchased eSIM wallet address.
-// Read by topup flows to pre-populate the eSimId for compatibility checks.
-export const ESIM_ID_KEY = 'esimId';
 
 /**
  * Thrown when order creation itself fails, or when polling after payment times out.

@@ -15,8 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { erc20Abi, isAddress, type Address } from 'viem';
 import { useKokio } from '@/hooks/useKokio';
 import { logger } from '@/lib/logger';
-
-export const CUSTOM_TOKENS_KEY = 'customTokens';
+import { CUSTOM_TOKENS_KEY } from '@/lib/storage/keys';
 
 export interface CustomToken {
   address: Address;

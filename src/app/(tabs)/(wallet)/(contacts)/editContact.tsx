@@ -14,6 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { normalizeAddressInput } from '@/utils/address';
 import { logger } from '@/lib/logger';
+import { contactKey } from '@/lib/storage/keys';
 
 const EditContact = () => {
     const colors = useColors();
@@ -75,7 +76,7 @@ const EditContact = () => {
         try {
           const contactId = params.id;
           // Fetch the existing contact to preserve createdAt
-          const existingContactJson = await AsyncStorage.getItem(`contact_${contactId}`);
+          const existingContactJson = await AsyncStorage.getItem(contactKey(String(contactId)));
           const existingContactRecord = existingContactJson ? JSON.parse(existingContactJson) : null;
 
           if (!existingContactRecord) {
@@ -95,7 +96,7 @@ const EditContact = () => {
           };
 
           // Store updated contact
-          await AsyncStorage.setItem(`contact_${contactId}`, JSON.stringify(editedContactObj));
+          await AsyncStorage.setItem(contactKey(String(contactId)), JSON.stringify(editedContactObj));
 
           // No need to update contactIds since this is an update, not a new contact
           // (The contactId should already exist in contactIds)

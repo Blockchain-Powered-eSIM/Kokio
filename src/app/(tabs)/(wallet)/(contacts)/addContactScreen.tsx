@@ -16,6 +16,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { pasteAddressFromClipboard } from '@/helpers/clipboardAddress';
 import { normalizeAddressInput } from '@/utils/address';
 import { logger } from '@/lib/logger';
+import { CONTACT_IDS_KEY, contactKey } from '@/lib/storage/keys';
 
 const AddContactScreen = () => {
     const { showMessage } = useToast();
@@ -103,13 +104,13 @@ const AddContactScreen = () => {
             }
 
             // // Store individual contact
-            await AsyncStorage.setItem(`contact_${contactId}`, JSON.stringify(contactObj));
+            await AsyncStorage.setItem(contactKey(contactId), JSON.stringify(contactObj));
 
             // Maintain an index of all contact IDs
-            const existingIds = await AsyncStorage.getItem('contactIds');
+            const existingIds = await AsyncStorage.getItem(CONTACT_IDS_KEY);
             const contactIds = existingIds ? JSON.parse(existingIds) : [];
             contactIds.push(contactId);
-            await AsyncStorage.setItem('contactIds', JSON.stringify(contactIds));
+            await AsyncStorage.setItem(CONTACT_IDS_KEY, JSON.stringify(contactIds));
 
             // Optional: Show success message
             showMessage("Contact added successfully", "info");

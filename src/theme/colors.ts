@@ -132,7 +132,6 @@ export const LIGHT_TOKENS = {
   walletAccent: Colors.light.primary,    // light: same teal used elsewhere (no yellow in light theme)
 };
 
-export const THEME_STORAGE_KEY = "@kokio_theme";
 export type Palette = typeof DARK_TOKENS & typeof LIGHT_TOKENS;
 export let isDarkTheme = true;
 

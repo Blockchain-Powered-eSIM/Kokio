@@ -20,6 +20,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { walletActivityStorageKey } from '@/lib/storage/keys';
 
 export type WalletActivityType = 'WALLET_DEPLOYED' | 'SENT';
 
@@ -40,10 +41,6 @@ export interface WalletActivityEntry {
 }
 
 const MAX_ENTRIES = 50;
-
-export function walletActivityStorageKey(deviceUID: string): string {
-  return `kokio.walletActivity.${deviceUID}`;
-}
 
 // Entries from the removed eSIM top-up toggle, and from the never-wired
 // ESIM_PURCHASED/RECEIVED/PRICE_CAP_SET types now superseded by

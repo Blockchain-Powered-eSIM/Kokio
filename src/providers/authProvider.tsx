@@ -1,4 +1,12 @@
 import { ReactNode, createContext, useCallback, useEffect, useReducer, useState } from "react";
+import {
+  CREDENTIAL_ID_KEY,
+  DEVICE_UID_KEY,
+  DEVICE_WALLET_ADDRESS_KEY,
+  PUBLIC_KEY_X_KEY,
+  PUBLIC_KEY_Y_KEY,
+  RAW_SALT_KEY,
+} from "@/lib/storage/keys";
 import { Passkey } from "react-native-passkey";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -193,14 +201,14 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
         return null;
       }
       // Persist registration data immediately.
-      await SecureStore.setItemAsync('deviceWalletAddress', registration.deviceWalletAddress);
-      await SecureStore.setItemAsync('credentialId', registration.credentialId);
-      await SecureStore.setItemAsync('publicKeyX', registration.publicKeyX);
-      await SecureStore.setItemAsync('publicKeyY', registration.publicKeyY);
-      if (registration.rawSalt) await SecureStore.setItemAsync('rawSalt', registration.rawSalt);
+      await SecureStore.setItemAsync(DEVICE_WALLET_ADDRESS_KEY, registration.deviceWalletAddress);
+      await SecureStore.setItemAsync(CREDENTIAL_ID_KEY, registration.credentialId);
+      await SecureStore.setItemAsync(PUBLIC_KEY_X_KEY, registration.publicKeyX);
+      await SecureStore.setItemAsync(PUBLIC_KEY_Y_KEY, registration.publicKeyY);
+      if (registration.rawSalt) await SecureStore.setItemAsync(RAW_SALT_KEY, registration.rawSalt);
       if (registration.deviceUniqueIdentifier) {
         // JSON.stringify to match saveValueForDeviceUID / getValueForDeviceUID format
-        await SecureStore.setItemAsync('deviceUID', JSON.stringify(registration.deviceUniqueIdentifier));
+        await SecureStore.setItemAsync(DEVICE_UID_KEY, JSON.stringify(registration.deviceUniqueIdentifier));
       }
 
       /**

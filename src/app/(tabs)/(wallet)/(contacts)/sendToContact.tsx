@@ -27,6 +27,7 @@ import { logger } from '@/lib/logger';
 import { isUserCancelledPasskeyError } from '@/utils/formatOnChainError';
 import { appendWalletActivityEntry } from '@/utils/walletActivity';
 import { WALLET_ACTIVITY_KEY } from '@/lib/query-keys';
+import { contactKey } from '@/lib/storage/keys';
 
 interface Transaction {
   id: string;
@@ -301,7 +302,7 @@ const SendToContact = () => {
         return;
       }
 
-      const contactJson = await AsyncStorage.getItem(`contact_${activeContact.id}`);
+      const contactJson = await AsyncStorage.getItem(contactKey(activeContact.id));
       const contact: Contact | null = contactJson ? JSON.parse(contactJson) : null;
 
       if (!contact || !contact.walletAddress || !isAddress(contact.walletAddress)) {
@@ -399,7 +400,7 @@ const SendToContact = () => {
           updatedAt: new Date().toISOString(),
         };
 
-        await AsyncStorage.setItem(`contact_${contactForLog.id}`, JSON.stringify(updatedContact));
+        await AsyncStorage.setItem(contactKey(contactForLog.id), JSON.stringify(updatedContact));
 
         logger.debug('TRANSACTION_ADDED', { newTransaction });
         router.push({ pathname: "/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) } });

@@ -7,6 +7,7 @@ import { router , useFocusEffect } from "expo-router";
 import _ from "lodash";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { logger } from "@/lib/logger";
+import { CONTACT_IDS_KEY, contactKey } from "@/lib/storage/keys";
 
 interface Contact {
   id: string;
@@ -26,14 +27,14 @@ const ContactsScreen = () => {
   const getAllContacts = async () => {
     try {
       // Get the array of contact IDs
-      const contactIdsJson = await AsyncStorage.getItem("contactIds");
+      const contactIdsJson = await AsyncStorage.getItem(CONTACT_IDS_KEY);
       const contactIds = contactIdsJson ? JSON.parse(contactIdsJson) : [];
 
       // Fetch all contacts using the IDs
       const contactsArray = await Promise.all(
         contactIds.map(async (contactId: string) => {
           const contactJson = await AsyncStorage.getItem(
-            `contact_${contactId}`
+            contactKey(contactId)
           );
           return contactJson ? JSON.parse(contactJson) : null;
         })

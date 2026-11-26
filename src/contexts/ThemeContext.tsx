@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useColorScheme as useSystemColorScheme } from "react-native";
-import { THEME_STORAGE_KEY } from "@/theme/colors";
+import { THEME_STORAGE_KEY } from "@/lib/storage/keys";
 
 export type ThemeMode = "system" | "light" | "dark";
 

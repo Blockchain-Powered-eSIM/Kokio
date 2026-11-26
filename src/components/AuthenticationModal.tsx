@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import { DEVICE_WALLET_ADDRESS_KEY } from "@/lib/storage/keys";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -190,7 +191,7 @@ export function AuthenticationModal() {
       return;
     }
     let cancelled = false;
-    SecureStore.getItemAsync("deviceWalletAddress").then((stored) => {
+    SecureStore.getItemAsync(DEVICE_WALLET_ADDRESS_KEY).then((stored) => {
       if (!cancelled) {
         hasResolvedOnce.current = true;
         setIsReturningUser(!!stored);
@@ -253,7 +254,7 @@ export function AuthenticationModal() {
     try {
       const effectiveAddress =
         kokio.deviceWalletAddress ||
-        (await SecureStore.getItemAsync("deviceWalletAddress"));
+        (await SecureStore.getItemAsync(DEVICE_WALLET_ADDRESS_KEY));
       logger.debug('AUTH_EXISTING_PATH', { path: effectiveAddress ? 'login' : 'recover' });
 
       if (effectiveAddress) {

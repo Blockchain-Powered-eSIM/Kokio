@@ -1,7 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
-
-const USED_HASHES_KEY = 'usedTxnHashes';
+import { USED_TXN_HASHES_KEY } from '@/lib/storage/keys';
 
 export async function clearUsedHashes(): Promise<void> {
-  await SecureStore.deleteItemAsync(USED_HASHES_KEY);
+  await SecureStore.deleteItemAsync(USED_TXN_HASHES_KEY);
 }

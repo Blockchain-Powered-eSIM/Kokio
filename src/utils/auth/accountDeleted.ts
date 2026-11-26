@@ -14,8 +14,7 @@
  */
 import * as SecureStore from 'expo-secure-store';
 import { logger } from '@/lib/logger';
-
-const KEY = 'kokio.account.deleted';
+import { ACCOUNT_DELETED_KEY } from '@/lib/storage/keys';
 
 type Listener = (deleted: boolean) => void;
 const listeners = new Set<Listener>();
@@ -36,7 +35,7 @@ export function isAccountDeletedCached(): boolean {
 // Read the persisted flag into the in-memory mirror. Call once on app boot.
 export async function hydrateAccountDeleted(): Promise<boolean> {
   try {
-    _cached = (await SecureStore.getItemAsync(KEY)) === 'true';
+    _cached = (await SecureStore.getItemAsync(ACCOUNT_DELETED_KEY)) === 'true';
   } catch {
     _cached = false;
   }
@@ -47,7 +46,7 @@ export async function hydrateAccountDeleted(): Promise<boolean> {
 export async function markAccountDeleted(): Promise<void> {
   _cached = true;
   try {
-    await SecureStore.setItemAsync(KEY, 'true');
+    await SecureStore.setItemAsync(ACCOUNT_DELETED_KEY, 'true');
   } catch (err) {
     // Non-fatal: the in-memory mirror still guards this session.
     logger.error('ACCOUNT_DELETED_FLAG_PERSIST_FAILED', { err });
@@ -58,7 +57,7 @@ export async function markAccountDeleted(): Promise<void> {
 export async function clearAccountDeleted(): Promise<void> {
   _cached = false;
   try {
-    await SecureStore.deleteItemAsync(KEY);
+    await SecureStore.deleteItemAsync(ACCOUNT_DELETED_KEY);
   } catch {
     /* best-effort */
   }

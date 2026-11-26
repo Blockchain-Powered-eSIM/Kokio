@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { decodeJwt } from 'jose';
+import { AUTH_TOKENS_KEY } from '@/lib/storage/keys';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,16 +22,14 @@ export type IdTokenClaims = {
 // ─── Storage key ─────────────────────────────────────────────────────────────
 // Single JSON blob so all five fields are written atomically.
 
-const STORE_KEY = 'kokio.auth.tokens';
-
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 
 export async function saveTokens(bundle: TokenBundle): Promise<void> {
-  await SecureStore.setItemAsync(STORE_KEY, JSON.stringify(bundle));
+  await SecureStore.setItemAsync(AUTH_TOKENS_KEY, JSON.stringify(bundle));
 }
 
 export async function loadTokens(): Promise<TokenBundle | null> {
-  const raw = await SecureStore.getItemAsync(STORE_KEY);
+  const raw = await SecureStore.getItemAsync(AUTH_TOKENS_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as TokenBundle;
@@ -40,7 +39,7 @@ export async function loadTokens(): Promise<TokenBundle | null> {
 }
 
 export async function clearTokens(): Promise<void> {
-  await SecureStore.deleteItemAsync(STORE_KEY);
+  await SecureStore.deleteItemAsync(AUTH_TOKENS_KEY);
 }
 
 // ─── id_token claims ──────────────────────────────────────────────────────────

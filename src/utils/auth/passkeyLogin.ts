@@ -2,6 +2,7 @@ import { Passkey } from 'react-native-passkey';
 import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
+import { CREDENTIAL_ID_KEY, DEVICE_WALLET_ADDRESS_KEY } from '@/lib/storage/keys';
 import { v4 as uuidv4 } from 'uuid';
 import { kokioAuthClient } from './kokioAuthClient';
 import { buildDpopProof } from './dpopProof';
@@ -105,7 +106,7 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
   const base = Config.AUTH_SERVER_BASE_URL;
   if (!base) throw new Error('AUTH_SERVER_BASE_URL is not configured');
 
-  const deviceWalletAddress = deviceWalletAddressOverride ?? await SecureStore.getItemAsync('deviceWalletAddress');
+  const deviceWalletAddress = deviceWalletAddressOverride ?? await SecureStore.getItemAsync(DEVICE_WALLET_ADDRESS_KEY);
   if (!deviceWalletAddress) {
     throw new AuthError('CREDENTIAL_NOT_FOUND', undefined, 'No registered device found. Please register first.');
   }
@@ -129,7 +130,7 @@ async function performLoginCeremony(credentialIdHint?: string, deviceWalletAddre
     // the credential isn't yet locally indexed. Use the stored credential ID to
     // target the credential directly and skip the cloud enumeration entirely.
     // transports: ['internal'] restricts the lookup to device-local storage.
-    const resolvedId = credentialIdHint ?? await SecureStore.getItemAsync('credentialId') ?? undefined;
+    const resolvedId = credentialIdHint ?? await SecureStore.getItemAsync(CREDENTIAL_ID_KEY) ?? undefined;
     const allowCredentials = resolvedId
       ? [{ id: resolvedId, type: 'public-key' as const, transports: ['internal'] as const }]
       : (beginData.allowCredentials as { id: string; type: string }[]).map(c => ({ ...c, transports: ['internal'] as const }));
@@ -331,8 +332,8 @@ export async function discoverAndLoginWithPasskey(): Promise<DiscoverLoginResult
     auth_time:     auth_time ?? Math.floor(Date.now() / 1000),
   });
 
-  await SecureStore.setItemAsync('deviceWalletAddress', completeData.deviceWalletAddress);
-  await SecureStore.setItemAsync('credentialId', assertion.id);
+  await SecureStore.setItemAsync(DEVICE_WALLET_ADDRESS_KEY, completeData.deviceWalletAddress);
+  await SecureStore.setItemAsync(CREDENTIAL_ID_KEY, assertion.id);
 
   return { credentialId: assertion.id, deviceWalletAddress: completeData.deviceWalletAddress };
 }

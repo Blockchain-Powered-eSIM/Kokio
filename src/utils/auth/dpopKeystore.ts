@@ -1,9 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { generateKeyPair, exportJWK, importJWK, calculateJwkThumbprint } from 'jose';
 import type { JWK } from 'jose';
-
-const STORE_PRIVATE = 'kokio.dpop.privateKey';
-const STORE_PUBLIC  = 'kokio.dpop.publicKey';
+import { DPOP_PRIVATE_KEY_KEY, DPOP_PUBLIC_KEY_KEY } from '@/lib/storage/keys';
 
 export type DpopKeyPair = {
   privateKey: CryptoKey;
@@ -20,8 +18,8 @@ let _inFlight: Promise<DpopKeyPair> | null = null;
 
 async function _loadOrGenerate(): Promise<DpopKeyPair> {
   const [rawPrivate, rawPublic] = await Promise.all([
-    SecureStore.getItemAsync(STORE_PRIVATE),
-    SecureStore.getItemAsync(STORE_PUBLIC),
+    SecureStore.getItemAsync(DPOP_PRIVATE_KEY_KEY),
+    SecureStore.getItemAsync(DPOP_PUBLIC_KEY_KEY),
   ]);
 
   if (rawPrivate && rawPublic) {
@@ -39,8 +37,8 @@ async function _loadOrGenerate(): Promise<DpopKeyPair> {
   ]);
 
   await Promise.all([
-    SecureStore.setItemAsync(STORE_PRIVATE, JSON.stringify(privateJwk)),
-    SecureStore.setItemAsync(STORE_PUBLIC,  JSON.stringify(publicJwk)),
+    SecureStore.setItemAsync(DPOP_PRIVATE_KEY_KEY, JSON.stringify(privateJwk)),
+    SecureStore.setItemAsync(DPOP_PUBLIC_KEY_KEY,  JSON.stringify(publicJwk)),
   ]);
 
   const jkt = await calculateJwkThumbprint(publicJwk, 'sha256');
@@ -60,8 +58,8 @@ export function getDpopKeyPair(): Promise<DpopKeyPair> {
 
 export async function clearDpopKeyPair(): Promise<void> {
   await Promise.all([
-    SecureStore.deleteItemAsync(STORE_PRIVATE),
-    SecureStore.deleteItemAsync(STORE_PUBLIC),
+    SecureStore.deleteItemAsync(DPOP_PRIVATE_KEY_KEY),
+    SecureStore.deleteItemAsync(DPOP_PUBLIC_KEY_KEY),
   ]);
   _memo = null;
 }

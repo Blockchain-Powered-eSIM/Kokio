@@ -9,6 +9,7 @@ import { ContactAvatar } from '@/components/wallet/ContactAvatar';
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { logger } from '@/lib/logger';
+import { contactKey } from '@/lib/storage/keys';
 
 interface Transaction {
   id: string;
@@ -32,7 +33,7 @@ const ContactDetails = () => {
     const contact_id = id as string; // Ensure id is treated as string
     try {
       // Fetch the contact from AsyncStorage
-      const contactJson = await AsyncStorage.getItem(`contact_${contact_id}`);
+      const contactJson = await AsyncStorage.getItem(contactKey(contact_id));
       const contact = contactJson ? JSON.parse(contactJson) : null;
 
       if (!contact) {

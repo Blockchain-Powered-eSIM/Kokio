@@ -14,8 +14,8 @@ import { markWelcomeBackPending } from '@/utils/auth/returningUserProbe';
 import { useAuthStore } from '@/stores/authStore';
 import { logger } from '@/lib/logger';
 import { MAINNET_CUTOVER_ENABLED } from '@/lib/constants/app';
+import { CREDENTIAL_ID_KEY, LOCAL_DATA_VERSION_KEY } from '@/lib/storage/keys';
 
-export const VERSION_KEY = 'kokioLocalDataVersion';
 export const MAINNET_CUTOVER_VERSION = '3';
 
 /**
@@ -25,8 +25,8 @@ export const MAINNET_CUTOVER_VERSION = '3';
 export async function isReturningDevice(): Promise<boolean> {
   try {
     const [version, credentialId] = await Promise.all([
-      SecureStore.getItemAsync(VERSION_KEY),
-      SecureStore.getItemAsync('credentialId'),
+      SecureStore.getItemAsync(LOCAL_DATA_VERSION_KEY),
+      SecureStore.getItemAsync(CREDENTIAL_ID_KEY),
     ]);
     return version !== null || credentialId !== null;
   } catch (err) {
@@ -39,14 +39,14 @@ export async function runMainnetCutoverIfNeeded(returningDevice: boolean): Promi
   if (!MAINNET_CUTOVER_ENABLED) return;
 
   try {
-    const stored = await SecureStore.getItemAsync(VERSION_KEY);
+    const stored = await SecureStore.getItemAsync(LOCAL_DATA_VERSION_KEY);
     if (Number(stored) >= Number(MAINNET_CUTOVER_VERSION)) return;
 
     await purgeAccountLocalState();
     await useAuthStore.getState().clearTokens();
     // Written before the version, so a boot interrupted here re-runs the whole cutover
     if (returningDevice) await markWelcomeBackPending();
-    await SecureStore.setItemAsync(VERSION_KEY, MAINNET_CUTOVER_VERSION);
+    await SecureStore.setItemAsync(LOCAL_DATA_VERSION_KEY, MAINNET_CUTOVER_VERSION);
     logger.debug('MAINNET_CUTOVER_LOCAL_DATA_RESET');
   } catch (err) {
     logger.error('MAINNET_CUTOVER_MIGRATION_FAILED', { err });

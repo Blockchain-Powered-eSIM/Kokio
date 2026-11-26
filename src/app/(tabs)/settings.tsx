@@ -27,7 +27,7 @@ import Header from '@/components/Header';
 import { HeaderBackControl } from '@/components/navigation/stackHeader';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 import * as SecureStore from 'expo-secure-store';
-import { VERSION_KEY } from '@/utils/auth/mainnetCutoverReset';
+import { LOCAL_DATA_VERSION_KEY } from '@/lib/storage/keys';
 import { clearWelcomeBackSeen } from '@/utils/auth/returningUserProbe';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -380,9 +380,9 @@ export default function MenuScreen() {
       iconLeft: "refresh-outline",
       iconRight: "chevron-forward-outline",
       action: async () => {
-        // await SecureStore.deleteItemAsync(VERSION_KEY);
+        // await SecureStore.deleteItemAsync(LOCAL_DATA_VERSION_KEY);
         // Simulates a device coming from an old build
-        await SecureStore.setItemAsync(VERSION_KEY, '2');
+        await SecureStore.setItemAsync(LOCAL_DATA_VERSION_KEY, '2');
         await clearWelcomeBackSeen();
         showMessage('Cutover test state cleared. Relaunch the app to see it again.', 'info');
       },
