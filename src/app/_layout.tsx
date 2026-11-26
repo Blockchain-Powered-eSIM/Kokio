@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
 import NetInfo, { type NetInfoState } from "@react-native-community/netinfo";
-import "../global.css";
+import "../../global.css";
 
 import useBootstrap from "@/hooks/useBootstrap";
 import { ROUTE_NAMES } from "@/constants/route.constants";

@@ -1,12 +1,10 @@
 // Fails if any direct `console.*` call exists in app source.
-// The single sanctioned logging seam is `utils/logger.ts` (allowlisted below).
+// The single sanctioned logging seam is the logger (allowlisted below).
 //
-// Scope: only tracked-source directories are scanned. Excluded, by design:
-//   - node_modules, android, ios, dist, coverage — not app source
+// Scope: only `src/` is scanned. Excluded, by design:
 //   - **/generated/**            — generated OpenAPI types (never hand-edited)
-//   - scripts/**                 — build/CI tooling legitimately uses console
 //   - **/__tests__/**, *.test.*, *.spec.*  — test code
-//   - utils/logger.ts            — the one allowed console site
+//   - the logger                 — the one allowed console site
 //
 // Comment handling: block comments and `//` line comments are stripped before
 // matching, so commented-out console lines are ignored.
@@ -17,26 +15,14 @@ import path from "node:path";
 const repoRoot = process.cwd();
 
 // Directories that contain scannable app source.
-const SOURCE_DIRS = [
-  "app",
-  "components",
-  "constants",
-  "contexts",
-  "helpers",
-  "hooks",
-  "lib",
-  "providers",
-  "screens",
-  "services",
-  "stores",
-  "utils",
-];
+const SOURCE_DIRS = ["src"];
 
 // Individual root-level source files to include (not under a scanned dir).
-const SOURCE_ROOT_FILES = ["appKeys.ts"];
+const SOURCE_ROOT_FILES = [];
 
 // Path (POSIX, repo-relative) of the one allowed console site.
-const ALLOWLIST = new Set(["utils/logger.ts"]);
+const LOGGER_PATH = "src/utils/logger.ts";
+const ALLOWLIST = new Set([LOGGER_PATH]);
 const SOURCE_EXT = new Set([".ts", ".tsx"]);
 
 function isExcludedFile(relPosix) {
@@ -109,8 +95,8 @@ for (const abs of files) {
 
 if (violations.length > 0) {
   console.error(
-    `Found ${violations.length} direct console.* call(s) outside utils/logger.ts.\n` +
-      "Route logging through utils/logger.ts (logger.debug/info/warn/error).\n"
+    `Found ${violations.length} direct console.* call(s) outside ${LOGGER_PATH}.\n` +
+      `Route logging through ${LOGGER_PATH} (logger.debug/info/warn/error).\n`
   );
   for (const v of violations) {
     console.error(`  ${v.file}:${v.line}  ${v.text}`);
@@ -118,4 +104,4 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log("scan-console: OK — no direct console.* outside utils/logger.ts.");
+console.log(`scan-console: OK, no direct console.* outside ${LOGGER_PATH}.`);

@@ -9,23 +9,10 @@ import {
 const repoRoot = process.cwd();
 const eventPath = process.env.GITHUB_EVENT_PATH;
 const otaSafePatterns = [
-  "app/",
+  "src/",
   "assets/",
-  "components/",
   "config/",
-  "constants/",
-  "contexts/",
-  "helpers/",
-  "hooks/",
-  "lib/",
-  "providers/",
-  "screens/",
-  "services/",
-  "stores/",
-  "utils/",
-  "__tests__/",
   "global.css",
-  "types.d.ts",
 ];
 
 if (!eventPath) {

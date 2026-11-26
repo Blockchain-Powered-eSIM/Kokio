@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SPEC="kokio-auth-server-openapi-source.json"
-OUT="utils/auth/generated/kokioAuth.d.ts"
+OUT="src/utils/auth/generated/kokioAuth.d.ts"
 
 if [ ! -f "$SPEC" ]; then
   echo "Error: $SPEC not found at project root" >&2
