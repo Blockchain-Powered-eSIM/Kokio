@@ -6,7 +6,7 @@ import ActiveESIMsScroll from "./components/active-esim-scroll";
 import Wallet from "./components/wallet-card";
 import Hero from "./components/hero";
 import { useKokio } from "@/hooks/use-kokio";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { useWalletTokens } from "@/features/wallet/hooks/use-wallet-tokens";
 
 export default function HomeScreen() {

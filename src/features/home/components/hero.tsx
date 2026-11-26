@@ -10,8 +10,8 @@ import {
 import { router } from "expo-router";
 
 import { Theme } from "@/theme/colors";
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 
 import { Card, CardFooter } from "@/components/ui/Card";

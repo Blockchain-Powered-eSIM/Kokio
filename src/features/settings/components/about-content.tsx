@@ -3,7 +3,7 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { logger } from "@/lib/logger";
 import { createStyles } from "../settings-styles";
 

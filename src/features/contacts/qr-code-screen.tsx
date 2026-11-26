@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View, Linking, Pressable, Modal, StatusBar } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
 import { logger } from '@/lib/logger';
 

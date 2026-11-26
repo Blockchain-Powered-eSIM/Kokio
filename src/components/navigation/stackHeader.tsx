@@ -3,7 +3,7 @@ import { HeaderBackButton } from "expo-router/react-navigation";
 import type { NativeStackNavigationOptions } from "expo-router/native-stack";
 import type { ColorValue } from "react-native";
 
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 type HeaderLeftProps = Parameters<NonNullable<NativeStackNavigationOptions["headerLeft"]>>[0];
 

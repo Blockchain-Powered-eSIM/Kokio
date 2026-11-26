@@ -4,7 +4,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import _ from "lodash"
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 
 interface Transaction {
     id: string;

@@ -20,7 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { erc20Abi, formatUnits, stringToHex, type Address } from 'viem';
 import type { ImageSourcePropType } from 'react-native';
 import { useKokio } from '@/hooks/use-kokio';
-import { useIsAppActive } from '@/hooks/useIsAppActive';
+import { useIsAppActive } from '@/hooks/use-is-app-active';
 import type { CustomToken } from './use-custom-tokens';
 import { logger } from '@/lib/logger';
 import { WALLET_TOKENS_KEY } from '@/lib/query-keys';

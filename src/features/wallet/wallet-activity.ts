@@ -1,7 +1,7 @@
 /**
  * A local, per-device log of wallet events this device's own app instance
  * can know about immediately and with certainty, without waiting on the
- * BFF. GET /account/activity (see hooks/useAccountActivity.ts) is fed by an
+ * BFF. GET /account/activity (see hooks/use-account-activity.ts) is fed by an
  * Alchemy webhook running asynchronously against the chain - it is the only
  * way to learn about a RECEIVED transfer or a PRICE_CAP change (events this
  * device did not itself originate), but it is the wrong source for a SENT

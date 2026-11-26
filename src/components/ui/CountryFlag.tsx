@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import _get from "lodash/get";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { rankRegionsForCountries, MAX_NAMED_REGIONS } from "@/lib/regions/rank-regions";
 import { regionCodeFromName, regionImageForCode } from "@/lib/regions/region-image";
 

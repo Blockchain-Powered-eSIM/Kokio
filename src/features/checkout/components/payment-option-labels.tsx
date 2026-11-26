@@ -3,8 +3,8 @@ import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from "re
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useColors } from "@/hooks/use-colors";
 import { useKokio } from "@/hooks/use-kokio";
 import { useWalletTokens, truncateDecimals } from "@/features/wallet/hooks/use-wallet-tokens";
 import type { DeviceWalletPaymentAsset } from "@/lib/constants/app";

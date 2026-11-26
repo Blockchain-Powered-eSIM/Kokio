@@ -4,9 +4,9 @@ import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/theme/colors";
 import type { Palette } from "@/theme/colors";
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useBottomInset } from "@/hooks/useBottomInset";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useBottomInset } from "@/hooks/use-bottom-inset";
 import { useShopFilters } from "../shop-filters-context";
 import {
   DATA_FILTER_OPTIONS,

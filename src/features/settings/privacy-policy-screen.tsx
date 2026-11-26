@@ -11,8 +11,8 @@ import { useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { logger } from "@/lib/logger";
 

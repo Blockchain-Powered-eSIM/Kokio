@@ -5,8 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { TokenIcon } from "./token-icon";
-import { useColors } from "@/hooks/useColors";
-import { useBottomInset } from "@/hooks/useBottomInset";
+import { useColors } from "@/hooks/use-colors";
+import { useBottomInset } from "@/hooks/use-bottom-inset";
 import { sortTokensByBalance, type WalletToken } from "../hooks/use-wallet-tokens";
 
 interface TokenPickerSheetProps {

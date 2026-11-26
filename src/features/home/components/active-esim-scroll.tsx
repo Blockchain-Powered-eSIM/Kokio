@@ -4,9 +4,9 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import _isEmpty from "lodash/isEmpty";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { useEsims } from "@/features/esim/hooks/use-esims";
 import { useAllEsimUsage } from "@/features/esim/hooks/use-esim-usage";

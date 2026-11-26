@@ -13,9 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { Palette } from "@/theme/colors";
-import { useColors } from "@/hooks/useColors";
-import { useCopyFeedback } from "@/hooks/useCopyFeedback";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useCopyFeedback } from "@/hooks/use-copy-feedback";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useTheme } from "@/contexts/ThemeContext";
 import { esimDisplayName } from "@/features/esim/esim-display";
 import { openInstallation } from "@/features/esim/esim-install";

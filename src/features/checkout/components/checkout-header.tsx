@@ -14,8 +14,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { ESIM_EXTRA_DETAILS } from "@/lib/constants/checkout";
 import CountryFlag from "@/components/ui/CountryFlag";

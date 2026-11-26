@@ -3,7 +3,7 @@ import { Linking, TouchableOpacity, View } from "react-native";
 import { openBrowserAsync } from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { createStyles } from "../settings-styles";
 
 export const ContactContent = () => {

@@ -4,7 +4,7 @@ import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from "@gorhom/botto
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { ReceivePanel } from "./receive-panel";
 
 interface DepositSheetProps {

@@ -7,9 +7,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import * as WebBrowser from "expo-web-browser";
 import { MoonpayCommerceProvider } from "@heliofi/checkout-react-native";
 
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useKokio } from "@/hooks/use-kokio";
 import { useCreditBalance, heldCreditCents } from "@/features/referral/hooks/use-credit-history";

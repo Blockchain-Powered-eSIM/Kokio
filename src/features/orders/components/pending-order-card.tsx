@@ -1,9 +1,9 @@
 import React from "react";
 import { Linking, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useCopyFeedback } from "@/hooks/use-copy-feedback";
 import { labelForPaymentMethod } from "../order-status";
 import { createStyles } from "../orders-styles";
 import type { PendingOrderRecord } from "../hooks/use-pending-orders";

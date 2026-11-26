@@ -3,7 +3,7 @@ import { View, ScrollView, Image, Pressable, TouchableOpacity, ActivityIndicator
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useRouter } from 'expo-router';
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from '@/contexts/ThemeContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import BottomSheet from '@gorhom/bottom-sheet';

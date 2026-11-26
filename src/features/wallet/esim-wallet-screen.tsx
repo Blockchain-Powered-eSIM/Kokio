@@ -8,7 +8,7 @@ import { ThemedView } from "@/components/ThemedView";
 import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import EsimLabelEditor from "@/features/esim/components/esim-label-editor";
 import { WalletHeroCard } from "./components/wallet-hero-card";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useEsims } from "@/features/esim/hooks/use-esims";
 import { esimDocToDisplayItem } from "@/features/esim/esim-display";
 

@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import { ContactAvatar, pickUniqueAvatarColorKey } from './components/contact-avatar';
 import { useContacts, findContactConflict } from './hooks/use-contacts';
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { pasteAddressFromClipboard } from './clipboard-address';

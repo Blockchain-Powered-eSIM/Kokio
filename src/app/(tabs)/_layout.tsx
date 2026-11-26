@@ -4,10 +4,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs, router, useSegments } from "expo-router";
 
 import { Theme } from "@/theme/colors";
-import { useNavBarInset } from "@/hooks/useBottomInset"; 
-import { useColors } from "@/hooks/useColors";
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useNavBarInset } from "@/hooks/use-bottom-inset";
+import { useColors } from "@/hooks/use-colors";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import { getRouteNameFromSegments, getIsTabBarVisible } from "@/lib/navigation";

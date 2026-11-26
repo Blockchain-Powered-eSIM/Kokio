@@ -4,7 +4,7 @@ import { TextInput } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useColors } from '@/hooks/useColors';
+import { useColors } from '@/hooks/use-colors';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export const SendAmountSection = ({

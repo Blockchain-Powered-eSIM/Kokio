@@ -1,7 +1,7 @@
 import React from "react";
 import { Text } from "react-native";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 
 interface CancelOrderConfirmModalProps {
   visible: boolean;

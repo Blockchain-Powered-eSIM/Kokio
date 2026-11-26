@@ -13,7 +13,7 @@ import BottomSheet, {
   BottomSheetBackdropProps,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
-import { useBottomInset } from "@/hooks/useBottomInset";
+import { useBottomInset } from "@/hooks/use-bottom-inset";
 import { isAccountDeletedCached, subscribeAccountDeleted } from '@/lib/auth/account-deleted';
 import { useAuthRelay } from "@/hooks/use-auth-relayer";
 import { useIsReturningUser } from "../hooks/use-is-returning-user";
@@ -23,8 +23,8 @@ import { useKokio } from "@/hooks/use-kokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useColors } from "@/hooks/use-colors";
 import { logger } from '@/lib/logger';
 
 type AuthMode = "choice" | "authenticating" | "error";

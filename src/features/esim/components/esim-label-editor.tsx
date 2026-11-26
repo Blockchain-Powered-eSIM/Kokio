@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useSetEsimLabel } from "../hooks/use-esim-label";
 import { esimDisplayName } from "../esim-display";
 import type { ESimDocument } from "@/lib/api/bff/esim";

@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useColors } from '@/hooks/useColors';
+import { useColors } from '@/hooks/use-colors';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export const SendReview = ({

@@ -2,7 +2,7 @@ import React from "react";
 import { View, Image, type ImageSourcePropType } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 
 interface TokenIconProps {
   symbol: string;

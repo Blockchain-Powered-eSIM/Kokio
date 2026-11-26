@@ -9,8 +9,8 @@ import {
   View,
 } from "react-native";
 import { useAuthRelay } from "@/hooks/use-auth-relayer";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useColors } from "@/hooks/useColors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { Palette } from "@/theme/colors";
 

@@ -3,7 +3,7 @@ import _isNil from "lodash/isNil";
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import _get from "lodash/get";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 
 const ICON_TYPE_VS_RENDERER = {
   ION: Ionicons,

@@ -12,9 +12,9 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Updates from "expo-updates";
 import { ThemedText } from "@/components/ThemedText";
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useColors } from "@/hooks/useColors";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/lib/auth/errors";

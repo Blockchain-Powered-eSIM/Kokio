@@ -9,9 +9,9 @@ import { ContactAvatar } from "@/features/contacts/components/contact-avatar";
 import { CopyRow } from "@/features/orders/components/purchase-details-sheet";
 import { PillButton } from "@/components/ui/PillButton";
 import { getExplorerTxBase } from "./explorer-links";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { logger } from "@/lib/logger";
 
 interface TransactionParams {

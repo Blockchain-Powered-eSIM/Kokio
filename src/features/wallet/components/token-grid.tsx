@@ -3,7 +3,7 @@ import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { TokenIcon } from "./token-icon";
 import type { WalletToken } from "../hooks/use-wallet-tokens";
 

@@ -9,7 +9,7 @@ import { ThemedView } from "@/components/ThemedView";
 import DataPackTabGroup from "./components/data-pack-tab-group";
 import SearchInput from "@/components/SearchInput";
 import { Theme } from "@/theme/colors";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useMultiCountryPlans } from "./hooks/use-multi-country-plans";
 import { useShopFilters } from "./shop-filters-context";

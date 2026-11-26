@@ -3,7 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 
 interface RegionalSearchRowProps {
   name: string;

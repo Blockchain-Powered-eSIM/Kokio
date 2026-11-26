@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { TextInput } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
-import { useColors } from '@/hooks/useColors';
+import { useColors } from '@/hooks/use-colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Contact } from '../hooks/use-contacts';
 import { ContactAvatar } from './contact-avatar';

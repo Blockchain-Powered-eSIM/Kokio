@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getEsimUsage, getAllEsimUsage, type ESimUsage } from '@/lib/api/bff/esim';
-import { useIsAppActive } from '@/hooks/useIsAppActive';
+import { useIsAppActive } from '@/hooks/use-is-app-active';
 import { useAuthRelay } from '@/hooks/use-auth-relayer';
 import { ESIM_USAGE_ALL_KEY, ESIM_USAGE_KEY } from '@/lib/query-keys';
 

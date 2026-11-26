@@ -10,9 +10,9 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { Theme } from "@/theme/colors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 
 const ICON_SIZE = 28;

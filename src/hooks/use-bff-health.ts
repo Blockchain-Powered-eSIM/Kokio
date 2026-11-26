@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { checkBffHealth } from '@/lib/api/bff/health';
-import { useIsAppActive } from '@/hooks/useIsAppActive';
+import { useIsAppActive } from '@/hooks/use-is-app-active';
 import { BFF_HEALTH_KEY } from '@/lib/query-keys';
 
 export function useBffHealth() {

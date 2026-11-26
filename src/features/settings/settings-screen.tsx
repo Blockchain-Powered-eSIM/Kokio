@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { FlatList } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { ThemedView } from "@/components/ThemedView";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { useKokio } from "@/hooks/use-kokio";
 import { useAuthRelay } from "@/hooks/use-auth-relayer";
 import { SafeAreaView } from "react-native-safe-area-context";

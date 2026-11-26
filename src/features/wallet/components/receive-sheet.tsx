@@ -2,7 +2,7 @@ import React, { forwardRef } from "react";
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { ReceivePanel } from "./receive-panel";
 
 interface ReceiveSheetProps {

@@ -2,8 +2,8 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
-import { useBffHealth } from '@/hooks/useBffHealth';
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useBffHealth } from '@/hooks/use-bff-health';
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 
 const createStyles = (colors: Palette) => StyleSheet.create({

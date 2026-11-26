@@ -8,7 +8,7 @@ import _debounce from "lodash/debounce";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/theme/colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
 import ShopFilterButton from "./components/shop-filter-button";

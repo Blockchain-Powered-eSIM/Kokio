@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import type { NavigationState, Route, SceneRendererProps } from "react-native-tab-view";
 
 import { Theme } from "@/theme/colors";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 
 const styles = StyleSheet.create({
   tabBarContainer: {

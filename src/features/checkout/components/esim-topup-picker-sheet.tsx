@@ -5,8 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
-import { useColors } from "@/hooks/useColors";
-import { useBottomInset } from "@/hooks/useBottomInset";
+import { useColors } from "@/hooks/use-colors";
+import { useBottomInset } from "@/hooks/use-bottom-inset";
 import { esimDisplayName, esimDocToDisplayItem } from "@/features/esim/esim-display";
 import type { ESimDocument } from "@/lib/api/bff/esim";
 

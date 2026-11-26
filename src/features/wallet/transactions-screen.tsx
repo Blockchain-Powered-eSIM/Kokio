@@ -4,7 +4,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { useRouter } from 'expo-router';
 import _ from "lodash"
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useWalletActivityFeed } from './hooks/use-wallet-activity-feed';
 import { shortenAddress } from './address';
 

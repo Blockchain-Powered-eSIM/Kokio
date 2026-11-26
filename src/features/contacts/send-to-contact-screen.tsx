@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useQueryClient } from '@tanstack/react-query'
 import { isAddress, parseUnits, formatUnits, type Address } from 'viem';
 import { useToast } from '@/contexts/ToastContext'
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { type Contact } from './hooks/use-contacts';
 import { TokenPickerSheet } from '@/features/wallet/components/token-picker-sheet';
 import { useWalletTokens, isZeroBalance, type WalletToken } from '@/features/wallet/hooks/use-wallet-tokens';

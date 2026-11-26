@@ -4,7 +4,7 @@ import { Image, Pressable, View } from 'react-native'
 import React from 'react'
 import { router } from 'expo-router'
 import _ from "lodash";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useContacts } from './hooks/use-contacts';
 import { ContactAvatar } from './components/contact-avatar';
 

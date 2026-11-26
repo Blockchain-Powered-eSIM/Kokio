@@ -6,7 +6,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ContactAvatar } from './components/contact-avatar';
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { logger } from '@/lib/logger';
 import { contactKey } from '@/lib/storage/keys';

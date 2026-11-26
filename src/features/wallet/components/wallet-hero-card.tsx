@@ -12,12 +12,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { getExplorerAddressBase } from "../explorer-links";
 import { shortenAddress, withBasePrefix } from "../address";
-import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { useCopyFeedback } from "@/hooks/use-copy-feedback";
 import { logger } from "@/lib/logger";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";

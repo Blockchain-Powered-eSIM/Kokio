@@ -3,8 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Theme } from "@/theme/colors";
 import type { Palette } from "@/theme/colors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 const ICON_SIZE = 24;
 

@@ -1,7 +1,7 @@
 // src/context/ToastContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 

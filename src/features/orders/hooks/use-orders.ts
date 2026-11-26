@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getOrderList, type OrderListItem } from '@/lib/api/bff/order';
-import { useIsAppActive } from '@/hooks/useIsAppActive';
+import { useIsAppActive } from '@/hooks/use-is-app-active';
 import { useAuthRelay } from '@/hooks/use-auth-relayer';
 import { DEVICE_ORDERS_KEY } from '@/lib/query-keys';
 

@@ -3,7 +3,7 @@ import { View, ViewStyle, TextStyle } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { Theme } from "@/theme/colors";
 
 interface HeaderProps {

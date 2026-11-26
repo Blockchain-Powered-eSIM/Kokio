@@ -9,8 +9,8 @@ import _sortBy from "lodash/sortBy";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/theme/colors";
-import { useColors } from "@/hooks/useColors";
-import { useBottomInset } from "@/hooks/useBottomInset";
+import { useColors } from "@/hooks/use-colors";
+import { useBottomInset } from "@/hooks/use-bottom-inset";
 import EsimItemSkeleton from "@/components/ui/esim-item-skeleton";
 import { useToast } from "@/contexts/ToastContext";
 

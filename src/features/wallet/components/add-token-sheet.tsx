@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { isAddress } from "viem";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { PillButton } from "@/components/ui/PillButton";
 import { useToast } from "@/contexts/ToastContext";
 import { CustomTokenError, type CustomToken } from "../hooks/use-custom-tokens";

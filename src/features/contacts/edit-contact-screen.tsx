@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import { ContactAvatar, pickUniqueAvatarColorKey } from './components/contact-avatar';
 import { useContacts, findContactConflict } from './hooks/use-contacts';
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { normalizeAddressInput } from '@/features/wallet/address';

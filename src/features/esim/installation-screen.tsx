@@ -22,7 +22,7 @@ import _split from "lodash/split";
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/theme/colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { logger } from "@/lib/logger";
 
 type TabType = "Direct" | "QR" | "Manual";

@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { ReceiveAddressCard } from "./receive-address-card";
 
 interface ReceivePanelProps {

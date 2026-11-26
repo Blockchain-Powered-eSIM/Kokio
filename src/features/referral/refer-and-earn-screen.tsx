@@ -12,10 +12,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useCopyFeedback } from "@/hooks/use-copy-feedback";
 import type { Palette } from "@/theme/colors";
 import { useReferral } from "./hooks/use-referral";
 import { heldCreditCents, useCreditBalance } from "./hooks/use-credit-history";

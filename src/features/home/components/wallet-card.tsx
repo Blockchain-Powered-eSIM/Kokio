@@ -3,8 +3,8 @@ import { StyleSheet, View, TouchableOpacity, ActivityIndicator } from "react-nat
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useTheme } from "@/contexts/ThemeContext";
 import { DARK_TOKENS, LIGHT_TOKENS } from "@/theme/colors";
 import { PASSKEY_LABEL } from "@/lib/constants/app";

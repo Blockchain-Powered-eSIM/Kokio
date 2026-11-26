@@ -1,9 +1,9 @@
 import React from "react";
 import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { useColors } from "@/hooks/useColors";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
+import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
 
 interface ConfirmModalProps {

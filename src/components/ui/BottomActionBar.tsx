@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, type ViewProps, type StyleProp, type ViewStyle } from "react-native";
 import { Theme } from "@/theme/colors";
-import { useBottomInset } from "@/hooks/useBottomInset";
+import { useBottomInset } from "@/hooks/use-bottom-inset";
 
 type BottomActionBarProps = ViewProps & {
   children: React.ReactNode;

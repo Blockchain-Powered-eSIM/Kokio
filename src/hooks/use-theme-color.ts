@@ -3,7 +3,7 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 import { useTheme } from "@/contexts/ThemeContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
 
 export function useThemeColor(

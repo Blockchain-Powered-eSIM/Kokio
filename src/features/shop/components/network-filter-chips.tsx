@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleProp, StyleSheet, ViewStyle } from "react-n
 import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/theme/colors";
 import type { Palette } from "@/theme/colors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 
 const SELECTED_LABEL_COLOR = "#000000";
 

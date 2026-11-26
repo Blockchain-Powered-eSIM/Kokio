@@ -1,6 +1,6 @@
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@/hooks/use-colors";
 import { Image, Pressable, View } from "react-native";
 import React, { useState, useCallback } from "react";
 import { router , useFocusEffect } from "expo-router";

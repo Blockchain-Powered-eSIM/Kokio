@@ -2,8 +2,8 @@ import React from "react";
 import { Modal, View, TouchableOpacity, StyleSheet } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 
 interface SignupRequiredModalProps {

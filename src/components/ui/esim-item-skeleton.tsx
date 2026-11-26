@@ -8,7 +8,7 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 import { Theme } from "@/theme/colors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 
 const createStyles = (colors: Palette) => StyleSheet.create({

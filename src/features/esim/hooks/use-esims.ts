@@ -32,7 +32,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getAllEsims, type ESimDocument } from '@/lib/api/bff/esim';
-import { useIsAppActive } from '@/hooks/useIsAppActive';
+import { useIsAppActive } from '@/hooks/use-is-app-active';
 import { useAuthRelay } from '@/hooks/use-auth-relayer';
 import { useKokio } from '@/hooks/use-kokio';
 import { DEVICE_ESIMS_KEY } from '@/lib/query-keys';

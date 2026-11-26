@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getReferral, type ReferralResponse } from '@/lib/api/bff/account';
-import { useIsAppActive } from '@/hooks/useIsAppActive';
+import { useIsAppActive } from '@/hooks/use-is-app-active';
 import { useAuthRelay } from '@/hooks/use-auth-relayer';
 import { REFERRAL_KEY } from '@/lib/query-keys';
 

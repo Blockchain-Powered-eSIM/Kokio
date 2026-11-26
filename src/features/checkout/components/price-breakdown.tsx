@@ -1,8 +1,8 @@
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
-import { useColors } from "@/hooks/useColors";
-import { useThemedStyles } from "@/hooks/useThemedStyles";
+import { useColors } from "@/hooks/use-colors";
+import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { OrderPricing } from "@/lib/api/bff/order";
 import { formatCents } from "@/lib/format";
 import { FIAT_MINIMUM_CENTS } from "@/lib/constants/checkout";
