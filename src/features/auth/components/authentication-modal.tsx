@@ -120,7 +120,7 @@ export function AuthenticationModal() {
           await clearKokioUser();
           resetErrors();
           const recovered = await recoverWithPasskey();
-          if (recovered) {
+          if (recovered && recovered !== "cancelled") {
             await setupKokioRecovery(
               recovered.deviceWalletAddress,
               recovered.credentialId
@@ -130,33 +130,26 @@ export function AuthenticationModal() {
           }
         }
       } else {
-        const recovered = await recoverWithPasskey();
+        let recovered = await recoverWithPasskey();
         logger.debug('AUTH_RECOVER_RESULT', { recovered });
-        if (recovered) {
+        // Retry once on a failure, but not when the user cancelled the prompt.
+        if (recovered === null) {
+          recovered = await recoverWithPasskey();
+          logger.debug('AUTH_RECOVER_RESULT', { recovered });
+        }
+        if (recovered && recovered !== "cancelled") {
           await setupKokioRecovery(
             recovered.deviceWalletAddress,
             recovered.credentialId
           );
           succeeded = true;
           sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
-        } else {
-          const recovered = await recoverWithPasskey();
-          logger.debug('AUTH_RECOVER_RESULT', { recovered });
-          if (recovered) {
-            await setupKokioRecovery(
-              recovered.deviceWalletAddress,
-              recovered.credentialId
-            );
-            succeeded = true;
-            sheetRef.current?.close({ duration: 250, easing: Easing.out(Easing.quad) });
-          } else {
-            // No discoverable Kokio passkey on this device. Distinct from a
-            // failure — this is simply a device that has never registered, or
-            // whose passkey was deleted from the password manager.
-            setLocalError(
-              "No Kokio passkey found on this device. Tap New User to create an account."
-            );
-          }
+        } else if (recovered === null) {
+          // No discoverable Kokio passkey on this device: it never registered,
+          // or the passkey was deleted from the password manager.
+          setLocalError(
+            "No Kokio passkey found on this device. Tap New User to create an account."
+          );
         }
       }
     } catch (e) {

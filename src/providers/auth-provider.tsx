@@ -17,6 +17,7 @@ import type { RegisterResult } from "@/lib/auth/passkey-register";
 import { loginWithKokioPasskey, discoverAndLoginWithPasskey, type DiscoverLoginResult } from "@/lib/auth/passkey-login";
 import { performStepUp } from "@/lib/auth/step-up";
 import { AuthError, StepUpCancelledError } from "@/lib/auth/errors";
+import { isUserCancelledPasskeyError } from "@/lib/chain/format-on-chain-error";
 import { deleteAccount as bffDeleteAccount } from '@/lib/api/bff/account';
 import {
   markAccountDeleted,
@@ -108,7 +109,7 @@ export interface AuthRelayProviderType {
     email?: string;
   }) => Promise<RegisterResult | null | undefined>;
   loginWithPasskey: () => Promise<'success' | 'no-credential' | 'error'>;
-  recoverWithPasskey: () => Promise<DiscoverLoginResult | null>;
+  recoverWithPasskey: () => Promise<DiscoverLoginResult | "cancelled" | null>;
   reauthenticate: () => void;
   clearError: () => void;
   logout: () => Promise<void>;
@@ -261,9 +262,9 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
 
   // Recovers an existing passkey after reinstall (SecureStore wiped but passkey
   // still in Google Password Manager / iCloud Keychain). Returns the result on
-  // success so the caller can restore kokio state; returns null on any failure
-  // so the caller can fall through to fresh registration.
-  const recoverWithPasskey = async (): Promise<DiscoverLoginResult | null> => {
+  // success so the caller can restore kokio state, "cancelled" when the user
+  // dismissed the passkey prompt, and null on any other failure.
+  const recoverWithPasskey = async (): Promise<DiscoverLoginResult | "cancelled" | null> => {
     if (!Passkey.isSupported()) return null;
 
     dispatch({ type: "LOADING", payload: LoginMethod.Passkey });
@@ -271,9 +272,9 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       const result = await discoverAndLoginWithPasskey();
       dispatch({ type: "PASSKEY" });
       return result;
-    } catch {
+    } catch (err) {
       dispatch({ type: "LOADING", payload: null });
-      return null;
+      return isUserCancelledPasskeyError(err) ? "cancelled" : null;
     }
   };
 
