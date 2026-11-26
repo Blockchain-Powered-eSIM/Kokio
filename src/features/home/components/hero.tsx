@@ -14,7 +14,7 @@ import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
 
-import { Card, CardFooter } from "../ui/Card";
+import { Card, CardFooter } from "@/components/ui/Card";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   backgroundImageContainer: {

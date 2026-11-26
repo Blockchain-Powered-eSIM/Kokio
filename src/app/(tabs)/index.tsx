@@ -1,1 +1,1 @@
-export { default } from "@/screens/home";
+export { default } from "@/features/home/home-screen";

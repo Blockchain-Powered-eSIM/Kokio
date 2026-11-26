@@ -8,8 +8,8 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useTheme } from "@/contexts/ThemeContext";
 import { DARK_TOKENS, LIGHT_TOKENS } from "@/theme/colors";
 import { PASSKEY_LABEL } from "@/lib/constants/app";
-import { ThemedView } from "../ThemedView";
-import { ThemedText } from "../ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/ThemedText";
 
 interface WalletProps {
   isWalletAdded: boolean;

@@ -2,9 +2,9 @@ import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-import ActiveESIMsScroll from "@/components/home/active-esim-scroll";
-import Wallet from "@/components/home/wallet";
-import Hero from "@/components/home/hero";
+import ActiveESIMsScroll from "./components/active-esim-scroll";
+import Wallet from "./components/wallet-card";
+import Hero from "./components/hero";
 import { useKokio } from "@/hooks/useKokio";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useWalletTokens } from "@/features/wallet/hooks/use-wallet-tokens";
