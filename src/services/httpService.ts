@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { router } from 'expo-router';
 import { logger } from '@/utils/logger';
 
-import { Config } from '@/appKeys';
+import { Config } from '@/lib/config';
 import { useAuthStore } from '@/stores/authStore';
 import { buildDpopProof } from '@/utils/auth/dpopProof';
 import { refreshAccessToken, TokenFamilyRevokedError } from '@/utils/auth/refresh';

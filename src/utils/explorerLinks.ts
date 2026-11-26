@@ -1,5 +1,5 @@
 import { base } from 'viem/chains';
-import { Config } from '@/appKeys';
+import { Config } from '@/lib/config';
 import {
   BASE_SEPOLIA_TESTNET,
   BASE_SEPOLIA_TESTNET_TX,

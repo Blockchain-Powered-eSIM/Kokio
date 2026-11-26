@@ -6,9 +6,9 @@
  * per-origin nonce cache always starts empty.
  */
 
-// ─── Mock @/appKeys so AUTH_SERVER_BASE_URL is available ─────────────────────
+// ─── Mock @/lib/config so AUTH_SERVER_BASE_URL is available ─────────────────────
 
-jest.mock('@/appKeys', () => ({
+jest.mock('@/lib/config', () => ({
   Config: { AUTH_SERVER_BASE_URL: 'https://auth.example.com' },
 }));
 
@@ -47,8 +47,8 @@ function success() {
 /** Fresh module instance — resets the _nonceCache and interceptor slots. */
 function freshClient() {
   jest.resetModules();
-  // Re-apply the @/appKeys mock for the re-required module
-  jest.mock('@/appKeys', () => ({
+  // Re-apply the @/lib/config mock for the re-required module
+  jest.mock('@/lib/config', () => ({
     Config: { AUTH_SERVER_BASE_URL: 'https://auth.example.com' },
   }));
   return require('../kokioAuthClient') as typeof import('../kokioAuthClient');

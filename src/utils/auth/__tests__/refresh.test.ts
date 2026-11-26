@@ -57,7 +57,7 @@ function invalidGrantResp() {
 function freshModule() {
   jest.resetModules();
 
-  jest.mock('@/appKeys', () => ({
+  jest.mock('@/lib/config', () => ({
     Config: { AUTH_SERVER_BASE_URL: 'https://auth.example.com/v2' },
   }));
 

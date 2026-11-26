@@ -1,6 +1,6 @@
 import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
 import type { JWK, JWTVerifyResult, JWTPayload } from 'jose';
-import { Config } from '@/appKeys';
+import { Config } from '@/lib/config';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

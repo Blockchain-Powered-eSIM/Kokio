@@ -5,7 +5,7 @@ import { PASSKEY_CONFIG } from "@/constants/passkey.constants";
 import { createWalletClient, http, type Address, type Hex } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import Constants from "expo-constants";
-import { AppExtraConfig, Config } from "@/appKeys";
+import { AppExtraConfig, Config } from "@/lib/config";
 import type { KokioSmartAccount } from "kokio-sdk/types";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";

@@ -8,7 +8,7 @@ import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
-import { Config } from '@/appKeys';
+import { Config } from '@/lib/config';
 import { logger } from '@/utils/logger';
 
 // ─── Shared types ────────────────────────────────────────────────────────────

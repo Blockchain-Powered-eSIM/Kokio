@@ -1,6 +1,6 @@
 import React, { ReactElement } from "react";
 import { StripeProvider } from "@stripe/stripe-react-native";
-import { Config } from "@/appKeys";
+import { Config } from "@/lib/config";
 
 type Props = {
   children: ReactElement | ReactElement[];

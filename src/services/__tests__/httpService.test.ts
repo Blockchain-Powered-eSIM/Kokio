@@ -47,7 +47,7 @@ jest.mock('axios', () => {
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('uuid',        () => ({ v4: jest.fn(() => 'test-uuid') }));
-jest.mock('@/appKeys',   () => ({ Config: { API_BASE_URL: 'https://api.test.kokio.io' } }));
+jest.mock('@/lib/config',   () => ({ Config: { API_BASE_URL: 'https://api.test.kokio.io' } }));
 
 jest.mock('@/utils/auth/dpopProof', () => ({
   buildDpopProof: jest.fn().mockResolvedValue('mock-dpop-proof'),

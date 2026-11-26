@@ -1,5 +1,5 @@
 import type { paths, components } from './generated/kokioAuth';
-import { Config } from '@/appKeys';
+import { Config } from '@/lib/config';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthError } from './errors';
 import { logger } from '@/utils/logger';

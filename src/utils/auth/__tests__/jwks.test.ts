@@ -21,7 +21,7 @@ global.fetch = mockFetch;
 
 // ─── Mock Config ──────────────────────────────────────────────────────────────
 
-jest.mock('@/appKeys', () => ({
+jest.mock('@/lib/config', () => ({
   Config: { AUTH_SERVER_BASE_URL: 'https://auth.kokio.app' },
 }));
 

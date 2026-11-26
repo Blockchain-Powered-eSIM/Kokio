@@ -11,7 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { useKokio } from "@/hooks/useKokio";
-import { Config } from "@/appKeys";
+import { Config } from "@/lib/config";
 import {
   getWcSignClient,
   pendingProposal,
