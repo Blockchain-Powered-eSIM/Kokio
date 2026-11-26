@@ -1,12 +1,10 @@
 /**
  * One-time local wipe for the Base Sepolia (testnet) -> Base mainnet cutover.
  * Passkeys/wallets registered against the testnet contracts are meaningless
- * once the backend and contracts move to mainnet — the same situation as the
- * kokio-sdk v1 -> v3 migration (see sdkV3Reset.ts), so this follows the exact
- * same version-gated purge idiom.
+ * once the backend and contracts move to mainnet. Any device below this data
+ * version (including ones still on a kokio-sdk v1 build) is wiped once.
  *
- * Inert until MAINNET_CUTOVER_ENABLED flips true (constants/general.constants.ts) —
- * calling this before then is a no-op.
+ * Inert while MAINNET_CUTOVER_ENABLED (lib/constants/app.ts) is false.
  */
 import * as SecureStore from 'expo-secure-store';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
@@ -19,8 +17,8 @@ import { CREDENTIAL_ID_KEY, LOCAL_DATA_VERSION_KEY } from '@/lib/storage/keys';
 export const MAINNET_CUTOVER_VERSION = '3';
 
 /**
- * A device is "returning" if an earlier build left the data-version key or a passkey credential behind. 
- * MUST run before runSdkV3MigrationIfNeeded()
+ * A device is "returning" if an earlier build left the data-version key or a passkey credential behind.
+ * MUST run before runMainnetCutoverIfNeeded(), which writes the data-version key.
  */
 export async function isReturningDevice(): Promise<boolean> {
   try {

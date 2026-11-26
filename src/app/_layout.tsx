@@ -21,7 +21,6 @@ import { StepUpPromptModal } from "@/components/StepUpPromptModal";
 import { ServiceStatusBanner } from "@/components/ServiceStatusBanner";
 import { setUnauthenticatedHandler } from "@/lib/api/http-client";
 import { useAuthStore } from "@/stores/authStore";
-import { runSdkV3MigrationIfNeeded } from "@/utils/auth/sdkV3Reset";
 import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/utils/auth/mainnetCutoverReset";
 import { shouldShowWelcomeBack } from "@/utils/auth/returningUserProbe";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -135,14 +134,10 @@ export default function RootLayout() {
   }, [pathname]);
 
   // Runs once before anything else touches SecureStore: on a device upgrading from
-  // a pre-kokio-sdk-v3 build, wipes the now-meaningless local identity/wallet state.
-  // runMainnetCutoverIfNeeded is the same idiom for the future testnet -> mainnet
-  // cutover — currently a no-op until MAINNET_CUTOVER_ENABLED flips true.
+  // a testnet build, wipes the now-meaningless local identity/wallet state.
   useEffect(() => {
     isReturningDevice()
-      .then((returningDevice) =>
-        runSdkV3MigrationIfNeeded().then(() => runMainnetCutoverIfNeeded(returningDevice)),
-      )
+      .then((returningDevice) => runMainnetCutoverIfNeeded(returningDevice))
       .then(() => shouldShowWelcomeBack())
       .then(setShowWelcomeBack)
       .finally(() => setResetReady(true));
