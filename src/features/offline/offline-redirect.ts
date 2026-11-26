@@ -10,7 +10,7 @@ export function getSkipNextOfflineRedirect(): boolean {
   return skipNextOfflineRedirect;
 }
 
-// usePathname() returns "/Offline" while ROUTE_NAMES.OFFLINE is "Offline".
+// usePathname() returns "/offline" while ROUTE_NAMES.OFFLINE is "offline".
 export function isOfflinePath(pathname: string | null | undefined): boolean {
   return !!pathname && pathname.replace(/^\//, "") === ROUTE_NAMES.OFFLINE;
 }

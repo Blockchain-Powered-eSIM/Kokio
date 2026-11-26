@@ -53,7 +53,7 @@ export default function WalletStack() {
           headerLeft: ({ tintColor }) => (
             <HeaderBackControl
               tintColor={tintColor}
-              onPress={() => router.dismissTo("/(tabs)/(wallet)/Transactions")}
+              onPress={() => router.dismissTo("/(tabs)/(wallet)/transactions")}
             />
           ),
         }}

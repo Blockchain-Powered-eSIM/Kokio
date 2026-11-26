@@ -296,7 +296,7 @@ const SendToContact = () => {
         await AsyncStorage.setItem(contactKey(contactForLog.id), JSON.stringify(updatedContact));
 
         logger.debug('TRANSACTION_ADDED', { newTransaction });
-        router.push({ pathname: "/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) } });
+        router.push({ pathname: "/(tabs)/(wallet)/transaction-details", params: { transaction: JSON.stringify(newTransaction) } });
       } else {
         // Raw-address sends have no contact record to append a log entry to.
         // Skip the per-contact AsyncStorage write and navigate straight to
@@ -313,7 +313,7 @@ const SendToContact = () => {
         };
 
         logger.debug('RAW_ADDRESS_TRANSACTION_SENT', { newTransaction });
-        router.push({ pathname: "/(tabs)/(wallet)/TransactionDetails", params: { transaction: JSON.stringify(newTransaction) } });
+        router.push({ pathname: "/(tabs)/(wallet)/transaction-details", params: { transaction: JSON.stringify(newTransaction) } });
       }
 
       showMessage(`Sent ${displayAmount}`, "info");

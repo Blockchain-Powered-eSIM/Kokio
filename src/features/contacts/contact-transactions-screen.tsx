@@ -39,7 +39,7 @@ const ContactTransactions = () => {
             tr.status === 'pending' && (
                 <Pressable
                     onPress={() => router.push({
-                        pathname: "/(tabs)/(wallet)/TransactionDetails",
+                        pathname: "/(tabs)/(wallet)/transaction-details",
                         params: { transaction: JSON.stringify(pendingTransactions[index]) }
                     })}
                     key={tr?.id}
@@ -98,7 +98,7 @@ const ContactTransactions = () => {
                         {_.map(completedTransactions, (tr, index) => (
                             tr?.status === "completed" && (
                                 <Pressable onPress={() => router.push({
-                                    pathname: "/(tabs)/(wallet)/TransactionDetails",
+                                    pathname: "/(tabs)/(wallet)/transaction-details",
                                     params: { transaction: JSON.stringify(completedTransactions[index]) }
                                 })} key={index} className='flex-row items-center justify-between  mx-5 '>
                                     <View className='flex-row items-center'>

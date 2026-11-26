@@ -46,7 +46,7 @@ const AddContactScreen = () => {
     }, [navigation, params]);
 
     const handleScan = async () => {
-        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit: "false" } });
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qr-code", params: { isEdit: "false" } });
     };
     
     const applyAddressInput = (text: string) => {
@@ -114,7 +114,7 @@ const AddContactScreen = () => {
 
             // Optional: Show success message
             showMessage("Contact added successfully", "info");
-            router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails', params:{id:contactObj.id,alias:contactObj.alias,avatarColorKey:contactObj.avatarColorKey,transactions:contactObj.transactions,walletAddress:walletAddress}})
+            router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contact-details', params:{id:contactObj.id,alias:contactObj.alias,avatarColorKey:contactObj.avatarColorKey,transactions:contactObj.transactions,walletAddress:walletAddress}})
             logger.debug('CONTACT_SAVE_OBJECT', { contactObj });
 
 

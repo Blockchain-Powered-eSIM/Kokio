@@ -53,7 +53,7 @@ const EditContact = () => {
     };
 
     const handleScan = async () => {
-        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit:"true",id:params.id } });
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qr-code", params: { isEdit:"true",id:params.id } });
     };
     
     const handleSave = async () => {
@@ -105,7 +105,7 @@ const EditContact = () => {
 
           // Navigate to contactDetails with updated info
           router.replace({
-            pathname: '/(tabs)/(wallet)/(contacts)/contactDetails',
+            pathname: '/(tabs)/(wallet)/(contacts)/contact-details',
             params: {
               alias: editedContactObj.alias,
               avatarColorKey: editedContactObj.avatarColorKey,

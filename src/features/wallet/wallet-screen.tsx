@@ -282,7 +282,7 @@ const WalletPage = () => {
           />
         </View>
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
-          <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/sendToContact' as any)} className='flex-1'>
+          <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/send-to-contact' as any)} className='flex-1'>
             <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 rounded-3xl py-5  justify-center items-center'>
               <View className='p-[12] rounded-full' style={{ backgroundColor: colors.warning }}>
                 <Ionicons name='arrow-up' size={20} color='#fff' />
@@ -334,7 +334,7 @@ const WalletPage = () => {
         </Pressable>
 
 
-        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/Tokens" as any)}>
+        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/tokens" as any)}>
           <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
             <View className='flex-row justify-between'>
               <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Tokens</ThemedText>
@@ -344,7 +344,7 @@ const WalletPage = () => {
             <TokenGrid tokens={builtInTokens} onAddToken={() => addTokenSheetRef.current?.snapToIndex(0)} />
           </ThemedView>
         </Pressable>
-        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/Transactions' as any)}>
+        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/transactions' as any)}>
         <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
             <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Transactions</ThemedText>
@@ -389,7 +389,7 @@ const WalletPage = () => {
           </Pressable>
           <View className='flex-row ml-3 gap-y-6 mt-5 mb-3'>
             {/* Add contact is always the first item in this list. */}
-            <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/addContactScreen' as any)} className='items-center justify-between mx-5'>
+            <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/add-contact' as any)} className='items-center justify-between mx-5'>
               <View className='flex-col items-center'>
                 <View className='h-[53px] w-[53px] rounded-full items-center justify-center' style={{ backgroundColor: colors.warning }}>
                   <Image source={require("@/assets/images/wallet/add_contact.png")} className='h-[26] w-[30]' />
@@ -402,7 +402,7 @@ const WalletPage = () => {
             {contacts.slice(0, 3).map((person) => (
               <Pressable
                 key={person.id}
-                onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/contactDetails' as any, params: { id: person.id, alias: person.alias, avatarColorKey: person.avatarColorKey, transactions: JSON.stringify(person.transactions ?? []), walletAddress: person.walletAddress } })}
+                onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/contact-details' as any, params: { id: person.id, alias: person.alias, avatarColorKey: person.avatarColorKey, transactions: JSON.stringify(person.transactions ?? []), walletAddress: person.walletAddress } })}
                 className='items-center justify-between mx-5'
               >
                 <View className='flex-col items-center'>

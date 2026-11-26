@@ -16,7 +16,7 @@ const ContactsScreen = () => {
             <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='mx-2 py-3   rounded-3xl mt-5 w-auto'>
                 <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='gap-y-4 justify-start items-center gap-x-1 flex-wrap flex-row mt-7 mb-3'>
                 {/* add contact btn  */}
-                <Pressable onPress={() => router.push("/(tabs)/(wallet)/(contacts)/addContactScreen")} className='ml-[-10] justify-center mt-[-19] mr-4 '>
+                <Pressable onPress={() => router.push("/(tabs)/(wallet)/(contacts)/add-contact")} className='ml-[-10] justify-center mt-[-19] mr-4 '>
                     <View className='ml-8 h-16 items-center justify-center w-16 rounded-full' style={{ backgroundColor: colors.warning }}>
                         <Image source={require("@/assets/images/wallet/add_contact.png")} className='h-[32] w-[38]' />
                     </View>
@@ -25,7 +25,7 @@ const ContactsScreen = () => {
                 {/* other contacts  */}
                 {contacts.length > 0 &&
                 _.map(contacts, (contact, index) => (
-                    <Pressable onPress={()=> router.push({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails',params:{id:contact.id,alias:contact.alias,avatarColorKey:contact.avatarColorKey,transactions:contact?.transactions,walletAddress:contact.walletAddress}})} key={index} className=' items-center justify-between  mx-5 '>
+                    <Pressable onPress={()=> router.push({pathname:'/(tabs)/(wallet)/(contacts)/contact-details',params:{id:contact.id,alias:contact.alias,avatarColorKey:contact.avatarColorKey,transactions:contact?.transactions,walletAddress:contact.walletAddress}})} key={index} className=' items-center justify-between  mx-5 '>
                         <View className='flex-col items-center'>
                             <ContactAvatar seed={contact.id} colorKey={contact.avatarColorKey} alias={contact.alias} size={53} />
                             <View className='flex-col items-start mt-3 '>

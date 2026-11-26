@@ -69,14 +69,14 @@ const ContactDetails = () => {
 
       </View>
       <View className='w-full h-auto  mt-10 gap-x-2 flex-row  mx-2 '>
-        <Pressable onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/sendToContact', params: { alias: alias, avatarColorKey: avatarColorKey, id: id } })} className='flex-1  items-center'>
+        <Pressable onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/send-to-contact', params: { alias: alias, avatarColorKey: avatarColorKey, id: id } })} className='flex-1  items-center'>
           <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[70%] ml-[-30] rounded-3xl py-5  justify-center items-center'>
 
             <Image source={require("@/assets/images/wallet/sendImg.png")} className='h-[32] w-[32]' />
             <ThemedText lightColor="#000000" variant='sm' className='text-white mt-2' bold>Send</ThemedText>
           </ThemedView>
         </Pressable>
-        <Pressable onPress={() => router.replace({ pathname: "/(tabs)/(wallet)/(contacts)/editContact", params: { alias: alias, id: id, walletAddress: walletAddress } })} className='flex-1'>
+        <Pressable onPress={() => router.replace({ pathname: "/(tabs)/(wallet)/(contacts)/edit-contact", params: { alias: alias, id: id, walletAddress: walletAddress } })} className='flex-1'>
           <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-[70%] ml-7  rounded-3xl py-5  justify-center items-center'>
             <MaterialIcons name="edit" size={28} color={iconTintColor} />
             <ThemedText lightColor="#000000" variant='sm' className='text-white mt-2' bold>Edit</ThemedText>
@@ -86,7 +86,7 @@ const ContactDetails = () => {
       <Pressable
         onPress={() =>
           router.push({
-            pathname: "/(tabs)/(wallet)/(contacts)/contactTransactions",
+            pathname: "/(tabs)/(wallet)/(contacts)/contact-transactions",
             params: { transactions: JSON.stringify(transactions) }, // Stringify the array
           })
         }

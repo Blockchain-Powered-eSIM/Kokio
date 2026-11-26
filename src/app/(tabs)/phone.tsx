@@ -68,7 +68,7 @@ const ContactsScreen = () => {
         {/* add contact btn  */}
         <Pressable
           onPress={() =>
-            router.push("/(tabs)/(wallet)/(contacts)/addContactScreen")
+            router.push("/(tabs)/(wallet)/(contacts)/add-contact")
           }
           className="ml-[-10] justify-center mt-[-19] mr-4 "
         >
@@ -86,7 +86,7 @@ const ContactsScreen = () => {
             <Pressable
               onPress={() =>
                 router.push({
-                  pathname: "/(tabs)/(wallet)/(contacts)/contactDetails",
+                  pathname: "/(tabs)/(wallet)/(contacts)/contact-details",
                   params: {
                     id: contact.id,
                     monogramUrl: contact.monogramUrl,

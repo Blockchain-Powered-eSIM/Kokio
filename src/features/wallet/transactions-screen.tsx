@@ -25,7 +25,7 @@ const Transactions = () => {
                 tr.status === 'completed' && (
                   <Pressable
                     onPress={() => router.push({
-                      pathname: "/(tabs)/(wallet)/TransactionDetails",
+                      pathname: "/(tabs)/(wallet)/transaction-details",
                       params: { transaction: JSON.stringify(transactions[index]) } // Convert object to string
                     })}
                     key={tr?.id}

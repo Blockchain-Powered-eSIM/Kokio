@@ -73,7 +73,7 @@ export function useSendRecipient(params: SendParams) {
     : (activeContact?.alias || '—');
 
   const scanQr = () => {
-    router.push({ pathname: '/(tabs)/(wallet)/(contacts)/qrCodeScreen', params: { returnTo: 'send' } });
+    router.push({ pathname: '/(tabs)/(wallet)/(contacts)/qr-code', params: { returnTo: 'send' } });
   };
 
   const selectContact = (contactId: string) => {

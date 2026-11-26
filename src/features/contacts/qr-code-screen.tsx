@@ -237,17 +237,17 @@ export default function QrCodeScreen() {
 
     if(returnTo === "send"){
       router.replace({
-        pathname: '/(tabs)/(wallet)/(contacts)/sendToContact',
+        pathname: '/(tabs)/(wallet)/(contacts)/send-to-contact',
         params: { scannedAddress: data }
       });
     }else if(isEdit === "true"){
       router.replace({
-        pathname: '/(tabs)/(wallet)/(contacts)/editContact',
+        pathname: '/(tabs)/(wallet)/(contacts)/edit-contact',
         params: { walletAddress: data,id:id }
       });
     }else{
       router.replace({
-        pathname: '/(tabs)/(wallet)/(contacts)/addContactScreen',
+        pathname: '/(tabs)/(wallet)/(contacts)/add-contact',
         params: { walletAddress: data }
       });
     }
