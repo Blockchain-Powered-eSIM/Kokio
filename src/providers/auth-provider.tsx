@@ -208,7 +208,7 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
       await SecureStore.setItemAsync(PUBLIC_KEY_Y_KEY, registration.publicKeyY);
       if (registration.rawSalt) await SecureStore.setItemAsync(RAW_SALT_KEY, registration.rawSalt);
       if (registration.deviceUniqueIdentifier) {
-        // JSON.stringify to match saveValueForDeviceUID / getValueForDeviceUID format
+        // JSON.stringify to match the saveJson / readJson format in kokio-storage.ts
         await SecureStore.setItemAsync(DEVICE_UID_KEY, JSON.stringify(registration.deviceUniqueIdentifier));
       }
 

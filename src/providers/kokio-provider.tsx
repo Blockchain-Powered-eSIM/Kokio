@@ -30,15 +30,7 @@ import {
 } from "@/lib/storage/keys";
 import { queryClient } from "@/lib/api/query-client";
 import { KokioContext, initialState, kokioReducer, type UserData } from "./kokio-state";
-import {
-  deleteValueForUser,
-  getValueForDeviceUID,
-  getValueForUserData,
-  getValueForUserWallet,
-  saveValueForDeviceUID,
-  saveValueForUserData,
-  saveValueForUserWallet,
-} from "./kokio-storage";
+import { readJson, saveJson } from "./kokio-storage";
 
 interface KokioProviderProps {
   children: ReactNode;
@@ -56,7 +48,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   };
 
   const setupKokioDeviceUID = async (deviceUID: string) => {
-    await saveValueForDeviceUID(DEVICE_UID_KEY, deviceUID);
+    await saveJson(DEVICE_UID_KEY, deviceUID);
     dispatch({ type: "SET_DEVICE_UID", payload: deviceUID });
   };
 
@@ -99,7 +91,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     publicKeyY: Hex,
     rawSalt: string,
   ) => {
-    await saveValueForDeviceUID(DEVICE_UID_KEY, deviceUniqueIdentifier);
+    await saveJson(DEVICE_UID_KEY, deviceUniqueIdentifier);
     await SecureStore.setItemAsync(DEVICE_WALLET_ADDRESS_KEY, deviceWalletAddress);
     await SecureStore.setItemAsync(CREDENTIAL_ID_KEY, credentialId);
     await SecureStore.setItemAsync(PUBLIC_KEY_X_KEY, publicKeyX);
@@ -110,7 +102,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       id: deviceUniqueIdentifier,
       wallets: [{ address: deviceWalletAddress }],
     };
-    await saveValueForUserData(userDataKey(deviceUniqueIdentifier), userData);
+    await saveJson<UserData>(userDataKey(deviceUniqueIdentifier), userData);
 
     dispatch({ type: "SET_DEVICE_UID",            payload: deviceUniqueIdentifier });
     dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: deviceWalletAddress });
@@ -120,7 +112,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   };
 
   const setupKokioUserWallet = useCallback(async (deviceUID: string, wallet: KokioSmartAccount) => {
-    await saveValueForUserWallet(userWalletKey(deviceUID), wallet);
+    await saveJson<KokioSmartAccount>(userWalletKey(deviceUID), wallet);
     dispatch({ type: "SET_USER_WALLET", payload: wallet });
   }, []);
 
@@ -131,7 +123,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
     try {
       const account = await getAccount();
-      await saveValueForDeviceUID(DEVICE_UID_KEY, account.deviceUniqueIdentifier);
+      await saveJson(DEVICE_UID_KEY, account.deviceUniqueIdentifier);
       await SecureStore.setItemAsync(PUBLIC_KEY_X_KEY, account.pubKeyX);
       await SecureStore.setItemAsync(PUBLIC_KEY_Y_KEY, account.pubKeyY);
       await SecureStore.setItemAsync(RAW_SALT_KEY,    account.salt);
@@ -234,10 +226,10 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
   const clearKokioUser = async () => {
     dispatch({ type: "CLEAR_KOKIO_USER" });
-    await deleteValueForUser(userWalletKey(kokio.deviceUID)).catch(() => {});
-    await deleteValueForUser(userDataKey(kokio.deviceUID)).catch(() => {});
+    await SecureStore.deleteItemAsync(userWalletKey(kokio.deviceUID)).catch(() => {});
+    await SecureStore.deleteItemAsync(userDataKey(kokio.deviceUID)).catch(() => {});
     await AsyncStorage.removeItem(purchasedEsimsKey(kokio.deviceUID)).catch(() => {});
-    await deleteValueForUser(DEVICE_UID_KEY).catch(() => {});
+    await SecureStore.deleteItemAsync(DEVICE_UID_KEY).catch(() => {});
     await SecureStore.deleteItemAsync(DEVICE_WALLET_ADDRESS_KEY).catch(() => {});
     await SecureStore.deleteItemAsync(CREDENTIAL_ID_KEY).catch(() => {});
     await SecureStore.deleteItemAsync(PUBLIC_KEY_X_KEY).catch(() => {});
@@ -255,7 +247,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
         dispatch({ type: "SET_DEVICE_WALLET_ADDRESS", payload: storedWalletAddress });
       }
 
-      const deviceUID = await getValueForDeviceUID(DEVICE_UID_KEY);
+      const deviceUID = await readJson<string>(DEVICE_UID_KEY);
 
       if (deviceUID && !storedWalletAddress) {
         await SecureStore.deleteItemAsync(DEVICE_UID_KEY);
@@ -266,7 +258,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
       if (deviceUID && storedWalletAddress) {
         dispatch({ type: "SET_DEVICE_UID", payload: deviceUID });
 
-        const userData = await getValueForUserData(userDataKey(deviceUID));
+        const userData = await readJson<UserData>(userDataKey(deviceUID));
         if (userData) {
           dispatch({
             type: "SET_KOKIO_USER",
@@ -301,7 +293,7 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
           dispatch({ type: "SET_RAW_SALT", payload: rawSalt });
         }
 
-        const userWallet = await getValueForUserWallet(userWalletKey(deviceUID));
+        const userWallet = await readJson<KokioSmartAccount>(userWalletKey(deviceUID));
         if (userWallet) {
           dispatch({ type: "SET_USER_WALLET", payload: userWallet });
         }
