@@ -2,7 +2,7 @@ import React, { ReactNode, useCallback, useEffect, useReducer, useRef } from "re
 import { router } from "expo-router";
 import type { Kokio } from "kokio-sdk";
 import type { Address, Hex } from "viem";
-import { createKokioClient, resolveChain, withSmartAccount } from "@/lib/chain/kokio-client";
+import { createKokioClient, deriveKokioWallet, resolveChain } from "@/lib/chain/kokio-client";
 import type { KokioSmartAccount } from "kokio-sdk/types";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -182,15 +182,17 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
     (async () => {
       try {
-        const ownerKey: [Hex, Hex] = [kokio.userPasskey!.x, kokio.userPasskey!.y];
-        const salt = BigInt(kokio.rawSalt);
         const deviceUID = kokio.deviceUID;
         const deviceWalletAddress = kokio.deviceWalletAddress as Address;
-        const sdk = kokio.sdk!;
 
-        const account = await sdk.smartAccount.getSmartWallet(deviceUID, ownerKey, salt);
-        const smartAccountClient = await sdk.smartAccount.getSmartWalletClient(account);
-        const registryProbe = withSmartAccount(sdk, smartAccountClient, deviceWalletAddress).registry;
+        const { account, kokio: upgraded } = await deriveKokioWallet(
+          kokio.sdk!,
+          deviceUID,
+          kokio.userPasskey!,
+          kokio.rawSalt,
+          deviceWalletAddress,
+        );
+        const registryProbe = upgraded.registry;
 
         const deployed = await awaitWalletDeploymentConfirmation(registryProbe, deviceWalletAddress);
 
@@ -471,17 +473,13 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
 
     smartAccountUpgradeInFlight.current = true;
     try {
-      const ownerKey: [Hex, Hex] = [kokio.userPasskey.x, kokio.userPasskey.y];
-      const salt = BigInt(kokio.rawSalt);
-
-      const account = await kokio.sdk.smartAccount.getSmartWallet(
+      const { kokio: upgraded } = await deriveKokioWallet(
+        kokio.sdk,
         kokio.deviceUID,
-        ownerKey,
-        salt,
+        kokio.userPasskey,
+        kokio.rawSalt,
+        kokio.deviceWalletAddress as Address,
       );
-      const smartAccountClient = await kokio.sdk.smartAccount.getSmartWalletClient(account);
-
-      const upgraded = withSmartAccount(kokio.sdk, smartAccountClient, kokio.deviceWalletAddress as Address);
 
       dispatch({ type: "SET_KOKIO", payload: upgraded });
       logger.debug('SMART_ACCOUNT_UPGRADED', { deviceUID: kokio.deviceUID });

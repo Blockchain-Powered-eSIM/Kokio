@@ -2,8 +2,8 @@
 // the RPC, bundler and paymaster keys, so moving them behind the backend changes this file alone.
 
 import { Kokio } from "kokio-sdk";
-import type { KokioSmartAccountClient } from "kokio-sdk/types";
-import { createWalletClient, http, type Address, type Chain } from "viem";
+import type { KokioSmartAccount, KokioSmartAccountClient } from "kokio-sdk/types";
+import { createWalletClient, http, type Address, type Chain, type Hex } from "viem";
 import { base, baseSepolia } from "viem/chains";
 import { Config } from "@/lib/config";
 import { PASSKEY_CONFIG } from "@/lib/constants/auth";
@@ -58,4 +58,20 @@ export function withSmartAccount(
     smartAccountClient,
     deviceWalletAddress,
   );
+}
+
+/**
+ * Derives the user's smart wallet from their passkey and salt, and returns it with the SDK
+ * rebuilt around it. This only derives the account, so no passkey prompt fires.
+ */
+export async function deriveKokioWallet(
+  sdk: Kokio,
+  deviceUID: string,
+  passkey: { x: Hex; y: Hex },
+  rawSalt: string,
+  deviceWalletAddress: Address,
+): Promise<{ account: KokioSmartAccount; kokio: Kokio }> {
+  const account = await sdk.smartAccount.getSmartWallet(deviceUID, [passkey.x, passkey.y], BigInt(rawSalt));
+  const smartAccountClient = await sdk.smartAccount.getSmartWalletClient(account);
+  return { account, kokio: withSmartAccount(sdk, smartAccountClient, deviceWalletAddress) };
 }
