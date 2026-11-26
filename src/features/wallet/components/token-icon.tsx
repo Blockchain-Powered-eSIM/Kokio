@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Image, type ImageSourcePropType } from "react-native";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
 
 interface TokenIconProps {

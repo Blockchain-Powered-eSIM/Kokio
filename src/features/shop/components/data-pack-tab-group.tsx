@@ -6,8 +6,8 @@ import _groupBy from "lodash/groupBy";
 import _isEmpty from "lodash/isEmpty";
 import _sortBy from "lodash/sortBy";
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";
 import { useBottomInset } from "@/hooks/use-bottom-inset";

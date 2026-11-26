@@ -1,8 +1,8 @@
 import 'react-native-get-random-values';
 import { View, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
 import React, { useState, useEffect, useMemo } from 'react'
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';

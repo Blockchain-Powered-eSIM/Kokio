@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import DataPackTabGroup from "./data-pack-tab-group";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useCatalogue } from "../hooks/use-catalogue";
 import { formatBffError } from "@/lib/api/bff/errors";
 import { useShopFilters } from "../shop-filters-context";

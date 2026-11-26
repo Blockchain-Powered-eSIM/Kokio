@@ -4,10 +4,10 @@ import { Ionicons } from "@expo/vector-icons";
 import _lowerCase from "lodash/lowerCase";
 import _trim from "lodash/trim";
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import DataPackTabGroup from "./components/data-pack-tab-group";
-import SearchInput from "@/components/SearchInput";
+import SearchInput from "@/components/search-input";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";

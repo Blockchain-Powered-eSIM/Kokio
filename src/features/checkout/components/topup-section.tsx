@@ -1,8 +1,8 @@
 import React from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ThemedText } from "@/components/ThemedText";
-import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
+import { ThemedText } from "@/components/themed-text";
+import CountryFlag, { type CoverageType } from "@/components/ui/country-flag";
 import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/use-themed-styles";

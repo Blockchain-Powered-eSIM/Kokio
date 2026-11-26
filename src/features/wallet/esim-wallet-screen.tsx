@@ -3,9 +3,9 @@ import { View, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import CountryFlag, { type CoverageType } from "@/components/ui/country-flag";
 import EsimLabelEditor from "@/features/esim/components/esim-label-editor";
 import { WalletHeroCard } from "./components/wallet-hero-card";
 import { useColors } from "@/hooks/use-colors";

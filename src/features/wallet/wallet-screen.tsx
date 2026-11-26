@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { View, ScrollView, Image, Pressable, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
 import { useColors } from "@/hooks/use-colors";
 import { useTheme } from '@/contexts/ThemeContext';
@@ -22,7 +22,7 @@ import { useContacts } from '@/features/contacts/hooks/use-contacts';
 import { useWalletActivityFeed } from './hooks/use-wallet-activity-feed';
 import { esimDisplayName, esimDocToDisplayItem } from '@/features/esim/esim-display';
 import type { ESimDocument } from '@/lib/api/bff/esim';
-import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
+import CountryFlag, { type CoverageType } from '@/components/ui/country-flag';
 import { shortenAddress } from './address';
 import { logger } from '@/lib/logger';
 import { setPreferredCheckoutPaymentMethod } from '@/features/checkout/checkout-intent';

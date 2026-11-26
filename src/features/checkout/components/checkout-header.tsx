@@ -18,10 +18,10 @@ import { useColors } from "@/hooks/use-colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { ESIM_EXTRA_DETAILS } from "@/lib/constants/checkout";
-import CountryFlag from "@/components/ui/CountryFlag";
-import { HeaderBackControl } from "@/components/navigation/stackHeader";
+import CountryFlag from "@/components/ui/country-flag";
+import { HeaderBackControl } from "@/components/navigation/stack-header";
 
-import DetailItem from "@/components/ui/DetailItem";
+import DetailItem from "@/components/ui/detail-item";
 
 const PILL_ROW_HEIGHT = (Platform.OS === "ios" ? 16 : 40) - 44;
 const HEADER_MIN_HEIGHT = 170 + PILL_ROW_HEIGHT;

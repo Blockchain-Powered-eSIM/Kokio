@@ -11,8 +11,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
-import CountryFlag from "@/components/ui/CountryFlag";
-import SearchBar from "@/components/SearchInput";
+import CountryFlag from "@/components/ui/country-flag";
+import SearchBar from "@/components/search-input";
 
 type CountryNetworkEntry = {
   countryCode?: string;

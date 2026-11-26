@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Updates from "expo-updates";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
@@ -20,7 +20,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/lib/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/features/wallet/hooks/use-wallet-deployment";
 import { logger } from '@/lib/logger';
-import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
+import SignupRequiredModal from "@/components/ui/signup-required-modal";
 
 interface WalletSetupModalProps {
   visible: boolean;

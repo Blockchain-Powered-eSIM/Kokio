@@ -4,8 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";
-import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
-import DetailItem from "./DetailItem";
+import CountryFlag, { type CoverageType } from "@/components/ui/country-flag";
+import DetailItem from "./detail-item";
 
 export interface Esim {
   catalogueId: string;

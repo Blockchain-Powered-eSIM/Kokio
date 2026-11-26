@@ -19,8 +19,8 @@ import { getExplorerAddressBase } from "../explorer-links";
 import { shortenAddress, withBasePrefix } from "../address";
 import { useCopyFeedback } from "@/hooks/use-copy-feedback";
 import { logger } from "@/lib/logger";
-import { ThemedView } from "@/components/ThemedView";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/themed-view";
+import { ThemedText } from "@/components/themed-text";
 import { DARK_TOKENS, LIGHT_TOKENS } from "@/theme/colors";
 
 interface WalletHeroCardProps {

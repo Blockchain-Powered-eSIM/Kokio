@@ -3,8 +3,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { ThemedText } from "@/components/ThemedText";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
 import { labelForStatus } from "@/features/orders/order-status";
 import { useCopyFeedback } from "@/hooks/use-copy-feedback";

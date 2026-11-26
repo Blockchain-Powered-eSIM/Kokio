@@ -2,7 +2,7 @@ import { Stack, router } from "expo-router";
 
 import _get from "lodash/get";
 
-import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stackHeader";
+import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stack-header";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import CheckoutHeader from "@/features/checkout/components/checkout-header";
 import appBootstrap from "@/lib/bootstrap/app-bootstrap";

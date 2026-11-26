@@ -4,8 +4,8 @@ import {
   StyleSheet,
 } from "react-native";
 
-import type { ThemedTextProps } from "@/components/ThemedText";
-import type { ThemedViewProps } from "@/components/ThemedView";
+import type { ThemedTextProps } from "@/components/themed-text";
+import type { ThemedViewProps } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";

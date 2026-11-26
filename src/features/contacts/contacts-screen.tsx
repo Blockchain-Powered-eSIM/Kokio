@@ -1,5 +1,5 @@
-import { ThemedView } from '@/components/ThemedView'
-import { ThemedText } from '@/components/ThemedText'
+import { ThemedView } from '@/components/themed-view'
+import { ThemedText } from '@/components/themed-text'
 import { Image, Pressable, View } from 'react-native'
 import React from 'react'
 import { router } from 'expo-router'

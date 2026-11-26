@@ -2,7 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
 import { ReceiveAddressCard } from "./receive-address-card";
 

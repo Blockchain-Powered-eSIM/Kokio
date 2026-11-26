@@ -17,7 +17,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";

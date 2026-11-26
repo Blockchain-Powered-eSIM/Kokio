@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable } from 'react-native';
 import { TextInput } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedText } from '@/components/themed-text';
 import { useColors } from '@/hooks/use-colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Contact } from '../hooks/use-contacts';

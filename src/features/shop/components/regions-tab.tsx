@@ -10,8 +10,8 @@ import {
 import _get from "lodash/get";
 import _map from "lodash/map";
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import { Theme } from "@/theme/colors";
 import { REGION_CONFIG } from "@/lib/constants/shop";
 import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";

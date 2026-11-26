@@ -2,8 +2,8 @@ import { View, Image, Pressable, ScrollView } from 'react-native'
 import React, { useState, useCallback } from 'react'
 import { router, useLocalSearchParams , useFocusEffect } from 'expo-router'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ContactAvatar } from './components/contact-avatar';
 import { useColors } from "@/hooks/use-colors";

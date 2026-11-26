@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { TokenIcon } from "./token-icon";
 import { useColors } from "@/hooks/use-colors";
 import { useBottomInset } from "@/hooks/use-bottom-inset";

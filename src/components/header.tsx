@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { View, ViewStyle, TextStyle } from "react-native";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Theme } from "@/theme/colors";

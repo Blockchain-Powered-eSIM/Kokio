@@ -3,8 +3,8 @@ import { Pressable } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ThemedText } from "@/components/ThemedText";
-import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
+import { ThemedText } from "@/components/themed-text";
+import CountryFlag, { type CoverageType } from "@/components/ui/country-flag";
 import { useColors } from "@/hooks/use-colors";
 import { useBottomInset } from "@/hooks/use-bottom-inset";
 import { esimDisplayName, esimDocToDisplayItem } from "@/features/esim/esim-display";

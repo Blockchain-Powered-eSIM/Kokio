@@ -12,13 +12,13 @@ import { router } from "expo-router";
 import _lowerCase from "lodash/lowerCase";
 import _trim from "lodash/trim";
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
-import CountryFlag from "@/components/ui/CountryFlag";
+import CountryFlag from "@/components/ui/country-flag";
 import RegionalSearchRow from "./regional-search-row";
 import GlobalSearchRow from "./global-search-row";
 import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";

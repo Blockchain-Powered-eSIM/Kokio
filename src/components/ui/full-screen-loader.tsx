@@ -1,6 +1,6 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, View, TouchableOpacity } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
 import { useTheme } from "@/contexts/ThemeContext";
 

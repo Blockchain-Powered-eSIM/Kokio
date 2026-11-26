@@ -1,10 +1,10 @@
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
 import { Theme } from "@/theme/colors";
-import { PillButton } from "@/components/ui/PillButton";
+import { PillButton } from "@/components/ui/pill-button";
 
 type BackupPlansFooterProps = {
   onPress: () => void;

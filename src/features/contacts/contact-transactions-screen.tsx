@@ -1,7 +1,7 @@
 import { View, Image, Pressable } from 'react-native';
 import React, { useState, useCallback, useMemo } from 'react';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import _ from "lodash"
 import { useColors } from "@/hooks/use-colors";

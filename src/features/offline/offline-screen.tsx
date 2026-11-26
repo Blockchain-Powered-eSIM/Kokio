@@ -9,7 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import _isNull from "lodash/isNull";
 import NetInfo from "@react-native-community/netinfo";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { useToast } from "@/contexts/ToastContext";

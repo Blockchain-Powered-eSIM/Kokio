@@ -4,9 +4,9 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Updates from "expo-updates";
 
-import { ThemedText } from "@/components/ThemedText";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
-import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
+import { ThemedText } from "@/components/themed-text";
+import { BottomActionBar } from "@/components/ui/bottom-action-bar";
+import SignupRequiredModal from "@/components/ui/signup-required-modal";
 import { useColors } from "@/hooks/use-colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { DARK_TOKENS, LIGHT_TOKENS, type Palette } from "@/theme/colors";

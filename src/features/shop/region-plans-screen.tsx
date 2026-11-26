@@ -5,7 +5,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Theme } from "@/theme/colors";
 import { useCatalogueByRegion } from "./hooks/use-catalogue";
 import { formatBffError } from "@/lib/api/bff/errors";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import DataPackTabGroup from "./components/data-pack-tab-group";
 import { useShopFilters } from "./shop-filters-context";
 import { applyShopFilters } from "./shop-filters";

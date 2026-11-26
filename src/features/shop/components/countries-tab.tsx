@@ -9,9 +9,9 @@ import {
 
 import _map from "lodash/map";
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import CountryFlag from "@/components/ui/CountryFlag";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import CountryFlag from "@/components/ui/country-flag";
 import { Theme } from "@/theme/colors";
 import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
 import { navigateToESIMsByCountry } from "../shop-navigation";

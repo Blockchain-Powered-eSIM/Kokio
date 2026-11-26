@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleProp, StyleSheet, ViewStyle } from "react-native";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { Theme } from "@/theme/colors";
 import type { Palette } from "@/theme/colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";

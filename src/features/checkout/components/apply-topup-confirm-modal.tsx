@@ -1,5 +1,5 @@
 import React from "react";
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 interface ApplyTopupConfirmModalProps {
   visible: boolean;

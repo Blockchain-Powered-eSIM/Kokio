@@ -4,9 +4,9 @@ import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from "@gorhom/botto
 import { Ionicons } from "@expo/vector-icons";
 import { isAddress } from "viem";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
-import { PillButton } from "@/components/ui/PillButton";
+import { PillButton } from "@/components/ui/pill-button";
 import { useToast } from "@/contexts/ToastContext";
 import { CustomTokenError, type CustomToken } from "../hooks/use-custom-tokens";
 import { logger } from "@/lib/logger";

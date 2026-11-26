@@ -1,8 +1,8 @@
 import { View, ScrollView } from 'react-native'
 import React, { useRef } from 'react'
 import BottomSheet from '@gorhom/bottom-sheet';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
 import { useColors } from "@/hooks/use-colors";
 import { sortTokensByBalance, useWalletTokens } from './hooks/use-wallet-tokens';
 import { useCustomTokens } from './hooks/use-custom-tokens';

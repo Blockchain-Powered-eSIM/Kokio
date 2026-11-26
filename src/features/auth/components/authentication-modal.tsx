@@ -18,7 +18,7 @@ import { isAccountDeletedCached, subscribeAccountDeleted } from '@/lib/auth/acco
 import { useAuthRelay } from "@/hooks/use-auth-relayer";
 import { useIsReturningUser } from "../hooks/use-is-returning-user";
 import { createStyles } from "../authentication-modal-styles";
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useKokio } from "@/hooks/use-kokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";

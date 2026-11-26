@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { Theme } from "@/theme/colors";
 import type { Palette } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";

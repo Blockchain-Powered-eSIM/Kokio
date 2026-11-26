@@ -11,9 +11,9 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import { getRouteNameFromSegments, getIsTabBarVisible } from "@/lib/navigation";
-import { TabBarIcon } from "@/components/navigation/TabBarIcon";
-import Header from "@/components/Header";
-import { HeaderBackControl } from "@/components/navigation/stackHeader";
+import { TabBarIcon } from "@/components/navigation/tab-bar-icon";
+import Header from "@/components/header";
+import { HeaderBackControl } from "@/components/navigation/stack-header";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   tabBar: {

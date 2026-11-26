@@ -15,7 +15,7 @@ import Animated, {
   withRepeat,
 } from "react-native-reanimated";
 
-import { ThemedText } from "@/components/ThemedText";
+import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/use-themed-styles";

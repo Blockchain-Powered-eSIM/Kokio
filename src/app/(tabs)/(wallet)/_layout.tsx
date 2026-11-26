@@ -2,8 +2,8 @@ import { Stack, router } from "expo-router";
 
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 
-import Header from "@/components/Header";
-import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stackHeader";
+import Header from "@/components/header";
+import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stack-header";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
