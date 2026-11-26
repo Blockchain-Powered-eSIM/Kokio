@@ -1,1 +1,1 @@
-export { default } from "@/features/wallet/qr-code-screen";
+export { default } from "@/features/contacts/qr-code-screen";

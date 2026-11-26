@@ -1,1 +1,1 @@
-export { default } from "@/features/wallet/send-to-contact-screen";
+export { default } from "@/features/contacts/send-to-contact-screen";

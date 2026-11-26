@@ -9,7 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import BottomSheet from '@gorhom/bottom-sheet';
 
 import { WalletHeroCard } from './components/wallet-hero-card';
-import { ContactAvatar } from './components/contact-avatar';
+import { ContactAvatar } from '@/features/contacts/components/contact-avatar';
 import { ReceiveSheet } from './components/receive-sheet';
 import { AddTokenSheet } from './components/add-token-sheet';
 import { TokenGrid } from './components/token-grid';
@@ -18,7 +18,7 @@ import { useKokio } from '@/hooks/useKokio';
 import { useEsims } from '@/features/esim/hooks/use-esims';
 import { parsedAmount, sortTokensByBalance, useWalletTokens } from './hooks/use-wallet-tokens';
 import { useCustomTokens } from './hooks/use-custom-tokens';
-import { useContacts } from './hooks/use-contacts';
+import { useContacts } from '@/features/contacts/hooks/use-contacts';
 import { useWalletActivityFeed } from './hooks/use-wallet-activity-feed';
 import { esimDisplayName, esimDocToDisplayItem } from '@/features/esim/esim-display';
 import type { ESimDocument } from '@/lib/api/bff/esim';

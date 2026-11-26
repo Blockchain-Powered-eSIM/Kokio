@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 
 import type { Palette } from "@/theme/colors";
-import { ContactAvatar } from "./components/contact-avatar";
+import { ContactAvatar } from "@/features/contacts/components/contact-avatar";
 import { CopyRow } from "@/features/orders/components/purchase-details-sheet";
 import { PillButton } from "@/components/ui/PillButton";
 import { getExplorerTxBase } from "./explorer-links";

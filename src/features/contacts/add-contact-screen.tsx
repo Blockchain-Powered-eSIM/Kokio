@@ -1,34 +1,38 @@
 import 'react-native-get-random-values';
-import { View, Image, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import { View, TextInput, KeyboardAvoidingView, ActivityIndicator , Pressable , Platform } from 'react-native'
+import React, { useState, useEffect, useMemo } from 'react'
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { v4 as uuidv4 } from 'uuid';
 import { router , useNavigation, useLocalSearchParams } from 'expo-router';
 import { ContactAvatar, pickUniqueAvatarColorKey } from './components/contact-avatar';
 import { useContacts, findContactConflict } from './hooks/use-contacts';
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
-import { normalizeAddressInput } from './address';
+import { pasteAddressFromClipboard } from './clipboard-address';
+import { normalizeAddressInput } from '@/features/wallet/address';
 import { logger } from '@/lib/logger';
-import { contactKey } from '@/lib/storage/keys';
+import { CONTACT_IDS_KEY, contactKey } from '@/lib/storage/keys';
 
-const EditContact = () => {
-    const colors = useColors();
-    const { isDark } = useTheme();
-    const inputTextColor = isDark ? 'white' : '#000000';
+const AddContactScreen = () => {
     const { showMessage } = useToast();
     const [alias, setAlias] = useState("");
     const [walletAddress, setWalletAddress] = useState("");
-
     const [isLoading, setIsLoading] = useState(false);
     const navigation = useNavigation();
     const params = useLocalSearchParams();
+    const colors = useColors();
+    const { isDark } = useTheme();
+    const inputTextColor = isDark ? 'white' : '#000000';
     const { contacts } = useContacts();
-    const existingContact = contacts.find((c) => c.id === params.id);
+    // Computed once against the current contact list, then reused for both
+    // the live preview and the saved record - a contact's color is assigned
+    // once and never recomputed later.
+    const newContactColorKey = useMemo(() => pickUniqueAvatarColorKey(contacts), [contacts]);
 
     useEffect(() => {
         // This will capture the wallet address when returning from the QR scan
@@ -36,13 +40,15 @@ const EditContact = () => {
             if (params.walletAddress) {
                 setWalletAddress(params.walletAddress as string);
             }
-            if (params.alias) {
-                setAlias(params.alias as string);
-            }
         });
+
         return unsubscribe;
     }, [navigation, params]);
 
+    const handleScan = async () => {
+        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit: "false" } });
+    };
+    
     const applyAddressInput = (text: string) => {
         const address = normalizeAddressInput(text);
         if (address === null) {
@@ -51,78 +57,76 @@ const EditContact = () => {
         }
         setWalletAddress(address);
     };
-
-    const handleScan = async () => {
-        router.push({ pathname: "/(tabs)/(wallet)/(contacts)/qrCodeScreen", params: { isEdit:"true",id:params.id } });
-    };
     
-    const handleSave = async () => {
+    const handlePasteAddress = async () => {
+        try {
+            const address = await pasteAddressFromClipboard();
+            if (!address) {
+                showMessage("Clipboard is empty", "error");
+                return;
+            }
+            applyAddressInput(address);
+        } catch (error) {
+            logger.error('CLIPBOARD_PASTE_FAILED', { error });
+            showMessage("Couldn't read from clipboard", "error");
+        }
+    };
+
+    const handleAdd = async () => {
         if (alias === "" || walletAddress === "") {
-          showMessage("Please fill in an alias and address to proceed", "error");
-          return;
+            showMessage("Please fill in an alias and address to proceed", "error");
+            return;
         }
 
-        const conflict = findContactConflict(contacts, { alias, walletAddress, excludeId: params.id as string });
+        const conflict = findContactConflict(contacts, { alias, walletAddress });
         if (conflict === 'alias') {
-          showMessage("You already have a contact with this alias", "error");
-          return;
+            showMessage("You already have a contact with this alias", "error");
+            return;
         }
         if (conflict === 'address') {
-          showMessage("You already have a contact with this wallet address", "error");
-          return;
+            showMessage("You already have a contact with this wallet address", "error");
+            return;
         }
 
         setIsLoading(true);
         try {
-          const contactId = params.id;
-          // Fetch the existing contact to preserve createdAt
-          const existingContactJson = await AsyncStorage.getItem(contactKey(String(contactId)));
-          const existingContactRecord = existingContactJson ? JSON.parse(existingContactJson) : null;
+            // Use UUID for a unique identifier
+            const contactId = uuidv4();
 
-          if (!existingContactRecord) {
-            throw new Error("Contact not found");
-          }
+            const contactObj = {
+                id: contactId,
+                alias: alias,
+                walletAddress: walletAddress,
+                avatarColorKey: newContactColorKey,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                transactions:[]
+            }
 
-          const editedContactObj = {
-            id: contactId,
-            alias: alias,
-            walletAddress: walletAddress,
-            // Preserve the color a contact was originally assigned - only
-            // assign a fresh one if this contact predates avatar colors.
-            avatarColorKey: existingContactRecord.avatarColorKey ?? pickUniqueAvatarColorKey(contacts),
-            createdAt: existingContactRecord.createdAt, // Preserve original createdAt
-            updatedAt: new Date(), // Update with current timestamp
-            transactions: existingContactRecord.transactions || [], // Preserve existing transactions
-          };
+            // // Store individual contact
+            await AsyncStorage.setItem(contactKey(contactId), JSON.stringify(contactObj));
 
-          // Store updated contact
-          await AsyncStorage.setItem(contactKey(String(contactId)), JSON.stringify(editedContactObj));
+            // Maintain an index of all contact IDs
+            const existingIds = await AsyncStorage.getItem(CONTACT_IDS_KEY);
+            const contactIds = existingIds ? JSON.parse(existingIds) : [];
+            contactIds.push(contactId);
+            await AsyncStorage.setItem(CONTACT_IDS_KEY, JSON.stringify(contactIds));
 
-          // No need to update contactIds since this is an update, not a new contact
-          // (The contactId should already exist in contactIds)
-          // Optional: Show success message
-          showMessage("Contact updated successfully", "info");
+            // Optional: Show success message
+            showMessage("Contact added successfully", "info");
+            router.replace({pathname:'/(tabs)/(wallet)/(contacts)/contactDetails', params:{id:contactObj.id,alias:contactObj.alias,avatarColorKey:contactObj.avatarColorKey,transactions:contactObj.transactions,walletAddress:walletAddress}})
+            logger.debug('CONTACT_SAVE_OBJECT', { contactObj });
 
-          // Navigate to contactDetails with updated info
-          router.replace({
-            pathname: '/(tabs)/(wallet)/(contacts)/contactDetails',
-            params: {
-              alias: editedContactObj.alias,
-              avatarColorKey: editedContactObj.avatarColorKey,
-              walletAddress:walletAddress,
-              id:params.id
-            },
-          });
-          logger.debug('CONTACT_UPDATED', { editedContactObj });
 
-        // Reset form fields
         } catch (error) {
-          logger.error('CONTACT_UPDATE_FAILED', { error });
-          showMessage("Failed to update contact", "error");
+            logger.error('CONTACT_SAVE_FAILED', { error });
+            showMessage("Failed to add contact", "error");
         } finally {
-          setIsLoading(false);
+            setIsLoading(false);
+            setAlias("");
+            setWalletAddress("");
         }
-      };
+    }
     return (
         <KeyboardAwareScrollView
             style={{ flex: 1 }}
@@ -136,10 +140,10 @@ const EditContact = () => {
                 style={{ flex: 1 }}
             >
                 <ThemedView darkColor='black' className='flex-1  justify-center'>
-                    <View className='w-auto   items-center mt-8'>
-                        <ContactAvatar seed={params.id as string} colorKey={existingContact?.avatarColorKey} alias={alias || '?'} size={120} />
+                    <View className='w-auto items-center mt-8'>
+                        <ContactAvatar seed={alias} colorKey={newContactColorKey} alias={alias || '?'} size={120} />
                     </View>
-                    <View className='flex-1 gap-y-3 mt-[65]'>
+                    <View className='flex-1 gap-y-3 mt-[50]'>
                         <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
                             <ThemedText lightColor="#000000" darkColor={colors.foreground} className=' ml-6'>Alias</ThemedText>
                             <TextInput
@@ -152,7 +156,12 @@ const EditContact = () => {
                             />
                         </ThemedView>
                         <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-auto mx-2  py-3 rounded-3xl '>
-                            <ThemedText lightColor="#000000" darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
+                            <View className='flex-row items-center justify-between mr-5'>
+                                <ThemedText lightColor="#000000" darkColor={colors.foreground} className=' ml-6'>Wallet Address</ThemedText>
+                                <Pressable onPress={handlePasteAddress} accessibilityRole="button" accessibilityLabel="Paste address from clipboard">
+                                    <ThemedText bold style={{ color: colors.primary }}>Paste</ThemedText>
+                                </Pressable>
+                            </View>
                             <TextInput
                                 value={walletAddress}
                                 placeholder='Enter wallet address or scan QR code'
@@ -169,12 +178,8 @@ const EditContact = () => {
 
                             </Pressable>
                         </ThemedView>
-                        <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='w-auto mx-2 flex-row  py-5 rounded-3xl '>
-                            <Image source={require('@/assets/images/wallet/trashIcon.png')} className='h-[24] w-[24] ml-6'/>
-                            <ThemedText lightColor="#000000" className='ml-4'  darkColor={colors.pink}>Delete Contact</ThemedText>
-                        </ThemedView>
 
-                        <View style={{ flexDirection: "row", gap: 12, marginTop: 30, marginBottom: 20 }}>
+                        <View style={{ flexDirection: "row", gap: 12, marginTop: 60, marginBottom: 20 }}>
                             <Pressable
                                 onPress={() => router.back()}
                                 style={{
@@ -192,7 +197,7 @@ const EditContact = () => {
                                 <ThemedText lightColor="#000000" style={{ fontSize: 16, fontWeight: "700" }}>Cancel</ThemedText>
                             </Pressable>
                             <Pressable
-                                onPress={handleSave}
+                                onPress={handleAdd}
                                 disabled={isLoading}
                                 style={{
                                     flex: 1,
@@ -205,13 +210,13 @@ const EditContact = () => {
                                     opacity: isLoading ? 0.5 : 1,
                                 }}
                                 accessibilityRole="button"
-                                accessibilityLabel="Save contact"
+                                accessibilityLabel="Add contact"
                             >
                                 {isLoading ? (
                                     <ActivityIndicator color={colors.ctaForeground} />
                                 ) : (
                                     <ThemedText style={{ fontSize: 16, fontWeight: "700", color: colors.ctaForeground }}>
-                                        Save
+                                        Add
                                     </ThemedText>
                                 )}
                             </Pressable>
@@ -224,4 +229,4 @@ const EditContact = () => {
     )
 }
 
-export default EditContact;
+export default AddContactScreen;

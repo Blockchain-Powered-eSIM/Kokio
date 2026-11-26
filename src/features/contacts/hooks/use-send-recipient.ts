@@ -5,7 +5,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { logger } from '@/lib/logger';
 import { useContacts } from './use-contacts';
 import { pasteAddressFromClipboard } from '../clipboard-address';
-import { normalizeAddressInput } from '../address';
+import { normalizeAddressInput } from '@/features/wallet/address';
 
 type SendParams = { id?: string; alias?: string; scannedAddress?: string };
 

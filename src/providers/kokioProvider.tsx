@@ -10,7 +10,7 @@ import { getAccount } from "@/lib/api/bff/account";
 import {
   getWcSignClient,
   setPendingProposal,
-} from "@/features/wallet/walletconnect-client";
+} from "@/features/walletconnect/walletconnect-client";
 import { logger } from "@/lib/logger";
 import { getWalletState, awaitWalletDeploymentConfirmation } from "@/lib/api/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
