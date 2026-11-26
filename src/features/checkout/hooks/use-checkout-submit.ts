@@ -14,7 +14,7 @@ import { CREDIT_BALANCE_KEY, DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from "@/lib/q
 import { RADIO_KEYS } from "@/lib/constants/app";
 import { logger } from "@/lib/logger";
 import { pollingLabel, isUserActionableManualReview } from "@/features/orders/order-status";
-import { formatOnChainError, isUserCancelledPasskeyError } from "@/utils/formatOnChainError";
+import { formatOnChainError, isUserCancelledPasskeyError } from "@/lib/chain/format-on-chain-error";
 import { CODE_ERROR_CODES, MAPPED_ORDER_ERROR_CODES } from "../checkout-errors";
 import { sendDeviceWalletPayment, waitForDeviceWalletOrder } from "../device-wallet-payment";
 import { formatPlanLabel } from "../esim-order";

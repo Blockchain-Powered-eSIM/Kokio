@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type BottomSheet from "@gorhom/bottom-sheet";
 import { useKokio } from "@/hooks/useKokio";
-import { useWalletTokens } from "@/hooks/useWalletTokens";
+import { useWalletTokens } from "@/features/wallet/hooks/use-wallet-tokens";
 import {
   RADIO_KEYS,
   DEFAULT_DEVICE_WALLET_PAYMENT_ASSET,

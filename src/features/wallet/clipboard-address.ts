@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { CHAIN_PREFIXED_ADDRESS } from '@/utils/address';
+import { CHAIN_PREFIXED_ADDRESS } from './address';
 
 // Clipboard content is often more than just the address - a label, a deep
 // link, extra characters picked up from wherever it was copied. Pull the

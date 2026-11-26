@@ -4,8 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
-import { TokenIcon } from "@/components/wallet/TokenIcon";
-import type { WalletToken } from "@/hooks/useWalletTokens";
+import { TokenIcon } from "./token-icon";
+import type { WalletToken } from "../hooks/use-wallet-tokens";
 
 interface TokenGridProps {
   tokens: WalletToken[];

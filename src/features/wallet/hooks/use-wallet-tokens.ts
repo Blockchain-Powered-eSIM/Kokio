@@ -3,7 +3,7 @@
  *
  * Built-in ERC-20s (USDC, USDT, DAI, and USDCt in __DEV__) are resolved through the
  * on-chain PaymentAdapter registry and read with `balanceOf`. Custom tokens (added via
- * Add Token, see hooks/useCustomTokens.ts) skip the registry entirely and are read
+ * Add Token, see use-custom-tokens.ts) skip the registry entirely and are read
  * directly at their stored contract address, since the registry only resolves symbols
  * it was explicitly configured with. ETH is the smart account's native balance, since
  * gas for personal transfers is paid from it.
@@ -21,7 +21,7 @@ import { erc20Abi, formatUnits, stringToHex, type Address } from 'viem';
 import type { ImageSourcePropType } from 'react-native';
 import { useKokio } from '@/hooks/useKokio';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
-import type { CustomToken } from '@/hooks/useCustomTokens';
+import type { CustomToken } from './use-custom-tokens';
 import { logger } from '@/lib/logger';
 import { WALLET_TOKENS_KEY } from '@/lib/query-keys';
 

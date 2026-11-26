@@ -4,10 +4,10 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from "@gorhom/b
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { TokenIcon } from "@/components/wallet/TokenIcon";
+import { TokenIcon } from "./token-icon";
 import { useColors } from "@/hooks/useColors";
 import { useBottomInset } from "@/hooks/useBottomInset";
-import { sortTokensByBalance, type WalletToken } from "@/hooks/useWalletTokens";
+import { sortTokensByBalance, type WalletToken } from "../hooks/use-wallet-tokens";
 
 interface TokenPickerSheetProps {
   tokens: WalletToken[];

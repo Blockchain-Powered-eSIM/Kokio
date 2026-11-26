@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import { useKokio } from "@/hooks/useKokio";
-import { useWalletTokens, truncateDecimals } from "@/hooks/useWalletTokens";
+import { useWalletTokens, truncateDecimals } from "@/features/wallet/hooks/use-wallet-tokens";
 import type { DeviceWalletPaymentAsset } from "@/lib/constants/app";
 import type { Palette } from "@/theme/colors";
 

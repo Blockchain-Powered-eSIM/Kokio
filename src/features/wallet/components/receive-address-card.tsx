@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
-import { withBasePrefix } from "@/utils/address";
+import { withBasePrefix } from "../address";
 import QRCode from "react-native-qrcode-svg";
 
 interface ReceiveAddressCardProps {

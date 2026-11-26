@@ -3,7 +3,7 @@ import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from "@gorhom/botto
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
-import { ReceivePanel } from "@/components/wallet/ReceivePanel";
+import { ReceivePanel } from "./receive-panel";
 
 interface ReceiveSheetProps {
   address: string;

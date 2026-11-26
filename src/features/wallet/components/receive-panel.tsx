@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
-import { ReceiveAddressCard } from "@/components/wallet/ReceiveAddressCard";
+import { ReceiveAddressCard } from "./receive-address-card";
 
 interface ReceivePanelProps {
   address: string;

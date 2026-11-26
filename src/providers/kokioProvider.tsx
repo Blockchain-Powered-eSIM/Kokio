@@ -10,12 +10,12 @@ import { getAccount } from "@/lib/api/bff/account";
 import {
   getWcSignClient,
   setPendingProposal,
-} from "@/utils/walletconnect/signClient";
+} from "@/features/wallet/walletconnect-client";
 import { logger } from "@/lib/logger";
 import { getWalletState, awaitWalletDeploymentConfirmation } from "@/lib/api/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { isAccountDeletedError, BffError } from "@/lib/api/bff/errors";
-import { appendWalletActivityEntry } from "@/utils/walletActivity";
+import { appendWalletActivityEntry } from "@/features/wallet/wallet-activity";
 import { WALLET_ACTIVITY_KEY } from "@/lib/query-keys";
 import {
   CREDENTIAL_ID_KEY,

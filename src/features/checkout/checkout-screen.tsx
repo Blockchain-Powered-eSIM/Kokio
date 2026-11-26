@@ -18,7 +18,7 @@ import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import DetailItem from "@/components/ui/DetailItem";
 import Checkbox from "@/components/ui/Checkbox";
 import { Esim } from "@/components/ui/esim-item";
-import { TokenPickerSheet } from "@/components/wallet/sheets/TokenPickerSheet";
+import { TokenPickerSheet } from "@/features/wallet/components/token-picker-sheet";
 import type { CreateOrderRequest } from "@/lib/api/bff/order";
 import { formatBffError } from "@/lib/api/bff/client";
 import { RADIO_KEYS } from "@/lib/constants/app";

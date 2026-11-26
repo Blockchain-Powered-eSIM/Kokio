@@ -1,14 +1,14 @@
 import type { ImageSourcePropType } from 'react-native';
 import { formatUnits } from 'viem';
-import type { WalletActivityEntry } from '@/utils/walletActivity';
+import type { WalletActivityEntry } from './wallet-activity';
 import type { ActivityEntry } from '@/lib/api/bff/account';
-import { truncateDecimals } from '@/hooks/useWalletTokens';
-import { shortenAddress } from '@/utils/address';
+import { truncateDecimals } from './hooks/use-wallet-tokens';
+import { shortenAddress } from './address';
 import { DEVICE_WALLET_PAYMENT_ASSETS } from '@/lib/constants/app';
 
 const STABLECOIN_SYMBOLS: ReadonlySet<string> = new Set(DEVICE_WALLET_PAYMENT_ASSETS);
 
-// TransactionDetails.tsx keys its top icon/color off `type === 'received'`
+// transaction-details-screen.tsx keys its top icon/color off `type === 'received'`
 // specifically - reused here (rather than adding a new field there) so a
 // positive event (deployed/granted) gets the green check and a revoked one
 // gets the orange X, matching the existing detail screen's logic exactly.

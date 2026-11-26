@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useKokio } from '@/hooks/useKokio';
-import { getWalletActivityEntries, type WalletActivityEntry } from '@/utils/walletActivity';
+import { getWalletActivityEntries, type WalletActivityEntry } from '../wallet-activity';
 import { WALLET_ACTIVITY_KEY } from '@/lib/query-keys';
 
 export interface UseWalletActivityResult {
@@ -9,7 +9,7 @@ export interface UseWalletActivityResult {
 }
 
 /**
- * Reads the local wallet-activity log (see utils/walletActivity.ts) for the
+ * Reads the local wallet-activity log (see wallet-activity.ts) for the
  * current device. Backed by AsyncStorage, not a server call - staleTime 0
  * so a screen re-mounting after an append (invalidated by the writer) always
  * re-reads rather than showing a cached miss from before deviceUID existed.

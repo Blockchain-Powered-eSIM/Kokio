@@ -8,7 +8,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
 import { PillButton } from "@/components/ui/PillButton";
 import { useToast } from "@/contexts/ToastContext";
-import { CustomTokenError, type CustomToken } from "@/hooks/useCustomTokens";
+import { CustomTokenError, type CustomToken } from "../hooks/use-custom-tokens";
 import { logger } from "@/lib/logger";
 
 interface AddTokenSheetProps {

@@ -14,7 +14,7 @@
  * Covers WALLET_DEPLOYED (one-time, no backend equivalent at all) and SENT
  * (real-time, de-duplicated against GET /account/activity by txHash once
  * the backend's own record of the same transfer arrives - see
- * hooks/useWalletActivityFeed.ts). It cannot backfill history from before
+ * hooks/use-wallet-activity-feed.ts). It cannot backfill history from before
  * this feature existed or from other devices. That is deliberate: showing a
  * shorter, honest list beats fabricating one.
  */

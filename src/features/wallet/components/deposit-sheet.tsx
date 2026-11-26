@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
-import { ReceivePanel } from "@/components/wallet/ReceivePanel";
+import { ReceivePanel } from "./receive-panel";
 
 interface DepositSheetProps {
   address: string;

@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { useWalletActivity } from '@/hooks/useWalletActivity';
-import { useAccountActivity } from '@/hooks/useAccountActivity';
+import { useWalletActivity } from './use-wallet-activity';
+import { useAccountActivity } from './use-account-activity';
 import {
   walletActivityEntryToDisplayItem,
   activityEntryToDisplayItem,
   type WalletActivityDisplayItem,
-} from '@/helpers/walletActivityDisplay';
+} from '../wallet-activity-display';
 
 export interface UseWalletActivityFeedResult {
   entries:   WalletActivityDisplayItem[];

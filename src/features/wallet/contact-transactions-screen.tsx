@@ -1,0 +1,134 @@
+import { View, Image, Pressable } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import _ from "lodash"
+import { useColors } from "@/hooks/useColors";
+
+interface Transaction {
+    id: string;
+    dateTime: string | Date; // Can adjust based on how you want to store it
+    tokenAmount: string;
+    name?: string;
+    amount: string;
+    status: "pending" | "completed"; // Union type for valid statuses
+    type: "sent" | "received"; // Union type for valid types
+    icon: string;
+    walletId?:string
+  }
+
+const ContactTransactions = () => {
+    const router = useRouter();
+    const colors = useColors();
+    const { transactions } = useLocalSearchParams();
+    const parsedTransactions: Transaction[] = transactions
+    ? JSON.parse(transactions as string) // Cast to string since it’s a single string
+    : [];
+
+  const [transactionList] = useState<Transaction[]>(parsedTransactions);
+  // Optional: Use state if you need to manipulate transactions later
+  const pendingTransactions = useMemo(
+    () => transactionList.filter((tx) => tx.status === "pending"), [transactionList]);
+  // Optional: Sync pendingTransactions when transactionList changes
+  const completedTransactions = useMemo(
+    () => transactionList.filter((tx) => tx.status === "completed"), [transactionList]);
+
+    const renderTransaction = useCallback(
+        (tr: Transaction, index: number) => (
+            tr.status === 'pending' && (
+                <Pressable
+                    onPress={() => router.push({
+                        pathname: "/(tabs)/(wallet)/TransactionDetails",
+                        params: { transaction: JSON.stringify(pendingTransactions[index]) }
+                    })}
+                    key={tr?.id}
+                    className="flex-row items-center justify-between mx-5"
+                >
+                    <View className='flex-row items-center'>
+                        <Image source={tr.type === 'sent'?require('@/assets/images/contacts/sent.png'):require('@/assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
+                        <View className='flex-col items-start ml-3'>
+                            {tr.name ? (
+                                <ThemedText lightColor="#000000" variant='xl'>{tr?.name}</ThemedText>
+                            ) : (
+                                <ThemedText lightColor="#000000" variant='xl'>{tr?.walletId}</ThemedText>
+                            )}
+                            <ThemedText lightColor="#000000"
+                                darkColor={tr?.type === 'received' ? colors.foreground : colors.primary}
+                                variant='sm'
+                            >
+                                {tr?.type}
+                            </ThemedText>
+                        </View>
+                    </View>
+                    <View className='flex-col items-end'>
+                        <ThemedText lightColor="#000000" variant='xl'>{tr?.amount}</ThemedText>
+                        <ThemedText lightColor="#000000"
+                            darkColor={tr?.status === 'pending' ? colors.primary : colors.foreground}
+                            variant='sm'
+                        >
+                            {tr?.status}
+                        </ThemedText>
+                    </View>
+                </Pressable>
+            )
+        ),
+        [router, pendingTransactions, colors] // Dependencies array
+    );
+
+    return (
+        <ThemedView>
+            <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+                <ThemedText lightColor="#000000" darkColor={colors.foreground} className='ml-6'>Pending</ThemedText>
+                {pendingTransactions && _.size(pendingTransactions) > 0 ? (
+                    <View className='gap-y-6 mt-5 mb-3'>
+                        {_.map(pendingTransactions, renderTransaction)}
+                    </View>
+                ) : (
+                    <ThemedText lightColor="#000000" darkColor={colors.foreground} className='mt-5 ml-6 mb-2'>
+                        No Pending Transactions
+                    </ThemedText>
+                )}
+
+            </ThemedView>
+            <ThemedView lightColor="#FFFFFF" darkColor={colors.itemBackground} className='mx-2 py-3 rounded-3xl mt-5'>
+                <ThemedText lightColor="#000000" darkColor={colors.foreground} className='ml-6'>Completed</ThemedText>
+                {completedTransactions.length > 0 ? (
+                    <View className='gap-y-6 mt-5 mb-3'>
+                        {_.map(completedTransactions, (tr, index) => (
+                            tr?.status === "completed" && (
+                                <Pressable onPress={() => router.push({
+                                    pathname: "/(tabs)/(wallet)/TransactionDetails",
+                                    params: { transaction: JSON.stringify(completedTransactions[index]) }
+                                })} key={index} className='flex-row items-center justify-between  mx-5 '>
+                                    <View className='flex-row items-center'>
+                                        <Image source={tr.type === 'sent' ? require('@/assets/images/contacts/sent.png') : require('@/assets/images/contacts/received.png')} className='h-[48px] w-[48px]  ' />
+                                        <View className='flex-col items-start ml-3 '>
+                                            <ThemedText lightColor="#000000" variant='xl'>{tr.name}</ThemedText>
+                                            {tr.type === "received" ? <ThemedText lightColor="#000000" darkColor={colors.foreground} variant='sm'>{tr.type}</ThemedText> :
+                                                <ThemedText lightColor="#000000" darkColor={colors.primary} variant='sm'>{tr.type}</ThemedText>
+                                            }
+
+                                        </View>
+                                    </View>
+                                    <View className='flex-col items-end '>
+                                        <ThemedText lightColor="#000000" variant='xl'>{tr.amount}</ThemedText>
+                                        {tr.status === "completed" ? <ThemedText lightColor="#000000" darkColor={colors.foreground} variant='sm'>{tr.status}</ThemedText> :
+                                            <ThemedText lightColor="#000000" darkColor={colors.primary} variant='sm'>{tr.status}</ThemedText>
+                                        }
+                                    </View>
+                                </Pressable>
+                            )
+                        ))}
+                    </View>
+                ) : (
+                    <ThemedText lightColor="#000000" darkColor={colors.foreground} className='mt-5 ml-6 mb-2'>
+                        No Transactions to show
+                    </ThemedText>
+                )}
+            </ThemedView>
+        </ThemedView>
+    );
+};
+
+export default ContactTransactions;

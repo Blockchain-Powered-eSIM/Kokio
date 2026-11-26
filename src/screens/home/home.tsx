@@ -7,7 +7,7 @@ import Wallet from "@/components/home/wallet";
 import Hero from "@/components/home/hero";
 import { useKokio } from "@/hooks/useKokio";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import { useWalletTokens } from "@/hooks/useWalletTokens";
+import { useWalletTokens } from "@/features/wallet/hooks/use-wallet-tokens";
 
 export default function HomeScreen() {
   const { kokio, setupKokio } = useKokio();

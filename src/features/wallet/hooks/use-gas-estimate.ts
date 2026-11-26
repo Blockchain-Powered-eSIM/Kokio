@@ -16,7 +16,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Address } from 'viem';
 import { useKokio } from '@/hooks/useKokio';
-import type { TransferCall } from '@/helpers/walletTransferCall';
+import type { TransferCall } from '../wallet-transfer-call';
 import { logger } from '@/lib/logger';
 import { GAS_ESTIMATE_KEY } from '@/lib/query-keys';
 
