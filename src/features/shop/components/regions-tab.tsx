@@ -14,7 +14,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/theme/colors";
 import { REGION_CONFIG } from "@/lib/constants/shop";
-import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
 import { navigateToESIMsByRegion } from "../shop-navigation";
 
 const EmptyListComponent = () => (

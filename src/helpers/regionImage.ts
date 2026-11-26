@@ -1,4 +1,4 @@
-import appBootstrap from "@/utils/appBootstrap";
+import appBootstrap from "@/lib/bootstrap/app-bootstrap";
 import { REGION_CONFIG } from "@/lib/constants/shop";
 
 export function regionImageForCode(code: string | null | undefined) {

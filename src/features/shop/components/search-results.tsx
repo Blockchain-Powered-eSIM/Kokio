@@ -21,7 +21,7 @@ import type { Palette } from "@/theme/colors";
 import CountryFlag from "@/components/ui/CountryFlag";
 import RegionalSearchRow from "./regional-search-row";
 import GlobalSearchRow from "./global-search-row";
-import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
 import {
   navigateToESIMsByCountry,
   navigateToESIMsByRegion,

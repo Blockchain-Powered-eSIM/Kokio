@@ -13,7 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { Theme } from "@/theme/colors";
-import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
 import { navigateToESIMsByCountry } from "../shop-navigation";
 
 

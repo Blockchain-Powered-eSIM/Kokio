@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { getServiceRegions } from "@/lib/api/bff/catalogue";
 import { checkBffHealth } from "@/lib/api/bff/health";
-import AppBootstrap from "@/utils/appBootstrap";
+import AppBootstrap from "./app-bootstrap";
 import { logger } from '@/lib/logger';
 
 export default function useBootstrap() {

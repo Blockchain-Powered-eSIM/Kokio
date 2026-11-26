@@ -14,7 +14,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useMultiCountryPlans } from "./hooks/use-multi-country-plans";
 import { useShopFilters } from "./shop-filters-context";
 import { applyShopFilters } from "./shop-filters";
-import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
+import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
 
 const MAX_SUGGESTIONS = 8;
 

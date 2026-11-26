@@ -12,7 +12,7 @@ import _isNull from "lodash/isNull";
 import NetInfo, { type NetInfoState } from "@react-native-community/netinfo";
 import "../../global.css";
 
-import useBootstrap from "@/hooks/useBootstrap";
+import useBootstrap from "@/lib/bootstrap/use-bootstrap";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import { Providers } from "@/providers";
 import FullScreenLoader from "@/components/ui/FullScreenLoader";
