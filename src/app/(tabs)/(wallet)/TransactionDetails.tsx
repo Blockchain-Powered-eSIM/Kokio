@@ -6,7 +6,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import type { Palette } from "@/theme/colors";
 import { ContactAvatar } from "@/components/wallet/ContactAvatar";
-import { CopyRow } from "@/components/orders/PurchaseDetailsSheet";
+import { CopyRow } from "@/features/orders/components/purchase-details-sheet";
 import { PillButton } from "@/components/ui/PillButton";
 import { getExplorerTxBase } from "@/utils/explorerLinks";
 import { useColors } from "@/hooks/useColors";

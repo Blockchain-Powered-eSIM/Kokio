@@ -7,7 +7,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
-import { formatCents } from "@/utils/orderStatus";
+import { formatCents } from "@/lib/format";
 
 const createStyles = (colors: Palette) =>
   StyleSheet.create({

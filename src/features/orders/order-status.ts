@@ -98,10 +98,6 @@ export function labelForPricing(
   return parts.join(' + ');
 }
 
-export function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
 export const PROMOTION_CAPTURE_FAILED = 'PROMOTION_CAPTURE_FAILED';
 
 export function isUserActionableManualReview(

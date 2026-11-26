@@ -1,6 +1,6 @@
 /**
- * Server-truth eSIM and order state.
- * Authoritative React Query hooks for device eSIM documents and terminal order history.
+ * Server-truth eSIM state.
+ * Authoritative React Query hook for device eSIM documents. Order history is in features/orders/use-orders.ts.
  *
  * Cache policy:
  *   - staleTime  60 s  — short enough to surface fresh activation-status on tab
@@ -26,17 +26,16 @@
  *                                  happen yet — confirmed contributing to a real
  *                                  RATE_LIMIT_EXCEEDED.
  *
- * Persistence: Both query keys are in the PERSISTED_KEYS allowlist in providers/index.tsx.
+ * Persistence: the query key is in the PERSISTED_KEYS allowlist in providers/index.tsx.
  * All other query keys (catalogue, health, coupon, compatibility) remain in-memory only.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { getAllEsims, type ESimDocument } from '@/lib/api/bff/esim';
-import { getOrderList, type OrderListItem } from '@/lib/api/bff/order';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import { useAuthRelay } from '@/hooks/useAuthRelayer';
 import { useKokio } from '@/hooks/useKokio';
-import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/lib/query-keys';
+import { DEVICE_ESIMS_KEY } from '@/lib/query-keys';
 
 // ─── Shared cache settings ────────────────────────────────────────────────────
 
@@ -87,46 +86,6 @@ export function useEsims(): UseEsimsResult {
 
   return {
     esims:     query.data ?? [],
-    isLoading: query.isLoading,
-    isError:   query.isError,
-    refetch:   query.refetch,
-  };
-}
-
-// ─── useOrders ────────────────────────────────────────────────────────────────
-
-export interface UseOrdersResult {
-  orders:    OrderListItem[];
-  isLoading: boolean;
-  isError:   boolean;
-  refetch:   () => void;
-}
-
-/**
- * Returns terminal orders for the authenticated device, most-recent-first.
- * Source: GET /order/list (page 1, pageSize 25).
- * Persisted to AsyncStorage via the PersistQueryClientProvider in providers/index.tsx.
- */
-export function useOrders(): UseOrdersResult {
-  const isActive        = useIsAppActive();
-  const { state: authState } = useAuthRelay();
-
-  const query = useQuery<OrderListItem[]>({
-    queryKey:          [DEVICE_ORDERS_KEY],
-    queryFn:           async () => {
-      const response = await getOrderList(1, 25);
-      return response.orders;
-    },
-    staleTime:         STALE_TIME,
-    gcTime:            GC_TIME,
-    enabled:           isActive && authState.authenticated,
-    refetchOnMount:    true,
-    refetchInterval:   false,
-    retry:             1,
-  });
-
-  return {
-    orders:    query.data ?? [],
     isLoading: query.isLoading,
     isError:   query.isError,
     refetch:   query.refetch,

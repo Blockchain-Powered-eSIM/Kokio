@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ThemedText } from "@/components/ThemedText";
 import { useColors } from "@/hooks/useColors";
-import { labelForStatus } from "@/utils/orderStatus";
+import { labelForStatus } from "@/features/orders/order-status";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 
 interface OrderFailureModalProps {

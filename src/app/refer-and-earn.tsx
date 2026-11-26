@@ -19,7 +19,7 @@ import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import type { Palette } from "@/theme/colors";
 import { useReferral } from "@/hooks/useReferral";
 import { heldCreditCents, useCreditBalance } from "@/hooks/useCreditHistory";
-import { formatCents } from "@/utils/orderStatus";
+import { formatCents } from "@/lib/format";
 
 import { OFFICIAL_URLS } from "@/lib/constants/app";
 
