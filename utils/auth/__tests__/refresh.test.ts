@@ -288,11 +288,14 @@ describe('DPoP proof shape', () => {
     );
   });
 
-  it('passes htu pointing to the /v2/auth/token endpoint', async () => {
+  it('passes through the htu the auth client gives it', async () => {
     const { refreshAccessToken } = freshModule();
 
     mockToken.mockImplementation(async (_params, buildProof) => {
-      await (buildProof as (nonce?: string) => Promise<string>)(undefined);
+      await (buildProof as (nonce?: string, htu?: string) => Promise<string>)(
+        undefined,
+        'https://auth.example.com/v2/auth/token',
+      );
       return successResp(1);
     });
 

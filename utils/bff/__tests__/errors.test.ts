@@ -11,9 +11,10 @@ describe('resolveBffErrorMessage', () => {
     expect(resolveBffErrorMessage('UNAUTHORIZED')).toBe('Session expired. Please sign in again.');
   });
 
-  it('returns the mapped message for coupon codes', () => {
-    expect(resolveBffErrorMessage('COUPON_NOT_FOUND')).toBe('Invalid coupon code.');
-    expect(resolveBffErrorMessage('COUPON_INSUFFICIENT_BALANCE')).toBe('Coupon has insufficient balance.');
+  it('returns the mapped message for promotion codes', () => {
+    expect(resolveBffErrorMessage('PROMO_CODE_NOT_FOUND')).toBe('Invalid code.');
+    expect(resolveBffErrorMessage('PROMO_CODE_EXPIRED')).toBe('This code has expired.');
+    expect(resolveBffErrorMessage('FIRST_ORDER_IN_PROGRESS')).toContain('first-order code');
   });
 
   it('returns the mapped message for order codes', () => {

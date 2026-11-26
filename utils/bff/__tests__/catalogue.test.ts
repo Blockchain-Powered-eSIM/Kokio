@@ -65,10 +65,14 @@ beforeEach(() => {
 // ─── getCatalogue ─────────────────────────────────────────────────────────────
 
 describe('getCatalogue', () => {
-  it('calls api.get with /catalogue', async () => {
+  it('calls api.get with /catalogue as a public request', async () => {
     mockGet.mockResolvedValue(catalogueEnvelope());
     await getCatalogue({ serviceRegionCode: 'US' });
-    expect(mockGet).toHaveBeenCalledWith('/catalogue', { serviceRegionCode: 'US' });
+    expect(mockGet).toHaveBeenCalledWith(
+      '/catalogue',
+      { serviceRegionCode: 'US' },
+      expect.objectContaining({ skipAuth: true }),
+    );
   });
 
   it('returns the catalogue response with plans array', async () => {

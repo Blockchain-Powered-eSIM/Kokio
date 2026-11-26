@@ -24,8 +24,9 @@ function makeResponse(status: number, body: unknown, headers: Record<string, str
   return {
     status,
     ok: status >= 200 && status < 300,
-    headers: makeHeaders(headers),
+    headers: makeHeaders({ 'content-type': 'application/json', ...headers }),
     json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
   } as unknown as Response;
 }
 
