@@ -80,7 +80,6 @@
     "react": "19.3.0",
     "react-native": "0.88.1",
     "react-native-country-flag": "2.0.2",
-    "react-native-currency-input": "1.1.1",
     "react-native-gesture-handler": "3.3.0",
     "react-native-get-random-values": "2.0.0",
     "react-native-keyboard-aware-scroll-view": "0.9.5",
