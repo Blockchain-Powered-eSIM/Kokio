@@ -18,7 +18,7 @@ import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
 import { PENDING_ORDERS_STORAGE_KEY } from '@/hooks/usePendingOrders';
 import { walletActivityStorageKey } from '@/utils/walletActivity';
 import { CUSTOM_TOKENS_KEY } from '@/hooks/useCustomTokens';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 const SECURE_KEYS = [
   'deviceWalletAddress',

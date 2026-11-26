@@ -14,7 +14,7 @@ import { PASSKEY_LABEL } from "@/constants/passkey.constants";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [
   { icon: "shield-checkmark-outline", title: "Own it", description: "Kokio can never move your funds" },

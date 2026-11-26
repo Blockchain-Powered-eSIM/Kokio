@@ -9,7 +9,7 @@ import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import { formatPlanLabel } from '@/helpers/esimOrder';
 import { addPendingOrder, removePendingOrder, PENDING_ORDERS_KEY } from '@/hooks/usePendingOrders';
 import type { Esim } from '@/components/ESIMItem';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 export type CreateOrderVariables = {
   request: CreateOrderRequest;

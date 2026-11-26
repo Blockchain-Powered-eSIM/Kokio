@@ -1,4 +1,4 @@
-import { logger, getRecentEntries, clearRecentEntries } from "@/utils/logger";
+import { logger, getRecentEntries, clearRecentEntries } from "@/lib/logger";
 
 declare const global: typeof globalThis & { __DEV__: boolean };
 

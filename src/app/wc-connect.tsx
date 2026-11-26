@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getWcSignClient } from "@/utils/walletconnect/signClient";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 // Handles deep-links of the form kokio://wc-connect?uri=wc%3ATOPIC%402%3F...
 // Passes the decoded WC pairing URI to the sign client, which fires

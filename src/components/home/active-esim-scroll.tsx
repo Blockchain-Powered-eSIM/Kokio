@@ -15,7 +15,7 @@ import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
 import type { ESimDocument, ESimUsage } from "@/utils/bff/esim";
 import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
 import { openInstallation } from "@/helpers/esimInstall";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

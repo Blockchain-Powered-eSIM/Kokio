@@ -10,7 +10,7 @@ import type { Kokio } from 'kokio-sdk';
 import { unwrapBffResponse, unwrapBffResponseWithCorrelation } from './koKioBffClient';
 import api from '@/services/httpService';
 import { v4 as uuidv4 } from 'uuid';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 export type WalletState = 'NOT_DEPLOYED' | 'DEPLOYING' | 'DEPLOYED';
 export type DeploymentStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'STALLED' | 'FAILED';

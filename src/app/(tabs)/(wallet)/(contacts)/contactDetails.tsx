@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ContactAvatar } from '@/components/wallet/ContactAvatar';
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 interface Transaction {
   id: string;

@@ -22,7 +22,7 @@ import { openInstallation } from "@/helpers/esimInstall";
 import { colorForStatus, labelForStatus, labelForPricing, formatCents } from "@/utils/orderStatus";
 import type { ESimDocument, PlanHistoryEntry } from "@/utils/bff/esim";
 import type { OrderListItem } from "@/utils/bff/order";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 export type EnrichedOrder = OrderListItem & { esim?: ESimDocument };
 

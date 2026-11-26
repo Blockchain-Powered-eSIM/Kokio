@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 const SEEN_KEY = 'kokioWelcomeBackSeen';
 const PENDING = '0';

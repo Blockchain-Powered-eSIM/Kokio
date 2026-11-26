@@ -13,7 +13,7 @@
  * Re-registering the SAME passkey resolves to the same address and must NOT clear this flag.
  */
 import * as SecureStore from 'expo-secure-store';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 const KEY = 'kokio.account.deleted';
 

@@ -63,7 +63,7 @@ import {
   usePayWithCrypto,
 } from "@heliofi/checkout-react-native";
 import type { PaymentCallback } from "@heliofi/checkout-react-native";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 import { formatOnChainError, isUserCancelledPasskeyError } from "@/utils/formatOnChainError";
 import { consumePreferredCheckoutPaymentMethod } from "@/utils/checkoutIntent";
 

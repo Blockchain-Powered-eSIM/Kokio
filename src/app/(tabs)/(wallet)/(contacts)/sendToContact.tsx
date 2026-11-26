@@ -23,7 +23,7 @@ import { buildTransferCall } from '@/helpers/walletTransferCall';
 import { pasteAddressFromClipboard } from '@/helpers/clipboardAddress';
 import { normalizeAddressInput } from '@/utils/address';
 import { useKokio } from '@/hooks/useKokio';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 import { isUserCancelledPasskeyError } from '@/utils/formatOnChainError';
 import { appendWalletActivityEntry, WALLET_ACTIVITY_KEY } from '@/utils/walletActivity';
 

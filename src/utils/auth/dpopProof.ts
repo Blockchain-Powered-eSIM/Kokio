@@ -1,7 +1,7 @@
 import { SignJWT, base64url } from 'jose';
 import { v4 as uuidv4 } from 'uuid';
 import { getDpopKeyPair } from './dpopKeystore';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 export type BuildDpopProofParams = {
   /** Full request URL — no query string or fragment (RFC 9449 §4.2 htu). */

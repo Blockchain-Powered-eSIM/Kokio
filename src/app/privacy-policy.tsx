@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 const PRIVACY_POLICY_URL = "https://kokio.app/privacy-policy";
 

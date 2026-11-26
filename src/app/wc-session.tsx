@@ -17,7 +17,7 @@ import {
   pendingProposal,
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
   container: {

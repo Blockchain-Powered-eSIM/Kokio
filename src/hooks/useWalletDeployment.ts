@@ -3,7 +3,7 @@ import { type Hex } from "viem";
 import { useKokio } from "@/hooks/useKokio";
 import { requestWalletDeployment } from "@/utils/bff/wallet";
 import { BffError } from "@/utils/bff/koKioBffClient";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 // Thrown when required signup data (deviceWalletAddress/userPasskey/rawSalt/sdk)
 // is missing. This only happens when the user never completed passkey signup

@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 export interface Contact {
   id: string;

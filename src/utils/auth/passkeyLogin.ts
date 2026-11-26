@@ -9,7 +9,7 @@ import { parseIdToken } from './tokenStore';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
 import { Config } from '@/lib/config';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 

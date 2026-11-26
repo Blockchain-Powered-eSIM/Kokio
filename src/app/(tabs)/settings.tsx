@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useKokio } from "@/hooks/useKokio";
 import { useAuthRelay } from "@/hooks/useAuthRelayer";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 import { DeleteAccountModal } from '@/components/DeleteAccountModal';
 import Header from '@/components/Header';
 import { HeaderBackControl } from '@/components/navigation/stackHeader';

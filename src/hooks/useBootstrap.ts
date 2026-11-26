@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { getServiceRegions } from "@/utils/bff/catalogue";
 import { checkBffHealth } from "@/utils/bff/health";
 import AppBootstrap from "@/utils/appBootstrap";
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 export default function useBootstrap() {
   const [isLoading, setIsLoading] = useState(false);

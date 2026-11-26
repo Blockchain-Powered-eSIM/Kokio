@@ -9,7 +9,7 @@ import { useColors } from "@/hooks/useColors";
 import { PillButton } from "@/components/ui/PillButton";
 import { useToast } from "@/contexts/ToastContext";
 import { CustomTokenError, type CustomToken } from "@/hooks/useCustomTokens";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 interface AddTokenSheetProps {
   onAdd: (address: string) => Promise<CustomToken>;

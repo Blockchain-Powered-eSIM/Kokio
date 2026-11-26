@@ -23,7 +23,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import type { Palette } from "@/constants/Colors";
 import { StepUpCancelledError } from '@/utils/auth/errors';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 const CONFIRM_WORD = 'DELETE';
 

@@ -4,7 +4,7 @@ import { buildDpopProof } from './dpopProof';
 import { parseIdToken } from './tokenStore';
 import { AuthError } from './errors';
 import { useAuthStore } from '@/stores/authStore';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 // ─── Response envelope helper (mirrors passkeyLogin.ts) ──────────────────────
 

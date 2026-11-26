@@ -14,7 +14,7 @@ import {
   getWcSignClient,
   setPendingProposal,
 } from "@/utils/walletconnect/signClient";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 import { getWalletState, awaitWalletDeploymentConfirmation } from "@/utils/bff/wallet";
 import { subscribeAccountDeleted } from '@/utils/auth/accountDeleted';
 import { isAccountDeletedError, BffError } from "@/utils/bff/errors";

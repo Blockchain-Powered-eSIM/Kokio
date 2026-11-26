@@ -3,7 +3,7 @@ import type { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig, Axi
 import qs from 'qs';
 import { v4 as uuidv4 } from 'uuid';
 import { router } from 'expo-router';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 import { Config } from '@/lib/config';
 import { useAuthStore } from '@/stores/authStore';

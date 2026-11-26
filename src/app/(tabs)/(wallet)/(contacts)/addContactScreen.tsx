@@ -15,7 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { pasteAddressFromClipboard } from '@/helpers/clipboardAddress';
 import { normalizeAddressInput } from '@/utils/address';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 const AddContactScreen = () => {
     const { showMessage } = useToast();

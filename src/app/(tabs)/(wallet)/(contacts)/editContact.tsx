@@ -13,7 +13,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { normalizeAddressInput } from '@/utils/address';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 const EditContact = () => {
     const colors = useColors();

@@ -19,7 +19,7 @@ import type { Palette } from "@/constants/Colors";
 import { useToast } from "@/contexts/ToastContext";
 import { AuthError } from "@/utils/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/hooks/useWalletDeployment";
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 import SignupRequiredModal from "@/components/ui/SignupRequiredModal";
 
 interface WalletSetupModalProps {

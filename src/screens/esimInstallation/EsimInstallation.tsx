@@ -23,7 +23,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Theme } from "@/constants/Colors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 type TabType = "Direct" | "QR" | "Manual";
 

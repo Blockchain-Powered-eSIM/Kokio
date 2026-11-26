@@ -7,7 +7,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 import { useAuthStore } from '@/stores/authStore';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 const VERSION_KEY = 'kokioLocalDataVersion';
 const CURRENT_VERSION = '2';

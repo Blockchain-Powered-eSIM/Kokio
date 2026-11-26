@@ -21,7 +21,7 @@ const SOURCE_DIRS = ["src"];
 const SOURCE_ROOT_FILES = [];
 
 // Path (POSIX, repo-relative) of the one allowed console site.
-const LOGGER_PATH = "src/utils/logger.ts";
+const LOGGER_PATH = "src/lib/logger.ts";
 const ALLOWLIST = new Set([LOGGER_PATH]);
 const SOURCE_EXT = new Set([".ts", ".tsx"]);
 

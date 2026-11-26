@@ -22,7 +22,7 @@ import type { ImageSourcePropType } from 'react-native';
 import { useKokio } from '@/hooks/useKokio';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import type { CustomToken } from '@/hooks/useCustomTokens';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 export const WALLET_TOKENS_KEY = 'wallet-tokens' as const;
 

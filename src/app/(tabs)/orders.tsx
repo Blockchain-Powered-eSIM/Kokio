@@ -37,7 +37,7 @@ import type { PendingOrderRecord } from "@/hooks/usePendingOrders";
 import { CancelOrderConfirmModal } from "@/components/ui/CancelOrderConfirmModal";
 import { cancelOrder } from "@/utils/bff/order";
 import { BffError, formatBffError, resolveBffErrorMessage } from "@/utils/bff/errors";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 // ─── eSIM activation-status labeling ─────────────────────────────────────────
 

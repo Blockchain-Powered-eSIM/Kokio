@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Address } from 'viem';
 import { useKokio } from '@/hooks/useKokio';
 import type { TransferCall } from '@/helpers/walletTransferCall';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 export const GAS_ESTIMATE_KEY = 'gas-estimate' as const;
 

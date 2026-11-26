@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { setEsimLabel } from '@/utils/bff/esim';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/hooks/useDeviceEsims';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 interface SetEsimLabelInput {
   eSimRef: string;

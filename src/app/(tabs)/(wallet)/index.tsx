@@ -24,7 +24,7 @@ import { esimDisplayName, esimDocToDisplayItem } from '@/helpers/esimDisplay';
 import type { ESimDocument } from '@/utils/bff/esim';
 import CountryFlag, { type CoverageType } from '@/components/ui/CountryFlag';
 import { shortenAddress } from '@/utils/address';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 import { setPreferredCheckoutPaymentMethod } from '@/utils/checkoutIntent';
 import { RADIO_KEYS } from '@/constants/checkout.constants';
 

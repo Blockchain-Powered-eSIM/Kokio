@@ -12,7 +12,7 @@ import * as SecureStore from 'expo-secure-store';
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 import { markWelcomeBackPending } from '@/utils/auth/returningUserProbe';
 import { useAuthStore } from '@/stores/authStore';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 import { MAINNET_CUTOVER_ENABLED } from '@/constants/general.constants';
 
 export const VERSION_KEY = 'kokioLocalDataVersion';

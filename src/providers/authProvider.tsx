@@ -27,7 +27,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { clearUsedHashes } from "@/utils/orderTracking";
 import { purgeAccountLocalState } from '@/utils/auth/purgeAccountLocalState';
 import { PasskeyRemovalModal } from '@/components/PasskeyRemovalModal';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 // ─── Error formatting ─────────────────────────────────────────────────────────
 

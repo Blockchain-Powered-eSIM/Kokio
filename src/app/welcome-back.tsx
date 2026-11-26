@@ -14,7 +14,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/constants/Colors";
 import { openAppSettings } from "@/utils/openAppSettings";
 import { markWelcomeBackSeen } from "@/utils/auth/returningUserProbe";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 const BODY_COPY =
   "Kokio has officially launched, and every account starts fresh. Used Kokio before? Delete your old " +

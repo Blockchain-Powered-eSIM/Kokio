@@ -18,7 +18,7 @@ import type { Palette } from "@/constants/Colors";
 import { getExplorerAddressBase } from "@/utils/explorerLinks";
 import { shortenAddress, withBasePrefix } from "@/utils/address";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { DARK_TOKENS, LIGHT_TOKENS } from "@/constants/Colors";

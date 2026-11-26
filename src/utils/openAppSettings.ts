@@ -1,5 +1,5 @@
 import { Linking, Platform } from 'react-native';
-import { logger } from '@/utils/logger';
+import { logger } from '@/lib/logger';
 
 // iOS has no public API to open anything but this app's own Settings entry.
 export function openAppSettings(): void {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 /**
  * Copy-to-clipboard with transient "copied" feedback.

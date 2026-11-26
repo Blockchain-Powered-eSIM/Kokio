@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 export interface AppExtraConfig {
   authServerBaseUrl?: string;

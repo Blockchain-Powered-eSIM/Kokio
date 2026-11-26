@@ -12,7 +12,7 @@ import { getExplorerTxBase } from "@/utils/explorerLinks";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import { logger } from "@/utils/logger";
+import { logger } from "@/lib/logger";
 
 interface TransactionParams {
   id?: string;
