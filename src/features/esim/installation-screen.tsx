@@ -21,7 +21,7 @@ import _get from "lodash/get";
 import _split from "lodash/split";
 import { ThemedText } from "@/components/themed-text";
 import { Theme } from "@/theme/colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useColors } from "@/hooks/use-colors";
 import { logger } from "@/lib/logger";
 

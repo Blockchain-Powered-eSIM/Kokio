@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColors } from '@/hooks/use-colors';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/providers/theme-context';
 
 export const SendAmountSection = ({
   amount,

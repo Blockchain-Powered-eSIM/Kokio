@@ -10,7 +10,7 @@ import { MoonpayCommerceProvider } from "@heliofi/checkout-react-native";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useColors } from "@/hooks/use-colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useKokio } from "@/hooks/use-kokio";
 import { useCreditBalance, heldCreditCents } from "@/features/referral/hooks/use-credit-history";
 import { ThemedText } from "@/components/themed-text";

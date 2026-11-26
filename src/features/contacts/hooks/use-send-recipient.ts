@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { isAddress, type Address } from 'viem';
-import { useToast } from '@/contexts/ToastContext';
+import { useToast } from '@/providers/toast-context';
 import { logger } from '@/lib/logger';
 import { useContacts } from './use-contacts';
 import { pasteAddressFromClipboard } from '../clipboard-address';

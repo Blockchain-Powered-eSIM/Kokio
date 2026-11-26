@@ -10,7 +10,7 @@ import React from 'react';
 import { Modal, View, Pressable, Platform, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/themed-text';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/providers/theme-context';
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { openAppSettings } from '../open-app-settings';

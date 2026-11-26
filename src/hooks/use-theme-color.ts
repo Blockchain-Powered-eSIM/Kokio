@@ -2,7 +2,7 @@
  * Learn more about light and dark modes:
  * https://docs.expo.dev/guides/color-schemes/
  */
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
 

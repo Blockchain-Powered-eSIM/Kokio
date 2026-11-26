@@ -10,7 +10,7 @@ import DataPackTabGroup from "./components/data-pack-tab-group";
 import SearchInput from "@/components/search-input";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useMultiCountryPlans } from "./hooks/use-multi-country-plans";
 import { useShopFilters } from "./shop-filters-context";
 import { applyShopFilters } from "./shop-filters";

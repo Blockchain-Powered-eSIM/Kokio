@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import _toUpper from "lodash/toUpper";
 import * as Clipboard from "expo-clipboard";
-import { useToast } from "@/contexts/ToastContext";
+import { useToast } from "@/providers/toast-context";
 import { getCoupon } from "@/lib/api/bff/coupon";
 import type { CodeLookupResponse } from "@/lib/api/bff/coupon";
 import { formatBffError } from "@/lib/api/bff/client";

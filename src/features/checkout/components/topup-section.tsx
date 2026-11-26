@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
 import CountryFlag, { type CoverageType } from "@/components/ui/country-flag";
 import { useColors } from "@/hooks/use-colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { ESimDocument } from "@/lib/api/bff/esim";
 import { formatBffError } from "@/lib/api/bff/client";

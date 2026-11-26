@@ -14,7 +14,7 @@ import { purgeAccountLocalState } from '@/lib/auth/purge-account-local-state';
 import * as SecureStore from 'expo-secure-store';
 import { LOCAL_DATA_VERSION_KEY } from '@/lib/storage/keys';
 import { clearWelcomeBackSeen } from '@/lib/auth/returning-user-probe';
-import { useToast } from '@/contexts/ToastContext';
+import { useToast } from '@/providers/toast-context';
 import { createStyles } from "./settings-styles";
 import { MenuItem } from "./components/menu-item";
 import { AboutContent } from "./components/about-content";

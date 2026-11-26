@@ -4,7 +4,7 @@ import { TextInput } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/themed-text';
 import { useColors } from '@/hooks/use-colors';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/providers/theme-context';
 import type { Contact } from '../hooks/use-contacts';
 import { ContactAvatar } from './contact-avatar';
 

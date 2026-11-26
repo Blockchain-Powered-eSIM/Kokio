@@ -16,7 +16,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
-import { useToast } from "@/contexts/ToastContext";
+import { useToast } from "@/providers/toast-context";
 import { AuthError } from "@/lib/auth/errors";
 import { useWalletDeployment, MissingSignupDataError } from "@/features/wallet/hooks/use-wallet-deployment";
 import { logger } from '@/lib/logger';

@@ -11,7 +11,7 @@ import {
 import { useAuthRelay } from "@/hooks/use-auth-relayer";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import type { Palette } from "@/theme/colors";
 
 const createStyles = (colors: Palette) => StyleSheet.create({

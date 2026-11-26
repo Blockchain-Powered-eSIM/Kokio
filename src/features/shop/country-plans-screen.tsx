@@ -10,7 +10,7 @@ import { ThemedView } from "@/components/themed-view";
 import DataPackTabGroup from "./components/data-pack-tab-group";
 import { useShopFilters } from "./shop-filters-context";
 import { applyShopFilters } from "./shop-filters";
-import { useToast } from "@/contexts/ToastContext";
+import { useToast } from "@/providers/toast-context";
 import { useCatalogueBackup } from "./hooks/use-catalogue-backup";
 import { mergeBackupPlans } from "./merge-backup-plans";
 import { filterPlansByNetwork, getNetworkOptions } from "./plan-networks";

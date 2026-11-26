@@ -1,4 +1,4 @@
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { DARK_TOKENS, LIGHT_TOKENS, type Palette } from "@/theme/colors";
 
 // Reactive palette. isDark comes from ThemeContext, so components re-render on theme flip (React Compiler included).

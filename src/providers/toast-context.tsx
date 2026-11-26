@@ -1,4 +1,3 @@
-// src/context/ToastContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 import { useColors } from "@/hooks/use-colors";

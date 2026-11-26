@@ -22,7 +22,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useKokio } from "@/hooks/use-kokio";
 import { BlurView } from "expo-blur";
 import { Easing } from "react-native-reanimated";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
 import { logger } from '@/lib/logger';

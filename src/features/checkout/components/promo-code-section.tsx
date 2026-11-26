@@ -3,7 +3,7 @@ import { ActivityIndicator, TextInput, TouchableOpacity, View } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { CodeLookupResponse } from "@/lib/api/bff/coupon";
 import type { OrderPricing } from "@/lib/api/bff/order";

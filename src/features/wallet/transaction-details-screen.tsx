@@ -10,7 +10,7 @@ import { CopyRow } from "@/features/orders/components/purchase-details-sheet";
 import { PillButton } from "@/components/ui/pill-button";
 import { getExplorerTxBase } from "./explorer-links";
 import { useColors } from "@/hooks/use-colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { logger } from "@/lib/logger";
 

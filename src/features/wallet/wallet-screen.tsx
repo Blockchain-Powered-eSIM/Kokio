@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
 import { useColors } from "@/hooks/use-colors";
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/providers/theme-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import BottomSheet from '@gorhom/bottom-sheet';
 

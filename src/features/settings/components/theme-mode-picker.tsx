@@ -1,7 +1,7 @@
 import React from "react";
 import { TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme, type ThemeMode } from "@/contexts/ThemeContext";
+import { useTheme, type ThemeMode } from "@/providers/theme-context";
 import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";

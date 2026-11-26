@@ -11,7 +11,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { AuthRelayProvider } from './auth-provider';
 import { KokioProvider } from './kokio-provider';
 import { KokioStripeProvider } from './StripeProvider';
-import { ToastProvider } from '@/contexts/ToastContext';
+import { ToastProvider } from './toast-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DEVICE_ESIMS_KEY, DEVICE_ORDERS_KEY } from '@/lib/query-keys';
 import { queryClient, asyncStoragePersister } from '@/lib/api/query-client';

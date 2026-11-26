@@ -12,7 +12,7 @@ import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { DARK_TOKENS, LIGHT_TOKENS, type Palette } from "@/theme/colors";
 import { PASSKEY_LABEL } from "@/lib/constants/app";
 import { useWalletDeployment, MissingSignupDataError } from "./hooks/use-wallet-deployment";
-import { useToast } from "@/contexts/ToastContext";
+import { useToast } from "@/providers/toast-context";
 import { AuthError } from "@/lib/auth/errors";
 import { logger } from "@/lib/logger";
 

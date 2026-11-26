@@ -16,7 +16,7 @@ import type { Palette } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";
 import { useCopyFeedback } from "@/hooks/use-copy-feedback";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { esimDisplayName } from "@/features/esim/esim-display";
 import { openInstallation } from "@/features/esim/esim-install";
 import { colorForStatus, labelForStatus, labelForPricing } from "../order-status";

@@ -12,7 +12,7 @@ import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/use-colors";
 import { useBottomInset } from "@/hooks/use-bottom-inset";
 import EsimItemSkeleton from "@/components/ui/esim-item-skeleton";
-import { useToast } from "@/contexts/ToastContext";
+import { useToast } from "@/providers/toast-context";
 
 import ESIMItem, { Esim } from "@/components/ui/esim-item";
 

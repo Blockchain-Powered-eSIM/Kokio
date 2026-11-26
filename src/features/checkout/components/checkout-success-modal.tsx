@@ -17,7 +17,7 @@ import Animated, {
 
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";

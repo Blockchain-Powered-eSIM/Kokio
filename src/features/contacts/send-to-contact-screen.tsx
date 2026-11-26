@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useQueryClient } from '@tanstack/react-query'
 import { isAddress, parseUnits, formatUnits, type Address } from 'viem';
-import { useToast } from '@/contexts/ToastContext'
+import { useToast } from '@/providers/toast-context'
 import { useColors } from "@/hooks/use-colors";
 import { type Contact } from './hooks/use-contacts';
 import { TokenPickerSheet } from '@/features/wallet/components/token-picker-sheet';

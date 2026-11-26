@@ -2,7 +2,7 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, View, TouchableOpacity } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useColors } from "@/hooks/use-colors";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/providers/theme-context";
 
 interface FullScreenLoaderProps {
   color?: string;

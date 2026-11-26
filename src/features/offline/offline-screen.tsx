@@ -12,7 +12,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { ThemedText } from "@/components/themed-text";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
-import { useToast } from "@/contexts/ToastContext";
+import { useToast } from "@/providers/toast-context";
 import { leaveOfflineScreen, setSkipNextOfflineRedirect } from "./offline-redirect";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
