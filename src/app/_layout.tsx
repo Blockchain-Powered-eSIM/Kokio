@@ -29,7 +29,7 @@ import {
   isOfflinePath,
   leaveOfflineScreen,
   setSkipNextOfflineRedirect,
-} from "@/utils/offlineRedirectFlag";
+} from "@/features/offline/offline-redirect";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
