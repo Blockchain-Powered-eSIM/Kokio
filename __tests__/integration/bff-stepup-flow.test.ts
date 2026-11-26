@@ -17,7 +17,7 @@
  */
 
 import api from '@/services/httpService';
-import { createOrder }            from '@/utils/bff/order';
+import { submitOrder, type CreateOrderRequest } from '@/utils/bff/order';
 import { checkEsimCompatibility } from '@/utils/bff/esim';
 import { getCatalogue }           from '@/utils/bff/catalogue';
 import { StepUpCancelledError }   from '@/utils/auth/errors';
@@ -60,25 +60,23 @@ const mockPost = api.post as jest.MockedFunction<typeof api.post>;
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const PLAN_ID      = 'us-5gb-30d';
-const DEVICE_WALLET = '0xDeviceWallet000';
-const ESIM_ID      = '0xMyESIM01234';
+const PLAN_ID = 'us-5gb-30d';
+const ESIM_ID = 'esim-ref-01234';
 
-const NEW_ORDER_REQ = {
+const NEW_ORDER_REQ: CreateOrderRequest = {
   catalogueId:    PLAN_ID,
-  currency:       'USD',
-  isNewESim:      true  as const,
-  isCryptoPayment: true as const,
-  payeeAddress:   DEVICE_WALLET,
+  isNewESim:      true,
+  paymentMethod:  'FIAT',
+  useStoreCredit: false,
 };
 
-const TOPUP_ORDER_REQ = {
+const TOPUP_ORDER_REQ: CreateOrderRequest = {
   catalogueId:    PLAN_ID,
-  currency:       'USD',
-  isNewESim:      false as const,
-  eSimId:         ESIM_ID,
-  isCryptoPayment: true as const,
-  payeeAddress:   DEVICE_WALLET,
+  isNewESim:      false,
+  eSimRef:        ESIM_ID,
+  paymentMethod:  'DEVICE_WALLET',
+  asset:          'USDC',
+  useStoreCredit: false,
 };
 
 const ORDER_RESPONSE = {
@@ -117,18 +115,18 @@ beforeEach(() => {
 describe('StepUpCancelledError propagation from BFF order calls', () => {
   it('createOrder propagates StepUpCancelledError (new eSIM)', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
   });
 
   it('createOrder propagates StepUpCancelledError (topup)', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
-    await expect(createOrder(TOPUP_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(TOPUP_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
   });
 
   it('StepUpCancelledError is distinguishable from BffError', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
     try {
-      await createOrder(NEW_ORDER_REQ as any);
+      await submitOrder(NEW_ORDER_REQ);
     } catch (err) {
       expect(err).toBeInstanceOf(StepUpCancelledError);
       expect(err).not.toBeInstanceOf(BffError);
@@ -137,7 +135,7 @@ describe('StepUpCancelledError propagation from BFF order calls', () => {
 
   it('StepUpCancelledError carries the STEP_UP_CANCELLED code', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toMatchObject({
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toMatchObject({
       code: 'STEP_UP_CANCELLED',
     });
   });
@@ -148,19 +146,19 @@ describe('StepUpCancelledError propagation from BFF order calls', () => {
 describe('session is intact after step-up cancellation', () => {
   it('clearTokens is NOT called when the user cancels step-up', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
     expect(mockClearTokens).not.toHaveBeenCalled();
   });
 
   it('clearTokens is NOT called on topup step-up cancellation', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
-    await expect(createOrder(TOPUP_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(TOPUP_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
     expect(mockClearTokens).not.toHaveBeenCalled();
   });
 
   it('auth tokens remain accessible after step-up cancellation', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
 
     const { tokens } = useAuthStore.getState();
     expect(tokens).toBe(mockLiveTokens);
@@ -170,9 +168,9 @@ describe('session is intact after step-up cancellation', () => {
   it('session tokens survive multiple consecutive step-up cancellations', async () => {
     mockPost.mockRejectedValue(new StepUpCancelledError());
 
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
-    await expect(createOrder(TOPUP_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(TOPUP_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
 
     expect(mockClearTokens).not.toHaveBeenCalled();
     expect(useAuthStore.getState().tokens).toBe(mockLiveTokens);
@@ -187,10 +185,10 @@ describe('order succeeds when retried after step-up completes', () => {
       .mockRejectedValueOnce(new StepUpCancelledError())  // first: user cancels
       .mockResolvedValueOnce(orderEnvelope());             // second: step-up done
 
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
 
-    const result = await createOrder(NEW_ORDER_REQ as any);
-    expect(result.orderId).toBe('ord-after-stepup');
+    const result = await submitOrder(NEW_ORDER_REQ);
+    expect(result.data.orderId).toBe('ord-after-stepup');
   });
 
   it('retry sends the identical request body as the original attempt', async () => {
@@ -198,8 +196,8 @@ describe('order succeeds when retried after step-up completes', () => {
       .mockRejectedValueOnce(new StepUpCancelledError())
       .mockResolvedValueOnce(orderEnvelope());
 
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
-    await createOrder(NEW_ORDER_REQ as any);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await submitOrder(NEW_ORDER_REQ);
 
     const [firstUrl,  firstBody]  = mockPost.mock.calls[0];
     const [secondUrl, secondBody] = mockPost.mock.calls[1];
@@ -212,11 +210,11 @@ describe('order succeeds when retried after step-up completes', () => {
       .mockRejectedValueOnce(new StepUpCancelledError())
       .mockResolvedValueOnce(orderEnvelope());
 
-    await expect(createOrder(TOPUP_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
-    await createOrder(TOPUP_ORDER_REQ as any);
+    await expect(submitOrder(TOPUP_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await submitOrder(TOPUP_ORDER_REQ);
 
     const [, retryBody] = mockPost.mock.calls[1];
-    expect(retryBody).toMatchObject({ isNewESim: false, eSimId: ESIM_ID });
+    expect(retryBody).toMatchObject({ isNewESim: false, eSimRef: ESIM_ID });
   });
 
   it('succeeds on third attempt after two cancellations', async () => {
@@ -225,10 +223,10 @@ describe('order succeeds when retried after step-up completes', () => {
       .mockRejectedValueOnce(new StepUpCancelledError())
       .mockResolvedValueOnce(orderEnvelope());
 
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
-    const result = await createOrder(NEW_ORDER_REQ as any);
-    expect(result.orderId).toBe('ord-after-stepup');
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
+    const result = await submitOrder(NEW_ORDER_REQ);
+    expect(result.data.orderId).toBe('ord-after-stepup');
     expect(mockPost).toHaveBeenCalledTimes(3);
   });
 });
@@ -238,7 +236,7 @@ describe('order succeeds when retried after step-up completes', () => {
 describe('step-up cancellation does not affect unrelated BFF operations', () => {
   it('catalogue browsing succeeds immediately after a step-up cancellation', async () => {
     mockPost.mockRejectedValueOnce(new StepUpCancelledError());
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
 
     mockGet.mockResolvedValueOnce(plansEnvelope());
     const catalogue = await getCatalogue({ serviceRegionCode: 'US' });
@@ -247,7 +245,7 @@ describe('step-up cancellation does not affect unrelated BFF operations', () => 
 
   it('compatibility check succeeds immediately after a step-up cancellation', async () => {
     mockPost.mockRejectedValueOnce(new StepUpCancelledError());
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
 
     mockGet.mockResolvedValueOnce(compatEnvelope([
       { esimId: ESIM_ID, compatible: true, vendorMismatch: false, checkError: false },
@@ -270,7 +268,7 @@ describe('step-up cancellation does not affect unrelated BFF operations', () => 
     expect(first.results).toHaveLength(0);
 
     // 2. Attempt order → step-up → user cancels
-    await expect(createOrder(NEW_ORDER_REQ as any)).rejects.toBeInstanceOf(StepUpCancelledError);
+    await expect(submitOrder(NEW_ORDER_REQ)).rejects.toBeInstanceOf(StepUpCancelledError);
 
     // 3. Check compatibility again — works fine
     const second = await checkEsimCompatibility({ planId: PLAN_ID }, ESIM_ID);

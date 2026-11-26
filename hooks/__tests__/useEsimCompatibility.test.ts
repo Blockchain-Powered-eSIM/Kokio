@@ -14,6 +14,7 @@ import type { CompatibilityResult } from '@/utils/bff/esim';
 
 function result(overrides: Partial<CompatibilityResult> = {}): CompatibilityResult {
   return {
+    eSimRef: 'esim-ref-1',
     esimId: '0xdef456abc123def456abc123def456abc123def4',
     iccid: '8944110068000000001',
     vendor: 'VENDOR1',

@@ -148,7 +148,7 @@ describe('token rotation', () => {
 
     await refreshAccessToken();
 
-    const [params] = mockToken.mock.calls[0] as [{ grant_type: string; refresh_token: string }, unknown][];
+    const [params] = mockToken.mock.calls[0] as [{ grant_type: string; refresh_token: string }, unknown];
     expect(params.grant_type).toBe('refresh_token');
     expect(params.refresh_token).toBe('rt-abc');
   });
