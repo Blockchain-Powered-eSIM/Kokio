@@ -1,260 +1,66 @@
-/**
- * coupon BFF module tests
- *
- * getCoupon normalizes (trim + uppercase) and validates length before calling
- * the API. issueCoupon is a straightforward POST. InvalidCouponCodeError is
- * thrown synchronously — no network involved.
- */
+// Tests for the coupon and referral code lookup: input normalisation, format
+// checks before any request, and error mapping.
 
 import api from '@/services/httpService';
-import { getCoupon, issueCoupon, InvalidCouponCodeError } from '../coupon';
+import { getCoupon, InvalidCouponCodeError } from '../coupon';
 import { BffError } from '../errors';
 
 jest.mock('@/services/httpService', () => ({
   __esModule: true,
   default: {
     get:       jest.fn(),
-    post:      jest.fn(),
     getConfig: jest.fn(() => ({})),
   },
 }));
 
-const mockGet  = api.get  as jest.MockedFunction<typeof api.get>;
-const mockPost = api.post as jest.MockedFunction<typeof api.post>;
+const mockGet = api.get as jest.MockedFunction<typeof api.get>;
 
-// ─── Fixtures ─────────────────────────────────────────────────────────────────
-
-const COUPON_DOC = {
-  code:            'ABCD1234',
-  tokenName:       'USDC',
-  network:         'BASE',
-  totalAmount:     '100',
-  balance:         '50',
-  isExhausted:     false,
-  createdAt:       '2025-01-01T00:00:00Z',
-  updatedAt:       '2025-01-01T00:00:00Z',
-  lastRedeemedAt:  null,
-  lastRedeemedBy:  null,
-  redemptions:     [],
+const LOOKUP = {
+  code: 'ABCD1234',
+  kind: 'COUPON',
+  coupon: null,
+  referral: null,
+  eligibility: { ok: true },
 };
 
-const EXHAUSTED_COUPON = { ...COUPON_DOC, balance: '0', isExhausted: true };
-
-function couponEnvelope(doc = COUPON_DOC) {
-  return { success: true, correlationId: null, message: '', data: doc };
+function envelope(data: unknown = LOOKUP) {
+  return { success: true, correlationId: null, message: '', data };
 }
-
-function bffError(code: string) {
-  return { success: false, code, correlationId: null, message: code };
-}
-
-// ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => jest.clearAllMocks());
 
-// ─── InvalidCouponCodeError ───────────────────────────────────────────────────
-
-describe('InvalidCouponCodeError', () => {
-  it('is an instance of Error', () => {
-    expect(new InvalidCouponCodeError()).toBeInstanceOf(Error);
-  });
-
-  it('message mentions the 8-character requirement', () => {
-    expect(new InvalidCouponCodeError().message).toContain('8');
-  });
-
-  it('can be caught as Error', () => {
-    const fn = () => { throw new InvalidCouponCodeError(); };
-    expect(fn).toThrow(Error);
-  });
-});
-
-// ─── getCoupon ────────────────────────────────────────────────────────────────
-
 describe('getCoupon', () => {
-  describe('code normalization', () => {
-    it('normalizes lowercase code to uppercase before calling the API', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await getCoupon('abcd1234');
-      const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/coupon/ABCD1234');
-    });
-
-    it('trims leading and trailing whitespace before normalizing', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await getCoupon('  abcd1234  ');
-      const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/coupon/ABCD1234');
-    });
-
-    it('handles mixed-case input', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await getCoupon('AbCd1234');
-      const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/coupon/ABCD1234');
-    });
-
-    it('handles already-uppercase input unchanged', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await getCoupon('ABCD1234');
-      const [url] = mockGet.mock.calls[0];
-      expect(url).toBe('/coupon/ABCD1234');
-    });
+  it.each(['abcd1234', '  abcd1234  ', 'AbCd1234'])('normalises %p before the request', async (input) => {
+    mockGet.mockResolvedValue(envelope());
+    await getCoupon(input);
+    expect(mockGet).toHaveBeenCalledWith('/coupon/ABCD1234');
   });
 
-  describe('length validation — throws InvalidCouponCodeError without calling API', () => {
-    it('throws for a 7-character code', async () => {
-      expect(() => getCoupon('ABCD123')).toThrow(InvalidCouponCodeError);
-      expect(mockGet).not.toHaveBeenCalled();
-    });
-
-    it('throws for a 9-character code', async () => {
-      expect(() => getCoupon('ABCD12345')).toThrow(InvalidCouponCodeError);
-      expect(mockGet).not.toHaveBeenCalled();
-    });
-
-    it('throws for an empty string', async () => {
-      expect(() => getCoupon('')).toThrow(InvalidCouponCodeError);
-      expect(mockGet).not.toHaveBeenCalled();
-    });
-
-    it('throws for a single character', async () => {
-      expect(() => getCoupon('A')).toThrow(InvalidCouponCodeError);
-      expect(mockGet).not.toHaveBeenCalled();
-    });
-
-    it('throws for a 16-character code', async () => {
-      expect(() => getCoupon('ABCD1234ABCD1234')).toThrow(InvalidCouponCodeError);
-      expect(mockGet).not.toHaveBeenCalled();
-    });
-
-    it('accepts exactly 8 characters without throwing', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await expect(getCoupon('ABCD1234')).resolves.toBeDefined();
-    });
-
-    it('whitespace is stripped before length check — " ABCD1234 " is valid', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await expect(getCoupon(' ABCD1234 ')).resolves.toBeDefined();
-    });
+  it.each(['ABCD', 'ABCD1234ABCD1234'])('accepts %p (4 to 16 characters)', async (code) => {
+    mockGet.mockResolvedValue(envelope());
+    await expect(getCoupon(code)).resolves.toBeDefined();
   });
 
-  describe('API call', () => {
-    it('calls api.get with the normalized code in the URL path', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await getCoupon('ABCD1234');
-      expect(mockGet).toHaveBeenCalledWith('/coupon/ABCD1234');
-    });
-
-    it('calls api.get exactly once', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await getCoupon('ABCD1234');
-      expect(mockGet).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not include deviceId in the request', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      await getCoupon('ABCD1234');
-      // getCoupon calls api.get(url) with no second params arg — verify no extra args
-      const call = mockGet.mock.calls[0];
-      if (call.length > 1) {
-        expect(call[1]).not.toHaveProperty('deviceId');
-      }
-    });
+  it.each(['', 'ABC', 'ABCD1234ABCD12345', 'ABCD-123'])('rejects %p without a request', async (code) => {
+    await expect(getCoupon(code)).rejects.toBeInstanceOf(InvalidCouponCodeError);
+    expect(mockGet).not.toHaveBeenCalled();
   });
 
-  describe('response handling', () => {
-    it('returns the coupon document', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      const result = await getCoupon('ABCD1234');
-      expect(result).toEqual(COUPON_DOC);
-    });
-
-    it('returns an exhausted coupon with isExhausted: true', async () => {
-      mockGet.mockResolvedValue(couponEnvelope(EXHAUSTED_COUPON));
-      const result = await getCoupon('ABCD1234');
-      expect(result.isExhausted).toBe(true);
-      expect(result.balance).toBe('0');
-    });
-
-    it('result contains tokenName and balance fields', async () => {
-      mockGet.mockResolvedValue(couponEnvelope());
-      const result = await getCoupon('ABCD1234');
-      expect(result.tokenName).toBe('USDC');
-      expect(result.balance).toBe('50');
-    });
+  it('returns the lookup result', async () => {
+    mockGet.mockResolvedValue(envelope());
+    await expect(getCoupon('ABCD1234')).resolves.toEqual(LOOKUP);
   });
 
-  describe('error handling', () => {
-    it('throws BffError when the BFF responds with COUPON_NOT_FOUND', async () => {
-      mockGet.mockResolvedValue(bffError('COUPON_NOT_FOUND'));
-      await expect(getCoupon('ABCD1234')).rejects.toBeInstanceOf(BffError);
-    });
-
-    it('thrown BffError has the COUPON_NOT_FOUND code', async () => {
-      mockGet.mockResolvedValue(bffError('COUPON_NOT_FOUND'));
-      await expect(getCoupon('ABCD1234')).rejects.toMatchObject({
-        code:        'COUPON_NOT_FOUND',
-        userMessage: 'Invalid coupon code.',
-      });
-    });
-
-    it('propagates network-level errors', async () => {
-      const err = new Error('Network Error');
-      mockGet.mockRejectedValue(err);
-      await expect(getCoupon('ABCD1234')).rejects.toBe(err);
-    });
-  });
-});
-
-// ─── issueCoupon ──────────────────────────────────────────────────────────────
-
-describe('issueCoupon', () => {
-  const ISSUE_REQUEST = {
-    txnHash:   '0xHASH',
-    tokenName: 'USDC',
-    network:   'BASE',
-    amount:    '100',
-  };
-
-  it('calls api.post with /coupon', async () => {
-    mockPost.mockResolvedValue(couponEnvelope());
-    await issueCoupon(ISSUE_REQUEST as any);
-    expect(mockPost).toHaveBeenCalledWith('/coupon', expect.any(Object));
+  it('maps an unknown code to BffError with the user message', async () => {
+    mockGet.mockResolvedValue({ success: false, code: 'PROMO_CODE_NOT_FOUND', correlationId: null, message: '' });
+    const err = await getCoupon('ABCD1234').catch((e) => e);
+    expect(err).toBeInstanceOf(BffError);
+    expect(err).toMatchObject({ code: 'PROMO_CODE_NOT_FOUND', userMessage: 'Invalid code.' });
   });
 
-  it('forwards the request body', async () => {
-    mockPost.mockResolvedValue(couponEnvelope());
-    await issueCoupon(ISSUE_REQUEST as any);
-    const [, body] = mockPost.mock.calls[0];
-    expect(body).toMatchObject(ISSUE_REQUEST);
-  });
-
-  it('does not include deviceId in the request body', async () => {
-    mockPost.mockResolvedValue(couponEnvelope());
-    await issueCoupon(ISSUE_REQUEST as any);
-    const [, body] = mockPost.mock.calls[0];
-    expect(body).not.toHaveProperty('deviceId');
-  });
-
-  it('returns the issued coupon document', async () => {
-    mockPost.mockResolvedValue(couponEnvelope());
-    const result = await issueCoupon(ISSUE_REQUEST as any);
-    expect(result).toEqual(COUPON_DOC);
-  });
-
-  it('throws BffError on COUPON_CODE_GEN_FAILED', async () => {
-    mockPost.mockResolvedValue(bffError('COUPON_CODE_GEN_FAILED'));
-    await expect(issueCoupon(ISSUE_REQUEST as any)).rejects.toMatchObject({
-      code:        'COUPON_CODE_GEN_FAILED',
-      userMessage: 'Could not generate coupon. Please try again.',
-    });
-  });
-
-  it('throws BffError on COUPON_ALREADY_ISSUED_FOR_TX', async () => {
-    mockPost.mockResolvedValue(bffError('COUPON_ALREADY_ISSUED_FOR_TX'));
-    await expect(issueCoupon(ISSUE_REQUEST as any)).rejects.toMatchObject({
-      code: 'COUPON_ALREADY_ISSUED_FOR_TX',
-    });
+  it('passes network errors through', async () => {
+    const err = new Error('Network Error');
+    mockGet.mockRejectedValue(err);
+    await expect(getCoupon('ABCD1234')).rejects.toBe(err);
   });
 });
