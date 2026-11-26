@@ -15,7 +15,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/theme/colors";
 import { REGION_CONFIG } from "@/lib/constants/shop";
 import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
-import { navigateToESIMsByRegion } from "@/utils/general";
+import { navigateToESIMsByRegion } from "../shop-navigation";
 
 const EmptyListComponent = () => (
   <ThemedText style={{ textAlign: "center", flex: 1, paddingTop: 42 }}>

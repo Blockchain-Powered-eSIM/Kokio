@@ -10,7 +10,7 @@ import { formatPlanLabel } from '../esim-order';
 import { addPendingOrder, removePendingOrder } from '@/features/orders/hooks/use-pending-orders';
 import { DEVICE_ORDERS_KEY, PENDING_ORDERS_KEY } from '@/lib/query-keys';
 import { ESIM_ID_KEY } from '@/lib/storage/keys';
-import type { Esim } from '@/components/ESIMItem';
+import type { Esim } from '@/components/ui/esim-item';
 import { logger } from '@/lib/logger';
 
 export type CreateOrderVariables = {

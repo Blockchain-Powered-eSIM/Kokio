@@ -1,19 +1,15 @@
 import { useMemo } from "react";
-import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { Theme } from "@/theme/colors";
-import { useCatalogueByRegion } from "@/hooks/useCatalogue";
-import { formatBffError } from "@/lib/api/bff/errors";
+import DataPackTabGroup from "./data-pack-tab-group";
 import { ThemedText } from "@/components/ThemedText";
-import DataPackTabGroup from "@/components/DataPackTabGroup";
-import { useShopFilters } from "@/contexts/ShopFiltersContext";
-import { applyShopFilters } from "@/utils/shopFilters";
+import { useCatalogue } from "../hooks/use-catalogue";
+import { formatBffError } from "@/lib/api/bff/errors";
+import { useShopFilters } from "../shop-filters-context";
+import { applyShopFilters } from "../shop-filters";
 
-export default function EsimsByRegion() {
-  const params = useLocalSearchParams();
-  const region = params?.id as string;
-  const { data, isLoading, error, refetch } = useCatalogueByRegion(region);
+export default function Global() {
+  const { data, isLoading, error, refetch } = useCatalogue({ serviceRegionCode: "GLOBAL" });
   const { filters, isActive, clearFilters } = useShopFilters();
 
   const filteredPlans = useMemo(
@@ -22,7 +18,7 @@ export default function EsimsByRegion() {
   );
 
   if (isLoading) {
-    return <DataPackTabGroup plans={[]} isLoading containerStyle={styles.container} />;
+    return <DataPackTabGroup plans={[]} isLoading />;
   }
 
   if (error) {
@@ -47,7 +43,6 @@ export default function EsimsByRegion() {
   return (
     <DataPackTabGroup
       plans={filteredPlans}
-      containerStyle={styles.container}
       filtersActive={isActive}
       onClearFilters={clearFilters}
     />
@@ -55,20 +50,7 @@ export default function EsimsByRegion() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: Theme.spacing.sm,
-  },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  retry: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  retryLabel: {
-    textDecorationLine: "underline",
-  },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  retry: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 16 },
+  retryLabel: { textDecorationLine: "underline" },
 });

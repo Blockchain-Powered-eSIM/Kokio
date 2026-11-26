@@ -14,7 +14,7 @@ import { ThemedView } from "@/components/ThemedView";
 import CountryFlag from "@/components/ui/CountryFlag";
 import { Theme } from "@/theme/colors";
 import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
-import { navigateToESIMsByCountry } from "@/utils/general";
+import { navigateToESIMsByCountry } from "../shop-navigation";
 
 
 const COLUMN_COUNT = 2;

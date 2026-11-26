@@ -1,4 +1,4 @@
-import type { Esim } from "@/components/ESIMItem";
+import type { Esim } from "@/components/ui/esim-item";
 import type { CreateOrderRequest } from "@/lib/api/bff/order";
 
 type EsimOrderPayloadParams = {

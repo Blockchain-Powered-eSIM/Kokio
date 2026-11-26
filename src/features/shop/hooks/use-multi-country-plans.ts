@@ -2,7 +2,7 @@ import { useQueries } from "@tanstack/react-query";
 
 import { getAllCatalogue } from "@/lib/api/bff/catalogue";
 import { CATALOGUE_KEY } from "@/lib/query-keys";
-import { rankPlansForCountries, regionsForCountries, type PlanMatch, type SourcedPlan } from "@/helpers/planCoverage";
+import { rankPlansForCountries, regionsForCountries, type PlanMatch, type SourcedPlan } from "../plan-coverage";
 
 const STALE_TIME = 5 * 60 * 1000;
 const GC_TIME = 10 * 60 * 1000;

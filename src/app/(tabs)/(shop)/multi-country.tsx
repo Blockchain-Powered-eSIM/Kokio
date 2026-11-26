@@ -1,1 +1,1 @@
-export { default } from "@/screens/MultiCountryPlans/MultiCountryPlans";
+export { default } from "@/features/shop/multi-country-plans-screen";

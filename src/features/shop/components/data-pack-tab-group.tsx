@@ -11,10 +11,10 @@ import { ThemedView } from "@/components/ThemedView";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import { useBottomInset } from "@/hooks/useBottomInset";
-import EsimItemSkeleton from "@/components/EsimItemSkeleton";
+import EsimItemSkeleton from "@/components/ui/esim-item-skeleton";
 import { useToast } from "@/contexts/ToastContext";
 
-import ESIMItem, { Esim } from "../ESIMItem";
+import ESIMItem, { Esim } from "@/components/ui/esim-item";
 
 const TAB_KEYS = {
   DATA: "DATA",

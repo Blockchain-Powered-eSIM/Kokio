@@ -5,7 +5,7 @@ import {
   isShopFiltersActive,
   type ShopFilters,
   type ShopFilterSheetHandle,
-} from "@/utils/shopFilters";
+} from "./shop-filters";
 
 interface ShopFiltersContextValue {
   filters: ShopFilters;

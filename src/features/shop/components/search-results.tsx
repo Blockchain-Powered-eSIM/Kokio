@@ -19,13 +19,13 @@ import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
 import CountryFlag from "@/components/ui/CountryFlag";
-import RegionalSearchRow from "@/components/shop/RegionalSearchRow";
-import GlobalSearchRow from "@/components/shop/GlobalSearchRow";
+import RegionalSearchRow from "./regional-search-row";
+import GlobalSearchRow from "./global-search-row";
 import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 import {
   navigateToESIMsByCountry,
   navigateToESIMsByRegion,
-} from "@/utils/general";
+} from "../shop-navigation";
 import { COUNTRY_TO_REGIONS } from "@/lib/constants/shop";
 
 const GLOBAL_ITEM = { code: "GLOBAL", name: "Global" };

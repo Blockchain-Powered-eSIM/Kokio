@@ -10,7 +10,7 @@ import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
 import { useEsims } from "@/features/esim/hooks/use-esims";
 import { useAllEsimUsage } from "@/features/esim/hooks/use-esim-usage";
-import ESIMItem from "@/components/ESIMItem";
+import ESIMItem from "@/components/ui/esim-item";
 import EsimLabelEditor from "@/features/esim/components/esim-label-editor";
 import type { ESimDocument, ESimUsage } from "@/lib/api/bff/esim";
 import { esimDocToDisplayItem } from "@/features/esim/esim-display";

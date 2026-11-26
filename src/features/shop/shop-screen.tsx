@@ -11,14 +11,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import SearchInput from "@/components/SearchInput";
 import TabBar from "@/components/tabBar";
-import { ShopFilterButton } from "@/components/ShopFilterControl";
-import { useShopFilters } from "@/contexts/ShopFiltersContext";
+import ShopFilterButton from "./components/shop-filter-button";
+import { useShopFilters } from "./shop-filters-context";
 
-import Countries from "./tabs/countries";
-import Global from "./tabs/global";
-import Regions from "./tabs/regions";
-import SearchResult from "./searchResult";
-import Custom from "./tabs/custom";
+import Countries from "./components/countries-tab";
+import Global from "./components/global-tab";
+import Regions from "./components/regions-tab";
+import SearchResult from "./components/search-results";
+import Custom from "./components/custom-tab";
 
 const TOP_TAB_ROUTES = [
   { key: "Countries", title: "Countries" },

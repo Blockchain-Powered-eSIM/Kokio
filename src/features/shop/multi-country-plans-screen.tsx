@@ -6,14 +6,14 @@ import _trim from "lodash/trim";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import DataPackTabGroup from "@/components/DataPackTabGroup";
+import DataPackTabGroup from "./components/data-pack-tab-group";
 import SearchInput from "@/components/SearchInput";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useMultiCountryPlans } from "@/hooks/useMultiCountryPlans";
-import { useShopFilters } from "@/contexts/ShopFiltersContext";
-import { applyShopFilters } from "@/utils/shopFilters";
+import { useMultiCountryPlans } from "./hooks/use-multi-country-plans";
+import { useShopFilters } from "./shop-filters-context";
+import { applyShopFilters } from "./shop-filters";
 import appBootstrap, { type ServiceRegion } from "@/utils/appBootstrap";
 
 const MAX_SUGGESTIONS = 8;

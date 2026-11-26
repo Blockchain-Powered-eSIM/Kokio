@@ -7,7 +7,7 @@ import type { Palette } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useBottomInset } from "@/hooks/useBottomInset";
-import { useShopFilters } from "@/contexts/ShopFiltersContext";
+import { useShopFilters } from "../shop-filters-context";
 import {
   DATA_FILTER_OPTIONS,
   PRICE_FILTER_OPTIONS,
@@ -18,7 +18,7 @@ import {
   type ShopFilters,
   type ShopFilterSheetHandle,
   type ValidityFilterKey,
-} from "@/utils/shopFilters";
+} from "../shop-filters";
 
 export type { ShopFilterSheetHandle };
 

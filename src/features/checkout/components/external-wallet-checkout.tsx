@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { usePayWithCrypto } from "@heliofi/checkout-react-native";
 import type { PaymentCallback } from "@heliofi/checkout-react-native";
-import type { Esim } from "@/components/ESIMItem";
+import type { Esim } from "@/components/ui/esim-item";
 import { pollOrderStatus } from "@/lib/api/bff/order";
 import type { CreateOrderResponse, OrderStatusResponse } from "@/lib/api/bff/order";
 import { pollingLabel } from "@/features/orders/order-status";

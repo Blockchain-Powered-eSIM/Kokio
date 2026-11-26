@@ -3,7 +3,7 @@ import { AppState } from "react-native";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Esim } from "@/components/ESIMItem";
+import type { Esim } from "@/components/ui/esim-item";
 import { useToast } from "@/contexts/ToastContext";
 import { useKokio } from "@/hooks/useKokio";
 import { isOrderSuccess, pollOrderStatus } from "@/lib/api/bff/order";

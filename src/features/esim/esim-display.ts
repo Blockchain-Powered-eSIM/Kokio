@@ -1,5 +1,5 @@
 import type { ESimDocument, PlanHistoryEntry } from "@/lib/api/bff/esim";
-import type { Esim } from "@/components/ESIMItem";
+import type { Esim } from "@/components/ui/esim-item";
 
 /** The user's label when set, otherwise the plan's region name. Used everywhere an eSIM is named. */
 export function esimDisplayName(doc: ESimDocument): string {

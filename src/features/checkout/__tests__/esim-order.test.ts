@@ -1,7 +1,7 @@
 // Tests for the order body checkout builds from the selected plan.
 
 import { formatPlanLabel, getEsimOrderPayload } from '../esim-order';
-import type { Esim } from '@/components/ESIMItem';
+import type { Esim } from '@/components/ui/esim-item';
 
 const PLAN = {
   catalogueId:       'plan-jp-5',

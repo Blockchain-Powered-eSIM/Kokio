@@ -68,12 +68,12 @@
 import { useMemo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-import DataPackTabGroup from "@/components/DataPackTabGroup";
+import DataPackTabGroup from "./data-pack-tab-group";
 import { ThemedText } from "@/components/ThemedText";
-import { useCatalogue } from "@/hooks/useCatalogue";
+import { useCatalogue } from "../hooks/use-catalogue";
 import { formatBffError } from "@/lib/api/bff/errors";
-import { useShopFilters } from "@/contexts/ShopFiltersContext";
-import { applyShopFilters } from "@/utils/shopFilters";
+import { useShopFilters } from "../shop-filters-context";
+import { applyShopFilters } from "../shop-filters";
 
 export default function Custom() {
   const { data, isLoading, error, refetch } = useCatalogue({ serviceRegionCode: "CUSTOM_REGIONAL" });

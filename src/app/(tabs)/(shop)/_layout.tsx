@@ -6,8 +6,9 @@ import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import CheckoutHeader from "@/features/checkout/components/checkout-header";
 import appBootstrap from "@/utils/appBootstrap";
-import { ShopFiltersProvider, useShopFilters } from "@/contexts/ShopFiltersContext";
-import { ShopFilterButton, ShopFilterSheet } from "@/components/ShopFilterControl";
+import { ShopFiltersProvider, useShopFilters } from "@/features/shop/shop-filters-context";
+import ShopFilterButton from "@/features/shop/components/shop-filter-button";
+import ShopFilterSheet from "@/features/shop/components/shop-filter-sheet";
 
 export default function ShopStack() {
   return (

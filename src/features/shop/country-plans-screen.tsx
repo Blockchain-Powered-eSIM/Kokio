@@ -3,19 +3,19 @@ import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { Theme } from "@/theme/colors";
-import { useCatalogueByCountry } from "@/hooks/useCatalogue";
+import { useCatalogueByCountry } from "./hooks/use-catalogue";
 import { formatBffError } from "@/lib/api/bff/errors";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import DataPackTabGroup from "@/components/DataPackTabGroup";
-import { useShopFilters } from "@/contexts/ShopFiltersContext";
-import { applyShopFilters } from "@/utils/shopFilters";
+import DataPackTabGroup from "./components/data-pack-tab-group";
+import { useShopFilters } from "./shop-filters-context";
+import { applyShopFilters } from "./shop-filters";
 import { useToast } from "@/contexts/ToastContext";
-import { useCatalogueBackup } from "@/hooks/useCatalogueBackup";
-import { mergeBackupPlans } from "@/helpers/mergeBackupPlans";
-import { filterPlansByNetwork, getNetworkOptions } from "@/helpers/planNetworks";
-import NetworkFilterChips from "@/components/NetworkFilterChips";
-import BackupPlansFooter from "@/components/BackupPlansFooter";
+import { useCatalogueBackup } from "./hooks/use-catalogue-backup";
+import { mergeBackupPlans } from "./merge-backup-plans";
+import { filterPlansByNetwork, getNetworkOptions } from "./plan-networks";
+import NetworkFilterChips from "./components/network-filter-chips";
+import BackupPlansFooter from "./components/backup-plans-footer";
 
 function EsimsByCountryContent({ countryCode }: { countryCode: string }) {
   const { data, isLoading, error, refetch } = useCatalogueByCountry(countryCode);

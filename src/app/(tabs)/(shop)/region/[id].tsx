@@ -1,1 +1,1 @@
-export { default } from "@/screens/EsimsByRegion";
+export { default } from "@/features/shop/region-plans-screen";

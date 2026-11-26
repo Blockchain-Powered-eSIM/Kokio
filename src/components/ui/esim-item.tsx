@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Theme } from "@/theme/colors";
 import { useColors } from "@/hooks/useColors";
 import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
-import DetailItem from "./ui/DetailItem";
+import DetailItem from "./DetailItem";
 
 export interface Esim {
   catalogueId: string;
