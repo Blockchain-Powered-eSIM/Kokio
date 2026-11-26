@@ -9,6 +9,8 @@ import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import "react-native-reanimated";
 import _isNull from "lodash/isNull";
+// global.css sits at the project root, outside the @/ alias.
+// eslint-disable-next-line no-restricted-imports
 import "../../global.css";
 
 import useBootstrap from "@/lib/bootstrap/use-bootstrap";
