@@ -8,13 +8,13 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { Palette } from "@/theme/colors";
-import { useEsims } from "@/hooks/useDeviceEsims";
-import { useAllEsimUsage } from "@/hooks/useEsimUsage";
+import { useEsims } from "@/features/esim/use-esims";
+import { useAllEsimUsage } from "@/features/esim/use-esim-usage";
 import ESIMItem from "@/components/ESIMItem";
-import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
+import EsimLabelEditor from "@/features/esim/components/esim-label-editor";
 import type { ESimDocument, ESimUsage } from "@/lib/api/bff/esim";
-import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
-import { openInstallation } from "@/helpers/esimInstall";
+import { esimDocToDisplayItem } from "@/features/esim/esim-display";
+import { openInstallation } from "@/features/esim/esim-install";
 import { logger } from "@/lib/logger";
 
 // ─── Constants ────────────────────────────────────────────────────────────────

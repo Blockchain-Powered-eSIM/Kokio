@@ -6,11 +6,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
-import EsimLabelEditor from "@/components/esim/EsimLabelEditor";
+import EsimLabelEditor from "@/features/esim/components/esim-label-editor";
 import { WalletHeroCard } from "@/components/wallet/WalletHeroCard";
 import { useColors } from "@/hooks/useColors";
-import { useEsims } from "@/hooks/useDeviceEsims";
-import { esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { useEsims } from "@/features/esim/use-esims";
+import { esimDocToDisplayItem } from "@/features/esim/esim-display";
 
 export default function EsimWalletScreen() {
   const colors = useColors();

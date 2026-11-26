@@ -7,7 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 import CountryFlag, { type CoverageType } from "@/components/ui/CountryFlag";
 import { useColors } from "@/hooks/useColors";
 import { useBottomInset } from "@/hooks/useBottomInset";
-import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { esimDisplayName, esimDocToDisplayItem } from "@/features/esim/esim-display";
 import type { ESimDocument } from "@/lib/api/bff/esim";
 
 export interface EsimTopupPickerItem {

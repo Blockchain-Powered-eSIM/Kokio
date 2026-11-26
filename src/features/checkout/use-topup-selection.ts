@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type BottomSheet from "@gorhom/bottom-sheet";
-import { useEsims } from "@/hooks/useDeviceEsims";
-import { useEsimCompatibility } from "@/hooks/useEsimCompatibility";
-import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { useEsims } from "@/features/esim/use-esims";
+import { useEsimCompatibility } from "@/features/esim/use-esim-compatibility";
+import { esimDisplayName, esimDocToDisplayItem } from "@/features/esim/esim-display";
 import { formatPlanLabel } from "./esim-order";
 
 /** Whether an order tops up an existing eSIM, and which one. */

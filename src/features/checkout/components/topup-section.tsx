@@ -8,7 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import type { ESimDocument } from "@/lib/api/bff/esim";
 import { formatBffError } from "@/lib/api/bff/client";
-import { esimDisplayName, esimDocToDisplayItem } from "@/helpers/esimDisplay";
+import { esimDisplayName, esimDocToDisplayItem } from "@/features/esim/esim-display";
 import { createStyles } from "../checkout-styles";
 
 type EsimMatch = { eSimRef: string; iccid?: string };

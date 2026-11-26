@@ -1,1 +1,1 @@
-export { default } from "@/screens/esimInstallation";
+export { default } from "@/features/esim/installation-screen";

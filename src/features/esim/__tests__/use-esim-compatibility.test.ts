@@ -9,7 +9,7 @@
  * checkError are mutually exclusive per-result flags.
  */
 
-import { partitionCompatibilityResults } from '../useEsimCompatibility';
+import { partitionCompatibilityResults } from '../use-esim-compatibility';
 import type { CompatibilityResult } from '@/lib/api/bff/esim';
 
 function result(overrides: Partial<CompatibilityResult> = {}): CompatibilityResult {
