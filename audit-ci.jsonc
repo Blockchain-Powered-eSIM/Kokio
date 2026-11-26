@@ -7,9 +7,6 @@
     // deepmerge, transitive dependency of jest (dev only)
     "GHSA-3g3m-2fjr-6pw4",
     // minimatch, transitive dependency of eslint and typescript-eslint (dev only)
-    "GHSA-g3hv-75wg-m249",
-    // glob, transitive dependency of expo-pinned packages
-    // (shold be updated when expo migrates to non-vulnerable versions)
-    "GHSA-gcqx-w48m-w2h4"
+    "GHSA-g3hv-75wg-m249"
   ]
 }
