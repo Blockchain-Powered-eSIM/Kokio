@@ -8,7 +8,7 @@ import { BffError } from '@/lib/api/bff/client';
 import { useStripePaymentSheet } from '@/hooks/useStripePaymentSheet';
 import { formatPlanLabel } from '@/helpers/esimOrder';
 import { addPendingOrder, removePendingOrder } from '@/hooks/usePendingOrders';
-import { PENDING_ORDERS_KEY } from '@/lib/query-keys';
+import { DEVICE_ORDERS_KEY, PENDING_ORDERS_KEY } from '@/lib/query-keys';
 import type { Esim } from '@/components/ESIMItem';
 import { logger } from '@/lib/logger';
 
@@ -224,7 +224,7 @@ export function useCreateOrder(options: CreateOrderOptions = {}) {
         await SecureStore.setItemAsync(ESIM_ID_KEY, result.order.esimId);
       }
       await removePendingOrder(result.correlationId);
-      await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      await queryClient.invalidateQueries({ queryKey: [DEVICE_ORDERS_KEY] });
       await queryClient.invalidateQueries({ queryKey: [PENDING_ORDERS_KEY] });
     },
   });
