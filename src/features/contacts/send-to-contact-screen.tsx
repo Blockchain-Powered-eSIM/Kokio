@@ -17,7 +17,7 @@ import { useCustomTokens } from '@/features/wallet/hooks/use-custom-tokens';
 import { useGasEstimate, formatFeeEth } from '@/features/wallet/hooks/use-gas-estimate';
 import { useSendRecipient } from './hooks/use-send-recipient';
 import { buildTransferCall } from '@/features/wallet/wallet-transfer-call';
-import { useKokio } from '@/features/wallet/hooks/use-kokio';
+import { useKokio } from '@/hooks/use-kokio';
 import { logger } from '@/lib/logger';
 import { isUserCancelledPasskeyError } from '@/lib/chain/format-on-chain-error';
 import { appendWalletActivityEntry } from '@/features/wallet/wallet-activity';

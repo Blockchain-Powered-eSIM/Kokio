@@ -19,7 +19,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { erc20Abi, formatUnits, stringToHex, type Address } from 'viem';
 import type { ImageSourcePropType } from 'react-native';
-import { useKokio } from './use-kokio';
+import { useKokio } from '@/hooks/use-kokio';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
 import type { CustomToken } from './use-custom-tokens';
 import { logger } from '@/lib/logger';

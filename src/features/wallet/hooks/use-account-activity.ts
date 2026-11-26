@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAccountActivity, type ActivityEntry } from '@/lib/api/bff/account';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
-import { useAuthRelay } from '@/features/auth/hooks/use-auth-relayer';
-import { useKokio } from './use-kokio';
+import { useAuthRelay } from '@/hooks/use-auth-relayer';
+import { useKokio } from '@/hooks/use-kokio';
 import { ACCOUNT_ACTIVITY_KEY } from '@/lib/query-keys';
 
 const STALE_TIME = 60_000;

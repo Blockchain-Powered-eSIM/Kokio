@@ -33,8 +33,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAllEsims, type ESimDocument } from '@/lib/api/bff/esim';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
-import { useAuthRelay } from '@/features/auth/hooks/use-auth-relayer';
-import { useKokio } from '@/features/wallet/hooks/use-kokio';
+import { useAuthRelay } from '@/hooks/use-auth-relayer';
+import { useKokio } from '@/hooks/use-kokio';
 import { DEVICE_ESIMS_KEY } from '@/lib/query-keys';
 
 // ─── Shared cache settings ────────────────────────────────────────────────────

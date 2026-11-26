@@ -34,7 +34,7 @@ import {
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { clearUsedHashes } from "@/utils/orderTracking";
 import { purgeAccountLocalState } from '@/lib/auth/purge-account-local-state';
-import { PasskeyRemovalModal } from './components/passkey-removal-modal';
+import { PasskeyRemovalModal } from '@/features/auth/components/passkey-removal-modal';
 import { logger } from '@/lib/logger';
 
 // ─── Error formatting ─────────────────────────────────────────────────────────

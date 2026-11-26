@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { AuthRelayContext, type AuthRelayProviderType } from "../auth-provider";
+import { AuthRelayContext, type AuthRelayProviderType } from "@/providers/auth-provider";
 
 export type { AuthRelayProviderType };
 

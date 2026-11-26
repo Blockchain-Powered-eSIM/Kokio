@@ -11,7 +11,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColors } from "@/hooks/useColors";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useKokio } from "@/features/wallet/hooks/use-kokio";
+import { useKokio } from "@/hooks/use-kokio";
 import { useCreditBalance, heldCreditCents } from "@/features/referral/hooks/use-credit-history";
 import { ThemedText } from "@/components/ThemedText";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";

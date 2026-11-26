@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getOrderList, type OrderListItem } from '@/lib/api/bff/order';
 import { useIsAppActive } from '@/hooks/useIsAppActive';
-import { useAuthRelay } from '@/features/auth/hooks/use-auth-relayer';
+import { useAuthRelay } from '@/hooks/use-auth-relayer';
 import { DEVICE_ORDERS_KEY } from '@/lib/query-keys';
 
 const STALE_TIME = 60_000;          // 1 minute

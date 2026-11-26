@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useAuthRelay } from "../hooks/use-auth-relayer";
+import { useAuthRelay } from "@/hooks/use-auth-relayer";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
