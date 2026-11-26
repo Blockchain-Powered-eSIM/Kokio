@@ -47,15 +47,8 @@ jobs:
       - name: Stray Logs
         run: npm run lint:console
 
-      # Deferred
-      # The suite is not actively maintained against this PR gate yet. 
-      # Re-enable this step once test suite is up-to-date w.r.t. tooling and functionality.
-      #   - react-test-renderer (19.0.0) aligned with react (19.2.0)
-      #   - @types/node added + "node" added to tsconfig.test.json `types`
-      #   - utils/auth/__tests__/refresh.test.ts tuple-indexing bug fixed
-      #
-      # - name: Test
-      #   run: npx jest -c jest.config.js && npx tsc -p tsconfig.test.json
+      - name: Test
+        run: npx jest --ci && npx tsc --noEmit -p tsconfig.test.json
 
       - name: Audit
         run: npm run audit
