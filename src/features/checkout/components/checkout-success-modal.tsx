@@ -17,9 +17,9 @@ import Animated, {
 
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useTheme } from "@/providers/theme-context";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
+import { useBottomInset } from "@/hooks/use-bottom-inset";
 import type { Palette } from "@/theme/colors";
 
 interface CheckoutSuccessModalProps {
@@ -101,7 +101,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 32,
     width: "100%",
-    marginBottom: 16,
   },
   installButtonText: {
     fontSize: 16,
@@ -122,7 +121,8 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
 }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
-  const { isDark } = useTheme();
+  // Same inset as the checkout's BottomActionBar, so this button covers the Pay button exactly.
+  const bottomInset = useBottomInset();
   const textColor = useThemeColor({}, "text");
 
   const scale = useSharedValue(0);
@@ -195,10 +195,10 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
 
   const actionButton = (
     <TouchableOpacity
-      style={[styles.installButton, { backgroundColor: colors.shopCta }]}
+      style={[styles.installButton, { backgroundColor: colors.ctaBackground, marginBottom: bottomInset }]}
       onPress={variant === "topup" ? onDone : onInstallESIM}
     >
-      <ThemedText style={[styles.installButtonText, { color: colors.cardForeground }]}>
+      <ThemedText style={[styles.installButtonText, { color: colors.ctaForeground }]}>
         {variant === "topup" ? "Done" : "Install eSIM"}
       </ThemedText>
     </TouchableOpacity>
@@ -214,7 +214,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: isDark ? colors.modalBackground : "rgba(255, 255, 255, 0.8)" }]}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.walletModalBackground }]}>
           <View style={styles.contentContainerWrapper}>
             <View style={[styles.contentContainer, { backgroundColor: colors.contentBackground }]}>
               {loading ? loadingContent : successContent}
