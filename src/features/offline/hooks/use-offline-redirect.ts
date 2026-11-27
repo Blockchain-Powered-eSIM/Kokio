@@ -153,5 +153,5 @@ export function useOfflineRedirect(
     }
     offlinePushedRef.current = true;
     router.push(ROUTE_NAMES.OFFLINE as any);
-  }, [confirmedOffline, showLoader]);
+  }, [confirmedOffline, showLoader, pathnameRef]);
 }
