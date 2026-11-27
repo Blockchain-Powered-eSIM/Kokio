@@ -253,7 +253,7 @@ const WalletPage = () => {
                   marginTop: 16,
                   backgroundColor: colors.ctaBackground,
                 }}
-                onPress={() => router.push('/(tabs)/(wallet)/create-wallet' as any)}
+                onPress={() => router.push('/(tabs)/(wallet)/create-wallet')}
                 accessibilityRole="button"
                 accessibilityLabel={kokio.walletDeploymentError ? "Try creating wallet again" : "Create wallet"}
               >
@@ -282,7 +282,7 @@ const WalletPage = () => {
           />
         </View>
         <View className='flex-1 gap-x-2 flex-row  mx-2 '>
-          <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/send-to-contact' as any)} className='flex-1'>
+          <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/send-to-contact')} className='flex-1'>
             <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 rounded-3xl py-5  justify-center items-center'>
               <View className='p-[12] rounded-full' style={{ backgroundColor: colors.warning }}>
                 <Ionicons name='arrow-up' size={20} color='#fff' />
@@ -312,7 +312,7 @@ const WalletPage = () => {
           className='flex-1 mx-2 mt-5'
           onPress={() => {
             setPreferredCheckoutPaymentMethod(RADIO_KEYS.E_SIM_WALLET);
-            router.navigate('/(tabs)/(shop)' as any);
+            router.navigate('/(tabs)/(shop)');
           }}
         >
           <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 flex-row items-center py-4 px-4 rounded-3xl'>
@@ -334,7 +334,7 @@ const WalletPage = () => {
         </Pressable>
 
 
-        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/tokens" as any)}>
+        <Pressable className='flex-1' onPress={() => router.push("/(tabs)/(wallet)/tokens")}>
           <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
             <View className='flex-row justify-between'>
               <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Tokens</ThemedText>
@@ -344,7 +344,7 @@ const WalletPage = () => {
             <TokenGrid tokens={builtInTokens} onAddToken={() => addTokenSheetRef.current?.snapToIndex(0)} />
           </ThemedView>
         </Pressable>
-        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/transactions' as any)}>
+        <Pressable className='flex-1' onPress={()=>router.push('/(tabs)/(wallet)/transactions')}>
         <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2  py-3 rounded-3xl mt-5 '>
           <View className='flex-row justify-between'>
             <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Transactions</ThemedText>
@@ -380,7 +380,7 @@ const WalletPage = () => {
         </ThemedView>
         </Pressable>
         <ThemedView lightColor={colors.card} darkColor={colors.card} className='flex-1 mx-2 mb-5 py-3 rounded-3xl mt-5 '>
-          <Pressable onPress={()=>router.push({pathname:'/(tabs)/(wallet)/(contacts)' as any,params:{contacts:JSON.stringify(contacts)}})}>
+          <Pressable onPress={()=>router.push({pathname:'/(tabs)/(wallet)/(contacts)',params:{contacts:JSON.stringify(contacts)}})}>
             <View className='flex-row justify-between'>
               <ThemedText lightColor={colors.cardForeground} darkColor={colors.cardForeground} className=' ml-6'>Contacts</ThemedText>
               {contacts.length > 0 &&
@@ -389,7 +389,7 @@ const WalletPage = () => {
           </Pressable>
           <View className='flex-row ml-3 gap-y-6 mt-5 mb-3'>
             {/* Add contact is always the first item in this list. */}
-            <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/add-contact' as any)} className='items-center justify-between mx-5'>
+            <Pressable onPress={() => router.push('/(tabs)/(wallet)/(contacts)/add-contact')} className='items-center justify-between mx-5'>
               <View className='flex-col items-center'>
                 <View className='h-[53px] w-[53px] rounded-full items-center justify-center' style={{ backgroundColor: colors.warning }}>
                   <Image source={require("@/assets/images/wallet/add_contact.png")} className='h-[26] w-[30]' />
@@ -402,7 +402,7 @@ const WalletPage = () => {
             {contacts.slice(0, 3).map((person) => (
               <Pressable
                 key={person.id}
-                onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/contact-details' as any, params: { id: person.id, alias: person.alias, avatarColorKey: person.avatarColorKey, transactions: JSON.stringify(person.transactions ?? []), walletAddress: person.walletAddress } })}
+                onPress={() => router.push({ pathname: '/(tabs)/(wallet)/(contacts)/contact-details', params: { id: person.id, alias: person.alias, avatarColorKey: person.avatarColorKey, transactions: JSON.stringify(person.transactions ?? []), walletAddress: person.walletAddress } })}
                 className='items-center justify-between mx-5'
               >
                 <View className='flex-col items-center'>
@@ -434,7 +434,7 @@ const WalletPage = () => {
                       key={doc.eSimRef}
                       doc={doc}
                       onPress={() => router.push({
-                        pathname: '/(tabs)/(wallet)/esim-wallet' as any,
+                        pathname: '/(tabs)/(wallet)/esim-wallet',
                         params: { esimId: doc.esimId, name: esimDisplayName(doc) },
                       })}
                     />

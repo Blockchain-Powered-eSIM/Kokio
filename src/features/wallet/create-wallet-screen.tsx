@@ -75,7 +75,7 @@ export default function CreateWalletScreen() {
         'info',
       );
       if (router.canDismiss()) router.dismissAll();
-      router.navigate("/(tabs)/(wallet)" as any);
+      router.navigate("/(tabs)/(wallet)");
     } catch (err: unknown) {
       if (err instanceof MissingSignupDataError) {
         setErrorMessage("signup");

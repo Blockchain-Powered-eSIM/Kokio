@@ -65,7 +65,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!resetReady) return;
     useAuthStore.getState().loadPersistedTokens();
-    setUnauthenticatedHandler(() => router.replace("/" as any));
+    setUnauthenticatedHandler(() => router.replace("/"));
   }, [resetReady]);
 
   // Hide splash screen after fonts and bootstrap complete
@@ -81,7 +81,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (showLoader || !showWelcomeBack || welcomeBackRedirectedRef.current) return;
     welcomeBackRedirectedRef.current = true;
-    router.replace(ROUTE_NAMES.WELCOME_BACK as any);
+    router.replace(`/${ROUTE_NAMES.WELCOME_BACK}`);
   }, [showLoader, showWelcomeBack]);
 
   useOfflineRedirect(confirmedOffline, showLoader, pathnameRef);

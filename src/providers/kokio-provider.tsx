@@ -503,12 +503,12 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
     if (!kokio.sdk || !kokio.userWallet || wcInitialized.current) return;
     wcInitialized.current = true;
 
-    const walletAddress = (kokio.userWallet as any).address ?? "";
+    const walletAddress = kokio.userWallet.address ?? "";
 
     getWcSignClient().then((client) => {
       client.on("session_proposal", (proposal) => {
         setPendingProposal(proposal);
-        router.push("/wc-session" as any);
+        router.push("/wc-session");
       });
 
       client.on("session_request", async (event) => {

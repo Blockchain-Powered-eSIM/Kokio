@@ -165,7 +165,7 @@ const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balan
                 </ThemedText>
               </View>
               <TouchableOpacity
-                onPress={() => router.push("/(tabs)/(wallet)" as any)}
+                onPress={() => router.push("/(tabs)/(wallet)")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityRole="button"
                 accessibilityLabel="Check wallet setup status"
@@ -235,7 +235,7 @@ const Wallet = ({ isWalletAdded, isWalletDeploying, walletDeploymentError, balan
                 Unlock with {PASSKEY_LABEL}. Simple, Fast and Secure.
               </ThemedText>
               <TouchableOpacity
-                onPress={() => router.push("/(tabs)/(wallet)" as any)}
+                onPress={() => router.push("/(tabs)/(wallet)")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityRole="button"
                 accessibilityLabel="Learn more about the Kokio wallet"
