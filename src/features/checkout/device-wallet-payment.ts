@@ -2,6 +2,7 @@ import type { Kokio } from "kokio-sdk";
 import { pollOrderStatus, submitPaymentHash } from "@/lib/api/bff/order";
 import type { OrderStatusResponse, PollUpdate } from "@/lib/api/bff/order";
 import { logger } from "@/lib/logger";
+import { sendAndConfirmUserOperation } from "@/lib/chain/send-user-operation";
 
 // How long to wait for the chain webhook to confirm a device-wallet payment
 // before submitting the signed hash ourselves as a recovery fallback.
@@ -22,31 +23,20 @@ const DEVICE_WALLET_PAYMENT_POLL_MAX_DURATION_MS = 120000;
 const DEVICE_WALLET_PAYMENT_POLL_INTERVAL_MS = 8000;
 
 /**
- * Sends the order's payment calls from the device wallet and waits until they
- * are mined. Returns the user operation hash; throws if the calls reverted.
+ * Sends the order's payment calls (e.g. an approval, then the payment) from the device wallet and
+ * waits until they are mined. Returns the user operation hash; throws if the calls reverted.
  */
 export async function sendDeviceWalletPayment(
   deviceWallet: NonNullable<Kokio["deviceWallet"]>,
   smartAccountClient: NonNullable<Kokio["smartAccountClient"]>,
   userOperations: { to: string; data: string }[],
 ): Promise<`0x${string}`> {
-  // Fires the passkey/biometric prompt. Resolves with the user operation
-  // hash, NOT a receipt - the payment is not confirmed on-chain yet. The
-  // calls are bundled as one user operation, in order (e.g. an approval
-  // followed by the actual payment call).
-  const hash = await deviceWallet.sendUserOperation(
+  const { userOpHash } = await sendAndConfirmUserOperation(
+    deviceWallet,
+    smartAccountClient,
     userOperations.map((op) => ({ to: op.to as `0x${string}`, data: op.data as `0x${string}` })),
   );
-
-  const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
-
-  // A user operation whose calls REVERT still gets mined and still
-  // returns a receipt - a resolved promise here is not proof the
-  // payment went through.
-  if (!receipt.success) {
-    throw new Error('Payment reverted on-chain');
-  }
-  return hash;
+  return userOpHash;
 }
 
 /**

@@ -20,6 +20,7 @@ import { buildTransferCall } from '@/features/wallet/wallet-transfer-call';
 import { useKokio } from '@/hooks/use-kokio';
 import { logger } from '@/lib/logger';
 import { isUserCancelledPasskeyError } from '@/lib/chain/format-on-chain-error';
+import { sendAndConfirmUserOperation } from '@/lib/chain/send-user-operation';
 import { appendWalletActivityEntry } from '@/features/wallet/wallet-activity';
 import { WALLET_ACTIVITY_KEY } from '@/lib/query-keys';
 import { contactKey } from '@/lib/storage/keys';
@@ -244,20 +245,8 @@ const SendToContact = () => {
       const amountInSmallestUnit = parseUnits(trimmedAmount, selectedToken.decimals);
       const call = buildTransferCall(selectedToken, recipient, amountInSmallestUnit);
 
-      // Fires the passkey/biometric prompt. Resolves with the user operation
-      // hash, NOT a receipt - the transfer is not confirmed yet.
-      const hash = await deviceWallet.sendUserOperation([call]);
-
-      const receipt = await smartAccountClient.waitForUserOperationReceipt({ hash });
-
-      // A user operation whose calls REVERT still gets mined and still
-      // returns a receipt - a resolved promise here is not proof the
-      // transfer worked. `receipt.success` gates every success path below.
-      if (!receipt.success) {
-        throw new Error('Transfer reverted on-chain');
-      }
-
-      const txHash = receipt.receipt.transactionHash;
+      // Throws if the transfer reverted, so everything below only runs for a confirmed send.
+      const { transactionHash: txHash } = await sendAndConfirmUserOperation(deviceWallet, smartAccountClient, [call]);
       const displayAmount = `${trimmedAmount} ${selectedToken.symbol}`;
 
       if (kokio.deviceUID) {
