@@ -16,12 +16,8 @@ export interface AppExtraConfig {
   externalWalletCallback?: string;
 }
 
-const extra =
-  (Constants.expoConfig?.extra as AppExtraConfig | undefined) ??
-  ((Constants as any).manifest?.extra as AppExtraConfig | undefined) ??
-  ((Constants as any).manifest2?.extra?.expoClient?.extra as
-    | AppExtraConfig
-    | undefined);
+// expoConfig covers both embedded launches and OTA updates (it reads manifest2.extra.expoClient itself).
+const extra = Constants.expoConfig?.extra as AppExtraConfig | undefined;
 
 export const Config = {
   AUTH_SERVER_BASE_URL: extra?.authServerBaseUrl,
