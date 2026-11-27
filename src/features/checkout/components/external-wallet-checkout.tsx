@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { usePayWithCrypto } from "@heliofi/checkout-react-native";
 import type { PaymentCallback } from "@heliofi/checkout-react-native";
-import type { Esim } from "@/components/ui/esim-item";
 import { pollOrderStatus } from "@/lib/api/bff/order";
-import type { CreateOrderResponse, OrderStatusResponse } from "@/lib/api/bff/order";
+import type { OrderStatusResponse } from "@/lib/api/bff/order";
 import { pollingLabel } from "@/features/orders/order-status";
 import { logger } from "@/lib/logger";
 
@@ -12,18 +11,12 @@ import { logger } from "@/lib/logger";
 // the BFF confirmation step after the SDK fires onSuccess.
 export const ExternalWalletCheckout = ({
   correlationId,
-  pendingOrder,
-  eSimItem,
-  kokioDeviceUID,
   setIsCheckoutLoading,
   setLoadingMessage,
   onComplete,
   onSdkDismiss,
 }: {
   correlationId: string | null;
-  pendingOrder: CreateOrderResponse | null;
-  eSimItem: Esim;
-  kokioDeviceUID: string | undefined;
   setIsCheckoutLoading: (v: boolean) => void;
   setLoadingMessage: (msg: string) => void;
   onComplete: (order: OrderStatusResponse | null) => void;
@@ -47,9 +40,7 @@ export const ExternalWalletCheckout = ({
         : null;
       onComplete(finalOrder);
     },
-    //TODO: 'eSimItem', 'kokioDeviceUID', 'pendingOrder' are likely not needed in the dep array
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-    [correlationId, eSimItem, kokioDeviceUID, onComplete, pendingOrder, setIsCheckoutLoading, setLoadingMessage],
+    [correlationId, onComplete, setIsCheckoutLoading, setLoadingMessage],
   );
 
   const { payWithCrypto, drawerVisible } = usePayWithCrypto({ onSuccess });

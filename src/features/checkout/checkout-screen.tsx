@@ -11,7 +11,6 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useColors } from "@/hooks/use-colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useTheme } from "@/providers/theme-context";
-import { useKokio } from "@/hooks/use-kokio";
 import { useCreditBalance, heldCreditCents } from "@/features/referral/hooks/use-credit-history";
 import { ThemedText } from "@/components/themed-text";
 import { BottomActionBar } from "@/components/ui/bottom-action-bar";
@@ -65,7 +64,6 @@ const Checkout = () => {
     return eSimDetails;
   }, [eSimDetails]);
 
-  const { kokio }                         = useKokio();
   const [isESimEnabled, setIsESimEnabled] = useState<boolean>(false);
   const [useStoreCredit, setUseStoreCredit] = useState<boolean>(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
@@ -407,9 +405,6 @@ const Checkout = () => {
         >
           <ExternalWalletCheckout
             correlationId={submit.helioCorrelationId}
-            pendingOrder={submit.pendingHelioOrder}
-            eSimItem={eSimItem}
-            kokioDeviceUID={kokio.deviceUID}
             setIsCheckoutLoading={submit.setIsCheckoutLoading}
             setLoadingMessage={submit.setLoadingMessage}
             onComplete={submit.handleHelioComplete}
