@@ -17,7 +17,6 @@ import Animated, {
 
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useTheme } from "@/providers/theme-context";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import { useColors } from "@/hooks/use-colors";
 import type { Palette } from "@/theme/colors";
@@ -122,7 +121,6 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
 }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
-  const { isDark } = useTheme();
   const textColor = useThemeColor({}, "text");
 
   const scale = useSharedValue(0);
@@ -214,7 +212,7 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: isDark ? colors.modalBackground : "transparent" }]}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.modalBackground }]}>
           <View style={styles.contentContainerWrapper}>
             <View style={[styles.contentContainer, { backgroundColor: colors.contentBackground }]}>
               {loading ? loadingContent : successContent}
