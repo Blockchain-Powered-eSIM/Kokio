@@ -3,7 +3,7 @@ import "react-native-get-random-values";
 import "@/lib/native-runtime-setup";
 
 import { useFonts } from "expo-font";
-import { Stack, useRouter, usePathname } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { View } from "react-native";
 import { useEffect, useRef, useState } from "react";
@@ -31,7 +31,6 @@ import { useConnectivity, useOfflineRedirect } from "@/features/offline/hooks/us
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const router = useRouter();
   const pathname = usePathname();
 
   const [bootstrapDismissed, setBootstrapDismissed] = useState(false);
@@ -67,8 +66,6 @@ export default function RootLayout() {
     if (!resetReady) return;
     useAuthStore.getState().loadPersistedTokens();
     setUnauthenticatedHandler(() => router.replace("/" as any));
-    // router is a stable singleton reference from expo-router
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetReady]);
 
   // Hide splash screen after fonts and bootstrap complete
@@ -85,8 +82,6 @@ export default function RootLayout() {
     if (showLoader || !showWelcomeBack || welcomeBackRedirectedRef.current) return;
     welcomeBackRedirectedRef.current = true;
     router.replace(ROUTE_NAMES.WELCOME_BACK as any);
-    // router is a stable singleton reference from expo-router
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showLoader, showWelcomeBack]);
 
   useOfflineRedirect(confirmedOffline, showLoader, pathnameRef);
