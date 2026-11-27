@@ -21,7 +21,8 @@ import type { Palette } from "@/theme/colors";
 import CountryFlag from "@/components/ui/country-flag";
 import RegionalSearchRow from "./regional-search-row";
 import GlobalSearchRow from "./global-search-row";
-import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import type { ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import { useServiceRegions } from "@/lib/bootstrap/use-bootstrap";
 import {
   navigateToESIMsByCountry,
   navigateToESIMsByRegion,
@@ -159,8 +160,9 @@ const RegionItemRender = ({ item }: { item: ServiceRegion }) => {
 };
 
 const SearchResult = ({ searchText }: { searchText: string }) => {
-  const countryConfig = appBootstrap.getCountryConfig;
-  const regionConfig = appBootstrap.getRegionConfig;
+  const serviceRegions = useServiceRegions();
+  const countryConfig = serviceRegions?.countryConfig;
+  const regionConfig = serviceRegions?.regionConfig;
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 

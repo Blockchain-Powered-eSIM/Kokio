@@ -14,7 +14,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Theme } from "@/theme/colors";
 import { REGION_CONFIG } from "@/lib/constants/shop";
-import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import type { ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import { useServiceRegions } from "@/lib/bootstrap/use-bootstrap";
 import { navigateToESIMsByRegion } from "../shop-navigation";
 
 const EmptyListComponent = () => (
@@ -24,7 +25,7 @@ const EmptyListComponent = () => (
 );
 
 export default function Regions() {
-  const list = appBootstrap.getRegions;
+  const list = useServiceRegions()?.regions;
 
   const renderItem: ListRenderItem<ServiceRegion> = ({ item, index }: any) => {
     const imagePath = _get(REGION_CONFIG, [item?.code, "imagePath"]);

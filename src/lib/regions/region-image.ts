@@ -1,4 +1,4 @@
-import appBootstrap from "@/lib/bootstrap/app-bootstrap";
+import { getServiceRegionsSnapshot } from "@/lib/bootstrap/app-bootstrap";
 import { REGION_CONFIG } from "@/lib/constants/shop";
 
 export function regionImageForCode(code: string | null | undefined) {
@@ -11,7 +11,7 @@ export function regionImageForCode(code: string | null | undefined) {
 // REGION_CONFIG illustration used while browsing can be reused here.
 export function regionCodeFromName(name: string | null | undefined): string | null {
   if (!name) return null;
-  const regions = appBootstrap.getRegionConfig;
+  const regions = getServiceRegionsSnapshot()?.regionConfig;
   if (!regions) return null;
   const match = Object.values(regions).find((r) => r.name === name);
   return match?.code ?? null;

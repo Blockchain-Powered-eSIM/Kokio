@@ -13,7 +13,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import CountryFlag from "@/components/ui/country-flag";
 import { Theme } from "@/theme/colors";
-import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import type { ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import { useServiceRegions } from "@/lib/bootstrap/use-bootstrap";
 import { navigateToESIMsByCountry } from "../shop-navigation";
 
 
@@ -29,7 +30,7 @@ const EmptyListComponent = () => (
 );
 
 export default function Countries() {
-  const list = appBootstrap.getCountries;
+  const list = useServiceRegions()?.countries;
 
   const renderItem: ListRenderItem<ServiceRegion> = ({ item, index }: any) => (
     <TouchableOpacity

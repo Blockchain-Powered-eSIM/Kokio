@@ -1,63 +1,36 @@
 import _keyBy from "lodash/keyBy";
 import type { components } from "@/lib/api/bff/generated/kokio-bff";
+import { getServiceRegions } from "@/lib/api/bff/catalogue";
+import { queryClient } from "@/lib/api/query-client";
+import { SERVICE_REGIONS_KEY } from "@/lib/query-keys";
 
 export type ServiceRegion = components["schemas"]["ServiceRegion"];
 
-type AppBootstrapInstance = {
-  initialized: boolean;
-  countries?: ServiceRegion[];
-  regions?: ServiceRegion[];
-  countryConfig?: Record<string, ServiceRegion>;
-  regionConfig?: Record<string, ServiceRegion>;
+export type ServiceRegions = {
+  countries: ServiceRegion[];
+  regions: ServiceRegion[];
+  countryConfig: Record<string, ServiceRegion>;
+  regionConfig: Record<string, ServiceRegion>;
 };
 
-// Create a singleton instance
-let instance: AppBootstrapInstance = {
-  initialized: false,
+/** The countries and regions the shop sells in, fetched once on launch. */
+export const serviceRegionsQuery = {
+  queryKey: [SERVICE_REGIONS_KEY],
+  queryFn: async (): Promise<ServiceRegions> => {
+    const { countries = [], regions = [] } = await getServiceRegions();
+    return {
+      countries,
+      regions,
+      countryConfig: _keyBy(countries, "code"),
+      regionConfig: _keyBy(regions, "code"),
+    };
+  },
+  staleTime: Infinity,
+  // The launch loader shows its own Retry button, so fail fast instead of retrying in the background.
+  retry: false,
 };
 
-class AppBootstrap {
-  constructor({ countries, regions }: { countries?: ServiceRegion[]; regions?: ServiceRegion[] } = {}) {
-    if (!instance.initialized) {
-      instance = {
-        initialized: false,
-        countries,
-        regions,
-        countryConfig: _keyBy(countries, "code"),
-        regionConfig: _keyBy(regions, "code"),
-      };
-    }
-  }
-
-  static set setCountries(countries: ServiceRegion[]) {
-    instance.countries = countries;
-    instance.countryConfig = _keyBy(countries, "code");
-  }
-
-  static set setRegions(regions: ServiceRegion[]) {
-    instance.regions = regions;
-    instance.regionConfig = _keyBy(regions, "code");
-  }
-
-  static get getRegions(): ServiceRegion[] | undefined {
-    return instance.regions;
-  }
-
-  static get getRegionConfig(): Record<string, ServiceRegion> | undefined {
-    return instance.regionConfig;
-  }
-
-  static get getCountries(): ServiceRegion[] | undefined {
-    return instance.countries;
-  }
-
-  static get getCountryConfig(): Record<string, ServiceRegion> | undefined {
-    return instance.countryConfig;
-  }
-
-  static get isInitialized(): boolean {
-    return instance.initialized;
-  }
+/** The loaded list, for code that runs outside a component (navigation options, helpers). */
+export function getServiceRegionsSnapshot(): ServiceRegions | undefined {
+  return queryClient.getQueryData<ServiceRegions>(serviceRegionsQuery.queryKey);
 }
-
-export default AppBootstrap;

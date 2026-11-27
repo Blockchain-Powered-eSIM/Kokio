@@ -14,7 +14,8 @@ import { useTheme } from "@/providers/theme-context";
 import { useMultiCountryPlans } from "./hooks/use-multi-country-plans";
 import { useShopFilters } from "./shop-filters-context";
 import { applyShopFilters } from "./shop-filters";
-import appBootstrap, { type ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import type { ServiceRegion } from "@/lib/bootstrap/app-bootstrap";
+import { useServiceRegions } from "@/lib/bootstrap/use-bootstrap";
 
 const MAX_SUGGESTIONS = 8;
 
@@ -25,7 +26,8 @@ export default function MultiCountryPlans() {
   const [inputKey, setInputKey] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
 
-  const countries = useMemo<ServiceRegion[]>(() => appBootstrap.getCountries ?? [], []);
+  const serviceRegions = useServiceRegions();
+  const countries = useMemo<ServiceRegion[]>(() => serviceRegions?.countries ?? [], [serviceRegions]);
   const countryNames = useMemo(
     () => new Map(countries.map((c) => [c.code, c.name])),
     [countries],

@@ -14,5 +14,6 @@ export const ESIM_USAGE_ALL_KEY = 'esim-usage-all' as const;
 export const GAS_ESTIMATE_KEY = 'gas-estimate' as const;
 export const PENDING_ORDERS_KEY = 'pending-orders' as const;
 export const REFERRAL_KEY = 'account-referral' as const;
+export const SERVICE_REGIONS_KEY = 'service-regions' as const;
 export const WALLET_ACTIVITY_KEY = 'wallet-activity' as const;
 export const WALLET_TOKENS_KEY = 'wallet-tokens' as const;

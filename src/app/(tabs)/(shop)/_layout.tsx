@@ -5,7 +5,7 @@ import _get from "lodash/get";
 import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stack-header";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import CheckoutHeader from "@/features/checkout/components/checkout-header";
-import appBootstrap from "@/lib/bootstrap/app-bootstrap";
+import { getServiceRegionsSnapshot } from "@/lib/bootstrap/app-bootstrap";
 import { ShopFiltersProvider, useShopFilters } from "@/features/shop/shop-filters-context";
 import ShopFilterButton from "@/features/shop/components/shop-filter-button";
 import ShopFilterSheet from "@/features/shop/components/shop-filter-sheet";
@@ -47,7 +47,7 @@ function StackContent() {
       <Stack.Screen
         name={ROUTE_NAMES.BY_COUNTRY}
         options={({ route }: any) => {
-          const countryConfig = appBootstrap.getCountryConfig;
+          const countryConfig = getServiceRegionsSnapshot()?.countryConfig;
           const countryLabel =
             _get(countryConfig, [route?.params?.id, "name"]) || "";
           return {
@@ -63,7 +63,7 @@ function StackContent() {
       <Stack.Screen
         name={ROUTE_NAMES.BY_REGION}
         options={({ route }: any) => {
-          const regionConfig = appBootstrap.getRegionConfig;
+          const regionConfig = getServiceRegionsSnapshot()?.regionConfig;
           const regionLabel =
             _get(regionConfig, [route?.params?.id, "name"]) || "";
 
