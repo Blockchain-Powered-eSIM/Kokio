@@ -68,3 +68,6 @@ docs/
 
 # Test coverage
 coverage/
+
+# JetBrains IDE settings
+.idea/
