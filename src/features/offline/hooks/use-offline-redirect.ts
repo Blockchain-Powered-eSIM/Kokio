@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { useRouter, usePathname } from "expo-router";
+import { router, usePathname } from "expo-router";
 import _isNull from "lodash/isNull";
 import NetInfo, { type NetInfoState } from "@react-native-community/netinfo";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
@@ -24,7 +24,6 @@ const OFFLINE_CONFIRM_DELAY_MS = 3000;
 
 /** Tracks whether the device is online, with a short debounce before confirming it is offline. */
 export function useConnectivity() {
-  const router = useRouter();
   const pathname = usePathname();
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
@@ -90,8 +89,6 @@ export function useConnectivity() {
     if (isOfflinePath(pathname) && !confirmedOfflineRef.current) {
       leaveOfflineScreen(router);
     }
-    // router is a stable singleton reference from expo-router
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(() => {
@@ -136,7 +133,6 @@ export function useOfflineRedirect(
   showLoader: boolean,
   pathnameRef: RefObject<string>,
 ) {
-  const router = useRouter();
   const offlinePushedRef = useRef(false);
 
   useEffect(() => {
@@ -157,7 +153,5 @@ export function useOfflineRedirect(
     }
     offlinePushedRef.current = true;
     router.push(ROUTE_NAMES.OFFLINE as any);
-    // router is a stable singleton reference from expo-router
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmedOffline, showLoader]);
 }
