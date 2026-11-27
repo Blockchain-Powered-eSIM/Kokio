@@ -268,66 +268,56 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     }
   }, [navigation]);
 
-  const countryAndFlagWithGoBack = useMemo(
-    () => (
-      <View style={styles.countryFlagContainer}>
-        <View style={styles.mainContent}>
-          <HeaderBackControl onPress={handleBack} tintColor={colors.background} />
-          <Text
-            style={[styles.countryText, { color: colors.cardForeground }]}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-          >
-            {_get(eSimItem, "serviceRegionName")}
-          </Text>
-        </View>
-        <CountryFlag
-          style={styles.flag}
-          isoCode={eSimItem?.serviceRegionCode}
-          flagUrl={eSimItem?.serviceRegionFlag}
-          size={60}
-          coverageType={eSimItem?.coverageType}
-          serviceRegionCode={eSimItem?.serviceRegionCode}
-          serviceRegionName={eSimItem?.serviceRegionName}
-          countryCodes={eSimItem?.coverageCountries?.flatMap((c: { countryCode?: string }) =>
-            c.countryCode ? [c.countryCode] : []
-          )}
-        />
+  const countryAndFlagWithGoBack = (
+    <View style={styles.countryFlagContainer}>
+      <View style={styles.mainContent}>
+        <HeaderBackControl onPress={handleBack} tintColor={colors.background} />
+        <Text
+          style={[styles.countryText, { color: colors.cardForeground }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+        >
+          {_get(eSimItem, "serviceRegionName")}
+        </Text>
       </View>
-    ),
-    // All missing dependencies are of style attributes which are in their on useMemo() call
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleBack, eSimItem]
+      <CountryFlag
+        style={styles.flag}
+        isoCode={eSimItem?.serviceRegionCode}
+        flagUrl={eSimItem?.serviceRegionFlag}
+        size={60}
+        coverageType={eSimItem?.coverageType}
+        serviceRegionCode={eSimItem?.serviceRegionCode}
+        serviceRegionName={eSimItem?.serviceRegionName}
+        countryCodes={eSimItem?.coverageCountries?.flatMap((c: { countryCode?: string }) =>
+          c.countryCode ? [c.countryCode] : []
+        )}
+      />
+    </View>
   );
 
-  const detailItems = useMemo(
-    () => (
-      <View style={styles.detailItemsContainer}>
-        <DetailItem
-          iconName="calendar-outline"
-          value={_get(eSimItem, "validity")}
-          suffix="Days"
-        />
-        <DetailItem
-          iconName="cellular-outline"
-          value={eSimItem?.isUnlimited ? "Unlimited" : _get(eSimItem, "data")}
-          suffix={eSimItem?.isUnlimited ? "" : "GB"}
-        />
-        <DetailItem
-          iconName="call-outline"
-          value={_get(eSimItem, "voice")}
-          suffix="Mins"
-        />
-        <DetailItem
-          iconName="chatbox-outline"
-          value={_get(eSimItem, "sms")}
-          suffix="SMS"
-        />
-      </View>
-    ),
-    // All missing dependencies are of style attributes which are in their on useMemo() call
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [eSimItem]
+  const detailItems = (
+    <View style={styles.detailItemsContainer}>
+      <DetailItem
+        iconName="calendar-outline"
+        value={_get(eSimItem, "validity")}
+        suffix="Days"
+      />
+      <DetailItem
+        iconName="cellular-outline"
+        value={eSimItem?.isUnlimited ? "Unlimited" : _get(eSimItem, "data")}
+        suffix={eSimItem?.isUnlimited ? "" : "GB"}
+      />
+      <DetailItem
+        iconName="call-outline"
+        value={_get(eSimItem, "voice")}
+        suffix="Mins"
+      />
+      <DetailItem
+        iconName="chatbox-outline"
+        value={_get(eSimItem, "sms")}
+        suffix="SMS"
+      />
+    </View>
   );
 
   const animatedHeaderStyle = useAnimatedStyle(() => ({
