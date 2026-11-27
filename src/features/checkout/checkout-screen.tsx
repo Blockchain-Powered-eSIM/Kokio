@@ -79,11 +79,12 @@ const Checkout = () => {
   const { selectedPaymentMethod, deviceWalletAsset } = payment;
   const { applyAsTopup, compatibleTopUpEsimRef } = topup;
 
-  const radioButtons: RadioButtonProps[] = useMemo(
-    () => createRadioButtons(selectedPaymentMethod, styles.buttonStyle, colors, deviceWalletAsset, payment.openDeviceWalletTokenPicker),
-    // All missing dependencies are of style attributes which are in their on useMemo() call
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedPaymentMethod, colors, deviceWalletAsset],
+  const radioButtons: RadioButtonProps[] = createRadioButtons(
+    selectedPaymentMethod,
+    styles.buttonStyle,
+    colors,
+    deviceWalletAsset,
+    payment.openDeviceWalletTokenPicker,
   );
   const selectedRadioButton = radioButtons.find((button) => button.id === selectedPaymentMethod);
   const showAllPaymentMethods = !selectedPaymentMethod || payment.isPaymentMethodExpanded;
