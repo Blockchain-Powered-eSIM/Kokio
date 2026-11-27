@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -150,73 +150,58 @@ const CheckoutSuccessModal: React.FC<CheckoutSuccessModalProps> = ({
     transform: [{ scale: scale.value }],
   }));
 
-  const loadingContent = useMemo(
-    () => (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size={90} color={colors.highlight} />
-        <ThemedText style={styles.loadingText}>Placing your order.</ThemedText>
-        <ThemedText style={styles.loadingSubText}>
-          Do not go back or close the app while loading...
-        </ThemedText>
-      </View>
-    ),
-    // All missing dependencies are of style attributes which are in their on useMemo() call
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+  const loadingContent = (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size={90} color={colors.highlight} />
+      <ThemedText style={styles.loadingText}>Placing your order.</ThemedText>
+      <ThemedText style={styles.loadingSubText}>
+        Do not go back or close the app while loading...
+      </ThemedText>
+    </View>
   );
 
-  const successContent = useMemo(
-    () => (
-      <>
-        <Animated.View style={[styles.successIcon, animatedIconStyle]}>
-          <MaterialCommunityIcons
-            name="check-decagram"
-            size={42}
-            color={colors.success}
-          />
-        </Animated.View>
+  const successContent = (
+    <>
+      <Animated.View style={[styles.successIcon, animatedIconStyle]}>
+        <MaterialCommunityIcons
+          name="check-decagram"
+          size={42}
+          color={colors.success}
+        />
+      </Animated.View>
 
-        <ThemedText bold style={[styles.title, { color: textColor }]}>
-          {variant === "topup" ? "Top-up Successful" : "Transaction Successful"}
+      <ThemedText bold style={[styles.title, { color: textColor }]}>
+        {variant === "topup" ? "Top-up Successful" : "Transaction Successful"}
+      </ThemedText>
+
+      {variant === "topup" ? (
+        <ThemedText style={[styles.subtitle, { color: textColor }]}>
+          {`Top-up of ${topupFromLabel ?? "your new plan"} is applied to ${topupToLabel ?? "your eSIM"}.`}
         </ThemedText>
-
-        {variant === "topup" ? (
+      ) : (
+        <>
           <ThemedText style={[styles.subtitle, { color: textColor }]}>
-            {`Top-up of ${topupFromLabel ?? "your new plan"} is applied to ${topupToLabel ?? "your eSIM"}.`}
+            It&#39;s now time to install your newly purchased eSIM.
           </ThemedText>
-        ) : (
-          <>
-            <ThemedText style={[styles.subtitle, { color: textColor }]}>
-              It&#39;s now time to install your newly purchased eSIM.
-            </ThemedText>
 
-            <ThemedText style={styles.description}>
-              If you are not abroad yet, no worries, the eSIM will only activate
-              once connected to your destination network.
-            </ThemedText>
-          </>
-        )}
-      </>
-    ),
-    // All missing dependencies are of style attributes which are in their on useMemo() call
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [animatedIconStyle, textColor, variant, topupFromLabel, topupToLabel]
+          <ThemedText style={styles.description}>
+            If you are not abroad yet, no worries, the eSIM will only activate
+            once connected to your destination network.
+          </ThemedText>
+        </>
+      )}
+    </>
   );
 
-  const actionButton = useMemo(
-    () => (
-      <TouchableOpacity
-        style={[styles.installButton, { backgroundColor: colors.shopCta }]}
-        onPress={variant === "topup" ? onDone : onInstallESIM}
-      >
-        <ThemedText style={[styles.installButtonText, { color: colors.cardForeground }]}>
-          {variant === "topup" ? "Done" : "Install eSIM"}
-        </ThemedText>
-      </TouchableOpacity>
-    ),
-    // All missing dependencies are of style attributes which are in their on useMemo() call
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onInstallESIM, onDone, variant]
+  const actionButton = (
+    <TouchableOpacity
+      style={[styles.installButton, { backgroundColor: colors.shopCta }]}
+      onPress={variant === "topup" ? onDone : onInstallESIM}
+    >
+      <ThemedText style={[styles.installButtonText, { color: colors.cardForeground }]}>
+        {variant === "topup" ? "Done" : "Install eSIM"}
+      </ThemedText>
+    </TouchableOpacity>
   );
 
   return (
