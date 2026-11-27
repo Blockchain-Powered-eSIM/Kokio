@@ -84,9 +84,9 @@ function StackContent() {
       <Stack.Screen
         name={ROUTE_NAMES.CHECKOUT}
         options={({ route }: any) => {
-          const { id, item } = route?.params || {};
+          const { item } = route?.params || {};
           return {
-            header: () => <CheckoutHeader id={id} eSimDetails={item} />,
+            header: () => <CheckoutHeader eSimDetails={item} />,
           };
         }}
       />

@@ -25,6 +25,7 @@ import { FIAT_MINIMUM_CENTS } from "@/lib/constants/checkout";
 import { logger } from "@/lib/logger";
 import { createStyles } from "./checkout-styles";
 import { getEsimOrderPayload } from "./esim-order";
+import { parseCheckoutPlan } from "./checkout-plan";
 import { createRadioButtons } from "./payment-options";
 import { useOrderPreview } from "./hooks/use-order-preview";
 import { usePromoCode } from "./hooks/use-promo-code";
@@ -55,14 +56,9 @@ const Checkout = () => {
   const colors = useColors();
   const { isDark } = useTheme();
   const bg = useThemeColor({}, "background");
-  const { item: eSimDetails } = useLocalSearchParams();
-
-  const eSimItem: Esim = React.useMemo(() => {
-    if (typeof eSimDetails === "string") {
-      try { return JSON.parse(eSimDetails); } catch { return null; }
-    }
-    return eSimDetails;
-  }, [eSimDetails]);
+  const { item } = useLocalSearchParams();
+  // Checkout is only reachable from a plan's Buy button, which always sends a valid plan.
+  const eSimItem = parseCheckoutPlan(item) as Esim;
 
   const [isESimEnabled, setIsESimEnabled] = useState<boolean>(false);
   const [useStoreCredit, setUseStoreCredit] = useState<boolean>(false);

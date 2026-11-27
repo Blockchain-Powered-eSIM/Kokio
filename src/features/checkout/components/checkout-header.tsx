@@ -18,10 +18,12 @@ import { useColors } from "@/hooks/use-colors";
 import { useThemedStyles } from "@/hooks/use-themed-styles";
 import type { Palette } from "@/theme/colors";
 import { ESIM_EXTRA_DETAILS } from "@/lib/constants/checkout";
-import CountryFlag from "@/components/ui/country-flag";
+import CountryFlag, { type CoverageType } from "@/components/ui/country-flag";
 import { HeaderBackControl } from "@/components/navigation/stack-header";
 
 import DetailItem from "@/components/ui/detail-item";
+import type { Esim } from "@/components/ui/esim-item";
+import { parseCheckoutPlan } from "../checkout-plan";
 
 const PILL_ROW_HEIGHT = (Platform.OS === "ios" ? 16 : 40) - 44;
 const HEADER_MIN_HEIGHT = 170 + PILL_ROW_HEIGHT;
@@ -101,11 +103,11 @@ const createStyles = (colors: Palette) => StyleSheet.create({
 });
 
 const ExpandableContent = ({
-  eSimItem = {},
+  eSimItem,
   onNetworkPress,
   onContentSizeChange,
 }: {
-  eSimItem?: any;
+  eSimItem: Esim | null;
   onNetworkPress: () => void;
   onContentSizeChange?: (w: number, h: number) => void;
 }) => {
@@ -179,7 +181,7 @@ const ExpandableContent = ({
   );
 };
 
-const CheckoutHeader = ({ eSimDetails = {} }: any) => {
+const CheckoutHeader = ({ eSimDetails }: { eSimDetails?: unknown }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -188,16 +190,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
     return HEADER_MIN_HEIGHT + insets.top;
   }, [insets.top]);
 
-  const eSimItem = React.useMemo(() => {
-    if (typeof eSimDetails === "string") {
-      try {
-        return JSON.parse(eSimDetails);
-      } catch {
-        return null;
-      }
-    }
-    return eSimDetails;
-  }, [eSimDetails]);
+  const eSimItem = parseCheckoutPlan(eSimDetails);
 
   // useSharedValues keeps worklets and styles in sync without React re-renders
   const contentHeight = useSharedValue(0);
@@ -285,7 +278,7 @@ const CheckoutHeader = ({ eSimDetails = {} }: any) => {
         isoCode={eSimItem?.serviceRegionCode}
         flagUrl={eSimItem?.serviceRegionFlag}
         size={60}
-        coverageType={eSimItem?.coverageType}
+        coverageType={eSimItem?.coverageType as CoverageType | undefined}
         serviceRegionCode={eSimItem?.serviceRegionCode}
         serviceRegionName={eSimItem?.serviceRegionName}
         countryCodes={eSimItem?.coverageCountries?.flatMap((c: { countryCode?: string }) =>
