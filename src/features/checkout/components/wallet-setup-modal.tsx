@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -186,85 +186,70 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     });
   }, [handleClose]);
 
-  const initialContent = useMemo(
-    () => (
-      <>
-        <ThemedText bold style={[styles.title, { color: textColor }]}>
-          Kokio Wallet
-        </ThemedText>
+  const initialContent = (
+    <>
+      <ThemedText bold style={[styles.title, { color: textColor }]}>
+        Kokio Wallet
+      </ThemedText>
 
-        <Text style={[styles.description, { color: foregroundColor }]}>
-          Press &quot;Continue&quot; to set up your Kokio wallet.
-        </Text>
+      <Text style={[styles.description, { color: foregroundColor }]}>
+        Press &quot;Continue&quot; to set up your Kokio wallet.
+      </Text>
 
-        <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
-          <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
-            <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Later</Text>
-          </TouchableOpacity>
+      <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
+        <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
+          <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Later</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={handleContinue}
-          >
-            <Text style={[styles.continueButtonText, { color: colors.primary }]}>Continue</Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleClose, handleContinue, foregroundColor, textColor]
+        <TouchableOpacity
+          style={styles.continueButton}
+          onPress={handleContinue}
+        >
+          <Text style={[styles.continueButtonText, { color: colors.primary }]}>Continue</Text>
+        </TouchableOpacity>
+      </View>
+    </>
   );
 
-  const loadingContent = useMemo(
-    () => (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size={90} color={colors.primary} />
-        <Text style={[styles.loadingText, { color: foregroundColor }]}>
-          Requesting your wallet...
+  const loadingContent = (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size={90} color={colors.primary} />
+      <Text style={[styles.loadingText, { color: foregroundColor }]}>
+        Requesting your wallet...
+      </Text>
+    </View>
+  );
+
+  const retryContent = (
+    <>
+      <View style={styles.errorContainer}>
+        <MaterialCommunityIcons
+          name="alert-circle"
+          size={60}
+          color={colors.destructive}
+          style={styles.errorIcon}
+        />
+        <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
+          Wallet Creation Failed
+        </ThemedText>
+        <Text style={[styles.errorDescription, { color: foregroundColor }]}>
+          There was an error creating your wallet. Please try again.
         </Text>
       </View>
-    ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [foregroundColor]
-  );
 
-  const retryContent = useMemo(
-    () => (
-      <>
-        <View style={styles.errorContainer}>
-          <MaterialCommunityIcons
-            name="alert-circle"
-            size={60}
-            color={colors.destructive}
-            style={styles.errorIcon}
-          />
-          <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
-            Wallet Creation Failed
-          </ThemedText>
-          <Text style={[styles.errorDescription, { color: foregroundColor }]}>
-            There was an error creating your wallet. Please try again.
-          </Text>
-        </View>
+      <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
+        <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
+          <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Cancel</Text>
+        </TouchableOpacity>
 
-        <View style={[styles.buttonContainer, { borderTopColor: mutedColor }]}>
-          <TouchableOpacity style={[styles.laterButton, { borderRightColor: mutedColor }]} onPress={handleClose}>
-            <Text style={[styles.laterButtonText, { color: foregroundColor }]}>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={handleContinue}
-          >
-            <Text style={[styles.continueButtonText, { color: colors.primary }]}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleClose, handleContinue, foregroundColor, textColor]
+        <TouchableOpacity
+          style={styles.continueButton}
+          onPress={handleContinue}
+        >
+          <Text style={[styles.continueButtonText, { color: colors.primary }]}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    </>
   );
 
   const handleSubmittedDone = useCallback(() => {
@@ -272,31 +257,26 @@ const WalletSetupModal: React.FC<WalletSetupModalProps> = ({
     onContinue();
   }, [onContinue]);
 
-  const submittedContent = useMemo(
-    () => (
-      <View style={styles.errorContainer}>
-        <MaterialCommunityIcons
-          name="clock-outline"
-          size={60}
-          color={colors.primary}
-          style={styles.errorIcon}
-        />
-        <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
-          Wallet request submitted
-        </ThemedText>
-        <Text style={[styles.errorDescription, { color: foregroundColor }]}>
-          This can take a few minutes to complete on-chain. Feel free to keep browsing, we will let you know once it is ready.
-        </Text>
-        <View style={[styles.buttonContainer, { borderTopColor: mutedColor, marginTop: 20 }]}>
-          <TouchableOpacity style={styles.continueButton} onPress={handleSubmittedDone}>
-            <Text style={[styles.continueButtonText, { color: colors.primary }]}>Got it</Text>
-          </TouchableOpacity>
-        </View>
+  const submittedContent = (
+    <View style={styles.errorContainer}>
+      <MaterialCommunityIcons
+        name="clock-outline"
+        size={60}
+        color={colors.primary}
+        style={styles.errorIcon}
+      />
+      <ThemedText bold style={[styles.errorTitle, { color: textColor }]}>
+        Wallet request submitted
+      </ThemedText>
+      <Text style={[styles.errorDescription, { color: foregroundColor }]}>
+        This can take a few minutes to complete on-chain. Feel free to keep browsing, we will let you know once it is ready.
+      </Text>
+      <View style={[styles.buttonContainer, { borderTopColor: mutedColor, marginTop: 20 }]}>
+        <TouchableOpacity style={styles.continueButton} onPress={handleSubmittedDone}>
+          <Text style={[styles.continueButtonText, { color: colors.primary }]}>Got it</Text>
+        </TouchableOpacity>
       </View>
-    ),
-    // styles have their own memo watching for changes based on theme
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleSubmittedDone, foregroundColor, textColor]
+    </View>
   );
 
   const renderContent = () => {
