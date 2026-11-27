@@ -306,9 +306,9 @@ export const AuthRelayProvider: React.FC<AuthRelayProviderProps> = ({
     router.replace("/");
   }, [router]);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: "CLEAR_ERROR" });
-  };
+  }, []);
 
   const stepUp = useCallback(async () => {
     setStepUpError('');

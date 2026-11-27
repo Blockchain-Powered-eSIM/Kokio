@@ -180,11 +180,7 @@ export function AuthenticationModal() {
       setMode("choice");
       sheetRef.current?.expand({ duration: 250, easing: Easing.in(Easing.quad) });
     }
-    // resetErrors intentionally omitted: it's recreated every provider render
-    // and including it would re-trigger this effect (and re-animate the
-    // sheet) on unrelated re-renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.authenticated]);
+  }, [state.authenticated, resetErrors]);
 
   useEffect(() => {
     // TODO: Fix this lint error
