@@ -83,9 +83,9 @@ describe('getCatalogue', () => {
 
   it('forwards all query params to api.get', async () => {
     mockGet.mockResolvedValue(catalogueEnvelope());
-    await getCatalogue({ serviceRegionCode: 'EU', vendorIds: ['v1'] } as any);
+    await getCatalogue({ serviceRegionCode: 'EU', vendor: 'VENDOR1', page: 2 });
     const [, params] = mockGet.mock.calls[0];
-    expect(params).toMatchObject({ serviceRegionCode: 'EU', vendorIds: ['v1'] });
+    expect(params).toMatchObject({ serviceRegionCode: 'EU', vendor: 'VENDOR1', page: 2 });
   });
 
   it('does not include deviceId in the request params', async () => {

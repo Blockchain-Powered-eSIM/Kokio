@@ -187,7 +187,7 @@ describe('service region cache behaviour across the browsing session', () => {
 describe('client-side filtering of plans returned from the catalogue', () => {
   it('caller can filter plans by type after fetching', async () => {
     const mixedPlans = [...US_PLANS, ...GLOBAL_PLANS];
-    mockGet.mockResolvedValue(plansEnvelope(mixedPlans as any));
+    mockGet.mockResolvedValue(plansEnvelope(mixedPlans));
 
     const result = await getCatalogue({ serviceRegionCode: 'US' });
     const usOnly = result.plans.filter((p: any) => p.serviceRegionCode === 'US');
@@ -201,7 +201,7 @@ describe('client-side filtering of plans returned from the catalogue', () => {
   });
 
   it('caller can derive the cheapest plan from a list', async () => {
-    mockGet.mockResolvedValue(plansEnvelope(US_PLANS as any));
+    mockGet.mockResolvedValue(plansEnvelope(US_PLANS));
     const result = await getCatalogue({ serviceRegionCode: 'US' });
     const cheapest = result.plans.reduce((a: any, b: any) =>
       a.actualSellingPrice < b.actualSellingPrice ? a : b
