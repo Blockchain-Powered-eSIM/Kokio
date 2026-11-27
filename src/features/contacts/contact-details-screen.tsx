@@ -29,35 +29,33 @@ const ContactDetails = () => {
   const { id, alias, avatarColorKey, walletAddress } = useLocalSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  const fetchTransactions = async () => {
-    const contact_id = id as string; // Ensure id is treated as string
-    try {
-      // Fetch the contact from AsyncStorage
-      const contactJson = await AsyncStorage.getItem(contactKey(contact_id));
-      const contact = contactJson ? JSON.parse(contactJson) : null;
-
-      if (!contact) {
-        logger.error('CONTACT_NOT_FOUND', { contact_id });
-        setTransactions([]); // Set empty array if contact not found
-        return;
-      }
-
-      // Extract and set the transactions array
-      const contactTransactions: Transaction[] = contact.transactions || [];
-      setTransactions(contactTransactions);
-
-      logger.debug('CONTACT_TRANSACTIONS_FETCHED', { contactTransactions });
-    } catch (error) {
-      logger.error('CONTACT_TRANSACTIONS_FETCH_FAILED', { error });
-      setTransactions([]); // Set empty array in case of error
-    }
-  };
-
   useFocusEffect(
     useCallback(() => {
+      const fetchTransactions = async () => {
+        const contact_id = id as string; // Ensure id is treated as string
+        try {
+          // Fetch the contact from AsyncStorage
+          const contactJson = await AsyncStorage.getItem(contactKey(contact_id));
+          const contact = contactJson ? JSON.parse(contactJson) : null;
+
+          if (!contact) {
+            logger.error('CONTACT_NOT_FOUND', { contact_id });
+            setTransactions([]); // Set empty array if contact not found
+            return;
+          }
+
+          // Extract and set the transactions array
+          const contactTransactions: Transaction[] = contact.transactions || [];
+          setTransactions(contactTransactions);
+
+          logger.debug('CONTACT_TRANSACTIONS_FETCHED', { contactTransactions });
+        } catch (error) {
+          logger.error('CONTACT_TRANSACTIONS_FETCH_FAILED', { error });
+          setTransactions([]); // Set empty array in case of error
+        }
+      };
       fetchTransactions();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [id])
   )
 
   return (
