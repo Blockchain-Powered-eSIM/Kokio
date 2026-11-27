@@ -23,14 +23,6 @@ const extra =
     | AppExtraConfig
     | undefined);
 
- logger.debug("[KOKIO CONFIG DEBUG]", {
-  extraKeys: Object.keys(extra ?? {}),
-  apiBaseUrl: extra?.apiBaseUrl,
-  authServerBaseUrl: extra?.authServerBaseUrl,
-  stripePublishableKeySet: Boolean(extra?.stripePublishableKey),
-  walletConnectProjectIdSet: Boolean(extra?.walletConnectProjectId),
-});
-
 export const Config = {
   AUTH_SERVER_BASE_URL: extra?.authServerBaseUrl,
   REDIRECT_URI: extra?.redirectUri,
