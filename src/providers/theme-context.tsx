@@ -17,7 +17,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   setThemeMode: async () => {},
 });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeModeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
 

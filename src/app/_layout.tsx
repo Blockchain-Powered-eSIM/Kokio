@@ -24,7 +24,7 @@ import { setUnauthenticatedHandler } from "@/lib/api/http-client";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/lib/auth/mainnet-cutover-reset";
 import { shouldShowWelcomeBack } from "@/lib/auth/returning-user-probe";
-import { ThemeProvider } from "@/providers/theme-context";
+import { ThemeModeProvider } from "@/providers/theme-context";
 import { useConnectivity, useOfflineRedirect } from "@/features/offline/hooks/use-offline-redirect";
 
 // Prevent splash screen from auto-hiding
@@ -115,5 +115,5 @@ export default function RootLayout() {
     </Providers>
     );
 
-  return <ThemeProvider>{inner}</ThemeProvider>;
+  return <ThemeModeProvider>{inner}</ThemeModeProvider>;
 }
