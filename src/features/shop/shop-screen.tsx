@@ -13,6 +13,7 @@ import SearchInput from "@/components/search-input";
 import TabBar from "./components/tab-bar";
 import ShopFilterButton from "./components/shop-filter-button";
 import { useShopFilters } from "./shop-filters-context";
+import type { TabPressNavigation } from "@/lib/navigation";
 
 import Countries from "./components/countries-tab";
 import Global from "./components/global-tab";
@@ -55,7 +56,7 @@ const Shop = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [topTabResetKey, setTopTabResetKey] = useState(0);
   const [searchResetKey, setSearchResetKey] = useState(0);
-  const navigation = useNavigation();
+  const navigation = useNavigation<TabPressNavigation>();
   const { isActive: filtersActive, openFilterSheet } = useShopFilters();
 
   const debouncedOnSearch = useMemo(() => _debounce(setSearchText, 500), []);
@@ -69,10 +70,8 @@ const Shop = () => {
   // (Countries) instead of silently keeping whatever top-tab (Regions/
   // Global/Special) was last active, and the search is cleared with it.
   useEffect(() => {
-    // "tabPress" isn't in expo-router's generic NavigationProp event map
-    // (it's specific to tab navigators, which this screen isn't directly),
-    // but it still bubbles up correctly to the ancestor Tabs navigator at runtime.
-    const unsubscribe = (navigation as any).addListener("tabPress", () => {
+    // This screen sits in a stack inside the Tabs navigator; "tabPress" still reaches it.
+    const unsubscribe = navigation.addListener("tabPress", () => {
       debouncedOnSearch.cancel();
       setSearchText("");
       setSearchResetKey((key) => key + 1);

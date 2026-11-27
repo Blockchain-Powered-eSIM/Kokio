@@ -1,9 +1,22 @@
 import _includes from "lodash/includes";
-import type { NavigationState, PartialState } from "expo-router/react-navigation";
+import type { NavigationProp, NavigationState, ParamListBase, PartialState } from "expo-router/react-navigation";
 
 import { TAB_BAR_ENABLED_ROUTES } from "@/lib/constants/routes";
 
 type AnyNavigationState = NavigationState | PartialState<NavigationState> | undefined;
+
+/**
+ * Navigation object that can listen for "tabPress". The event comes from the
+ * bottom Tabs navigator, which the generic useNavigation() type does not know about.
+ */
+export type TabPressNavigation = NavigationProp<
+  ParamListBase,
+  string,
+  string | undefined,
+  NavigationState,
+  object,
+  { tabPress: { data: undefined; canPreventDefault: true } }
+>;
 
 export const getRouteName = (navigationState: AnyNavigationState): string | undefined => {
   const currentRouteData = navigationState?.routes[(navigationState as NavigationState)?.index ?? 0];

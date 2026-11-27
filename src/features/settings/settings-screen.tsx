@@ -15,6 +15,7 @@ import * as SecureStore from 'expo-secure-store';
 import { LOCAL_DATA_VERSION_KEY } from '@/lib/storage/keys';
 import { clearWelcomeBackSeen } from '@/lib/auth/returning-user-probe';
 import { useToast } from '@/providers/toast-context';
+import type { TabPressNavigation } from "@/lib/navigation";
 import { createStyles } from "./settings-styles";
 import { MenuItem } from "./components/menu-item";
 import { AboutContent } from "./components/about-content";
@@ -27,7 +28,7 @@ export default function MenuScreen() {
   const { clearKokioUser } = useKokio();
   const { showMessage } = useToast();
   const router = useRouter();
-  const navigation = useNavigation();
+  const navigation = useNavigation<TabPressNavigation>();
 
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
@@ -40,10 +41,7 @@ export default function MenuScreen() {
   // including re-tapping while already here — instead of leaving whatever
   // sub-view (About/Contact/Delete Account) was last opened on screen.
   useEffect(() => {
-    // "tabPress" isn't in expo-router's generic NavigationProp event map,
-    // but it still fires correctly at runtime for a screen mounted directly
-    // under the bottom Tabs navigator.
-    const unsubscribe = (navigation as any).addListener("tabPress", () => {
+    const unsubscribe = navigation.addListener("tabPress", () => {
       setShowAbout(false);
       setShowContact(false);
       setShowDeleteAccount(false);
