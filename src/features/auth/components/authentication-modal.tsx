@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -192,24 +192,19 @@ export function AuthenticationModal() {
     if (state.error) setMode("error");
   }, [state.error]);
 
-  const loadingContent = useMemo(
-    () => (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator
-          size={70}
-          style={styles.loadingImage}
-          color={colors.highlight}
-        />
-        {mode === "authenticating" && (
-          <ThemedText style={[styles.loadingText, { color: colors.foreground }]}>
-            Authenticating...
-          </ThemedText>
-        )}
-      </View>
-    ),
-    // All missing dependencies are of style attributes which are in their on useMemo() call
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode]
+  const loadingContent = (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator
+        size={70}
+        style={styles.loadingImage}
+        color={colors.highlight}
+      />
+      {mode === "authenticating" && (
+        <ThemedText style={[styles.loadingText, { color: colors.foreground }]}>
+          Authenticating...
+        </ThemedText>
+      )}
+    </View>
   );
 
   return (
