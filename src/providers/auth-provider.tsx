@@ -113,7 +113,7 @@ export interface AuthRelayProviderType {
   reauthenticate: () => void;
   clearError: () => void;
   logout: () => Promise<void>;
-  // Step-up (AUTH-602)
+  // Step-up
   stepUpVisible: boolean;
   stepUpHint: StepUpHint | null;
   stepUpError: string;

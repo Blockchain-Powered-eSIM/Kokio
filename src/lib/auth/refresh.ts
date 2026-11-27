@@ -42,7 +42,7 @@ async function _doRefresh(): Promise<TokenBundle> {
   const buildProof: DpopProofBuilder = (nonce, htu) =>
     buildDpopProof({ htu: htu!, htm: 'POST', nonce });
 
-  // kokioAuthClient.token() handles DPoP nonce retry internally (AUTH-303).
+  // kokioAuthClient.token() handles DPoP nonce retry internally.
   // Non-200 responses are returned as parsed JSON (not thrown), so we inspect
   // the response body to detect invalid_grant.
   const resp = await kokioAuthClient.token(

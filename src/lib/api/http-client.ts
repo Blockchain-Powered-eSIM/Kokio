@@ -24,7 +24,7 @@ declare module 'axios' {
 
 // ─── Auth event callbacks ─────────────────────────────────────────────────────
 // Register these in your root provider before any authenticated request fires.
-// AUTH-502 wires up setStepUpHandler; AUTH-506 wires up setUnauthenticatedHandler.
+// auth-provider.tsx registers setStepUpHandler; app/_layout.tsx registers setUnauthenticatedHandler.
 
 /** Metadata forwarded to the step-up UI so it can show context-aware copy. */
 export type StepUpHint = {
@@ -40,8 +40,8 @@ export function setStepUpHandler(fn: (hint: StepUpHint) => void): void { _onStep
 export function setUnauthenticatedHandler(fn: () => void): void { _onUnauthenticated = fn; }
 export function setAccountDeletedHandler(fn: () => void): void { _onAccountDeleted = fn; }
 
-// ─── Step-up queue (AUTH-502) ─────────────────────────────────────────────────
-// All concurrent requests that hit STEP_UP_REQUIRED park here. AUTH-502 calls
+// ─── Step-up queue ────────────────────────────────────────────────────────────
+// All concurrent requests that hit STEP_UP_REQUIRED park here. auth-provider.tsx calls
 // resolveStepUp() on success or rejectStepUp(err) on cancellation / failure.
 
 type StepUpEntry = { resolve: () => void; reject: (e: Error) => void };
@@ -78,7 +78,7 @@ function waitForStepUp(hint: StepUpHint): Promise<void> {
 async function handleAuthFailure(): Promise<void> {
   await useAuthStore.getState().clearTokens();
   _onUnauthenticated?.();
-  // Navigate to the landing/auth screen — AUTH-506 may override via the callback above.
+  // Go back to the start screen, where the auth sheet opens.
   router.replace('/');
 }
 
@@ -206,7 +206,7 @@ instance.interceptors.response.use(
       return instance(cfg);
     }
 
-    // 4. Step-up required — park request until AUTH-602 resolves step-up.
+    // 4. Step-up required — park request until the user confirms the step-up prompt.
     //    The BFF may return the error code in either `error` or `code` field.
     //    On cancel / failure: reject the queued request only — the session is
     //    still valid, so do NOT clear tokens or navigate away.
