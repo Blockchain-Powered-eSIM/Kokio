@@ -1,5 +1,4 @@
 import React, { ReactNode, useCallback, useEffect, useReducer, useRef } from "react";
-import { router } from "expo-router";
 import type { Kokio } from "kokio-sdk";
 import type { Address, Hex } from "viem";
 import { createKokioClient, deriveKokioWallet, resolveChain } from "@/lib/chain/kokio-client";
@@ -7,10 +6,6 @@ import type { KokioSmartAccount } from "kokio-sdk/types";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getAccount } from "@/lib/api/bff/account";
-import {
-  getWcSignClient,
-  setPendingProposal,
-} from "@/features/walletconnect/walletconnect-client";
 import { logger } from "@/lib/logger";
 import { getWalletState, awaitWalletDeploymentConfirmation } from "@/lib/api/bff/wallet";
 import { subscribeAccountDeleted } from '@/lib/auth/account-deleted';
@@ -498,49 +493,6 @@ export const KokioProvider: React.FC<KokioProviderProps> = ({ children }) => {
   useEffect(() => {
     ensureSmartAccountUpgraded();
   }, [ensureSmartAccountUpgraded]);
-
-  // ── WalletConnect initialisation ──────────────────────────────────────────
-
-  const wcInitialized = useRef(false);
-
-  useEffect(() => {
-    if (!kokio.sdk || !kokio.userWallet || wcInitialized.current) return;
-    wcInitialized.current = true;
-
-    const walletAddress = kokio.userWallet.address ?? "";
-
-    getWcSignClient().then((client) => {
-      client.on("session_proposal", (proposal) => {
-        setPendingProposal(proposal);
-        router.push("/wc-session");
-      });
-
-      client.on("session_request", async (event) => {
-        const { topic, params, id } = event;
-        const { request } = params;
-        try {
-          void walletAddress;
-          throw new Error(`Method not yet implemented: ${request.method}`);
-        } catch (err) {
-          await client.respond({
-            topic,
-            response: {
-              id,
-              jsonrpc: "2.0",
-              error: { code: 4001, message: (err as Error).message },
-            },
-          });
-        }
-      });
-
-      client.on("session_delete", ({ topic }) => {
-        logger.debug('WC_SESSION_DELETED', { topic });
-      });
-    }).catch((err) => {
-      wcInitialized.current = false;
-      logger.error('WC_INIT_FAILED', { err });
-    });
-  }, [kokio.sdk, kokio.userWallet]);
 
   return (
     <KokioContext.Provider

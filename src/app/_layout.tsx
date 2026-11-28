@@ -90,8 +90,6 @@ export default function RootLayout() {
           <Stack.Screen name="offline"options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="welcome-back" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="moonpay-return" options={{ headerShown: false }} />
-          <Stack.Screen name="wc-connect" options={{ headerShown: false }} />
-          <Stack.Screen name="wc-session" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="coverage-modal" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="refer-and-earn" options={{ headerShown: false, presentation: "modal" }} />

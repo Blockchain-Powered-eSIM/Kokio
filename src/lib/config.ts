@@ -12,7 +12,6 @@ export interface AppExtraConfig {
   chainRpcUrl?: string;
   stripePublishableKey?: string;
   stripeMerchantIdentifier?: string;
-  walletConnectProjectId?: string;
   externalWalletCallback?: string;
 }
 
@@ -30,7 +29,6 @@ export const Config = {
   CHAIN_RPC_URL: extra?.chainRpcUrl,
   STRIPE_PUBLISHABLE_KEY: extra?.stripePublishableKey,
   STRIPE_MERCHANT_IDENTIFIER: extra?.stripeMerchantIdentifier,
-  WALLETCONNECT_PROJECT_ID: extra?.walletConnectProjectId,
   EXTERNAL_WALLET_CALLBACK: extra?.externalWalletCallback,
 
   validateSecrets: () => {
@@ -40,7 +38,6 @@ export const Config = {
     if (!extra?.stripePublishableKey) logger.error('CONFIG_MISSING_STRIPE_PUBLISHABLE_KEY');
     if (!extra?.stripeMerchantIdentifier) logger.warn('CONFIG_MISSING_STRIPE_MERCHANT_IDENTIFIER');
     if (!extra?.chainId) logger.error('CONFIG_MISSING_CHAIN_ID');
-    if (!extra?.walletConnectProjectId) logger.warn('CONFIG_MISSING_WALLETCONNECT_PROJECT_ID');
   },
 };
 

@@ -14,7 +14,6 @@ module.exports = ({ config }) => {
     chainRpcUrl: process.env.CHAIN_RPC_URL,
     stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     stripeMerchantIdentifier: process.env.STRIPE_MERCHANT_IDENTIFIER,
-    walletConnectProjectId: process.env.WALLETCONNECT_PROJECT_ID,
     externalWalletCallback: process.env.EXTERNAL_WALLET_CALLBACK,
   };
 
@@ -57,11 +56,6 @@ module.exports = ({ config }) => {
             { scheme: "https", host: "kokio.app", pathPrefix: "/callback" },
             { scheme: "https", host: "kokio.app", pathPrefix: "/moonpay-return" },
           ],
-          category: ["BROWSABLE", "DEFAULT"],
-        },
-        {
-          action: "VIEW",
-          data: [{ scheme: "kokio", host: "wc-connect" }],
           category: ["BROWSABLE", "DEFAULT"],
         },
       ],
