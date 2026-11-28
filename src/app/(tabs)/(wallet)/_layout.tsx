@@ -2,9 +2,8 @@ import { Stack, router } from "expo-router";
 
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 
-import Header from "@/components/header";
+import { TopHeader } from "@/components/header";
 import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stack-header";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 
 export default function WalletStack() {
@@ -14,14 +13,7 @@ export default function WalletStack() {
       <Stack.Screen
         name={ROUTE_NAMES.HOME}
         options={{
-            header: () => (
-              <SafeAreaView edges={["top"]}>
-                <Header
-                  title="Wallet"
-                  style={{ justifyContent: "center" }}
-                />
-              </SafeAreaView>
-            ),
+            header: () => <TopHeader title="Wallet" style={{ justifyContent: "center" }} />,
           }}
         
       />

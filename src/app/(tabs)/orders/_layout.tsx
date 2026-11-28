@@ -1,7 +1,6 @@
 import { Stack } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 
-import Header from "@/components/header";
+import { TopHeader } from "@/components/header";
 import { stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stack-header";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 
@@ -12,11 +11,7 @@ export default function OrdersStack() {
       <Stack.Screen
         name={ROUTE_NAMES.HOME}
         options={{
-          header: () => (
-            <SafeAreaView edges={["top"]}>
-              <Header title="Orders" style={{ justifyContent: "center" }} />
-            </SafeAreaView>
-          ),
+          header: () => <TopHeader title="Orders" style={{ justifyContent: "center" }} />,
         }}
       />
       <Stack.Screen

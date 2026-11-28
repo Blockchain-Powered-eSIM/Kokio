@@ -1,6 +1,5 @@
 import React from "react";
 import { StyleSheet, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs, router, useSegments } from "expo-router";
 
 import { Theme } from "@/theme/colors";
@@ -12,7 +11,7 @@ import type { Palette } from "@/theme/colors";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import { getRouteNameFromSegments, getIsTabBarVisible } from "@/lib/navigation";
 import { TabBarIcon } from "@/components/navigation/tab-bar-icon";
-import Header from "@/components/header";
+import { TopHeader } from "@/components/header";
 import { HeaderBackControl } from "@/components/navigation/stack-header";
 
 const createStyles = (colors: Palette) => StyleSheet.create({
@@ -116,11 +115,7 @@ export default function TabLayout() {
           href: null, // Hide from tab bar — moved into Settings as disabled "Contact"
           title: "Contacts",
           headerShown: true,
-          header: () => (
-            <SafeAreaView edges={["top"]}>
-              <Header title="Contacts" style={{ justifyContent: "center" }} />
-            </SafeAreaView>
-          ),
+          header: () => <TopHeader title="Contacts" style={{ justifyContent: "center" }} />,
         }}
       />
       <Tabs.Screen

@@ -3,6 +3,7 @@ import { Stack, router } from "expo-router";
 import _get from "lodash/get";
 
 import { HeaderBackControl, stackScreenOptions, useStackHeaderOptions } from "@/components/navigation/stack-header";
+import { TopHeader } from "@/components/header";
 import { ROUTE_NAMES } from "@/lib/constants/routes";
 import CheckoutHeader from "@/features/checkout/components/checkout-header";
 import { getServiceRegionsSnapshot } from "@/lib/bootstrap/app-bootstrap";
@@ -43,7 +44,8 @@ function StackContent() {
           route.name === ROUTE_NAMES.CHECKOUT ? { flex: 1 } : undefined,
       })}
     >
-      <Stack.Screen name={ROUTE_NAMES.HOME} options={{ title: "Shop" }} />
+      {/* Same header component as the other tab roots, so the title size and bar height match. */}
+      <Stack.Screen name={ROUTE_NAMES.HOME} options={{ header: () => <TopHeader title="Shop" /> }} />
       <Stack.Screen
         name={ROUTE_NAMES.BY_COUNTRY}
         options={({ route }: any) => {
