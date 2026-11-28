@@ -101,12 +101,6 @@ export default function TabLayout() {
         name={ROUTE_NAMES.ORDERS}
         options={{
           title: "Orders",
-          headerShown: true,
-          header: () => (
-            <SafeAreaView edges={["top"]}>
-              <Header title="Orders" style={{ justifyContent: "center" }} />
-            </SafeAreaView>
-          ),
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
               name={focused ? "receipt" : "receipt-outline"}

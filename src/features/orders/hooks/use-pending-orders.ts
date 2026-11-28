@@ -6,7 +6,7 @@
  * surface a reference id for support before the server has a final answer.
  *
  * Entries are removed once a matching idempotencyKey shows up in the
- * terminal order list (self-healing — see app/(tabs)/orders.tsx), or when the
+ * terminal order list (self-healing — see features/orders/orders-screen.tsx), or when the
  * user dismisses one manually. There is no time-based auto-removal: a
  * DEVICE_WALLET order stuck at PAYMENT_PENDING is explicitly excluded from
  * the backend's abandoned-order cleanup job and can outlive any reasonable

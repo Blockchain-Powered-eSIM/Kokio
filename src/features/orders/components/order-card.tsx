@@ -50,7 +50,7 @@ export const OrderCard = ({
   const openEsimWallet = () => {
     if (!esimWalletId || !order.esim) return;
     router.push({
-      pathname: "/(tabs)/(wallet)/esim-wallet",
+      pathname: "/(tabs)/orders/esim-wallet",
       params: { esimId: esimWalletId, name: esimDisplayName(order.esim) },
     });
   };
