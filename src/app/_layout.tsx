@@ -6,9 +6,8 @@ import { useFonts } from "expo-font";
 import { Stack, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { View } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "react-native-reanimated";
-import _isNull from "lodash/isNull";
 // global.css sits at the project root, outside the @/ alias.
 // eslint-disable-next-line no-restricted-imports
 import "../../global.css";
@@ -23,7 +22,6 @@ import { ServiceStatusBanner } from "@/components/service-status-banner";
 import { setUnauthenticatedHandler } from "@/lib/api/http-client";
 import { useAuthStore } from "@/lib/auth/auth-store";
 import { isReturningDevice, runMainnetCutoverIfNeeded } from "@/lib/auth/mainnet-cutover-reset";
-import { shouldShowWelcomeBack } from "@/lib/auth/returning-user-probe";
 import { ThemeModeProvider } from "@/providers/theme-context";
 import { useConnectivity, useOfflineRedirect } from "@/features/offline/hooks/use-offline-redirect";
 
@@ -35,8 +33,6 @@ export default function RootLayout() {
 
   const [bootstrapDismissed, setBootstrapDismissed] = useState(false);
   const [resetReady, setResetReady] = useState(false);
-  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
-  const welcomeBackRedirectedRef = useRef(false);
   const [loaded] = useFonts({
     "Lexend-Light": require("@/assets/fonts/Lexend-Light.ttf"),
     Lexend: require("@/assets/fonts/Lexend-Regular.ttf"),
@@ -48,15 +44,13 @@ export default function RootLayout() {
 
   const { isLoading, error: bootstrapError, refresh: refreshBootstrap } = useBootstrap();
 
-  const { isConnected, confirmedOffline, pathnameRef } = useConnectivity();
+  const { confirmedOffline, pathnameRef } = useConnectivity();
 
   // Runs once before anything else touches SecureStore: on a device upgrading from
   // a testnet build, wipes the now-meaningless local identity/wallet state.
   useEffect(() => {
     isReturningDevice()
       .then((returningDevice) => runMainnetCutoverIfNeeded(returningDevice))
-      .then(() => shouldShowWelcomeBack())
-      .then(setShowWelcomeBack)
       .finally(() => setResetReady(true));
   }, []);
 
@@ -75,14 +69,7 @@ export default function RootLayout() {
     }
   }, [loaded, isLoading]);
 
-  const showLoader = !bootstrapDismissed && (!resetReady || !loaded || _isNull(isConnected) || isLoading || !!bootstrapError);
-
-  // One-shot redirect; the ref latch stops it firing again on later re-renders.
-  useEffect(() => {
-    if (showLoader || !showWelcomeBack || welcomeBackRedirectedRef.current) return;
-    welcomeBackRedirectedRef.current = true;
-    router.replace(`/${ROUTE_NAMES.WELCOME_BACK}`);
-  }, [showLoader, showWelcomeBack]);
+  const showLoader = !bootstrapDismissed && (!resetReady || !loaded || isLoading || !!bootstrapError);
 
   useOfflineRedirect(confirmedOffline, showLoader, pathnameRef);
 

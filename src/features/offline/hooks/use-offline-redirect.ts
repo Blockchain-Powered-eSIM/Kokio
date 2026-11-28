@@ -25,7 +25,6 @@ const OFFLINE_CONFIRM_DELAY_MS = 3000;
 /** Tracks whether the device is online, with a short debounce before confirming it is offline. */
 export function useConnectivity() {
   const pathname = usePathname();
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
   // Use refs to avoid recreating the NetInfo listener on every pathname change
   const pathnameRef = useRef(pathname);
@@ -44,7 +43,6 @@ export function useConnectivity() {
       clearTimeout(offlineTimerRef.current);
       offlineTimerRef.current = null;
     }
-    setIsConnected(true);
     setSkipNextOfflineRedirect(false);
     updateConfirmedOffline(false);
   }, [updateConfirmedOffline]);
@@ -53,7 +51,6 @@ export function useConnectivity() {
     (online: boolean) => {
       const isFirstReading = !hasReadingRef.current;
       hasReadingRef.current = true;
-      setIsConnected(online);
 
       if (online) {
         markOnline();
@@ -91,27 +88,19 @@ export function useConnectivity() {
     }
   }, [pathname]);
 
+  // The app opens without waiting for this first reading; an offline answer
+  // then redirects to the Offline screen.
   useEffect(() => {
-    // isInternetReachable can stay null indefinitely on some devices; give up
-    // after 6s and assume online so the loader cannot hang. A later definite
-    // reading still corrects it.
-    const timeoutId = setTimeout(() => setIsConnected((prev) => prev ?? true), 6000);
-
     NetInfo.fetch().then((state) => {
       const online = toOnline(state);
-      if (online === null) return;
-      clearTimeout(timeoutId);
-      applyReading(online);
+      if (online !== null) applyReading(online);
     });
-
-    return () => clearTimeout(timeoutId);
   }, [applyReading]);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const online = toOnline(state);
-      // Never write an unknown reading back into isConnected: it feeds
-      // showLoader, so null would unmount the whole Stack and reset navigation.
+      // An unknown reading changes nothing; only a definite one counts.
       if (online === null) return;
       applyReading(online);
     });
@@ -121,7 +110,7 @@ export function useConnectivity() {
     };
   }, [applyReading]);
 
-  return { isConnected, confirmedOffline, pathnameRef };
+  return { confirmedOffline, pathnameRef };
 }
 
 /**
