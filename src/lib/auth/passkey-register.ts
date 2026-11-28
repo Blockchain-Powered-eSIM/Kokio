@@ -1,6 +1,6 @@
 import { Passkey } from 'react-native-passkey';
-import { type Hex, bytesToHex } from 'viem';
-import { decodeAttestationObject, parseAuthenticatorData, decodeCredentialPublicKey, isoBase64URL, cose } from '@simplewebauthn/server/helpers';
+import type { Hex } from 'viem';
+import { extractP256PublicKey } from './passkey-public-key';
 import { kokioAuthClient, RegisterCompleteData } from './kokio-auth-client';
 import { AuthError } from './errors';
 
@@ -59,23 +59,7 @@ async function _registerPasskey(username: string): Promise<RegisterResult> {
     attestation: options.attestation,
   });
 
-  // Extract the P-256 public key (x, y) from the attestation object.
-  // The Kokio SDK needs these to compute the smart account initCode for on-chain deployment.
-  // COSE integer keys: -2 = x, -3 = y (https://www.iana.org/assignments/cose/cose.xhtml)
-  const attestationBuf = isoBase64URL.toBuffer(credential.response.attestationObject);
-  const decoded = decodeAttestationObject(attestationBuf);
-  const authData = parseAuthenticatorData(decoded.get('authData'));
-  if (!authData.credentialPublicKey) {
-    throw new AuthError('REGISTRATION_FAILED', undefined, 'No public key in attestation');
-  }
-  const cosePubKey = decodeCredentialPublicKey(authData.credentialPublicKey) as cose.COSEPublicKeyEC2;
-  const x = cosePubKey.get(cose.COSEKEYS.x);
-  const y = cosePubKey.get(cose.COSEKEYS.y);
-  if (!x || !y) {
-    throw new AuthError('REGISTRATION_FAILED', undefined, 'COSE public key missing EC2 coordinates');
-  }
-  const publicKeyX = bytesToHex(x) as Hex;
-  const publicKeyY = bytesToHex(y) as Hex;
+  const { x: publicKeyX, y: publicKeyY } = extractP256PublicKey(credential.response.attestationObject);
 
   // 3. Complete registration — server verifies attestation and derives wallet address
   const completeResp = await kokioAuthClient.registerComplete({
