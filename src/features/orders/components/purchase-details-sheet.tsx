@@ -298,24 +298,23 @@ interface PurchaseDetailsSheetProps {
   visible: boolean;
   onClose: () => void;
   order: EnrichedOrder;
-  invoiceUrl: string | null;
   lpa: string | null;
-  supportRef: string | null;
 }
 
 export default function PurchaseDetailsSheet({
   visible,
   onClose,
   order,
-  invoiceUrl,
   lpa,
-  supportRef,
 }: PurchaseDetailsSheetProps) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
+  const invoiceUrl = order.stripeInvoiceUrl ?? null;
+  // idempotencyKey is the correlation id equivalent on OrderListItem.
+  const supportRef = order.idempotencyKey ?? order.orderId ?? null;
   const subtitle = order.esim ? esimDisplayName(order.esim) : (order.planId ?? null);
   const history = order.esim?.planHistory ?? [];
   const pricing = order.pricing ?? null;

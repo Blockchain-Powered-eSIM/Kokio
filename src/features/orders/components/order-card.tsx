@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +13,7 @@ import EsimLabelEditor from "@/features/esim/components/esim-label-editor";
 import { esimDisplayName, esimDocToDisplayItem } from "@/features/esim/esim-display";
 import { colorForStatus, isUserActionableManualReview, labelForStatus } from "../order-status";
 import { createStyles } from "../orders-styles";
-import PurchaseDetailsSheet, { CopyRow, type EnrichedOrder } from "./purchase-details-sheet";
+import { CopyRow, type EnrichedOrder } from "./purchase-details-sheet";
 
 type ActivationStatus = ESimDocument["activationStatus"];
 
@@ -29,17 +29,18 @@ export const OrderCard = ({
   onInstall,
   isExpanded,
   onToggle,
+  onShowDetails,
 }: {
   order: EnrichedOrder;
   onInstall?: (lpa: string) => void;
   isExpanded: boolean;
   onToggle: () => void;
+  onShowDetails: (lpa: string | null) => void;
 }) => {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const { isDark } = useTheme();
   const router = useRouter();
-  const [showPurchaseDetails, setShowPurchaseDetails] = useState(false);
 
   const statusColor = colorForStatus(order.orderStatus);
 
@@ -100,10 +101,7 @@ export const OrderCard = ({
       ? `LPA:1$${order.esim.smdpAddress}$${order.esim.matchingId}`
       : order.esim?.installationDetails?.qrcode ?? null;
 
-  const invoiceUrl = order.stripeInvoiceUrl ?? null;
-  const flagged    = isUserActionableManualReview(order.flaggedForManualReview, order.manualReviewReason);
-  // idempotencyKey is the correlation id equivalent on OrderListItem.
-  const supportRef = order.idempotencyKey ?? order.orderId ?? null;
+  const flagged = isUserActionableManualReview(order.flaggedForManualReview, order.manualReviewReason);
 
   // Display card: built from the linked ESimDocument when available.
   // Falls back to a minimal placeholder when the eSIM doc hasn't been provisioned yet
@@ -228,7 +226,7 @@ export const OrderCard = ({
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
-              onPress={() => setShowPurchaseDetails(true)}
+              onPress={() => onShowDetails(lpa)}
               style={[
                 styles.actionBtn,
                 hasConfirmedInstall
@@ -277,14 +275,6 @@ export const OrderCard = ({
         </View>
       )}
 
-      <PurchaseDetailsSheet
-        visible={showPurchaseDetails}
-        onClose={() => setShowPurchaseDetails(false)}
-        order={order}
-        invoiceUrl={invoiceUrl}
-        lpa={lpa}
-        supportRef={supportRef}
-      />
     </View>
   );
 };

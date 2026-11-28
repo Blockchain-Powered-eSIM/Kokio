@@ -18,7 +18,7 @@ import { createStyles } from "./orders-styles";
 import { useOrders } from "./hooks/use-orders";
 import { usePendingOrders } from "./hooks/use-pending-orders";
 import type { PendingOrderRecord } from "./hooks/use-pending-orders";
-import type { EnrichedOrder } from "./components/purchase-details-sheet";
+import PurchaseDetailsSheet, { type EnrichedOrder } from "./components/purchase-details-sheet";
 import { CancelOrderConfirmModal } from "./components/cancel-order-confirm-modal";
 import { OrderCard } from "./components/order-card";
 import { PendingOrderCard } from "./components/pending-order-card";
@@ -70,6 +70,10 @@ export default function OrdersScreen() {
   }, [orders, esims]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // One sheet for the whole list. The last order is kept after closing so the slide-out animation still has content.
+  const [details, setDetails] = useState<{ order: EnrichedOrder; lpa: string | null } | null>(null);
+  const [detailsVisible, setDetailsVisible] = useState(false);
 
   // Default: the eSIM targeted via expandOrderId (e.g. tapped from Home) if
   // present, otherwise the top-most order — open until the user selects a
@@ -173,6 +177,10 @@ export default function OrdersScreen() {
                     prev === getOrderKey(item) ? null : getOrderKey(item),
                   )
                 }
+                onShowDetails={(lpa) => {
+                  setDetails({ order: item, lpa });
+                  setDetailsVisible(true);
+                }}
               />
             )}
             showsVerticalScrollIndicator={false}
@@ -209,6 +217,14 @@ export default function OrdersScreen() {
           />
         )}
       </ThemedView>
+      {details ? (
+        <PurchaseDetailsSheet
+          visible={detailsVisible}
+          onClose={() => setDetailsVisible(false)}
+          order={details.order}
+          lpa={details.lpa}
+        />
+      ) : null}
       <CancelOrderConfirmModal
         visible={cancelTarget !== null}
         mode={cancelMode}
