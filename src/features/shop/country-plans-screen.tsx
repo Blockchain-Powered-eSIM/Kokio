@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
 
 import { Theme } from "@/theme/colors";
 import { useCatalogueByCountry } from "./hooks/use-catalogue";
@@ -87,20 +87,20 @@ function EsimsByCountryContent({ countryCode }: { countryCode: string }) {
 
   if (error) {
     return (
-      <View style={styles.center}>
+      <ThemedView style={styles.center}>
         <ThemedText>{formatBffError(error)}</ThemedText>
         <TouchableOpacity onPress={() => refetch()} style={styles.retry}>
           <ThemedText style={styles.retryLabel}>Try again</ThemedText>
         </TouchableOpacity>
-      </View>
+      </ThemedView>
     );
   }
 
   if (!data?.plans.length) {
     return (
-      <View style={styles.center}>
+      <ThemedView style={styles.center}>
         <ThemedText>No plans available</ThemedText>
-      </View>
+      </ThemedView>
     );
   }
 
