@@ -25,6 +25,7 @@ export const CONTACT_IDS_KEY = 'contactIds';
 export const CONTACT_KEY_PREFIX = 'contact_';
 export const CUSTOM_TOKENS_KEY = 'customTokens';
 export const PENDING_ORDERS_STORAGE_KEY = '@kokio_pending_orders';
+export const SERVICE_REGIONS_STORAGE_KEY = 'kokio.serviceRegions';
 export const THEME_STORAGE_KEY = '@kokio_theme';
 
 export const contactKey = (contactId: string): string => `${CONTACT_KEY_PREFIX}${contactId}`;
